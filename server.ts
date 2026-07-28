@@ -21,6 +21,11 @@ async function startServer() {
   const app = express();
   const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
 
+  // Render (and most PaaS hosts) run this app behind a reverse proxy that sets
+  // X-Forwarded-For. Trusting exactly 1 hop lets express-rate-limit identify
+  // real client IPs correctly instead of throwing ERR_ERL_UNEXPECTED_X_FORWARDED_FOR.
+  app.set('trust proxy', 1);
+
   app.use(express.json({ limit: '5mb' }));
 
   // Rate Limiter
