@@ -1,0 +1,153 @@
+import { RevisionEngineInput, RevisionEngineOutput, RevisionCardItem, ChapterRevisionSummary } from './types';
+import { FORMULA_BANK } from '../../constants/formulaBank';
+
+export class RevisionEngine {
+  private cacheHash: string = '';
+  private cachedOutput: RevisionEngineOutput | null = null;
+
+  public generateRevisionTelemetry(input: RevisionEngineInput): RevisionEngineOutput {
+    const hash = this.computeHash(input);
+    if (this.cachedOutput && this.cacheHash === hash) {
+      return this.cachedOutput;
+    }
+
+    const { chapters, chapterTelemetryMap, sessions } = input;
+    const allTelemetry = Object.values(chapterTelemetryMap || {});
+
+    const overdueChapters: ChapterRevisionSummary[] = [];
+    const upcomingChapters: ChapterRevisionSummary[] = [];
+    const masteredChapters: ChapterRevisionSummary[] = [];
+    // BUGFIX: previously unstarted chapters were shoved into `masteredChapters` with a
+    // fabricated 95%/"High" retention score. They get their own bucket now.
+    const notStartedChapters: ChapterRevisionSummary[] = [];
+    const allCards: RevisionCardItem[] = [];
+
+    // Process chapters & formula cards
+    chapters.forEach(chap => {
+      const telemetry = chapterTelemetryMap[chap.id];
+      const isStartedOrMastered = telemetry 
+        ? (telemetry.syllabusStage === 'In Progress' || telemetry.syllabusStage === 'Mastered')
+        : (chap.completion > 0 || (chap.currentLecture && chap.currentLecture > 0) || chap.theoryComplete || chap.status === 'Mastered');
+
+      // BUGFIX: chapters that haven't been started have no memory to have decayed —
+      // labeling them 'High'/95% retention is actively misleading (it previously made
+      // the Retention Matrix show untouched chapters as if they were well-retained).
+      // Give them an honest, distinct 'Not Started' state with no fabricated score.
+      const retentionConfidence: ChapterRevisionSummary['retentionConfidence'] = isStartedOrMastered
+        ? (telemetry?.retentionConfidence || 'High')
+        : 'Not Started';
+      const retentionScore: number | undefined = isStartedOrMastered
+        ? (telemetry?.strategyRadar?.retentionConfidenceScore ?? 90)
+        : undefined;
+
+      // Find matching formulas from FORMULA_BANK
+      const bankEntry = FORMULA_BANK.find(fb => fb.chapterId === chap.id || fb.chapterName.toLowerCase() === chap.name.toLowerCase());
+      const formulas = bankEntry?.formulas || [];
+
+      // Find last study session for chapter
+      const chapSessions = sessions.filter(s => s.subjectId === chap.subject);
+      const lastSession = chapSessions.length > 0 ? chapSessions[chapSessions.length - 1].startTime : undefined;
+
+      const summaryItem: ChapterRevisionSummary = {
+        chapterId: chap.id,
+        chapterName: chap.name,
+        subject: chap.subject,
+        retentionConfidence,
+        retentionScore,
+        overdueCardsCount: (isStartedOrMastered && retentionConfidence === 'Low') ? formulas.length : 0,
+        totalCardsCount: isStartedOrMastered ? formulas.length : 0,
+        lastRevisionDate: lastSession
+      };
+
+      if (!isStartedOrMastered) {
+        notStartedChapters.push(summaryItem);
+      } else if (retentionConfidence === 'Low') {
+        overdueChapters.push(summaryItem);
+      } else if (retentionConfidence === 'Medium') {
+        upcomingChapters.push(summaryItem);
+      } else {
+        masteredChapters.push(summaryItem);
+      }
+
+      // BUGFIX: don't generate revision flashcards for chapters that haven't been
+      // started — there's nothing to "revise" yet, and doing so previously produced
+      // cards claiming 'High'/95% retention for material the student was never
+      // taught in the first place.
+      if (!isStartedOrMastered) {
+        return;
+      }
+
+      // Generate card items with spaced repetition metadata
+      formulas.forEach((f, idx) => {
+        const urgencyRank = retentionConfidence === 'Low' ? 100 - (retentionScore ?? 90) : retentionConfidence === 'Medium' ? 60 - (retentionScore ?? 90) : 20 - (retentionScore ?? 90);
+        
+        const intervalStage = retentionConfidence === 'Low' ? '1d' : retentionConfidence === 'Medium' ? '3d' : '7d';
+        const nextReviewDays = retentionConfidence === 'Low' ? 1 : retentionConfidence === 'Medium' ? 3 : 7;
+
+        allCards.push({
+          id: `${chap.id}-f${idx}`,
+          chapterId: chap.id,
+          chapterName: chap.name,
+          subject: chap.subject,
+          retentionConfidence: retentionConfidence as 'High' | 'Medium' | 'Low',
+          retentionScore: retentionScore ?? 90,
+          title: f.title,
+          concept: f.concept,
+          formula: f.formula,
+          lastReviewedDate: lastSession,
+          nextReviewDays,
+          intervalStage,
+          recalledCount: chap.completion >= 100 ? 5 : chap.completion > 0 ? 2 : 0,
+          urgencyRank
+        });
+      });
+    });
+
+    // Sort all cards by urgency (highest urgency rank first)
+    allCards.sort((a, b) => b.urgencyRank - a.urgencyRank);
+
+    // Top 6 most urgent cards for compact non-cluttered view
+    const urgentCards = allCards.slice(0, 6);
+
+    const totalOverdue = overdueChapters.length;
+    const totalUpcoming = upcomingChapters.length;
+    const totalMastered = masteredChapters.length;
+    const totalNotStarted = notStartedChapters.length;
+    // BUGFIX: average retention should reflect chapters that have actually been
+    // studied. `allTelemetry` already only contains chapters with telemetry records
+    // (i.e. started chapters), so this was not itself skewed by unstarted chapters —
+    // kept as-is, just documenting why it's already correct.
+    const avgRetentionScore = allTelemetry.length > 0
+      ? Math.round(allTelemetry.reduce((acc, t) => acc + (t.strategyRadar?.retentionConfidenceScore || 70), 0) / allTelemetry.length)
+      : 75;
+
+    const output: RevisionEngineOutput = {
+      overdueChapters,
+      upcomingChapters,
+      masteredChapters,
+      notStartedChapters,
+      cards: allCards,
+      urgentCards,
+      stats: {
+        totalOverdue,
+        totalUpcoming,
+        totalMastered,
+        totalNotStarted,
+        avgRetentionScore,
+        reviewedTodayCount: sessions.filter(s => s.type === 'Revision').length
+      }
+    };
+
+    this.cacheHash = hash;
+    this.cachedOutput = output;
+    return output;
+  }
+
+  private computeHash(input: RevisionEngineInput): string {
+    const chapSig = input.chapters.map(c => `${c.id}:${c.status}:${c.completion}`).join('|');
+    const sessionCount = input.sessions.length;
+    const mistakeCount = input.mistakes.length;
+    const telemetryCount = Object.keys(input.chapterTelemetryMap || {}).length;
+    return `${chapSig}_s${sessionCount}_m${mistakeCount}_t${telemetryCount}`;
+  }
+}

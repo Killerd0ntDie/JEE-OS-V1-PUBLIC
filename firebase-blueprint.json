@@ -1,0 +1,101 @@
+{
+  "collections": {
+    "users": {
+      "schema": {
+        "properties": {
+          "xp": { "type": "object" },
+          "analytics": { "type": "object" },
+          "energyLevel": { "type": "string" },
+          "activeSubject": { "type": "string" },
+          "isMissionModeActive": { "type": "boolean" },
+          "coachMessage": { "type": "string" },
+          "dailyGoal": { "type": "string" },
+          "examDate": { "type": "string" },
+          "streak": { "type": "number" }
+        }
+      },
+      "subcollections": {
+        "chapters": {
+          "schema": {
+            "properties": {
+              "id": { "type": "string" },
+              "subject": { "type": "string" },
+              "unit": { "type": "string" },
+              "name": { "type": "string" },
+              "completion": { "type": "number" },
+              "currentLecture": { "type": "number" },
+              "totalLectures": { "type": "number" },
+              "theoryComplete": { "type": "boolean" },
+              "dppComplete": { "type": "boolean" },
+              "pyqsComplete": { "type": "boolean" },
+              "revisionCount": { "type": "number" },
+              "difficulty": { "type": "string" },
+              "confidence": { "type": "number" },
+              "estimatedRemainingTime": { "type": "number" },
+              "priority": { "type": "number" },
+              "dependencies": { "type": "array" },
+              "weaknessScore": { "type": "number" },
+              "status": { "type": "string" },
+              "solvedQuestions": { "type": "number" },
+              "lastRevisionDaysAgo": { "type": "number" }
+            }
+          }
+        },
+        "notes": {
+          "schema": {
+            "properties": {
+              "id": { "type": "string" },
+              "timestamp": { "type": "string" },
+              "text": { "type": "string" },
+              "category": { "type": "string" },
+              "subject": { "type": "string" },
+              "chapter": { "type": "string" }
+            }
+          }
+        },
+        "mistakes": {
+          "schema": {
+            "properties": {
+              "id": { "type": "string" },
+              "subject": { "type": "string" },
+              "chapter": { "type": "string" },
+              "topic": { "type": "string" },
+              "subtopic": { "type": "string" },
+              "difficulty": { "type": "string" },
+              "source": { "type": "string" },
+              "timeTaken": { "type": "number" },
+              "correctMethod": { "type": "string" },
+              "studentMethod": { "type": "string" },
+              "mistakeTypes": { "type": "array" },
+              "confidence": { "type": "number" },
+              "revisionSchedule": { "type": "string" },
+              "masteryImpact": { "type": "string" },
+              "attemptNumber": { "type": "number" },
+              "revisionStatus": { "type": "string" },
+              "recoveryScore": { "type": "number" },
+              "teacherNotes": { "type": "string" },
+              "personalNotes": { "type": "string" },
+              "aiAdvice": { "type": "string" },
+              "priority": { "type": "string" },
+              "dateLogged": { "type": "string" },
+              "questionText": { "type": "string" },
+              "correctSolution": { "type": "string" }
+            }
+          }
+        },
+        "customTimelineBlocks": {
+          "schema": {
+            "properties": {
+              "id": { "type": "string" },
+              "time": { "type": "string" },
+              "subject": { "type": "string" },
+              "chapter": { "type": "string" },
+              "activity": { "type": "string" },
+              "completed": { "type": "boolean" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

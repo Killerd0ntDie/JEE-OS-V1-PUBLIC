@@ -1,0 +1,61 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2026-07-26T00:00:00Z",
+  "questions": [
+    {
+      "id": "PHYS-KIN-001",
+      "subject": "physics",
+      "chapterId": "phys-kinematics-001",
+      "topic": "Projectile Motion",
+      "type": "MCQ_SINGLE",
+      "difficulty": "JEE_ADVANCED",
+      "content": "A particle of mass $m$ is projected from the ground with an initial speed $u$ at an angle $\\theta$ with the horizontal. At the highest point of its trajectory, it breaks into two equal fragments. One of the fragments retraces its path to the point of projection. The velocity of the other fragment just after the explosion is:",
+      "options": [
+        { "id": "A", "text": "$u \\cos\\theta \\hat{i} + u \\sin\\theta \\hat{j}$" },
+        { "id": "B", "text": "$3u \\cos\\theta \\hat{i}$" },
+        { "id": "C", "text": "$2u \\cos\\theta \\hat{i} + u \\sin\\theta \\hat{j}$" },
+        { "id": "D", "text": "$3u \\cos\\theta \\hat{i} + u \\sin\\theta \\hat{j}$" }
+      ],
+      "solution": {
+        "text": "At the highest point, the velocity of the particle before explosion is $v = u \\cos\\theta \\hat{i}$. Momentum is conserved horizontally. Initial momentum $P_i = m u \\cos\\theta \\hat{i}$. The fragment that retraces its path must have velocity $-u \\cos\\theta \\hat{i}$ (so it falls back in the same parabolic path reversed). The mass of each fragment is $m/2$. By conservation of momentum: $P_i = P_{f1} + P_{f2} \\implies m u \\cos\\theta \\hat{i} = (m/2)(-u \\cos\\theta \\hat{i}) + (m/2)v_2$. Solving for $v_2$, we get $v_2 = 3u \\cos\\theta \\hat{i}$.",
+        "correctOptionIds": ["B"]
+      },
+      "source": "JEE Advanced 2020 Pattern"
+    },
+    {
+      "id": "MATH-CALC-001",
+      "subject": "maths",
+      "chapterId": "math-calc-004",
+      "topic": "Definite Integration",
+      "type": "NUMERICAL",
+      "difficulty": "JEE_ADVANCED",
+      "content": "Let $I = \\int_{-\\frac{\\pi}{2}}^{\\frac{\\pi}{2}} \\frac{\\cos^2 x}{1 + 3^x} dx$. Find the value of $\\frac{4I}{\\pi}$.",
+      "solution": {
+        "text": "Using the property $\\int_a^b f(x) dx = \\int_a^b f(a+b-x) dx$, we have $I = \\int_{-\\frac{\\pi}{2}}^{\\frac{\\pi}{2}} \\frac{\\cos^2(-x)}{1 + 3^{-x}} dx = \\int_{-\\frac{\\pi}{2}}^{\\frac{\\pi}{2}} \\frac{3^x \\cos^2 x}{1 + 3^x} dx$. Adding both expressions for $I$: $2I = \\int_{-\\frac{\\pi}{2}}^{\\frac{\\pi}{2}} \\cos^2 x dx = 2 \\int_0^{\\frac{\\pi}{2}} \\cos^2 x dx$. We know $\\int_0^{\\frac{\\pi}{2}} \\cos^2 x dx = \\frac{\\pi}{4}$. Thus, $2I = 2(\\frac{\\pi}{4}) = \\frac{\\pi}{2}$, so $I = \\frac{\\pi}{4}$. Therefore, $\\frac{4I}{\\pi} = 1$.",
+        "correctNumericalValue": 1,
+        "numericalTolerance": 0
+      },
+      "source": "JEE Advanced Mathematics"
+    },
+    {
+      "id": "CHEM-ORG-001",
+      "subject": "chemistry",
+      "chapterId": "chem-org-002",
+      "topic": "Electrophilic Aromatic Substitution",
+      "type": "MCQ_MULTIPLE",
+      "difficulty": "JEE_ADVANCED",
+      "content": "Which of the following statements is/are correct regarding the nitration of benzene and its derivatives using a mixture of concentrated $HNO_3$ and concentrated $H_2SO_4$?",
+      "options": [
+        { "id": "A", "text": "The active electrophile is the nitronium ion ($NO_2^+$)." },
+        { "id": "B", "text": "The rate of nitration of toluene is faster than that of benzene." },
+        { "id": "C", "text": "The rate-determining step is the deprotonation of the arenium ion (sigma complex)." },
+        { "id": "D", "text": "Nitration of nitrobenzene is a highly exothermic process that occurs rapidly at room temperature." }
+      ],
+      "solution": {
+        "text": "A is correct: $HNO_3 + 2H_2SO_4 \\rightleftharpoons NO_2^+ + 2HSO_4^- + H_3O^+$. B is correct: Toluene has an electron-donating methyl group (via hyperconjugation and +I effect), activating the ring and increasing the rate. C is incorrect: The rate-determining step is the attack of the electrophile on the aromatic ring to form the sigma complex. D is incorrect: Nitrobenzene is highly deactivated; nitration requires drastic conditions (fuming $HNO_3$ and strong heat).",
+        "correctOptionIds": ["A", "B"]
+      },
+      "source": "JEE Advanced Organic Chemistry"
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+fetch('http://localhost:3000/api/practice/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subject: 'physics' }) }).then(r => r.json().then(data => console.log(r.status, data)));

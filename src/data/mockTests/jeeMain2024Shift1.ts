@@ -1,0 +1,101 @@
+import { MockTest } from '../../types/mockTest';
+
+export const mockTest1: MockTest = {
+  "id": "jee-main-2024-shift-1",
+  "name": "JEE Main 2024 (Shift 1) - Mock Test",
+  "durationMinutes": 180,
+  "totalMarks": 300,
+  "sections": [
+    {
+      "subject": "physics",
+      "questions": [
+        {
+          "id": "p1",
+          "subject": "physics",
+          "type": "MCQ",
+          "chapter": "Kinematics",
+          "topic": "Projectile Motion",
+          "difficulty": "Medium",
+          "content": "A particle is projected at an angle of 45 degrees with the horizontal. The kinetic energy of the particle at the highest point of its trajectory is K. The kinetic energy of the particle at the point of projection is:",
+          "options": ["K", "K/2", "2K", "4K"],
+          "correctAnswer": "2",
+          "marks": { "correct": 4, "incorrect": -1 },
+          "explanation": "At the highest point, velocity is u*cos(45) = u/√2. KE_top = 1/2 m (u/√2)^2 = K/2. So initial KE is 2K."
+        },
+        {
+          "id": "p2",
+          "subject": "physics",
+          "type": "NUMERICAL",
+          "chapter": "Current Electricity",
+          "topic": "Ohm's Law",
+          "difficulty": "Easy",
+          "content": "A wire of resistance 10 ohms is stretched to twice its original length. What is the new resistance of the wire in ohms?",
+          "correctAnswer": "40",
+          "marks": { "correct": 4, "incorrect": -1 },
+          "explanation": "Resistance R is proportional to l^2 (since volume is constant). If l becomes 2l, R becomes 4 times. R' = 4 * 10 = 40 ohms."
+        }
+      ]
+    },
+    {
+      "subject": "chemistry",
+      "questions": [
+        {
+          "id": "c1",
+          "subject": "chemistry",
+          "type": "MCQ",
+          "chapter": "Chemical Bonding",
+          "topic": "VSEPR Theory",
+          "difficulty": "Easy",
+          "content": "The shape of XeF4 molecule is:",
+          "options": ["Tetrahedral", "Square planar", "See-saw", "Octahedral"],
+          "correctAnswer": "1",
+          "marks": { "correct": 4, "incorrect": -1 },
+          "explanation": "XeF4 has 4 bond pairs and 2 lone pairs. Hybridization is sp3d2, shape is square planar."
+        },
+        {
+          "id": "c2",
+          "subject": "chemistry",
+          "type": "NUMERICAL",
+          "chapter": "Solutions",
+          "topic": "Molarity",
+          "difficulty": "Medium",
+          "content": "What is the molarity of a solution containing 4g of NaOH in 250mL of solution? (Molar mass of NaOH = 40g/mol)",
+          "correctAnswer": "0.4",
+          "marks": { "correct": 4, "incorrect": -1 },
+          "explanation": "Moles = 4/40 = 0.1 mol. Volume = 0.25 L. Molarity = 0.1 / 0.25 = 0.4 M."
+        }
+      ]
+    },
+    {
+      "subject": "maths",
+      "questions": [
+        {
+          "id": "m1",
+          "subject": "maths",
+          "type": "MCQ",
+          "chapter": "Calculus",
+          "topic": "Definite Integration",
+          "difficulty": "Hard",
+          "content": "The value of ∫[0 to π/2] (sin x) / (sin x + cos x) dx is:",
+          "options": ["π", "π/2", "π/4", "0"],
+          "correctAnswer": "2",
+          "marks": { "correct": 4, "incorrect": -1 },
+          "explanation": "Using King's rule ∫f(x)dx = ∫f(a-x)dx, I = ∫cos x / (sin x + cos x). 2I = ∫1 dx = π/2. I = π/4."
+        },
+        {
+          "id": "m2",
+          "subject": "maths",
+          "type": "NUMERICAL",
+          "chapter": "Matrices",
+          "topic": "Determinants",
+          "difficulty": "Medium",
+          "content": "If A is a 3x3 matrix with determinant |A| = 5, find the value of |2A|.",
+          "correctAnswer": "40",
+          "marks": { "correct": 4, "incorrect": -1 },
+          "explanation": "|kA| = k^n |A|, where n is the order. |2A| = 2^3 * 5 = 8 * 5 = 40."
+        }
+      ]
+    }
+  ]
+}
+;

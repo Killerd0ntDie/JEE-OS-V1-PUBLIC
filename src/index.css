@@ -1,0 +1,171 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  
+  /* Sophisticated Dark Theme Color Palette */
+  --color-zinc-950: #09090b;
+  --color-zinc-900: #0c0c0e;
+  --color-zinc-850: #18181b;
+  --color-zinc-800: #27272a;
+  --color-zinc-750: #2a2a2e;
+  --color-zinc-700: #3f3f46;
+  
+  --color-brand-primary: #ffffff;
+  --color-brand-accent: #6366f1; /* Sophisticated Indigo accent */
+  --color-brand-accent-glow: rgba(99, 102, 241, 0.15);
+
+  --font-size-3xs: 0.68rem; /* ~10.9px */
+  --font-size-2xs: 0.75rem; /* ~12px */
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+body {
+  background-color: #09090b;
+  color: #a1a1aa; /* Zinc-400 */
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Sophisticated Dark borders and cards */
+.premium-border {
+  border: 1px solid #27272a; /* border-zinc-800 */
+}
+
+.premium-border-b {
+  border-bottom: 1px solid #27272a;
+}
+
+.premium-border-r {
+  border-right: 1px solid #27272a;
+}
+
+.premium-card {
+  background: rgba(12, 12, 14, 0.4);
+  backdrop-filter: blur(16px);
+  border: 1px solid #27272a;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.01);
+}
+
+.premium-card:hover {
+  border-color: #3f3f46;
+  background: rgba(12, 12, 14, 0.6);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.02);
+}
+
+
+/* Subtle glow effect for headers */
+.glow-accent {
+  position: relative;
+}
+.glow-accent::after {
+  content: '';
+  position: absolute;
+  top: -10%;
+  left: 10%;
+  right: 10%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.2), transparent);
+  filter: blur(1px);
+}
+
+/* Remove default spinner arrows from number inputs globally */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* Input validation shake animation */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  50% { transform: translateX(4px); }
+  75% { transform: translateX(-2px); }
+}
+
+.animate-shake {
+  animation: shake 0.3s ease-in-out;
+}
+
+/* Skeleton shimmer animation */
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}
+
+/* Glassmorphism Design Tokens & Utilities */
+.glass-card {
+  background: rgba(18, 19, 24, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-card-hover:hover {
+  background: rgba(24, 25, 32, 0.8);
+  border-color: rgba(99, 102, 241, 0.35);
+  box-shadow: 0 12px 40px 0 rgba(99, 102, 241, 0.15);
+  transform: translateY(-2px);
+}
+
+.glass-panel {
+  background: rgba(12, 12, 16, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.text-gradient-indigo {
+  background: linear-gradient(135deg, #c7d2fe 0%, #818cf8 50%, #6366f1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.text-gradient-emerald {
+  background: linear-gradient(135deg, #a7f3d0 0%, #34d399 50%, #10b981 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.glow-ambient-indigo {
+  position: absolute;
+  width: 250px;
+  height: 250px;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, rgba(0, 0, 0, 0) 70%);
+  filter: blur(40px);
+  pointer-events: none;
+}
+
+.glow-ambient-emerald {
+  position: absolute;
+  width: 250px;
+  height: 250px;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, rgba(0, 0, 0, 0) 70%);
+  filter: blur(40px);
+  pointer-events: none;
+}

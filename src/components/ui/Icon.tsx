@@ -1,0 +1,113 @@
+import React from 'react';
+import {
+  LayoutDashboard,
+  Atom,
+  FlaskConical,
+  Binary,
+  Calendar,
+  Bookmark,
+  FileText,
+  FileQuestion,
+  LineChart,
+  Sparkles,
+  Sliders,
+  ChevronDown,
+  ChevronRight,
+  Search,
+  Bell,
+  Command,
+  TrendingUp,
+  Award,
+  CheckCircle,
+  HelpCircle,
+  LogOut,
+  Target,
+  ArrowRight,
+  Check,
+  Zap,
+  BookOpen,
+  Plus,
+  Clock,
+  Menu,
+  X,
+  Sparkle,
+  Play,
+  Pause,
+  Lock,
+  RefreshCw,
+  ChevronUp,
+  Flame,
+  Activity,
+  RotateCcw,
+  Info,
+  SlidersHorizontal,
+  Cpu,
+  Trash2,
+  AlertCircle,
+  BarChart3,
+  SearchX,
+  LucideProps
+} from 'lucide-react';
+
+export const iconMap = {
+  LayoutDashboard,
+  Atom,
+  FlaskConical,
+  Binary,
+  Calendar,
+  Bookmark,
+  FileText,
+  FileQuestion,
+  LineChart,
+  Sparkles,
+  Sliders,
+  ChevronDown,
+  ChevronRight,
+  Search,
+  Bell,
+  Command,
+  TrendingUp,
+  Award,
+  CheckCircle,
+  HelpCircle,
+  LogOut,
+  Target,
+  ArrowRight,
+  Check,
+  Zap,
+  BookOpen,
+  Plus,
+  Clock,
+  Menu,
+  X,
+  Sparkle,
+  Play,
+  Pause,
+  Lock,
+  RefreshCw,
+  ChevronUp,
+  Flame,
+  Activity,
+  RotateCcw,
+  Info,
+  SlidersHorizontal,
+  Cpu,
+  Trash2,
+  AlertCircle,
+  BarChart3,
+  SearchX
+};
+
+export type IconName = keyof typeof iconMap;
+
+interface IconProps extends React.SVGProps<SVGSVGElement> {
+  name: string;
+  className?: string;
+  size?: number | string;
+}
+
+export function Icon({ name, ...props }: IconProps) {
+  const IconComponent = iconMap[name as IconName] || HelpCircle;
+  // @ts-ignore
+  return <IconComponent {...props} />;
+}
