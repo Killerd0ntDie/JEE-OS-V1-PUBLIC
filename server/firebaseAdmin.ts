@@ -14,24 +14,29 @@ try {
     const keyPath = path.resolve(process.cwd(), 'firebase-admin-key.json');
     const keyJson = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
 
+    // Diagnostic only — never logs the actual secret value, just whether it arrived.
+    console.log(
+      `[firebaseAdmin] FIREBASE_SERVICE_ACCOUNT_KEY present: ${!!keyJson}, length: ${keyJson ? keyJson.length : 0}`
+    );
+
     if (keyJson) {
-      // For hosts with no local file and no GCP default credentials (e.g. Render):
-      // paste the full service account JSON into this one env var.
       const serviceAccount = JSON.parse(keyJson);
       credentialOptions = { credential: cert(serviceAccount) };
-      console.log('Firebase Admin initialized from FIREBASE_SERVICE_ACCOUNT_KEY env var.');
+      console.log(
+        `[firebaseAdmin] Initialized from env var. project_id in key: ${serviceAccount.project_id}`
+      );
     } else if (fs.existsSync(keyPath)) {
       const serviceAccount = JSON.parse(fs.readFileSync(keyPath, 'utf8'));
       credentialOptions = { credential: cert(serviceAccount) };
-      console.log('Firebase Admin initialized with local key file.');
+      console.log('[firebaseAdmin] Initialized with local key file.');
     } else {
-      console.log('Firebase Admin initialized (using default credentials or emulator).');
+      console.log('[firebaseAdmin] No key found — falling back to default credentials (will fail on Render).');
     }
     
     initializeApp(credentialOptions);
   }
 } catch (error) {
-  console.error('Firebase Admin initialization error', error);
+  console.error('[firebaseAdmin] Initialization error:', error);
 }
 
 export const adminAuth = getApps().length > 0 ? getAuth() : null;
