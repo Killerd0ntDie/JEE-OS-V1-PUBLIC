@@ -266,6 +266,17 @@ export function MissionMode({
 
   const activeDetails = subjectsDetails[activeSubject];
 
+  // The single source of truth for "is there a real, persisted mission behind the
+  // checklist the user is looking at". When this is undefined (e.g. the subject's
+  // mission was already completed, or Tab-cycling landed on a subject with nothing
+  // pending), the checklist falls back to a generic placeholder — and completing a
+  // placeholder must never be treated as completing a mission, since there's no
+  // missionId to attach the completion to.
+  const activeSubjectMission = useMemo(
+    () => state.todayMissions.find(m => m.subject === activeSubject && !m.completed),
+    [state.todayMissions, activeSubject]
+  );
+
   // Resolve active chapter for the active subject (preferring Radar focused chapter if set)
   const activeChap = useMemo(() => {
     const subjChaps = state.chapters.filter(c => c.subject === activeSubject);
@@ -508,6 +519,15 @@ export function MissionMode({
   // Monitor checklist to auto-trigger completion
   useEffect(() => {
     if (checklistProgressPercent === 100 && !isCompleted) {
+      if (!activeSubjectMission) {
+        // There's no pending mission behind this checklist (e.g. this subject's mission
+        // was already completed, or Tab-cycling landed here) — completing the placeholder
+        // checklist has nothing real to attach to, so surface that instead of silently
+        // showing a success modal that doesn't actually save anything.
+        console.warn(`[MissionMode] Checklist completed for ${activeSubject} but no pending mission exists for this subject — skipping auto-completion.`);
+        setCoachTip(`No pending ${subjectsDetails[activeSubject].name} mission right now — switch subject or check your Daily Missions list.`);
+        return;
+      }
       setTimeout(() => {
         setIsCompleted(true);
         if (state.settings.soundEffects) {
@@ -515,7 +535,7 @@ export function MissionMode({
         }
       }, 300);
     }
-  }, [checklistProgressPercent, isCompleted, state.settings]);
+  }, [checklistProgressPercent, isCompleted, state.settings, activeSubjectMission, activeSubject, subjectsDetails]);
 
   // Handle adding custom timestamped note
   const handleAddNote = (e?: React.FormEvent) => {
@@ -681,7 +701,7 @@ export function MissionMode({
                 onExitPractice={() => {
                   // Save practice session before exiting (duration in seconds for consistency)
                   onComplete({
-                    missionId: state.todayMissions.find(m => m.subject === activeSubject && !m.completed)?.id,
+                    missionId: activeSubjectMission?.id,
                     duration: Math.max(60, seconds),  // Send in seconds, minimum 1 minute
                     questions: 0,  // No specific questions tracked in practice mode
                     xp: Math.max(5, Math.floor(seconds / 60) * 5),
@@ -704,12 +724,15 @@ export function MissionMode({
                   return !prev;
                 })}
                 onCompleteAll={() => {
-                  setChecklist({
-                    'Watch lecture': true,
-                    'Make notes': true,
-                    'Solve DPP': true,
-                    'Mark doubts': true,
-                    'Revise formulas': true,
+                  if (!activeSubjectMission) {
+                    console.warn(`[MissionMode] "Complete" pressed for ${activeSubject} but no pending mission exists for this subject — skipping completion.`);
+                    setCoachTip(`No pending ${subjectsDetails[activeSubject].name} mission right now — switch subject or check your Daily Missions list.`);
+                    return;
+                  }
+                  setChecklist(prev => {
+                    const allDone: Record<string, boolean> = {};
+                    Object.keys(prev).forEach(k => { allDone[k] = true; });
+                    return allDone;
                   });
                   setIsCompleted(true);
                 }}
@@ -765,10 +788,11 @@ export function MissionMode({
         focusInterruptions={focusInterruptions}
         focusScore={focusScore}
         onComplete={(data) => {
-          const activeSubjectMission = state.todayMissions.find(m => m.subject === activeSubject && !m.completed);
           // First, mark the current mission as complete
           if (activeSubjectMission?.id) {
             actions.completeTask(activeSubjectMission.id);
+          } else {
+            console.warn(`[MissionMode] Completion modal confirmed for ${activeSubject} but no matching mission was found — nothing was marked complete.`);
           }
           onComplete({
             missionId: activeSubjectMission?.id,
@@ -783,9 +807,10 @@ export function MissionMode({
         }}
         onNextSubject={() => {
           // Mark current mission complete and get the next incomplete mission
-          const activeSubjectMission = state.todayMissions.find(m => m.subject === activeSubject && !m.completed);
           if (activeSubjectMission?.id) {
             actions.completeTask(activeSubjectMission.id);
+          } else {
+            console.warn(`[MissionMode] "Next subject" pressed for ${activeSubject} but no matching mission was found — nothing was marked complete.`);
           }
           
           // Find the next incomplete mission from the full list

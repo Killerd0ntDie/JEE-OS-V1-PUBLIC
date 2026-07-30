@@ -152,6 +152,24 @@ export function DashboardPage({ onNavigate }: { onNavigate: (page: string) => vo
   const incompleteTasks = state.todayMissions.filter(m => !m.completed);
   const nextTaskName = incompleteTasks[0]?.taskName || 'All daily tasks complete';
 
+  // Resolve which subject Mission Mode should actually open on. Previously this always
+  // fell back to 'physics' whenever state.activeSubject was 'all', which meant Mission
+  // Mode could launch on a subject with no incomplete mission left (e.g. physics already
+  // done for the day) — silently breaking completion downstream, since there'd be no
+  // matching mission to attach the checklist to. Prefer the currently selected subject
+  // only if it still has a pending mission; otherwise fall back to whatever subject the
+  // next pending mission actually belongs to.
+  const missionModeSubject: 'physics' | 'chemistry' | 'maths' = (() => {
+    if (state.activeSubject !== 'all' && incompleteTasks.some(m => m.subject === state.activeSubject)) {
+      return state.activeSubject;
+    }
+    const nextSubject = incompleteTasks[0]?.subject;
+    if (nextSubject === 'physics' || nextSubject === 'chemistry' || nextSubject === 'maths') {
+      return nextSubject;
+    }
+    return 'physics';
+  })();
+
   return (
     <div className="w-full max-w-6xl mx-auto flex flex-col gap-6 font-sans text-zinc-400 relative pb-8">
       
@@ -167,7 +185,7 @@ export function DashboardPage({ onNavigate }: { onNavigate: (page: string) => vo
               className="fixed inset-0 z-[100] bg-[#070708] font-sans antialiased text-zinc-400"
             >
               <MissionMode 
-                activeSubject={state.activeSubject === 'all' ? 'physics' : state.activeSubject}
+                activeSubject={missionModeSubject}
                 initialPaused={sessionState === 'paused'}
                 initialSeconds={secondsElapsed}
                 onExit={(currentSecs) => {
@@ -180,6 +198,11 @@ export function DashboardPage({ onNavigate }: { onNavigate: (page: string) => vo
                 onComplete={(stats) => {
                   if (stats.missionId) {
                     actions.completeTask(stats.missionId);
+                  } else {
+                    // Should be rare now that MissionMode always opens on a subject with a
+                    // real pending mission, but if it still happens, surface it instead of
+                    // silently dropping the completion on the floor.
+                    console.warn('[MissionMode] Session completed without a missionId — no task was marked complete.', stats);
                   }
                   // Convert duration from seconds to minutes (duration is always sent in seconds from MissionMode)
                   const durationMinutes = Math.max(1, Math.ceil(stats.duration / 60));
@@ -189,7 +212,7 @@ export function DashboardPage({ onNavigate }: { onNavigate: (page: string) => vo
                     questions: stats.questions,
                     correct: stats.questions,
                     type: 'Practice',
-                    subjectId: state.activeSubject === 'all' ? 'physics' : state.activeSubject,
+                    subjectId: missionModeSubject,
                     idleTime: stats.idleTime ? Math.ceil(stats.idleTime / 60) : 0,
                     focusInterruptions: stats.focusInterruptions,
                     focusScore: stats.focusScore
