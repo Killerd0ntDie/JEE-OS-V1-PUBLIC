@@ -47,7 +47,8 @@ interface MissionModeProps {
   customDurationSecs?: number;
   activeSubject: 'physics' | 'chemistry' | 'maths' | 'all';
   initialPaused?: boolean;
-  onExit: () => void;
+  initialSeconds?: number;
+  onExit: (currentSeconds?: number) => void;
   onComplete: (stats: {
     missionId: string | undefined;
     duration: number;
@@ -99,6 +100,7 @@ export function MissionMode({
   customDurationSecs,
   activeSubject: initialSubject, 
   initialPaused = false,
+  initialSeconds = 0,
   onExit, 
   onComplete 
 }: MissionModeProps) {
@@ -111,7 +113,7 @@ export function MissionMode({
   // so the overlay always reappears the next time the mission is actually paused.
   const [isPauseOverlayDismissed, setIsPauseOverlayDismissed] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
-  const [seconds, setSeconds] = useState(0);
+  const [seconds, setSeconds] = useState(initialSeconds);
   const [focusScore, setFocusScore] = useState(100);
   const [lectureSpeed, setLectureSpeed] = useState(1.25);
   
@@ -132,10 +134,16 @@ export function MissionMode({
   const uninterruptedSecondsRef = useRef(0);
   const focusInterruptionsRef = useRef(0);
   const idleTimeRef = useRef(0);
+  // Always-current snapshot of seconds for use in closures that must not re-register on every tick
+  const secondsRef = useRef(initialSeconds);
 
   const incrementInterruption = () => {
     focusInterruptionsRef.current += 1;
     setFocusInterruptions(prev => prev + 1);
+  };
+
+  const handleExit = () => {
+    onExit(secondsRef.current);
   };
 
   // Dynamically build micro-steps checklist based on the current active mission type for this subject
@@ -313,7 +321,11 @@ export function MissionMode({
         
         if (deltaSecs > 0) {
           if (!isPaused) {
-            setSeconds(prev => prev + deltaSecs);
+            setSeconds(prev => {
+              const next = prev + deltaSecs;
+              secondsRef.current = next;
+              return next;
+            });
             
             uninterruptedSecondsRef.current += deltaSecs;
             setFocusScore(calculateFocusScore({
@@ -437,7 +449,7 @@ export function MissionMode({
         case 'escape':
           e.preventDefault();
           setIsPaused(false);
-          onExit();
+          handleExit();
           break;
         case 'n':
           if (e.ctrlKey || e.metaKey) {
@@ -458,7 +470,7 @@ export function MissionMode({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeSubject, onExit, isPaused]);
+  }, [activeSubject, handleExit, isPaused]);
 
   // Handle checking checklist item
   const handleToggleTask = (task: string) => {
@@ -587,7 +599,7 @@ export function MissionMode({
         <div className="flex items-center gap-3">
           <button 
             type="button"
-            onClick={onExit}
+            onClick={handleExit}
             className="w-10 h-10 rounded-xl border border-zinc-800 hover:bg-zinc-800/50 hover:border-zinc-700 hover:text-white transition-all flex items-center justify-center bg-zinc-950 text-zinc-400 cursor-pointer"
             title="Exit Session"
           >
@@ -741,7 +753,7 @@ export function MissionMode({
         seconds={seconds}
         formatTime={formatTime}
         lectureSpeed={lectureSpeed}
-        onExit={onExit}
+        onExit={handleExit}
       />
 
       <MissionCompleteModal

@@ -169,7 +169,11 @@ export function DashboardPage({ onNavigate }: { onNavigate: (page: string) => vo
               <MissionMode 
                 activeSubject={state.activeSubject === 'all' ? 'physics' : state.activeSubject}
                 initialPaused={sessionState === 'paused'}
-                onExit={() => {
+                initialSeconds={secondsElapsed}
+                onExit={(currentSecs) => {
+                  if (typeof currentSecs === 'number' && currentSecs > 0) {
+                    setSecondsElapsed(currentSecs);
+                  }
                   actions.setMissionModeActive(false);
                   setSessionState('paused');
                 }}
