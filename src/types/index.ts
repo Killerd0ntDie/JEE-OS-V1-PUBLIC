@@ -212,8 +212,9 @@ export interface Chapter {
   solvedQuestions: number;
   lastRevisionDaysAgo: number;
 
-  // On-hold controls: excludes DPP/PYQ tasks from scheduling while true,
+  // On-hold controls: excludes tasks from scheduling while true,
   // but the chapter keeps surfacing as a reminder until turned off.
+  chapterOnHold?: boolean;
   dppOnHold?: boolean;
   pyqOnHold?: boolean;
 
@@ -561,6 +562,7 @@ export interface MentorProfile {
   coachingName?: string;
   dailyAvailableHours: number;
   subjectSplitStrategy?: '3_a_day' | '2_a_day_alternating' | '1_a_day_alternating';
+  twoDaySplitConfig?: [SubjectId[], SubjectId[], SubjectId[]];
   interviewCompleted: boolean;
   interviewCompletedAt?: string;
   realityAuditCompleted?: boolean;

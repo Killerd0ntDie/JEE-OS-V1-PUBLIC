@@ -130,20 +130,20 @@ export function SubjectCommandCenter({
     <div className="space-y-6 pb-12">
       {/* STREAMLINED HEADER & SEARCH BAR CONTAINER */}
       {!expandedChapterId && (
-        <div className="p-6 md:p-7 rounded-2xl border border-zinc-800/80 bg-zinc-950/40 backdrop-blur-xl space-y-5 text-left">
+        <div className="p-4 md:p-6 lg:p-7 rounded-2xl border border-zinc-800/80 bg-zinc-950/40 backdrop-blur-xl space-y-4 md:space-y-5 text-left">
           
           {/* Title & Stats Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3.5">
-              <div className="w-12 h-12 rounded-xl bg-indigo-950/50 border border-indigo-500/30 flex items-center justify-center shrink-0">
-                <Icon name={subjectIcon as any} className="w-6 h-6 text-indigo-400" />
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-indigo-950/50 border border-indigo-500/30 flex items-center justify-center shrink-0">
+                <Icon name={subjectIcon as any} className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-400" />
               </div>
-              <div className="space-y-0.5">
-                <div className="flex items-center gap-2">
-                  <h1 className="text-2xl font-display font-bold text-white tracking-tight">
+              <div className="space-y-0.5 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="text-lg sm:text-xl md:text-2xl font-display font-bold text-white tracking-tight">
                     {subjectTitle}
                   </h1>
-                  <span className="text-[10px] font-mono font-bold text-indigo-400 bg-indigo-950/60 border border-indigo-800/60 px-2 py-0.5 rounded-full">
+                  <span className="text-[9px] sm:text-[10px] font-mono font-bold text-indigo-400 bg-indigo-950/60 border border-indigo-800/60 px-2 py-0.5 rounded-full">
                     {masteredCount}/{totalCount} Mastered ({subjectProgressPercent}%)
                   </span>
                 </div>
@@ -155,10 +155,10 @@ export function SubjectCommandCenter({
           </div>
 
           {/* SINGLE CLEAN TOOLBAR: Search + Unit Tabs + Status Dropdown */}
-          <div className="pt-3 border-t border-zinc-900/80 flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+          <div className="pt-3 border-t border-zinc-900/80 flex flex-col gap-3">
             
             {/* Live Search */}
-            <div className="relative w-full md:w-64 flex items-center gap-2">
+            <div className="relative w-full flex items-center gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
                 <input 
@@ -180,39 +180,41 @@ export function SubjectCommandCenter({
               </button>
             </div>
 
-            {/* Unit Pills */}
-            {unitCategories.length > 1 && (
-              <div className="flex items-center gap-1 overflow-x-auto hide-scrollbar py-0.5">
-                {unitCategories.map(unit => (
-                  <button
-                    key={unit}
-                    type="button"
-                    onClick={() => setActiveUnit(unit)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-mono font-semibold whitespace-nowrap transition-all cursor-pointer ${
-                      activeUnit === unit
-                        ? 'bg-indigo-600 text-white shadow-sm'
-                        : 'bg-zinc-900/60 text-zinc-400 border border-zinc-850 hover:text-zinc-200'
-                    }`}
-                  >
-                    {unit}
-                  </button>
-                ))}
-              </div>
-            )}
+            {/* Unit Pills and Status Filter */}
+            <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+              {unitCategories.length > 1 && (
+                <div className="flex items-center gap-1 overflow-x-auto hide-scrollbar py-0.5">
+                  {unitCategories.map(unit => (
+                    <button
+                      key={unit}
+                      type="button"
+                      onClick={() => setActiveUnit(unit)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-mono font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                        activeUnit === unit
+                          ? 'bg-indigo-600 text-white shadow-sm'
+                          : 'bg-zinc-900/60 text-zinc-400 border border-zinc-850 hover:text-zinc-200'
+                      }`}
+                    >
+                      {unit}
+                    </button>
+                  ))}
+                </div>
+              )}
 
-            {/* Status Dropdown Filter */}
-            <div className="flex items-center gap-2 shrink-0">
-              <Filter className="w-3.5 h-3.5 text-zinc-500" />
-              <select
-                value={activeFilter}
-                onChange={(e) => setActiveFilter(e.target.value as FilterType)}
-                className="bg-[#0d0e12] border border-zinc-800 rounded-xl px-3 py-2 text-xs font-mono font-bold text-zinc-200 focus:outline-none focus:border-indigo-500 cursor-pointer"
-              >
-                <option value="All">All Statuses</option>
-                <option value="Learning">In Progress</option>
-                <option value="Revision Due">Revision Due</option>
-                <option value="Mastered">Mastered</option>
-              </select>
+              {/* Status Dropdown Filter */}
+              <div className="flex items-center gap-2 shrink-0">
+                <Filter className="w-3.5 h-3.5 text-zinc-500" />
+                <select
+                  value={activeFilter}
+                  onChange={(e) => setActiveFilter(e.target.value as FilterType)}
+                  className="bg-[#0d0e12] border border-zinc-800 rounded-xl px-3 py-2 text-xs font-mono font-bold text-zinc-200 focus:outline-none focus:border-indigo-500 cursor-pointer"
+                >
+                  <option value="All">All Statuses</option>
+                  <option value="Learning">In Progress</option>
+                  <option value="Revision Due">Revision Due</option>
+                  <option value="Mastered">Mastered</option>
+                </select>
+              </div>
             </div>
 
           </div>
@@ -229,13 +231,13 @@ export function SubjectCommandCenter({
           />
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 text-left items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 text-left items-start">
           
           {/* LEFT COLUMN: 65% width — Chapter Cards */}
           <div className="lg:col-span-7 xl:col-span-7 space-y-3">
             {filteredChapters.length === 0 ? (
-              <div className="p-12 flex flex-col items-center justify-center text-zinc-500 space-y-3 border border-dashed border-zinc-850 rounded-2xl bg-zinc-950/20 text-center">
-                <Icon name="SearchX" className="w-10 h-10 opacity-30 text-zinc-400" />
+              <div className="p-8 sm:p-12 flex flex-col items-center justify-center text-zinc-500 space-y-3 border border-dashed border-zinc-850 rounded-2xl bg-zinc-950/20 text-center">
+                <Icon name="SearchX" className="w-8 h-8 sm:w-10 sm:h-10 opacity-30 text-zinc-400" />
                 <p className="text-xs font-mono text-zinc-400">No chapters match active filters.</p>
                 <button
                   onClick={() => { setSearchQuery(''); setActiveFilter('All'); setActiveUnit('All'); }}
@@ -260,7 +262,7 @@ export function SubjectCommandCenter({
           {/* RIGHT COLUMN: 35% width — Telemetry Sidebar */}
           <div className="lg:col-span-5 xl:col-span-5 self-start sticky top-6 space-y-4">
             
-            <div className="p-5 md:p-6 rounded-2xl border border-zinc-800/80 bg-zinc-950/60 backdrop-blur-xl space-y-4">
+            <div className="p-4 md:p-5 lg:p-6 rounded-2xl border border-zinc-800/80 bg-zinc-950/60 backdrop-blur-xl space-y-4">
               
               <div className="flex items-center justify-between border-b border-zinc-900/80 pb-3">
                 <div className="flex items-center gap-2">

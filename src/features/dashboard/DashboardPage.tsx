@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { MissionMode } from '../mission/MissionMode';
@@ -32,6 +32,59 @@ export function DashboardPage({ onNavigate }: { onNavigate: (page: string) => vo
   const [missionToEdit, setMissionToEdit] = useState<any>(null);
   const [isShortcutGuideOpen, setIsShortcutGuideOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'focus' | 'analytics'>('focus');
+
+  // Header cards smart expand/collapse state
+  const [isHeaderExpanded, setIsHeaderExpanded] = useState<boolean>(false);
+
+  const hasBottleneckAlert = useMemo(() => {
+    const list = (Object.values(state.chapterTelemetryMap || {}) as any[]).filter(
+      t => t && t.isBottleneck && t.bottleneckReason
+    );
+    return list.length > 0;
+  }, [state.chapterTelemetryMap]);
+
+  useEffect(() => {
+    // 1. Check if user already manually toggled the panel in this session
+    const sessionOverride = sessionStorage.getItem('jee_command_center_override');
+    if (sessionOverride) {
+      setIsHeaderExpanded(sessionOverride === 'expanded');
+      return;
+    }
+
+    // 2. Check if this is the first visit of the day
+    const todayStr = new Date().toISOString().split('T')[0];
+    const lastVisitDate = localStorage.getItem('jee_last_dashboard_expand_date');
+    const isFirstVisitOfDay = lastVisitDate !== todayStr;
+
+    // 3. Determine if smart auto-expand should trigger
+    if (isFirstVisitOfDay || hasBottleneckAlert) {
+      setIsHeaderExpanded(true);
+
+      // Record first visit of day if applicable
+      if (isFirstVisitOfDay) {
+        localStorage.setItem('jee_last_dashboard_expand_date', todayStr);
+      }
+
+      // Dynamic duration: 8 seconds for bottleneck alert, 5 seconds for normal first visit of day
+      const duration = hasBottleneckAlert ? 8000 : 5000;
+      const timer = setTimeout(() => {
+        setIsHeaderExpanded(false);
+      }, duration);
+
+      return () => clearTimeout(timer);
+    } else {
+      // Routine visit on same day with no bottleneck alert -> stay collapsed by default
+      setIsHeaderExpanded(false);
+    }
+  }, [hasBottleneckAlert]);
+
+  const handleManualToggleHeader = () => {
+    setIsHeaderExpanded(prev => {
+      const next = !prev;
+      sessionStorage.setItem('jee_command_center_override', next ? 'expanded' : 'collapsed');
+      return next;
+    });
+  };
 
   // Global Shift+? shortcut to open guide
   useEffect(() => {
@@ -149,7 +202,7 @@ export function DashboardPage({ onNavigate }: { onNavigate: (page: string) => vo
       )}
 
       {/* AMBIENT CANVAS GREETING HEADER (Clean, borderless, single visual anchor below) */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 text-left px-1 pt-1 pb-1">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 text-left px-1 pt-1 pb-1">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -157,29 +210,29 @@ export function DashboardPage({ onNavigate }: { onNavigate: (page: string) => vo
               JEE COMMAND CENTER
             </span>
           </div>
-          <h1 className="text-2xl md:text-3xl font-display font-black text-white tracking-tight">
+          <h1 className="text-xl md:text-2xl lg:text-3xl font-display font-black text-white tracking-tight">
             {getGreeting()}, {userName}
           </h1>
-          <p className="text-xs md:text-sm text-zinc-400 max-w-xl leading-relaxed font-sans">
+          <p className="text-xs text-zinc-400 max-w-xl leading-relaxed font-sans">
             <strong className="text-zinc-200">{incompleteTasks.length} missions</strong> remaining today ({estimatedRemainingHours} hrs) • Next up: <span className="text-indigo-400 font-medium font-mono">{nextTaskName}</span>
           </p>
         </div>
 
         {/* Energy Level Selector Pills */}
         <div className="shrink-0 flex items-center gap-2">
-          <span className="text-[10px] font-mono text-zinc-500 font-semibold uppercase mr-1">Energy:</span>
+          <span className="text-[10px] font-mono text-zinc-500 font-semibold uppercase mr-1 hidden sm:inline">Energy:</span>
           <div className="flex items-center bg-zinc-900/80 border border-zinc-800 p-1 rounded-xl shadow-inner">
             {(['Low', 'Medium', 'High'] as const).map((level) => (
               <button
                 key={level}
                 onClick={() => actions.setEnergyLevel(level)}
-                className={`px-2.5 py-1 rounded-lg font-mono text-[10px] font-bold transition-all cursor-pointer ${
+                className={`px-2 py-1 sm:px-2.5 sm:py-1 rounded-lg font-mono text-[10px] font-bold transition-all cursor-pointer ${
                   state.energyLevel === level
                     ? 'bg-indigo-600 text-white shadow-md'
                     : 'text-zinc-500 hover:text-zinc-300'
                 }`}
               >
-                {level === 'Low' ? '🔋' : level === 'Medium' ? '⚖️' : '⚡'} {level.toUpperCase()}
+                {level === 'Low' ? '🔋' : level === 'Medium' ? '⚖️' : '⚡'} <span className="hidden sm:inline">{level.toUpperCase()}</span>
               </button>
             ))}
           </div>
@@ -189,14 +242,13 @@ export function DashboardPage({ onNavigate }: { onNavigate: (page: string) => vo
       {/* EMBEDDED HERO DAILY CHECK-IN CARD */}
       <DailyCheckinCard />
 
-      <OnHoldReminderBanner
+      <CommandOverviewBanner 
         chapters={state.chapters}
         onOpenChapter={(chapterId) => actions.openChapterEditModal(chapterId)}
-      />
-
-      <CommandOverviewBanner 
         onSetMonthlyObjective={() => onNavigate('planner')}
         onSetDailyCapacity={() => onNavigate('planner')}
+        isExpanded={isHeaderExpanded}
+        onToggleExpand={handleManualToggleHeader}
       />
 
       {/* TODAY'S MISSIONS HERO SECTION (65%/35% Split Layout) */}
@@ -259,7 +311,7 @@ export function DashboardPage({ onNavigate }: { onNavigate: (page: string) => vo
 
         {/* Tab 1: Today's Focus & Revision Queue */}
         {activeTab === 'focus' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 text-left items-stretch animate-fade-in">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 text-left items-stretch animate-fade-in">
             <SmartRevisionQueueWidget
               revisionQueue={state.revisionQueue}
               onNavigate={onNavigate}
@@ -275,8 +327,8 @@ export function DashboardPage({ onNavigate }: { onNavigate: (page: string) => vo
 
         {/* Tab 2: Analytics, Heatmap & Trajectory */}
         {activeTab === 'analytics' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 text-left items-stretch animate-fade-in">
-            <div className="flex flex-col gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 text-left items-stretch animate-fade-in">
+            <div className="flex flex-col gap-4 lg:gap-6">
               <DailyStudyTrackerWidget
                 studyTime={state.analytics.studyTime}
                 dailyQuota={state.settings.dailyQuota}
@@ -287,7 +339,7 @@ export function DashboardPage({ onNavigate }: { onNavigate: (page: string) => vo
               <FocusHeatmapWidget studySessions={state.studySessions} />
             </div>
 
-            <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-4 lg:gap-6">
               <WeeklyStrategyWidget
                 mentorProfile={state.mentorProfile}
                 chapters={state.chapters}

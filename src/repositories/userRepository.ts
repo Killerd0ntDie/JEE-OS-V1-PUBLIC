@@ -5,7 +5,16 @@ import { UserProfile } from '../types/index';
 function sanitizeForFirestore(obj: any): any {
   if (obj === null || obj === undefined) return null;
   if (typeof obj === 'number' && Number.isNaN(obj)) return 0;
-  if (Array.isArray(obj)) return obj.map(sanitizeForFirestore);
+  if (Array.isArray(obj)) {
+    if (obj.some(item => Array.isArray(item))) {
+      const cleanedObj: Record<string, any> = {};
+      obj.forEach((item, idx) => {
+        cleanedObj[String(idx)] = sanitizeForFirestore(item);
+      });
+      return cleanedObj;
+    }
+    return obj.map(sanitizeForFirestore);
+  }
   if (typeof obj === 'object' && !(obj instanceof Date)) {
     const cleaned: Record<string, any> = {};
     for (const [key, value] of Object.entries(obj)) {

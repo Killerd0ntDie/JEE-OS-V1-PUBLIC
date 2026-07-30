@@ -3,6 +3,7 @@ import { useStudyBrain } from '../../context/StudyBrainContext';
 import { SubjectId, Chapter } from '../../types/index';
 import { useLockBodyScroll } from '../../hooks/useLockBodyScroll';
 import { ModalPortal } from '../ui/ModalPortal';
+import { normalizeTwoDaySplitConfig } from '../../engines/planner/PlannerEngine';
 import { 
   Sparkles, CheckCircle, ArrowRight, ShieldCheck, 
   Clock, Target, GraduationCap, X, Check, Search, 
@@ -56,6 +57,14 @@ export const MentorInterviewModal: React.FC<Props> = ({ isOpen, onClose, isManda
   );
   const [subjectSplitStrategy, setSubjectSplitStrategy] = useState<'3_a_day' | '2_a_day_alternating' | '1_a_day_alternating'>(
     state.mentorProfile?.subjectSplitStrategy || '3_a_day'
+  );
+  const defaultTwoDayConfig: [SubjectId[], SubjectId[], SubjectId[]] = [
+    ['physics', 'chemistry'],
+    ['chemistry', 'maths'],
+    ['maths', 'physics']
+  ];
+  const [twoDaySplitConfig, setTwoDaySplitConfig] = useState<[SubjectId[], SubjectId[], SubjectId[]]>(
+    state.mentorProfile?.twoDaySplitConfig || defaultTwoDayConfig
   );
 
   // Chapter Reality Audit state: Record<chapterId, 'Not Started' | 'In Progress' | 'Completed'>
@@ -151,6 +160,7 @@ export const MentorInterviewModal: React.FC<Props> = ({ isOpen, onClose, isManda
         coachingName: coachingName.trim(),
         dailyAvailableHours: dailyHours,
         subjectSplitStrategy: subjectSplitStrategy,
+        twoDaySplitConfig: twoDaySplitConfig,
       }, chapterUpdates);
 
       if (onClose) onClose();

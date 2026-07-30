@@ -215,7 +215,7 @@ export function Sidebar({
           onClick={onCloseMobile}
         >
           <div
-            className="w-64 h-full"
+            className="w-72 h-full"
             onClick={e => e.stopPropagation()}
           >
             {renderSidebarContent(false)}

@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useStudyBrain } from '../../context/StudyBrainContext';
 import { useAuth } from '../../hooks/useAuth';
 import { Icon } from '../../components/ui/Icon';
 import { soundSystem } from '../../utils/audioEffects';
+import { SubjectId } from '../../types';
 import { 
   Target, Clock, Volume2, VolumeX, Bell, BellOff, ShieldCheck, 
-  Sparkles, CheckCircle2, RotateCcw, AlertTriangle, User, LogOut, Lock
+  Sparkles, CheckCircle2, RotateCcw, AlertTriangle, User, LogOut, Lock, SlidersHorizontal
 } from 'lucide-react';
+
+import { normalizeTwoDaySplitConfig } from '../../engines/planner/PlannerEngine';
 
 export function SettingsPage() {
   const { state, actions } = useStudyBrain();
@@ -19,6 +23,15 @@ export function SettingsPage() {
   const [dailyQuota, setDailyQuota] = useState(state.settings.dailyQuota || 6);
   const [subjectSplitStrategy, setSubjectSplitStrategy] = useState<'3_a_day' | '2_a_day_alternating' | '1_a_day_alternating'>(
     state.mentorProfile?.subjectSplitStrategy || '3_a_day'
+  );
+  
+  const defaultTwoDayConfig: [SubjectId[], SubjectId[], SubjectId[]] = [
+    ['physics', 'chemistry'],
+    ['chemistry', 'maths'],
+    ['maths', 'physics']
+  ];
+  const [twoDaySplitConfig, setTwoDaySplitConfig] = useState<[SubjectId[], SubjectId[], SubjectId[]]>(
+    normalizeTwoDaySplitConfig(state.mentorProfile?.twoDaySplitConfig)
   );
   
   const [soundEffects, setSoundEffects] = useState(state.settings.soundEffects ?? false);
@@ -47,6 +60,7 @@ export function SettingsPage() {
     setVolume(state.settings.volume ?? 75);
     setPauseOnTabChange(state.settings.pauseOnTabChange ?? true);
     setSubjectSplitStrategy(state.mentorProfile?.subjectSplitStrategy || '3_a_day');
+    setTwoDaySplitConfig(normalizeTwoDaySplitConfig(state.mentorProfile?.twoDaySplitConfig));
   }, [state.settings, state.mentorProfile]);
 
   const handleSave = async (e: React.FormEvent) => {
@@ -83,7 +97,8 @@ export function SettingsPage() {
         targetYear,
         targetCollege: dreamIit,
         targetBranch,
-        subjectSplitStrategy
+        subjectSplitStrategy,
+        twoDaySplitConfig
       });
     }
 
@@ -284,6 +299,74 @@ export function SettingsPage() {
               </p>
             </div>
           </div>
+
+          {/* Customize 2-Subject Daily Pairs - Full Width Container */}
+          {subjectSplitStrategy === '2_a_day_alternating' && (
+            <div className="mt-4 p-4.5 rounded-2xl border border-indigo-500/30 bg-indigo-950/20 space-y-3 font-mono text-xs text-left w-full shadow-lg">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-indigo-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-400" />
+                  Customize 2-Subject Daily Pairs
+                </span>
+                <span className="text-[10px] text-zinc-500">3-Day Rotation Cycle</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {([0, 1, 2] as const).map((idx) => {
+                  const pair = twoDaySplitConfig[idx] || defaultTwoDayConfig[idx];
+                  return (
+                    <div key={idx} className="p-3 rounded-lg border border-zinc-800 bg-zinc-900/60 space-y-2">
+                      <span className="text-[10px] text-zinc-400 font-bold block uppercase">
+                        Day {idx + 1} Pair
+                      </span>
+                      <div className="space-y-1 text-[11px]">
+                        <div>
+                          <span className="text-zinc-500 text-[10px] block">Subject 1:</span>
+                          <select
+                            value={pair[0]}
+                            onChange={(e) => {
+                              const newConfig: [SubjectId[], SubjectId[], SubjectId[]] = [
+                                [...twoDaySplitConfig[0]],
+                                [...twoDaySplitConfig[1]],
+                                [...twoDaySplitConfig[2]]
+                              ];
+                              newConfig[idx][0] = e.target.value as SubjectId;
+                              setTwoDaySplitConfig(newConfig);
+                            }}
+                            className="w-full bg-zinc-950 border border-zinc-800 rounded px-2 py-1 text-white font-mono"
+                          >
+                            <option value="physics">Physics</option>
+                            <option value="chemistry">Chemistry</option>
+                            <option value="maths">Maths</option>
+                          </select>
+                        </div>
+                        <div>
+                          <span className="text-zinc-500 text-[10px] block">Subject 2:</span>
+                          <select
+                            value={pair[1]}
+                            onChange={(e) => {
+                              const newConfig: [SubjectId[], SubjectId[], SubjectId[]] = [
+                                [...twoDaySplitConfig[0]],
+                                [...twoDaySplitConfig[1]],
+                                [...twoDaySplitConfig[2]]
+                              ];
+                              newConfig[idx][1] = e.target.value as SubjectId;
+                              setTwoDaySplitConfig(newConfig);
+                            }}
+                            className="w-full bg-zinc-950 border border-zinc-800 rounded px-2 py-1 text-white font-mono"
+                          >
+                            <option value="physics">Physics</option>
+                            <option value="chemistry">Chemistry</option>
+                            <option value="maths">Maths</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* SECTION 3: AUDIO & DESKTOP ALERTS */}
@@ -395,10 +478,14 @@ export function SettingsPage() {
         <div className="flex items-center justify-end gap-4 pt-2">
           <button
             type="submit"
-            className="px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-mono text-xs font-bold transition-colors shadow-lg shadow-indigo-600/25 border border-indigo-400/20 cursor-pointer flex items-center gap-2"
+            className={`px-6 py-3 rounded-xl text-white font-mono text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+              isSaved
+                ? 'bg-emerald-600 hover:bg-emerald-500 shadow-lg shadow-emerald-600/30 border border-emerald-400/30'
+                : 'bg-indigo-600 hover:bg-indigo-500 shadow-lg shadow-indigo-600/25 border border-indigo-400/20'
+            }`}
           >
             <CheckCircle2 className="w-4 h-4" />
-            Save Workspace Configuration
+            {isSaved ? 'Saved Successfully!' : 'Save Workspace Configuration'}
           </button>
         </div>
 
@@ -547,10 +634,10 @@ export function SettingsPage() {
           </button>
         </div>
 
-        {/* Confirmation Modal */}
-        {showResetConfirm && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-            <div className="bg-zinc-950 border border-red-900/50 p-6 rounded-2xl max-w-md w-full space-y-4 text-left shadow-2xl">
+        {/* Universal Confirmation Modal */}
+        {showResetConfirm && createPortal(
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+            <div className="bg-zinc-950 border border-red-900/50 p-6 rounded-2xl max-w-md w-full space-y-4 text-left shadow-2xl animate-in fade-in zoom-in-95 duration-200">
               <div className="flex items-center gap-3 text-red-400">
                 <AlertTriangle className="w-6 h-6 shrink-0" />
                 <h4 className="text-base font-display font-bold text-white">Reset Entire Workspace?</h4>
@@ -575,7 +662,8 @@ export function SettingsPage() {
                 </button>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
 
         {showResetSuccess && (

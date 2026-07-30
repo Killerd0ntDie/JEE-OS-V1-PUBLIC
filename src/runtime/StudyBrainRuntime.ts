@@ -349,7 +349,8 @@ export class StudyBrainRuntime {
           targetYear: this.state.settings.targetYear,
           focusSubject: this.state.settings.targetBranch ? undefined : undefined, 
           dailyQuota: effectiveStudyHours,
-          subjectSplitStrategy: this.state.mentorProfile?.subjectSplitStrategy
+          subjectSplitStrategy: this.state.mentorProfile?.subjectSplitStrategy,
+          twoDaySplitConfig: this.state.mentorProfile?.twoDaySplitConfig
         },
         remainingDaysUntilJEE: StudyBrainService.getDaysUntilExam(this.state.settings.targetYear),
         studySessions: this.state.studySessions,

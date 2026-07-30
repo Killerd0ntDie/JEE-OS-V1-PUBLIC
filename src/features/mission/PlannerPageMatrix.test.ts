@@ -4,11 +4,39 @@ import { SubjectId, Chapter } from '../../types/index';
 // Replicate exact matrix logic from PlannerPage.tsx for empirical validation
 import { generateWeeklyMatrix, getDayFocusPill, getHeaderBadgeText, WeeklyBlock } from '../../engines/planner/PlannerEngine';
 
+// Helper to create a minimal active in-progress chapter for testing
+function makeActiveChapter(id: string, name: string, subject: SubjectId, completion: number = 30): Chapter {
+  return {
+    id,
+    name,
+    subject,
+    serialNumber: id.toUpperCase(),
+    unit: 'Core Module',
+    completion,
+    currentLecture: 3,
+    totalLectures: 10,
+    theoryComplete: false,
+    dppComplete: false,
+    pyqsComplete: false,
+    mistakes: [],
+    weightage: 4,
+    chapterOnHold: false,
+    dppOnHold: false,
+    pyqOnHold: false,
+  } as unknown as Chapter;
+}
+
+const activeChapters: Chapter[] = [
+  makeActiveChapter('p1', 'Kinematics', 'physics'),
+  makeActiveChapter('c1', 'Mole Concept', 'chemistry'),
+  makeActiveChapter('m1', 'Sets & Relations', 'maths'),
+];
+
 describe('PlannerPage Matrix Slot Generation & Header Views', () => {
   
   describe('Fallback Slot Generation - 3_a_day', () => {
-    it('generates exactly 28 blocks across 7 days (4 slots per day)', () => {
-      const blocks = generateWeeklyMatrix('3_a_day');
+    it('generates exactly 28 blocks across 7 days (4 slots per day) when active chapters exist', () => {
+      const blocks = generateWeeklyMatrix('3_a_day', activeChapters);
       expect(blocks.length).toBe(28);
 
       for (let day = 0; day < 7; day++) {
@@ -18,7 +46,7 @@ describe('PlannerPage Matrix Slot Generation & Header Views', () => {
     });
 
     it('rotates subjects correctly across slots for 3_a_day', () => {
-      const blocks = generateWeeklyMatrix('3_a_day');
+      const blocks = generateWeeklyMatrix('3_a_day', activeChapters);
       
       // Mon (day 0): Phy, Chem, Math, Revision
       const mon = blocks.filter(b => b.dayIndex === 0);
@@ -50,7 +78,7 @@ describe('PlannerPage Matrix Slot Generation & Header Views', () => {
     });
 
     it('has correct time slots for all days', () => {
-      const blocks = generateWeeklyMatrix('3_a_day');
+      const blocks = generateWeeklyMatrix('3_a_day', activeChapters);
       const timeSlots = [
         'Morning (07:00 - 09:30)',
         'Afternoon (14:00 - 16:00)',
@@ -68,8 +96,8 @@ describe('PlannerPage Matrix Slot Generation & Header Views', () => {
   });
 
   describe('Fallback Slot Generation - 2_a_day_alternating', () => {
-    it('generates exactly 28 blocks across 7 days (4 slots per day)', () => {
-      const blocks = generateWeeklyMatrix('2_a_day_alternating');
+    it('generates exactly 28 blocks across 7 days (4 slots per day) when active chapters exist', () => {
+      const blocks = generateWeeklyMatrix('2_a_day_alternating', activeChapters);
       expect(blocks.length).toBe(28);
 
       for (let day = 0; day < 7; day++) {
@@ -79,7 +107,7 @@ describe('PlannerPage Matrix Slot Generation & Header Views', () => {
     });
 
     it('rotates subjects correctly across slots for 2_a_day_alternating', () => {
-      const blocks = generateWeeklyMatrix('2_a_day_alternating');
+      const blocks = generateWeeklyMatrix('2_a_day_alternating', activeChapters);
       
       // Mon (day 0): Phy (morning), Chem (afternoon), Phy (evening), Revision (night)
       const mon = blocks.filter(b => b.dayIndex === 0);
@@ -105,8 +133,8 @@ describe('PlannerPage Matrix Slot Generation & Header Views', () => {
   });
 
   describe('Fallback Slot Generation - 1_a_day_alternating', () => {
-    it('generates exactly 28 blocks across 7 days (4 slots per day)', () => {
-      const blocks = generateWeeklyMatrix('1_a_day_alternating');
+    it('generates exactly 28 blocks across 7 days (4 slots per day) when active chapters exist', () => {
+      const blocks = generateWeeklyMatrix('1_a_day_alternating', activeChapters);
       expect(blocks.length).toBe(28);
 
       for (let day = 0; day < 7; day++) {
@@ -116,7 +144,7 @@ describe('PlannerPage Matrix Slot Generation & Header Views', () => {
     });
 
     it('rotates subjects correctly across slots for 1_a_day_alternating', () => {
-      const blocks = generateWeeklyMatrix('1_a_day_alternating');
+      const blocks = generateWeeklyMatrix('1_a_day_alternating', activeChapters);
       
       // Mon (day 0): Phy, Phy, Phy, Revision
       const mon = blocks.filter(b => b.dayIndex === 0);
@@ -173,10 +201,23 @@ describe('PlannerPage Matrix Slot Generation & Header Views', () => {
   });
 
   describe('Edge Cases & Resiliency', () => {
-    it('handles empty chapters array without crashing or throwing errors', () => {
+    it('handles empty chapters array by only generating revision blocks', () => {
       const blocks = generateWeeklyMatrix('3_a_day', []);
-      expect(blocks.length).toBe(28);
-      expect(blocks[0].chapterName).toBe('Kinematics'); // default fallback
+      // With no active chapters, only revision blocks are generated (1 per day)
+      expect(blocks.length).toBe(7);
+      expect(blocks.every(b => b.subject === 'revision')).toBe(true);
+    });
+
+    it('skips subjects with all chapters on hold', () => {
+      const chaptersWithHold: Chapter[] = [
+        makeActiveChapter('p1', 'Kinematics', 'physics'),
+        { ...makeActiveChapter('c1', 'Mole Concept', 'chemistry'), chapterOnHold: true } as Chapter,
+        makeActiveChapter('m1', 'Sets & Relations', 'maths'),
+      ];
+      const blocks = generateWeeklyMatrix('3_a_day', chaptersWithHold);
+      // Chemistry blocks should be skipped since the only chem chapter is on hold
+      const chemBlocks = blocks.filter(b => b.subject === 'chemistry');
+      expect(chemBlocks.length).toBe(0);
     });
 
     it('handles todayMissions on current day correctly when todayMissions provided', () => {
@@ -191,7 +232,7 @@ describe('PlannerPage Matrix Slot Generation & Header Views', () => {
         priorityScore: 98
       }];
 
-      const blocks = generateWeeklyMatrix('3_a_day', [], mockTodayMission, null, 2); // Wed is current day
+      const blocks = generateWeeklyMatrix('3_a_day', activeChapters, mockTodayMission, null, 2); // Wed is current day
       const wedBlocks = blocks.filter(b => b.dayIndex === 2);
       expect(wedBlocks.length).toBe(1);
       expect(wedBlocks[0].chapterName).toBe('Rotational Motion');

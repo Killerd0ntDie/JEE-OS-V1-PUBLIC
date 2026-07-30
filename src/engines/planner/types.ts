@@ -35,6 +35,7 @@ export interface PlannerInput {
     focusSubject?: SubjectId;
     dailyQuota?: number;
     subjectSplitStrategy?: '3_a_day' | '2_a_day_alternating' | '1_a_day_alternating';
+    twoDaySplitConfig?: [SubjectId[], SubjectId[], SubjectId[]];
   };
   remainingDaysUntilJEE: number;
   currentDate?: string; // ISO string for deterministic planning

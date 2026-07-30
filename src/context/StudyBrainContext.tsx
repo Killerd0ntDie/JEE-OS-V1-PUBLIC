@@ -67,6 +67,9 @@ const validateAndSanitizeChapters = (chaps: any[]): Chapter[] => {
       nextRevisionDueAt: c.nextRevisionDueAt || new Date().toISOString(),
       lastRevisedAt: c.lastRevisedAt || new Date().toISOString(),
       serialNumber: c.serialNumber || seed?.serialNumber,
+      chapterOnHold: !!c.chapterOnHold,
+      dppOnHold: !!c.dppOnHold,
+      pyqOnHold: !!c.pyqOnHold,
     };
 
     return normalizeChapter(rawChap);

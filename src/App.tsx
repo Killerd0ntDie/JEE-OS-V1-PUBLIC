@@ -279,7 +279,7 @@ export default function App() {
         />
 
         {/* Central Router Stage with Smooth Framer Motion Transition */}
-        <main className="flex-1 flex flex-col overflow-y-auto px-4 md:px-8 py-6 pb-12 scrollbar relative">
+        <main className="flex-1 flex flex-col overflow-y-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 md:py-6 pb-12 scrollbar relative">
           {state.lastSyncError && (
             <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-xl mb-4 flex items-center justify-between font-mono text-xs shadow-lg animate-fade-in shrink-0">
               <div className="flex items-center gap-2">

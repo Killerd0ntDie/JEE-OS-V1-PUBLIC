@@ -8,7 +8,16 @@ import { Chapter } from '../types/index';
  */
 function sanitizeForFirestore(obj: any): any {
   if (obj === null || obj === undefined) return null;
-  if (Array.isArray(obj)) return obj.map(sanitizeForFirestore);
+  if (Array.isArray(obj)) {
+    if (obj.some(item => Array.isArray(item))) {
+      const cleanedObj: Record<string, any> = {};
+      obj.forEach((item, idx) => {
+        cleanedObj[String(idx)] = sanitizeForFirestore(item);
+      });
+      return cleanedObj;
+    }
+    return obj.map(sanitizeForFirestore);
+  }
   if (typeof obj === 'object' && !(obj instanceof Date)) {
     const cleaned: Record<string, any> = {};
     for (const [key, value] of Object.entries(obj)) {

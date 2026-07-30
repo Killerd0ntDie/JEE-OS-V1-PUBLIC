@@ -47,6 +47,7 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
   const [totalPyq, setTotalPyq] = useState<number>(30);
   const [dppOnHold, setDppOnHold] = useState<boolean>(false);
   const [pyqOnHold, setPyqOnHold] = useState<boolean>(false);
+  const [chapterOnHold, setChapterOnHold] = useState<boolean>(false);
 
   const dppComplete = completedDpp >= totalDpp && totalDpp > 0;
   const pyqsComplete = completedPyq >= totalPyq && totalPyq > 0;
@@ -95,6 +96,7 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
       setSerialNumber(chapter.serialNumber ? chapter.serialNumber.replace(/\D/g, '').padStart(2, '0') : '');
       setDppOnHold(!!chapter.dppOnHold);
       setPyqOnHold(!!chapter.pyqOnHold);
+      setChapterOnHold(!!chapter.chapterOnHold);
     }
   }, [chapter, telemetry]);
 
@@ -115,11 +117,11 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
       (pyqsComplete ? 20 : 0)
     ));
 
-    // Check for duplicate serial number
+    // Check for duplicate serial number within the same subject only
     if (serialNumber) {
       const newSerialNumber = `CH${serialNumber}`;
       const duplicateChapter = state.chapters.find(
-        c => c.serialNumber === newSerialNumber && c.id !== chapter.id
+        c => c.serialNumber === newSerialNumber && c.id !== chapter.id && c.subject === chapter.subject
       );
       if (duplicateChapter) {
         alert(`Serial number ${newSerialNumber} is already used by "${duplicateChapter.name}". Please use a different number.`);
@@ -158,6 +160,7 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
       weightage,
       estimatedRemainingTime: estimatedHours,
       completion: calculatedCompletion,
+      chapterOnHold,
       dppOnHold,
       pyqOnHold,
       serialNumber: serialNumber ? `CH${serialNumber}` : undefined,
@@ -200,12 +203,12 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
 
   return (
     <ModalPortal>
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto" aria-label="Chapter Edit Modal">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto" aria-label="Chapter Edit Modal">
       <div 
         role="dialog"
         aria-modal="true"
         aria-labelledby="chapter-modal-title"
-        className="relative bg-[#09090b] border border-zinc-800 rounded-3xl max-w-2xl w-full overflow-hidden shadow-2xl z-50 text-left my-8"
+        className="relative bg-[#09090b] border border-zinc-800 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl z-50 text-left my-4 flex flex-col"
       >
         
         {/* Toast */}
@@ -227,17 +230,30 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
             </div>
             <h2 id="chapter-modal-title" className="text-lg font-bold text-white tracking-tight">{chapter.name}</h2>
           </div>
-          <button
-            onClick={handleClose}
-            aria-label="Close modal"
-            className="p-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white border border-zinc-800 transition-colors"
-          >
-            <X className="w-5 h-5" aria-hidden="true" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setChapterOnHold(!chapterOnHold)}
+              className={`text-xs font-mono font-bold px-3 py-1.5 rounded-xl border transition-all cursor-pointer ${
+                chapterOnHold
+                  ? 'bg-amber-500/20 border-amber-500/50 text-amber-300 shadow-md shadow-amber-500/20'
+                  : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white'
+              }`}
+            >
+              {chapterOnHold ? 'CHAPTER ON HOLD' : 'Put Chapter on Hold'}
+            </button>
+            <button
+              onClick={handleClose}
+              aria-label="Close modal"
+              className="p-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white border border-zinc-800 transition-colors"
+            >
+              <X className="w-5 h-5" aria-hidden="true" />
+            </button>
+          </div>
         </div>
 
         {/* Telemetry Overview Card */}
-        <div className="p-4 bg-zinc-900/60 border-b border-zinc-800/80 grid grid-cols-4 gap-3 font-mono text-xs text-left">
+        <div className="p-4 bg-zinc-900/60 border-b border-zinc-800/80 grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono text-xs text-left">
           <div className="p-2.5 rounded-xl border border-zinc-800/80 bg-zinc-950/60">
             <span className="text-xs text-zinc-500 block uppercase">Mastery Score</span>
             <span className="text-sm font-bold text-indigo-400">{telemetry?.masteryScore ?? chapter.completion ?? 0}%</span>
@@ -299,7 +315,7 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSave} className="p-6 space-y-5 text-left max-h-[60vh] overflow-y-auto scrollbar">
+        <form onSubmit={handleSave} className="p-4 sm:p-6 space-y-4 sm:space-y-5 text-left flex-1 overflow-y-auto scrollbar">
           
           {activeTab === 'progress' && (
             <div className="space-y-4">
@@ -308,7 +324,7 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
                   <BookOpen className="w-4 h-4 text-indigo-400" />
                   Lectures Progress
                 </label>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3 sm:gap-4">
                   <div>
                     <span className="text-[11px] text-zinc-500 block mb-1 font-mono">Watched Lectures</span>
                     <input
@@ -320,7 +336,7 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
                         const val = parseInt(e.target.value) || 0;
                         setCurrentLecture(Math.max(0, Math.min(totalLectures, val)));
                       }}
-                      className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3.5 py-2 text-white font-mono text-sm focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-indigo-500"
                     />
                   </div>
                   <div>
@@ -331,13 +347,13 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
                       max="100"
                       value={totalLectures}
                       onChange={(e) => setTotalLectures(parseInt(e.target.value) || 1)}
-                      className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3.5 py-2 text-white font-mono text-sm focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-indigo-500"
                     />
                   </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
                   <span className="text-[11px] text-zinc-500 block mb-1 font-mono">Teacher / Coaching Batch</span>
                   <input
@@ -345,7 +361,7 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
                     placeholder="e.g. Physics Galaxy, PW, Allen"
                     value={teacher}
                     onChange={(e) => setTeacher(e.target.value)}
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3.5 py-2 text-white font-mono text-xs focus:outline-none focus:border-indigo-500"
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-indigo-500"
                   />
                 </div>
                 <div>
@@ -354,7 +370,7 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
                     type="number"
                     value={avgLectureDuration}
                     onChange={(e) => setAvgLectureDuration(parseInt(e.target.value) || 60)}
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3.5 py-2 text-white font-mono text-xs focus:outline-none focus:border-indigo-500"
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-indigo-500"
                   />
                 </div>
               </div>
@@ -373,7 +389,7 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
 
           {activeTab === 'practice' && (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="p-4 rounded-xl border border-zinc-800 bg-zinc-900/40 flex flex-col gap-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-mono font-bold text-emerald-400">DPP Practice</span>
@@ -512,14 +528,14 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
 
           {activeTab === 'meta' && (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 font-mono text-xs">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4 font-mono text-xs">
                 <div>
                   <label className="block mb-1 text-zinc-500 uppercase text-[10px] font-bold tracking-wider">JEE Weightage %</label>
                   <input
                     type="number"
                     value={weightage}
                     readOnly
-                    className="w-full bg-zinc-950/50 border border-zinc-800/50 rounded-xl px-3.5 py-2 text-zinc-500 cursor-not-allowed"
+                    className="w-full bg-zinc-950/50 border border-zinc-800/50 rounded-xl px-3 py-2 text-zinc-500 cursor-not-allowed"
                   />
                   <span className="text-[9px] text-zinc-600 italic mt-1 block">* System defined</span>
                 </div>
@@ -528,7 +544,7 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
                   <select
                     value={priority}
                     onChange={(e) => setPriority(parseInt(e.target.value) as any)}
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:border-indigo-500 cursor-pointer"
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500 cursor-pointer"
                   >
                     <option value={1}>Tier 1 (High Priority)</option>
                     <option value={2}>Tier 2 (Medium Priority)</option>
@@ -544,18 +560,18 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
                   value={serialNumber}
                   onChange={(e) => setSerialNumber(e.target.value)}
                   placeholder="e.g. 22"
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3.5 py-2 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-indigo-500 font-mono"
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-indigo-500 font-mono"
                 />
                 <span className="text-[9px] text-zinc-600 italic mt-1 block">* Optional: Enter a number (will be prefixed with CH)</span>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 font-mono text-xs">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4 font-mono text-xs">
                 <div>
                   <label className="block mb-1 text-zinc-400 uppercase text-[10px]">Difficulty Level</label>
                   <select
                     value={difficulty}
                     onChange={(e) => setDifficulty(e.target.value as any)}
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:border-indigo-500 cursor-pointer"
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500 cursor-pointer"
                   >
                     <option value="Easy">Easy</option>
                     <option value="Medium">Medium</option>

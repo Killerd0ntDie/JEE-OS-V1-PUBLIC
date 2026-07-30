@@ -1,7 +1,7 @@
 import React from 'react';
 import { Chapter } from '../../../types/index';
 import { useStudyBrain } from '../../../context/StudyBrainContext';
-import { Lock, Clock, AlertTriangle, BookOpen, PenTool, CheckCircle2, SlidersHorizontal } from 'lucide-react';
+import { Lock, Clock, AlertTriangle, BookOpen, PenTool, CheckCircle2, SlidersHorizontal, PauseCircle } from 'lucide-react';
 
 interface ChapterCommandCardProps {
   chapter: Chapter;
@@ -87,9 +87,9 @@ export const ChapterCommandCard: React.FC<ChapterCommandCardProps> = ({ chapter,
               CUSTOM
             </span>
           )}
-          {(chapter.dppOnHold || chapter.pyqOnHold) && (
+          {(chapter.chapterOnHold || chapter.dppOnHold || chapter.pyqOnHold) && (
             <span className="text-[8px] font-mono font-bold px-1.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300">
-              ON HOLD
+              {chapter.chapterOnHold ? 'CHAPTER HOLD' : 'ON HOLD'}
             </span>
           )}
         </h3>
@@ -149,6 +149,23 @@ export const ChapterCommandCard: React.FC<ChapterCommandCardProps> = ({ chapter,
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={async (e) => {
+              e.stopPropagation();
+              await actions.updateChapter(chapter.id, { chapterOnHold: !chapter.chapterOnHold });
+            }}
+            className={`px-3 py-1.5 rounded-lg border font-mono text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer ${
+              chapter.chapterOnHold
+                ? 'bg-amber-500/20 hover:bg-amber-500/30 border-amber-500/40 text-amber-300'
+                : 'bg-zinc-900 hover:bg-zinc-800 border-zinc-800 text-zinc-400 hover:text-zinc-200'
+            }`}
+            title={chapter.chapterOnHold ? 'Release chapter hold' : 'Put entire chapter on hold'}
+          >
+            <PauseCircle className="w-3.5 h-3.5" />
+            {chapter.chapterOnHold ? 'ON HOLD' : 'HOLD'}
+          </button>
+
           <button
             type="button"
             onClick={(e) => {

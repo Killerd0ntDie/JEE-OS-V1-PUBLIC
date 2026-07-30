@@ -16,7 +16,7 @@ import {
   Sparkles, ShieldCheck, Target, Clock, ArrowRight, CheckCircle2, 
   RefreshCw, Sun, Calendar, AlertTriangle, ChevronDown, ChevronLeft, ChevronRight, Info, SlidersHorizontal,
   Play, BookOpen, PenTool, CheckCircle, Zap, UserCheck, X, LayoutGrid, CalendarDays, BarChart2,
-  PieChart, Activity, Layers, CheckSquare, Check, Trash2
+  PieChart, Activity, Layers, CheckSquare, Check, Trash2, ArrowRightLeft
 } from 'lucide-react';
 
 
@@ -24,6 +24,8 @@ import { MonthlyCalendarWidget } from './components/MonthlyCalendarWidget';
 import { CustomMissionModal } from './components/CustomMissionModal';
 import { AiRevisionPlanModal } from '../../components/shared/AiRevisionPlanModal';
 import { ConfirmDeleteModal } from '../../components/ui/ConfirmDeleteModal';
+import { SwapSubjectModal } from './components/SwapSubjectModal';
+import { OnHoldReminderBanner } from '../dashboard/components/OnHoldReminderBanner';
 
 export function PlannerPage() {
   const { state, actions } = useStudyBrain();
@@ -50,6 +52,7 @@ export function PlannerPage() {
   const [isCustomMissionModalOpen, setIsCustomMissionModalOpen] = useState(false);
   const [isAiRevisionModalOpen, setIsAiRevisionModalOpen] = useState(false);
   const [missionToDelete, setMissionToDelete] = useState<string | null>(null);
+  const [missionToSwap, setMissionToSwap] = useState<TodayMission | null>(null);
 
   // Inspector Modal state
   const [selectedBlock, setSelectedBlock] = useState<WeeklyBlock | null>(null);
@@ -89,8 +92,8 @@ export function PlannerPage() {
   const weeklyMatrix = useMemo<WeeklyBlock[]>(() => {
     const splitStrategy = mentorProfile?.subjectSplitStrategy || '3_a_day';
     const plannerWeekly = state.plannerOutput?.weeklySchedule as any;
-    return generateWeeklyMatrix(splitStrategy, state.chapters, state.todayMissions, plannerWeekly, currentDayIndex);
-  }, [state.plannerOutput, state.chapters, mentorProfile?.subjectSplitStrategy, state.todayMissions, currentDayIndex]);
+    return generateWeeklyMatrix(splitStrategy, state.chapters, state.todayMissions, plannerWeekly, currentDayIndex, mentorProfile?.twoDaySplitConfig);
+  }, [state.plannerOutput, state.chapters, mentorProfile?.subjectSplitStrategy, mentorProfile?.twoDaySplitConfig, state.todayMissions, currentDayIndex]);
 
   const handleAutoBalance = async () => {
     setIsAutoBalancing(true);
@@ -139,6 +142,7 @@ export function PlannerPage() {
 
   return (
     <div className="space-y-6 pb-12 text-left relative">
+      <OnHoldReminderBanner chapters={state.chapters} onOpenChapter={(id) => actions.openChapterEditModal(id)} />
       
       {/* HEADER & CONTROL BAR */}
       <div className="p-6 rounded-2xl border border-zinc-800/80 bg-zinc-950/40 backdrop-blur-xl space-y-4">
@@ -444,6 +448,31 @@ export function PlannerPage() {
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
+                          const m = state.todayMissions.find(tm => tm.id === block.id) || {
+                            id: block.id,
+                            subject: block.subject as SubjectId,
+                            chapter: block.chapterName,
+                            chapterId: block.chapterId,
+                            chapterName: block.chapterName,
+                            type: block.taskType,
+                            taskName: `${block.taskType}: ${block.chapterName}`,
+                            duration: block.durationMinutes,
+                            completed: block.completed,
+                            xp: 50,
+                            unlocked: true,
+                          };
+                          setMissionToSwap(m);
+                        }}
+                        className="p-1.5 rounded bg-indigo-950/60 hover:bg-indigo-900/80 border border-indigo-800/60 text-indigo-300 transition-colors cursor-pointer flex items-center gap-1 text-[10px] font-mono font-bold"
+                        title="Change / Swap Subject & Chapter"
+                      >
+                        <ArrowRightLeft className="w-3 h-3" />
+                        <span>Swap</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
                           setMissionToDelete(block.id);
                         }}
                         className="p-1 rounded hover:bg-red-500/20 text-zinc-500 hover:text-red-400 transition-colors cursor-pointer"
@@ -527,7 +556,7 @@ export function PlannerPage() {
                       </div>
                       <div>
                         <span className="text-[8px] font-mono font-bold px-1.5 py-0.5 rounded bg-purple-950/60 border border-purple-800/60 text-purple-300 uppercase tracking-wider">
-                          {getDayFocusPill(dayIndex, mentorProfile?.subjectSplitStrategy || '3_a_day')}
+                          {getDayFocusPill(dayIndex, mentorProfile?.subjectSplitStrategy || '3_a_day', mentorProfile?.twoDaySplitConfig)}
                         </span>
                       </div>
                     </div>
@@ -857,6 +886,12 @@ export function PlannerPage() {
           }
         }}
         onClose={() => setMissionToDelete(null)}
+      />
+
+      <SwapSubjectModal
+        isOpen={!!missionToSwap}
+        onClose={() => setMissionToSwap(null)}
+        mission={missionToSwap}
       />
 
     </div>

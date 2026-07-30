@@ -599,10 +599,10 @@ export function MissionMode({
 
 
       {/* MAIN TWO-COLUMN DECK WORKSPACE */}
-      <main className="flex-1 relative z-10 flex flex-col md:flex-row overflow-hidden w-full max-w-5xl mx-auto p-4 sm:p-6 gap-6 md:gap-8 lg:gap-12 justify-center items-center pt-24 my-auto">
+      <main className="flex-1 relative z-10 flex flex-col md:flex-row overflow-hidden w-full max-w-5xl mx-auto p-3 sm:p-4 md:p-6 gap-4 md:gap-6 lg:gap-8 justify-center items-center pt-20 md:pt-24 my-auto">
         
         {/* LEFT COMPONENT COLUMN (TIMER & CONTENT COCKPIT) */}
-        <div className="flex-1 flex flex-col items-center justify-center w-full max-w-lg mx-auto md:mx-0 h-full">
+        <div className="flex-1 flex flex-col items-center justify-center w-full max-w-lg mx-auto md:mx-0 h-full min-h-0">
           
           <MissionTimerWidget
             progressPercent={timeProgressPercent}

@@ -149,17 +149,17 @@ export function MissionChecklistWidget({
         )}
 
         {/* Primary Footer CTAs */}
-        <div className="flex items-center gap-3 pt-6 mt-4">
+        <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 pt-4 mt-4">
           <button
             onClick={onStartPractice}
-            className="flex-1 py-3 rounded-xl border border-orange-500/30 bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 text-[11px] font-mono font-bold tracking-widest uppercase transition-all flex items-center justify-center gap-2"
+            className="w-full sm:flex-1 py-2.5 sm:py-3 rounded-xl border border-orange-500/30 bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 text-[10px] sm:text-[11px] font-mono font-bold tracking-widest uppercase transition-all flex items-center justify-center gap-2"
           >
             <Play className="w-3.5 h-3.5" />
             Practice Mode
           </button>
           <button
             onClick={onTogglePause}
-            className="flex-1 py-3 rounded-xl border border-zinc-700 bg-zinc-800 hover:bg-zinc-700 text-white text-[11px] font-mono font-bold tracking-widest uppercase transition-all flex items-center justify-center gap-2"
+            className="w-full sm:flex-1 py-2.5 sm:py-3 rounded-xl border border-zinc-700 bg-zinc-800 hover:bg-zinc-700 text-white text-[10px] sm:text-[11px] font-mono font-bold tracking-widest uppercase transition-all flex items-center justify-center gap-2"
           >
             {isPaused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
             {isPaused ? 'Resume' : 'Pause'}
@@ -167,7 +167,7 @@ export function MissionChecklistWidget({
 
           <button
             onClick={onCompleteAll}
-            className="flex-1 py-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-[11px] font-mono font-bold tracking-widest uppercase transition-all flex items-center justify-center gap-2"
+            className="w-full sm:flex-1 py-2.5 sm:py-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-[10px] sm:text-[11px] font-mono font-bold tracking-widest uppercase transition-all flex items-center justify-center gap-2"
           >
             <CheckCircle2 className="w-4 h-4" />
             Complete
