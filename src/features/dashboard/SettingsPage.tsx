@@ -24,6 +24,7 @@ export function SettingsPage() {
   const [soundEffects, setSoundEffects] = useState(state.settings.soundEffects ?? false);
   const [desktopNotifications, setDesktopNotifications] = useState(state.settings.desktopNotifications ?? false);
   const [volume, setVolume] = useState(state.settings.volume ?? 75);
+  const [pauseOnTabChange, setPauseOnTabChange] = useState(state.settings.pauseOnTabChange ?? true);
 
   const [isSaved, setIsSaved] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -44,6 +45,7 @@ export function SettingsPage() {
     setSoundEffects(state.settings.soundEffects ?? false);
     setDesktopNotifications(state.settings.desktopNotifications ?? false);
     setVolume(state.settings.volume ?? 75);
+    setPauseOnTabChange(state.settings.pauseOnTabChange ?? true);
     setSubjectSplitStrategy(state.mentorProfile?.subjectSplitStrategy || '3_a_day');
   }, [state.settings, state.mentorProfile]);
 
@@ -70,7 +72,8 @@ export function SettingsPage() {
       dailyQuota,
       soundEffects,
       desktopNotifications,
-      volume
+      volume,
+      pauseOnTabChange
     });
 
     if (state.mentorProfile) {
@@ -366,6 +369,23 @@ export function SettingsPage() {
                   }
                 }}
                 className="w-4 h-4 accent-indigo-500 cursor-pointer"
+              />
+            </div>
+
+            {/* Pause on Tab Change Toggle */}
+            <div className="flex items-center justify-between p-3 rounded-xl border border-zinc-850 bg-zinc-900/40">
+              <div className="flex items-center gap-2.5">
+                <ShieldCheck className="w-4 h-4 text-amber-400" />
+                <div>
+                  <div className="text-xs font-mono font-semibold text-white">Pause on Tab Change</div>
+                  <div className="text-[10px] text-zinc-400">Auto-pause the cockpit when you switch tabs or leave the page</div>
+                </div>
+              </div>
+              <input
+                type="checkbox"
+                checked={pauseOnTabChange}
+                onChange={(e) => setPauseOnTabChange(e.target.checked)}
+                className="w-4 h-4 accent-amber-500 cursor-pointer"
               />
             </div>
           </div>

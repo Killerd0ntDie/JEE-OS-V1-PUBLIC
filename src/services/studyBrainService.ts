@@ -39,30 +39,30 @@ export function createSyllabusGraph(chapters: Chapter[]): SyllabusNode[] {
 
 export const LevelingSystem = {
   getTitle(level: number): { title: string; color: string } {
-    if (level < 10) return { title: 'Aspirant', color: 'text-zinc-400' };
-    if (level < 20) return { title: 'Novice', color: 'text-blue-400' };
-    if (level < 30) return { title: 'Initiate', color: 'text-emerald-400' };
-    if (level < 40) return { title: 'Scholar', color: 'text-indigo-400' };
-    if (level < 50) return { title: 'Adept', color: 'text-purple-400' };
-    if (level < 60) return { title: 'Expert', color: 'text-rose-400' };
-    if (level < 80) return { title: 'Master', color: 'text-amber-400' };
-    if (level < 100) return { title: 'Grandmaster', color: 'text-cyan-400' };
+    if (level < 5) return { title: 'Aspirant', color: 'text-zinc-400' };
+    if (level < 10) return { title: 'Novice', color: 'text-blue-400' };
+    if (level < 15) return { title: 'Initiate', color: 'text-emerald-400' };
+    if (level < 20) return { title: 'Scholar', color: 'text-indigo-400' };
+    if (level < 25) return { title: 'Adept', color: 'text-purple-400' };
+    if (level < 30) return { title: 'Expert', color: 'text-rose-400' };
+    if (level < 40) return { title: 'Master', color: 'text-amber-400' };
+    if (level < 50) return { title: 'Grandmaster', color: 'text-cyan-400' };
     return { title: 'JEE Legend', color: 'text-yellow-400 font-bold drop-shadow-[0_0_8px_rgba(250,204,21,0.8)]' };
   },
   
-  calculateLevel(totalXP: number): { level: number; currentLevelXP: number; nextLevelXP: number; progressPercent: number } {
-    // Basic scaling formula: Level N requires (N * 1000) XP. 
-    // Total XP for level N = (N * (N + 1) / 2) * 1000.
-    // Inverse formula: N = floor((-1 + sqrt(1 + 8 * TotalXP / 1000)) / 2)
-    const level = Math.floor((-1 + Math.sqrt(1 + 8 * totalXP / 1000)) / 2) + 1;
-    const xpForCurrentLevel = ((level - 1) * level / 2) * 1000;
-    const xpForNextLevel = (level * (level + 1) / 2) * 1000;
+  calculateLevel(totalXP: number): { level: number; currentLevelXP: number; nextLevelXP: number; progressPercent: number; xpForCurrentLevel: number; xpForNextLevel: number } {
+    // Scaling formula: Level N requires N * 100 XP (was 1000, now 100 for finer progression)
+    // Total XP for level N = (N * (N + 1) / 2) * 100
+    // Inverse: N = floor((-1 + sqrt(1 + 8 * TotalXP / 100)) / 2)
+    const level = Math.floor((-1 + Math.sqrt(1 + 8 * totalXP / 100)) / 2) + 1;
+    const xpForCurrentLevel = ((level - 1) * level / 2) * 100;
+    const xpForNextLevel = (level * (level + 1) / 2) * 100;
     
     const currentLevelXP = totalXP - xpForCurrentLevel;
-    const nextLevelXP = xpForNextLevel - xpForCurrentLevel;
-    const progressPercent = Math.min(100, Math.max(0, (currentLevelXP / nextLevelXP) * 100));
+    const requiredForNextLevel = xpForNextLevel - xpForCurrentLevel;
+    const progressPercent = Math.min(100, Math.max(0, (currentLevelXP / requiredForNextLevel) * 100));
     
-    return { level, currentLevelXP, nextLevelXP, progressPercent };
+    return { level, currentLevelXP, nextLevelXP: requiredForNextLevel, progressPercent, xpForCurrentLevel, xpForNextLevel };
   }
 };
 

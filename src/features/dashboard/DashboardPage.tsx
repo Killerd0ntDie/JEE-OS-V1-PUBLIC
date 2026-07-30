@@ -16,6 +16,7 @@ import { CommandOverviewBanner } from './components/CommandOverviewBanner';
 import { CustomMissionModal } from '../mission/components/CustomMissionModal';
 import { ShortcutGuideModal } from '../../components/ui/ShortcutGuideModal';
 import { DailyCheckinCard } from '../../components/mentor/DailyCheckinCard';
+import { OnHoldReminderBanner } from './components/OnHoldReminderBanner';
 import { Keyboard } from 'lucide-react';
 
 export function DashboardPage({ onNavigate }: { onNavigate: (page: string) => void }) {
@@ -123,9 +124,11 @@ export function DashboardPage({ onNavigate }: { onNavigate: (page: string) => vo
                   if (stats.missionId) {
                     actions.completeTask(stats.missionId);
                   }
+                  // Convert duration from seconds to minutes (duration is always sent in seconds from MissionMode)
+                  const durationMinutes = Math.max(1, Math.ceil(stats.duration / 60));
                   actions.completeStudySession({
-                    duration: Math.ceil(stats.duration / 60),
-                    focusTime: Math.ceil(stats.duration / 60),
+                    duration: durationMinutes,
+                    focusTime: durationMinutes,
                     questions: stats.questions,
                     correct: stats.questions,
                     type: 'Practice',
@@ -185,6 +188,11 @@ export function DashboardPage({ onNavigate }: { onNavigate: (page: string) => vo
 
       {/* EMBEDDED HERO DAILY CHECK-IN CARD */}
       <DailyCheckinCard />
+
+      <OnHoldReminderBanner
+        chapters={state.chapters}
+        onOpenChapter={(chapterId) => actions.openChapterEditModal(chapterId)}
+      />
 
       <CommandOverviewBanner 
         onSetMonthlyObjective={() => onNavigate('planner')}
@@ -258,12 +266,9 @@ export function DashboardPage({ onNavigate }: { onNavigate: (page: string) => vo
               setSelectedRevision={setSelectedRevision}
             />
 
-            <DailyStudyTrackerWidget
-              studyTime={state.analytics.studyTime}
-              dailyQuota={state.settings.dailyQuota}
-              xpLevel={state.xp.level}
-              xpTotal={state.xp.total}
-              xpNextLevel={state.xp.nextLevelXP}
+            <ExamReadinessWidget
+              targetYear={state.settings.targetYear || '2026'}
+              syllabusProgress={state.syllabusProgress}
             />
           </div>
         )}
@@ -272,9 +277,12 @@ export function DashboardPage({ onNavigate }: { onNavigate: (page: string) => vo
         {activeTab === 'analytics' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 text-left items-stretch animate-fade-in">
             <div className="flex flex-col gap-6">
-              <ExamReadinessWidget
-                targetYear={state.settings.targetYear || '2026'}
-                syllabusProgress={state.syllabusProgress}
+              <DailyStudyTrackerWidget
+                studyTime={state.analytics.studyTime}
+                dailyQuota={state.settings.dailyQuota}
+                xpLevel={state.xp.level}
+                xpTotal={state.xp.total}
+                xpNextLevel={state.xp.nextLevelXP}
               />
               <FocusHeatmapWidget studySessions={state.studySessions} />
             </div>

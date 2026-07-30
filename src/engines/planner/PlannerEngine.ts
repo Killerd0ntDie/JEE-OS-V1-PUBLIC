@@ -18,6 +18,7 @@ export class PlannerEngine {
     // =========================================================================
     const chaptersList = input.chapters || [];
     const totalChapters = chaptersList.length || 56;
+    const chapterById = new Map(chaptersList.map(c => [c.id, c]));
     let completedChaptersCount = 0;
     let totalCompletionSum = 0;
 
@@ -433,7 +434,9 @@ export class PlannerEngine {
 
 
       } else {
-        if (!prog.dppComplete) {
+        const chapterMeta = chapterById.get(node.id);
+
+        if (!prog.dppComplete && !chapterMeta?.dppOnHold) {
           candidates.push(generateTask(
             'Solve DPP',
             node,
@@ -443,7 +446,7 @@ export class PlannerEngine {
             `Solve DPP: ${node.name}`
           ));
         }
-        if (!prog.pyqsComplete) {
+        if (!prog.pyqsComplete && !chapterMeta?.pyqOnHold) {
           candidates.push(generateTask(
             'Solve PYQs',
             node,

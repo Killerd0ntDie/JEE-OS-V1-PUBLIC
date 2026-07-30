@@ -246,7 +246,7 @@ export function DailyMissionTimeline({
                           actions.setRadarFocusedChapter(chap.id);
                         }
                       }}
-                      className={`group rounded-xl border p-4 transition-all duration-200 cursor-pointer ${
+                      className={`group rounded-xl border p-4 transition-all duration-100 cursor-pointer ${
                         mission.completed
                           ? 'bg-zinc-950/20 border-zinc-900/40 opacity-60'
                           : isSelected
@@ -263,7 +263,7 @@ export function DailyMissionTimeline({
                             e.stopPropagation();
                             onCompleteTask(mission.id);
                           }}
-                          className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-all cursor-pointer ${
+                          className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-all duration-100 cursor-pointer ${
                             mission.completed
                               ? 'bg-emerald-500 border-emerald-400 text-white shadow-[0_0_10px_rgba(16,185,129,0.3)]'
                               : 'border-zinc-700 hover:border-indigo-400 bg-transparent text-transparent hover:text-indigo-400/60'

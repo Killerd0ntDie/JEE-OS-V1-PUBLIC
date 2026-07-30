@@ -25,6 +25,8 @@ import { SettingsPage } from './features/dashboard/SettingsPage';
 import { MentorInterviewModal } from './components/mentor/MentorInterviewModal';
 import { ChapterEditModal } from './components/shared/ChapterEditModal';
 import { ShortcutGuideModal } from './components/ui/ShortcutGuideModal';
+import { LevelUpCelebration } from './components/ui/LevelUpCelebration';
+import { ConfirmDeleteModal } from './components/ui/ConfirmDeleteModal';
 import { MockTestsPage } from './features/mockTests/MockTestsPage';
 import { ErrorBoundary } from './components/shared/ErrorBoundary';
 
@@ -38,6 +40,7 @@ export default function App() {
   const [isMentorInterviewOpen, setIsMentorInterviewOpen] = useState(false);
   const [isResetCacheConfirmOpen, setIsResetCacheConfirmOpen] = useState(false);
   const [isShortcutGuideOpen, setIsShortcutGuideOpen] = useState(false);
+  const [levelUpCelebration, setLevelUpCelebration] = useState<{ oldLevel: number; newLevel: number } | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
     const saved = localStorage.getItem('jeeos_sidebar_collapsed');
     return saved !== null ? saved === 'true' : true;
@@ -106,6 +109,16 @@ export default function App() {
   useEffect(() => {
     updateUrlForPage(activePageId);
   }, []);
+
+  // Monitor level up events
+  useEffect(() => {
+    if (state.levelUpData) {
+      setLevelUpCelebration({
+        oldLevel: state.levelUpData.oldLevel,
+        newLevel: state.levelUpData.newLevel
+      });
+    }
+  }, [state.levelUpData]);
 
   // Global Navigation Listener
   useEffect(() => {
@@ -290,7 +303,7 @@ export default function App() {
                   initial={{ opacity: 0, y: 8, filter: 'blur(4px)' }}
                   animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
                   exit={{ opacity: 0, y: -8, filter: 'blur(4px)' }}
-                  transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                  transition={{ duration: 0.12, ease: [0.16, 1, 0.3, 1] }}
                   className="flex-1 flex flex-col min-h-0"
                 >
                   {renderActivePage()}
@@ -328,6 +341,16 @@ export default function App() {
         isOpen={isShortcutGuideOpen}
         onClose={() => setIsShortcutGuideOpen(false)}
       />
+
+      {/* Level Up Celebration */}
+      {levelUpCelebration && (
+        <LevelUpCelebration
+          isOpen={!!levelUpCelebration}
+          oldLevel={levelUpCelebration.oldLevel}
+          newLevel={levelUpCelebration.newLevel}
+          onClose={() => setLevelUpCelebration(null)}
+        />
+      )}
     </div>
   );
 }

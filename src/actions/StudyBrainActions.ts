@@ -10,6 +10,7 @@ import { CustomMissionRepository } from '../repositories/customMissionRepository
 import { TodayMission, SubjectId, TimelineBlock, Mistake, Chapter, StudySession, MentorProfile, PlannerOutputs, DailyCheckin, WeeklyCheckin, MonthlyObjective, MockResult } from '../types/index';
 import { MockTest } from '../types/mockTest';
 import { normalizeChapter } from '../utils/academicState';
+import { calculateLevelFromXP } from '../utils/levelingCalculations';
 import { collection, getDocs, writeBatch, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../firebase';
 
@@ -107,8 +108,12 @@ export class StudyBrainActions {
       };
     }
 
-    const gainedXp = mission.xp || 50;
+    // Base mission XP: 500 (increased to match new leveling system)
+    const baseXp = 500;
+    const gainedXp = mission.xp || baseXp;
     const deltaXp = isCompleting ? gainedXp : -gainedXp;
+    
+    const oldLevel = this.state.xp.level;
     const newXp = {
       ...this.state.xp,
       daily: Math.max(0, this.state.xp.daily + deltaXp),
@@ -116,9 +121,11 @@ export class StudyBrainActions {
       total: Math.max(0, this.state.xp.total + deltaXp)
     };
 
-    // Calculate level and next level requirement
-    newXp.level = Math.floor(newXp.total / 1000) + 1;
-    newXp.nextLevelXP = newXp.level * 1000;
+    // Calculate level using proper scaling formula from calculateLevelFromXP
+    const { level: newLevel, nextLevelXP: xpNeededForNext } = calculateLevelFromXP(newXp.total);
+    const newLevelValue = newLevel;
+    newXp.level = newLevelValue;
+    newXp.nextLevelXP = xpNeededForNext;
 
     // Streak Calculation (only when completing a task, not when unchecking)
     if (isCompleting) {
@@ -219,15 +226,20 @@ export class StudyBrainActions {
         updatedCustomMissions = this.state.customMissions.map(cm => updatedMissions.find(um => um.id === cm.id) || cm);
       }
 
-      await Promise.all(savePromises);
+      // Trigger level-up event if applicable
+      const levelUpData = oldLevel !== newLevel && isCompleting ? { oldLevel, newLevel, xp: newXp } : null;
 
+      // Optimistic update - refresh UI immediately before saving
       await this.runtime.refresh('SESSION_UPDATE', {
         todayMissions: updatedMissions,
         customMissions: updatedCustomMissions,
         xp: newXp,
         chapters: updatedChapters,
-        lastSyncError: null
+        lastSyncError: null,
+        levelUpData
       });
+
+      await Promise.all(savePromises);
     } catch (err) {
       await this.handleWriteError(err, 'completeTask');
     }
@@ -261,7 +273,7 @@ export class StudyBrainActions {
       id: `custom-${Date.now()}`,
       completed: false,
       unlocked: true,
-      xp: Math.round((missionData.duration || 60) * 1.5),
+      xp: Math.round((missionData.duration || 60) * 0.5), // Reduced from 1.5 to 0.5
       priorityScore: 1.0,
       selectionReason: "Manually added by student"
     };
@@ -291,7 +303,7 @@ export class StudyBrainActions {
     const updatedMission = { 
       ...mission, 
       ...updates, 
-      xp: updates.duration ? Math.round(updates.duration * 1.5) : mission.xp 
+      xp: updates.duration ? Math.round(updates.duration * 0.5) : mission.xp // Reduced from 1.5 to 0.5
     };
     
     const updatedMissions = [...this.state.todayMissions];
@@ -372,6 +384,76 @@ export class StudyBrainActions {
     this.runtime.updateStateOptimistic({ activeEditChapterId: chapterId });
   }
 
+  async addCustomChapter(input: {
+    name: string;
+    subject: SubjectId;
+    unit: string;
+    serialNumber?: string;
+    totalLectures: number;
+    difficulty: 'Easy' | 'Medium' | 'Hard';
+  }): Promise<void> {
+    this.checkWriteBlock();
+
+    const id = `custom_${input.subject}_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+
+    // Use provided serial number or auto-generate based on highest existing number for this subject
+    let serialNumber = input.serialNumber;
+    if (!serialNumber) {
+      const subjectChapters = this.state.chapters.filter(c => c.subject === input.subject);
+      let maxNum = 0;
+      subjectChapters.forEach(ch => {
+        if (ch.serialNumber && ch.serialNumber.startsWith('CH')) {
+          const numStr = ch.serialNumber.slice(2);
+          const num = parseInt(numStr, 10);
+          if (!isNaN(num) && num > maxNum) {
+            maxNum = num;
+          }
+        }
+      });
+      serialNumber = `CH${maxNum + 1}`;
+    } else {
+      // Auto-prepend CH if not already present
+      serialNumber = serialNumber.startsWith('CH') ? serialNumber : `CH${serialNumber}`;
+    }
+
+    // Follows the exact shape of the system's INITIAL_CHAPTERS seed data,
+    // just starting from a fresh "Not Started" state.
+    const newChapter: Chapter = normalizeChapter({
+      id,
+      subject: input.subject,
+      unit: input.unit,
+      name: input.name,
+      weightage: 3,
+      completion: 0,
+      currentLecture: 0,
+      totalLectures: input.totalLectures,
+      theoryComplete: false,
+      dppComplete: false,
+      pyqsComplete: false,
+      revisionCount: 0,
+      difficulty: input.difficulty,
+      confidence: 0,
+      estimatedRemainingTime: Math.round(input.totalLectures * 1.5),
+      priority: 2,
+      dependencies: [],
+      weaknessScore: 0,
+      status: 'Not Started',
+      solvedQuestions: 0,
+      lastRevisionDaysAgo: 0,
+      isCustom: true,
+      serialNumber
+    });
+
+    const updatedChapters = [...this.state.chapters, newChapter];
+
+    try {
+      await ChapterRepository.saveChapter(this.userId, newChapter);
+      await this.runtime.refresh('CHAPTER_UPDATE', { chapters: updatedChapters, lastSyncError: null });
+    } catch (err) {
+      await this.handleWriteError(err, 'addCustomChapter');
+    }
+  }
+
   closeChapterEditModal() {
     this.runtime.updateStateOptimistic({ activeEditChapterId: null });
   }
@@ -445,7 +527,7 @@ export class StudyBrainActions {
       subjectId: sessionData.subjectId || (this.state.activeSubject === 'all' ? 'physics' : this.state.activeSubject),
       questionsSolved: questionsSolved,
       accuracy: accuracy,
-      xpEarned: sessionData.xpEarned || Math.max(10, Math.round(duration * 2 + questionsSolved * 5)),
+      xpEarned: sessionData.xpEarned || Math.max(10, Math.round(duration * 0.2 + questionsSolved * 0.5)), // Reduced from 0.5 to 0.2 and 1 to 0.5
       idleTime: sessionData.idleTime,
       focusInterruptions: sessionData.focusInterruptions,
       focusScore: sessionData.focusScore
@@ -456,7 +538,39 @@ export class StudyBrainActions {
     try {
       await StudySessionRepository.saveStudySession(this.userId, session);
       const updatedSessions = [...this.state.studySessions, session];
-      await this.runtime.refresh('SESSION_UPDATE', { studySessions: updatedSessions, lastSyncError: null });
+      
+      // Update analytics with the new session data
+      const updatedAnalytics = {
+        ...this.state.analytics,
+        studyTime: this.state.analytics.studyTime + duration,
+        focusTime: this.state.analytics.focusTime + duration,
+        questionsSolved: this.state.analytics.questionsSolved + questionsSolved,
+        accuracy: questionsSolved > 0 ? Math.round((this.state.analytics.accuracy + accuracy) / 2) : this.state.analytics.accuracy,
+        tasksCompleted: this.state.analytics.tasksCompleted + 1,
+        xpEarned: this.state.analytics.xpEarned + (session.xpEarned || 0)
+      };
+      
+      // Update XP from session
+      const oldLevel = this.state.xp.level;
+      const newXp = {
+        ...this.state.xp,
+        total: this.state.xp.total + (session.xpEarned || 0),
+        daily: this.state.xp.daily + (session.xpEarned || 0),
+        weekly: this.state.xp.weekly + (session.xpEarned || 0)
+      };
+      
+      // Calculate new level using LevelingSystem
+      const { level: newLevel, nextLevelXP: xpNeededForNext } = require('../services/studyBrainService').LevelingSystem.calculateLevel(newXp.total);
+      newXp.level = newLevel;
+      newXp.nextLevelXP = xpNeededForNext;
+      
+      // Save analytics and XP back to user profile
+      await UserRepository.updateUserProfile(this.userId, { analytics: updatedAnalytics, xp: newXp });
+      
+      // Trigger level-up event if applicable
+      const levelUpData = oldLevel !== newLevel ? { oldLevel, newLevel, xp: newXp } : null;
+      
+      await this.runtime.refresh('SESSION_UPDATE', { studySessions: updatedSessions, analytics: updatedAnalytics, xp: newXp, lastSyncError: null, levelUpData });
     } catch (err) {
       await this.handleWriteError(err, 'completeStudySession');
     }
@@ -467,6 +581,27 @@ export class StudyBrainActions {
     const chapter = this.state.chapters.find(c => c.id === cardId);
     if (chapter) {
       const confScore = confidence === 'High' ? 100 : confidence === 'Medium' ? 70 : 40;
+
+      // Award XP for revision completion (reduced from higher values to match new system)
+      const revisionXP = confidence === 'High' ? 150 : confidence === 'Medium' ? 100 : 50;
+      const oldLevel = this.state.xp.level;
+      const newXp = {
+        ...this.state.xp,
+        total: this.state.xp.total + revisionXP,
+        daily: this.state.xp.daily + revisionXP,
+        weekly: this.state.xp.weekly + revisionXP
+      };
+
+      // Calculate new level
+      const { level: newLevel, nextLevelXP: xpNeededForNext } = calculateLevelFromXP(newXp.total);
+      newXp.level = newLevel;
+      newXp.nextLevelXP = xpNeededForNext;
+
+      // Save XP updates
+      await UserRepository.updateUserProfile(this.userId, { xp: newXp });
+
+      // Trigger level-up event if applicable
+      const levelUpData = oldLevel !== newLevel ? { oldLevel, newLevel, xp: newXp } : null;
       
       let easeFactor = chapter.sm2EaseFactor ?? 2.5;
       let interval = chapter.sm2Interval ?? 0;
@@ -506,7 +641,7 @@ export class StudyBrainActions {
       try {
         await ChapterRepository.saveChapter(this.userId, updatedChapter);
         const updatedChapters = this.state.chapters.map(c => c.id === cardId ? updatedChapter : c);
-        await this.runtime.refresh('CHAPTER_UPDATE', { chapters: updatedChapters, lastSyncError: null });
+        await this.runtime.refresh('CHAPTER_UPDATE', { chapters: updatedChapters, xp: newXp, lastSyncError: null, levelUpData });
       } catch (err) {
         await this.handleWriteError(err, 'completeRevision');
       }
@@ -555,14 +690,37 @@ export class StudyBrainActions {
   }
 
   // --- MOCK TEST ACTIONS ---
-  
+
   async addMockResult(result: Omit<MockResult, 'id'>) {
     this.checkWriteBlock();
     const newMockResult = { ...result, id: Date.now().toString() };
+
+    // Award XP for mock test completion based on score
+    const scorePercent = (result.totalScore / (result.totalQuestions * 4)) * 100; // Assuming 4 marks per question
+    const mockXP = Math.round(200 + (scorePercent / 100) * 300); // Base 200 XP + up to 300 bonus for high scores
+
+    const oldLevel = this.state.xp.level;
+    const newXp = {
+      ...this.state.xp,
+      total: this.state.xp.total + mockXP,
+      daily: this.state.xp.daily + mockXP,
+      weekly: this.state.xp.weekly + mockXP
+    };
+
+    // Calculate new level
+    const { level: newLevel, nextLevelXP: xpNeededForNext } = calculateLevelFromXP(newXp.total);
+    newXp.level = newLevel;
+    newXp.nextLevelXP = xpNeededForNext;
+
     try {
       await MockResultRepository.saveMockResult(this.userId, newMockResult);
+      await UserRepository.updateUserProfile(this.userId, { xp: newXp });
       const updatedMocks = [...this.state.mocks, newMockResult];
-      await this.runtime.refresh('MOCK_UPDATE', { mocks: updatedMocks, lastSyncError: null });
+
+      // Trigger level-up event if applicable
+      const levelUpData = oldLevel !== newLevel ? { oldLevel, newLevel, xp: newXp } : null;
+
+      await this.runtime.refresh('MOCK_UPDATE', { mocks: updatedMocks, xp: newXp, lastSyncError: null, levelUpData });
     } catch (err) {
       await this.handleWriteError(err, 'addMockResult');
     }
@@ -613,13 +771,13 @@ export class StudyBrainActions {
     const chapter = this.state.chapters.find(c => c.id === chapterId);
     if (!chapter) return;
     const updatedChapter = { ...chapter, ...updates };
-    
+
     let tasksCompleted = 0;
     if (updatedChapter.theoryComplete) tasksCompleted++;
     if (updatedChapter.dppComplete) tasksCompleted++;
     if (updatedChapter.pyqsComplete) tasksCompleted++;
     if (updatedChapter.formulaComplete) tasksCompleted++;
-    
+
     updatedChapter.completion = Math.round((tasksCompleted / 4) * 100);
     if (updatedChapter.completion === 100) {
       updatedChapter.status = 'Mastered';
@@ -633,6 +791,20 @@ export class StudyBrainActions {
       await this.runtime.refresh('CHAPTER_UPDATE', { chapters: updatedChapters, lastSyncError: null });
     } catch (err) {
       await this.handleWriteError(err, 'updateChapterData');
+    }
+  }
+
+  async deleteChapter(chapterId: string) {
+    this.checkWriteBlock();
+    const chapter = this.state.chapters.find(c => c.id === chapterId);
+    if (!chapter) return;
+
+    try {
+      await ChapterRepository.deleteChapter(this.userId, chapterId);
+      const updatedChapters = this.state.chapters.filter(c => c.id !== chapterId);
+      await this.runtime.refresh('CHAPTER_UPDATE', { chapters: updatedChapters, lastSyncError: null });
+    } catch (err) {
+      await this.handleWriteError(err, 'deleteChapter');
     }
   }
 
@@ -777,6 +949,7 @@ export class StudyBrainActions {
         dailyQuota: 6,
         showStatusInBar: true,
         soundEffects: false,
+        pauseOnTabChange: true,
         migratedToPristine: true
       }
     };

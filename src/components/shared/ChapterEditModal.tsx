@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  X, Save, CheckCircle2, Clock, BookOpen, Layers, Flame, Award, 
-  AlertCircle, SlidersHorizontal, Calendar, FileText, Target, Activity, Check 
+import { motion, AnimatePresence } from 'motion/react';
+import {
+  X, Save, CheckCircle2, Clock, BookOpen, Layers, Flame, Award,
+  AlertCircle, SlidersHorizontal, Calendar, FileText, Target, Activity, Check
 } from 'lucide-react';
 import { Chapter, SubjectId, SyllabusDiagnosisStage } from '../../types/index';
 import { useStudyBrain } from '../../context/StudyBrainContext';
@@ -44,6 +45,8 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
   const [totalDpp, setTotalDpp] = useState<number>(0);
   const [completedPyq, setCompletedPyq] = useState<number>(0);
   const [totalPyq, setTotalPyq] = useState<number>(30);
+  const [dppOnHold, setDppOnHold] = useState<boolean>(false);
+  const [pyqOnHold, setPyqOnHold] = useState<boolean>(false);
 
   const dppComplete = completedDpp >= totalDpp && totalDpp > 0;
   const pyqsComplete = completedPyq >= totalPyq && totalPyq > 0;
@@ -54,9 +57,11 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
   const [priority, setPriority] = useState<1 | 2 | 3>(2);
   const [weightage, setWeightage] = useState<number>(4.5);
   const [notes, setNotes] = useState<string>('');
+  const [serialNumber, setSerialNumber] = useState<string>('');
 
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [showSuccessToast, setShowSuccessToast] = useState<boolean>(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
 
   // Global ESC listener
   useEffect(() => {
@@ -86,7 +91,10 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
       setDifficulty(chapter.difficulty || 'Medium');
       setPriority(chapter.priority || 2);
       setWeightage(telemetry?.weightagePercent ?? chapter.weightage ?? 4.5);
-      setNotes(chapter.revisionProgress?.newBacklogNotes || '');
+      setNotes(''); // Reset notes as the field doesn't exist
+      setSerialNumber(chapter.serialNumber ? chapter.serialNumber.replace(/\D/g, '').padStart(2, '0') : '');
+      setDppOnHold(!!chapter.dppOnHold);
+      setPyqOnHold(!!chapter.pyqOnHold);
     }
   }, [chapter, telemetry]);
 
@@ -107,6 +115,36 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
       (pyqsComplete ? 20 : 0)
     ));
 
+    // Check for duplicate serial number
+    if (serialNumber) {
+      const newSerialNumber = `CH${serialNumber}`;
+      const duplicateChapter = state.chapters.find(
+        c => c.serialNumber === newSerialNumber && c.id !== chapter.id
+      );
+      if (duplicateChapter) {
+        alert(`Serial number ${newSerialNumber} is already used by "${duplicateChapter.name}". Please use a different number.`);
+        return;
+      }
+
+      // Check if serial number exceeds max allowed (highest in subject + 1)
+      const subjectChapters = state.chapters.filter(c => c.subject === chapter.subject);
+      let maxNum = 0;
+      subjectChapters.forEach(ch => {
+        if (ch.serialNumber && ch.serialNumber.startsWith('CH')) {
+          const numStr = ch.serialNumber.slice(2);
+          const num = parseInt(numStr, 10);
+          if (!isNaN(num) && num > maxNum) {
+            maxNum = num;
+          }
+        }
+      });
+      const inputNum = parseInt(serialNumber, 10);
+      if (!isNaN(inputNum) && inputNum > maxNum + 1) {
+        alert(`Serial number cannot exceed ${maxNum + 1} (highest current serial number + 1). Please use a smaller number.`);
+        return;
+      }
+    }
+
     const updatedFields: Partial<Chapter> = {
       currentLecture,
       totalLectures,
@@ -120,6 +158,9 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
       weightage,
       estimatedRemainingTime: estimatedHours,
       completion: calculatedCompletion,
+      dppOnHold,
+      pyqOnHold,
+      serialNumber: serialNumber ? `CH${serialNumber}` : undefined,
       status: calculatedCompletion === 100 ? 'Mastered' : calculatedCompletion > 0 ? 'Learning' : 'Not Started',
       syllabusStage: calculatedCompletion === 100 ? 'Mastered' : calculatedCompletion > 0 ? 'Watching Lectures' : 'Never Started',
       lectureProgress: {
@@ -336,8 +377,24 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
                 <div className="p-4 rounded-xl border border-zinc-800 bg-zinc-900/40 flex flex-col gap-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-mono font-bold text-emerald-400">DPP Practice</span>
+                    <button
+                      type="button"
+                      onClick={() => setDppOnHold(!dppOnHold)}
+                      className={`text-[9px] font-mono font-bold px-2 py-1 rounded-full border transition-colors cursor-pointer ${
+                        dppOnHold
+                          ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
+                          : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300'
+                      }`}
+                    >
+                      {dppOnHold ? 'ON HOLD' : 'Put on Hold'}
+                    </button>
                   </div>
                   <span className="text-[10px] font-mono text-zinc-400">Problem Sets & Daily Practice</span>
+                  {dppOnHold && (
+                    <p className="text-[9px] font-mono text-amber-400/90 -mt-1">
+                      DPPs won't be scheduled for this chapter until you turn this off.
+                    </p>
+                  )}
                   <div className="grid grid-cols-2 gap-2 mt-1 font-mono text-[10px]">
                     <div>
                       <span className="text-zinc-500 block mb-1">Solved Sets</span>
@@ -372,8 +429,24 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
                 <div className="p-4 rounded-xl border border-zinc-800 bg-zinc-900/40 flex flex-col gap-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-mono font-bold text-purple-400">JEE PYQs</span>
+                    <button
+                      type="button"
+                      onClick={() => setPyqOnHold(!pyqOnHold)}
+                      className={`text-[9px] font-mono font-bold px-2 py-1 rounded-full border transition-colors cursor-pointer ${
+                        pyqOnHold
+                          ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
+                          : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300'
+                      }`}
+                    >
+                      {pyqOnHold ? 'ON HOLD' : 'Put on Hold'}
+                    </button>
                   </div>
                   <span className="text-[10px] font-mono text-zinc-400">Past Years Questions Drill</span>
+                  {pyqOnHold && (
+                    <p className="text-[9px] font-mono text-amber-400/90 -mt-1">
+                      PYQs won't be scheduled for this chapter until you turn this off.
+                    </p>
+                  )}
                   <div className="grid grid-cols-2 gap-2 mt-1 font-mono text-[10px]">
                     <div>
                       <span className="text-zinc-500 block mb-1">Solved PYQs</span>
@@ -464,6 +537,18 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
                 </div>
               </div>
 
+              <div>
+                <label className="block mb-1 font-mono text-zinc-400 uppercase text-[10px]">Serial Number (for custom sorting)</label>
+                <input
+                  type="number"
+                  value={serialNumber}
+                  onChange={(e) => setSerialNumber(e.target.value)}
+                  placeholder="e.g. 22"
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3.5 py-2 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-indigo-500 font-mono"
+                />
+                <span className="text-[9px] text-zinc-600 italic mt-1 block">* Optional: Enter a number (will be prefixed with CH)</span>
+              </div>
+
               <div className="grid grid-cols-2 gap-4 font-mono text-xs">
                 <div>
                   <label className="block mb-1 text-zinc-400 uppercase text-[10px]">Difficulty Level</label>
@@ -543,13 +628,22 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
 
           {/* Footer Actions */}
           <div className="pt-4 border-t border-zinc-800/80 flex items-center justify-between">
-            <button
-              type="button"
-              onClick={handleClose}
-              className="px-5 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-300 font-mono text-xs font-bold cursor-pointer"
-            >
-              Cancel
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(true)}
+                className="px-4 py-2.5 rounded-xl bg-red-950/30 hover:bg-red-950/50 border border-red-800/50 text-red-400 font-mono text-xs font-bold cursor-pointer transition-colors"
+              >
+                Delete Chapter
+              </button>
+              <button
+                type="button"
+                onClick={handleClose}
+                className="px-5 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-300 font-mono text-xs font-bold cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
             <button
               type="submit"
               disabled={isSaving}
@@ -563,6 +657,55 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
         </form>
       </div>
     </div>
+
+    {/* Delete Confirmation Modal */}
+    <AnimatePresence>
+      {showDeleteConfirm && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[300] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+          onClick={() => setShowDeleteConfirm(false)}
+        >
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.95, opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="glass-card border border-red-900/30 rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-bold text-white mb-2">Delete Chapter</h3>
+            <p className="text-sm text-zinc-400 mb-6">
+              Are you sure you want to delete "{chapter.name}"? This action cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-300 font-mono text-xs font-bold cursor-pointer transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  setShowDeleteConfirm(false);
+                  try {
+                    await actions.deleteChapter(chapter.id);
+                    handleClose();
+                  } catch (err) {
+                    alert('Failed to delete chapter: ' + (err as Error).message);
+                  }
+                }}
+                className="flex-1 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-mono text-xs font-bold cursor-pointer transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
     </ModalPortal>
   );
 };

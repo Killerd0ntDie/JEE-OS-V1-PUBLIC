@@ -14,11 +14,12 @@ export const ChapterCommandCard: React.FC<ChapterCommandCardProps> = ({ chapter,
   const { state, actions } = useStudyBrain();
   const telemetry = state.chapterTelemetryMap ? state.chapterTelemetryMap[chapter.id] : undefined;
 
-  // Extract numerical index from chapter ID (e.g. p1 -> P01, c12 -> C12)
-  const prefix = chapter.subject === 'physics' ? 'P' : chapter.subject === 'chemistry' ? 'C' : 'M';
-  const numMatch = chapter.id.match(/\d+/);
-  const numStr = numMatch ? numMatch[0].padStart(2, '0') : '01';
-  const curriculumTag = `${prefix}${numStr}`;
+  // Use serial number for custom chapters, otherwise extract numerical index from chapter ID
+  const curriculumTag = chapter.serialNumber ? (chapter.serialNumber.length > 10 ? chapter.serialNumber.slice(0, 10) + '...' : chapter.serialNumber) : (() => {
+    const numMatch = chapter.id.match(/\d+/);
+    const numStr = numMatch ? numMatch[0].padStart(2, '0') : '01';
+    return `CH${numStr}`;
+  })();
 
   const syllabusStage = telemetry?.syllabusStage || (chapter.status === 'Mastered' || chapter.completion >= 100 ? 'Mastered' : chapter.completion > 0 ? 'In Progress' : 'Not Started');
 
@@ -47,7 +48,14 @@ export const ChapterCommandCard: React.FC<ChapterCommandCardProps> = ({ chapter,
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2.5 flex-wrap min-w-0">
           {/* Curriculum Index Tag */}
-          <span className="font-mono text-xs font-bold text-indigo-400 bg-indigo-950/50 border border-indigo-800/60 px-2 py-0.5 rounded-lg shrink-0">
+          <span
+            onClick={(e) => {
+              e.stopPropagation();
+              actions.openChapterEditModal(chapter.id);
+            }}
+            className="font-mono text-xs font-bold text-indigo-400 bg-indigo-950/50 border border-indigo-800/60 px-2 py-0.5 rounded-lg shrink-0 cursor-pointer hover:bg-indigo-950/70 transition-colors"
+            title="Click to edit serial number"
+          >
             {curriculumTag}
           </span>
 
@@ -72,8 +80,18 @@ export const ChapterCommandCard: React.FC<ChapterCommandCardProps> = ({ chapter,
 
       {/* Chapter Title */}
       <div className="space-y-1">
-        <h3 className="text-base font-display font-bold text-white group-hover:text-indigo-300 transition-colors tracking-tight">
+        <h3 className="text-base font-display font-bold text-white group-hover:text-indigo-300 transition-colors tracking-tight flex items-center gap-2 flex-wrap">
           {chapter.name}
+          {chapter.isCustom && (
+            <span className="text-[8px] font-mono font-bold px-1.5 py-0.5 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-300">
+              CUSTOM
+            </span>
+          )}
+          {(chapter.dppOnHold || chapter.pyqOnHold) && (
+            <span className="text-[8px] font-mono font-bold px-1.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300">
+              ON HOLD
+            </span>
+          )}
         </h3>
       </div>
 

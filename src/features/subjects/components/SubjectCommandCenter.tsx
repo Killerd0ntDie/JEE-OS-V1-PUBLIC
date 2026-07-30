@@ -6,6 +6,7 @@ import { ChapterCommandCard } from './ChapterCommandCard';
 import { Icon } from '../../../components/ui/Icon';
 import { Search, Sparkles, Play, Filter, CheckCircle2 } from 'lucide-react';
 import { SubjectExpandedView } from './SubjectExpandedView';
+import { AddCustomChapterModal } from './AddCustomChapterModal';
 
 interface SubjectCommandCenterProps {
   subjectId: SubjectId;
@@ -32,15 +33,29 @@ export function SubjectCommandCenter({
   const [activeFilter, setActiveFilter] = useState<FilterType>('All');
   const [activeUnit, setActiveUnit] = useState<string>('All');
   const [expandedChapterId, setExpandedChapterId] = useState<string | null>(null);
+  const [isAddChapterOpen, setIsAddChapterOpen] = useState(false);
 
   // Subject specific chapters
   const subjectChapters = useMemo(() => {
     return state.chapters.filter(c => c.subject === subjectId);
   }, [state.chapters, subjectId]);
 
-  // Numerical sorting helper: p1..p21, c1..c22, m1..m16
+  // Sort chapters by serial number if available, otherwise by ID numerical value
   const sortedSubjectChapters = useMemo(() => {
     return [...subjectChapters].sort((a, b) => {
+      // If both have serial numbers, sort by numeric part of serial number
+      if (a.serialNumber && b.serialNumber) {
+        const numA = parseInt(a.serialNumber.replace(/\D/g, ''), 10) || 0;
+        const numB = parseInt(b.serialNumber.replace(/\D/g, ''), 10) || 0;
+        // Pad with leading zeros for proper string comparison
+        const strA = numA.toString().padStart(2, '0');
+        const strB = numB.toString().padStart(2, '0');
+        return strA.localeCompare(strB);
+      }
+      // If only one has serial number, prioritize it
+      if (a.serialNumber) return -1;
+      if (b.serialNumber) return 1;
+      // Otherwise, fall back to numerical ID sorting
       const numA = parseInt(a.id.replace(/\D/g, ''), 10) || 0;
       const numB = parseInt(b.id.replace(/\D/g, ''), 10) || 0;
       return numA - numB;
@@ -143,15 +158,26 @@ export function SubjectCommandCenter({
           <div className="pt-3 border-t border-zinc-900/80 flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
             
             {/* Live Search */}
-            <div className="relative w-full md:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-              <input 
-                type="text" 
-                placeholder={`Search ${subjectTitle}...`}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-[#0d0e12] border border-zinc-800 rounded-xl pl-9 pr-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-indigo-500 transition-all"
-              />
+            <div className="relative w-full md:w-64 flex items-center gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                <input 
+                  type="text" 
+                  placeholder={`Search ${subjectTitle}...`}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-[#0d0e12] border border-zinc-800 rounded-xl pl-9 pr-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-indigo-500 transition-all"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAddChapterOpen(true)}
+                title="Add Custom Chapter"
+                className="flex-shrink-0 flex items-center gap-1 bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/30 text-indigo-300 rounded-xl px-3 py-2 text-xs font-mono font-bold transition-colors cursor-pointer"
+              >
+                <Icon name="Plus" className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Add Chapter</span>
+              </button>
             </div>
 
             {/* Unit Pills */}
@@ -270,6 +296,13 @@ export function SubjectCommandCenter({
 
         </div>
       )}
+
+      <AddCustomChapterModal
+        isOpen={isAddChapterOpen}
+        onClose={() => setIsAddChapterOpen(false)}
+        defaultSubject={subjectId}
+        defaultUnit={activeUnit !== 'All' ? activeUnit : undefined}
+      />
     </div>
   );
 }

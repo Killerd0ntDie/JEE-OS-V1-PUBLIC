@@ -192,6 +192,7 @@ export interface Chapter {
   subject: SubjectId;
   unit: string;
   name: string;
+  serialNumber?: string;    // User-defined serial number (e.g. P1785251959851) for custom sorting
   completion: number;       // 0 - 100
   currentLecture: number;
   totalLectures: number;
@@ -210,6 +211,15 @@ export interface Chapter {
   status: ChapterStatus;
   solvedQuestions: number;
   lastRevisionDaysAgo: number;
+
+  // On-hold controls: excludes DPP/PYQ tasks from scheduling while true,
+  // but the chapter keeps surfacing as a reminder until turned off.
+  dppOnHold?: boolean;
+  pyqOnHold?: boolean;
+
+  // True for chapters the student added themselves rather than the system's
+  // built-in JEE syllabus (surfaced with a badge, no scheduling difference).
+  isCustom?: boolean;
   
   // Syllabus Diagnosis enhancements
   syllabusStage?: SyllabusDiagnosisStage;
@@ -228,6 +238,7 @@ export interface Chapter {
   // SuperMemo-2 Spaced Repetition State
   sm2EaseFactor?: number;     // e.g. 2.5
   sm2Interval?: number;       // e.g. 1, 3, 7 days
+  dppComplete?: boolean;
 }
 
 export interface TodayMission {
@@ -597,8 +608,8 @@ export interface UserProfile {
     soundEffects: boolean;
     desktopNotifications: boolean;
     volume: number;
+    pauseOnTabChange?: boolean;
     migratedToPristine?: boolean;
     revisionSettings?: RevisionSettings;
   };
 }
-

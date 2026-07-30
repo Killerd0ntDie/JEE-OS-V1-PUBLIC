@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { PAGES, PageId, PageDefinition } from '../../types/index';
 import { Icon } from '../ui/Icon';
 import { Badge } from '../ui/Badge';
 import { useAuth } from '../../hooks/useAuth';
 import { useStudyBrain } from '../../context/StudyBrainContext';
-import { LevelingSystem } from '../../services/studyBrainService';
+import { calculateLevelFromXP, getTitleAndColor } from '../../utils/levelingCalculations';
 import { JeeOsLogo } from '../shared/JeeOsLogo';
 
 interface SidebarProps {
@@ -166,32 +166,14 @@ export function Sidebar({
       {/* Footer / Leveling & User Profile — Avatar center locked at 32px */}
       <div className={`shrink-0 border-t border-zinc-850/80 bg-[#09090b] ${collapsed ? 'px-2 py-2' : 'px-4 py-2.5'} space-y-1.5`}>
         {/* Level Progress Bar */}
-        <div className={`pt-0.5 space-y-1 ${getTextFadeClass(collapsed)}`}>
-          {(() => {
-            const totalXP = state.xp?.total || 0;
-            const { level, progressPercent } = LevelingSystem.calculateLevel(totalXP);
-            const { title, color } = LevelingSystem.getTitle(level);
-            return (
-              <div className="space-y-1 whitespace-nowrap">
-                <div className="flex items-center justify-between text-xs font-mono">
-                  <span className={`font-bold ${color}`}>Lv. {level} {title}</span>
-                  <span className="text-[10px] text-zinc-500">{Math.round(progressPercent)}%</span>
-                </div>
-                <div className="h-1.5 w-full bg-zinc-900 rounded-full overflow-hidden border border-zinc-800/60">
-                  <div
-                    className="h-full bg-indigo-500 rounded-full transition-all duration-500"
-                    style={{ width: `${progressPercent}%` }}
-                  />
-                </div>
-              </div>
-            );
-          })()}
+        <div className={getTextFadeClass(collapsed)}>
+          <LevelProgress totalXP={state.xp?.total || 0} />
         </div>
 
         {/* User Profile Bar — Center locked at 32px */}
         <div
           onClick={() => onNavigate('settings')}
-          className="flex items-center gap-3 py-1 hover:bg-zinc-850/60 rounded-xl transition-all cursor-pointer group/profile whitespace-nowrap"
+          className={`flex items-center py-1 hover:bg-zinc-850/60 rounded-xl transition-all cursor-pointer group/profile whitespace-nowrap ${collapsed ? 'justify-center' : 'gap-3'}`}
         >
           {/* 32px-centered Avatar slot */}
           <div className="w-8 h-8 rounded-full border border-indigo-500/30 shrink-0 overflow-hidden flex items-center justify-center bg-indigo-600/20">
@@ -208,8 +190,8 @@ export function Sidebar({
           </div>
 
           <div className={`flex-1 overflow-hidden text-left leading-tight ${getTextFadeClass(collapsed)}`}>
-            <p className="text-xs text-zinc-200 font-semibold truncate">{displayName}</p>
-            <p className="text-xs font-mono text-zinc-500 truncate">JEE {state.settings.targetYear} Aspirant</p>
+            <p className="text-xs text-zinc-200 font-semibold truncate pl-1">{displayName}</p>
+            <p className="text-xs font-mono text-zinc-500 truncate pl-1">JEE {state.settings.targetYear} Aspirant</p>
           </div>
           <Icon name="ChevronUp" aria-hidden="true" className={`w-3.5 h-3.5 text-zinc-600 shrink-0 group-hover/profile:text-zinc-300 transition-colors ${getTextFadeClass(collapsed)}`} />
         </div>
@@ -241,5 +223,27 @@ export function Sidebar({
         </div>
       )}
     </>
+  );
+}
+
+function LevelProgress({ totalXP }: { totalXP: number }) {
+  const { level, progressPercent } = calculateLevelFromXP(totalXP);
+  const { title, color } = getTitleAndColor(level);
+
+  return (
+    <div className="pt-0.5 space-y-1">
+      <div className="space-y-1">
+        <div className="flex items-center justify-between text-xs font-mono">
+          <span className={`font-bold ${color} truncate max-w-[80px]`}>Lv. {level} {title}</span>
+          <span className="text-[10px] text-zinc-300 shrink-0">{Math.round(progressPercent)}%</span>
+        </div>
+        <div className="h-1.5 w-full bg-zinc-900 rounded-full overflow-hidden border border-zinc-800/60">
+          <div
+            className="h-full bg-zinc-300 rounded-full transition-all duration-500"
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
+      </div>
+    </div>
   );
 }

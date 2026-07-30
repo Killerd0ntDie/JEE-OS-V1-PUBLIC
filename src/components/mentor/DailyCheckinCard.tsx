@@ -14,13 +14,15 @@ export function DailyCheckinCard() {
   // Retrieve yesterday's checkin or fallback defaults
   const previousCheckin = state.mentorProfile?.dailyCheckins?.[state.mentorProfile.dailyCheckins.length - 1];
   
-  const defaultHours = previousCheckin?.plannedStudyHours || 3.0;
-  const defaultPyqs = previousCheckin?.pyqTarget || 25;
+  const defaultHours = previousCheckin?.actualHoursAvailable || 3.0;
+  const defaultPyqs = 25; // Not yet a tracked field on DailyCheckin — see note below.
   const defaultEnergy = previousCheckin?.energyLevel || 'Medium';
 
   const [hours, setHours] = useState<number>(defaultHours);
   const [pyqCount, setPyqCount] = useState<number>(defaultPyqs);
   const [energy, setEnergy] = useState<'Low' | 'Medium' | 'High'>(defaultEnergy);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     const completedToday = localStorage.getItem(`jeeos_daily_checkin_${todayStr}`) === 'true';
@@ -33,20 +35,33 @@ export function DailyCheckinCard() {
     return null;
   }
 
-  const handleQuickSubmit = (targetHours: number, targetPyqs: number, targetEnergy: 'Low' | 'Medium' | 'High') => {
-    const checkin: DailyCheckin = {
-      id: `checkin-${Date.now()}`,
-      date: todayStr,
-      timestamp: Date.now(),
-      plannedStudyHours: targetHours,
-      pyqTarget: targetPyqs,
-      energyLevel: targetEnergy,
-      mood: 'Focused'
+  const handleQuickSubmit = async (targetHours: number, targetPyqs: number, targetEnergy: 'Low' | 'Medium' | 'High') => {
+    const moodForEnergy: Record<'Low' | 'Medium' | 'High', 'Tired' | 'Focused' | 'Energetic'> = {
+      Low: 'Tired',
+      Medium: 'Focused',
+      High: 'Energetic'
     };
 
-    actions.submitDailyCheckin(checkin);
-    localStorage.setItem(`jeeos_daily_checkin_${todayStr}`, 'true');
-    setIsSubmitted(true);
+    const checkin: DailyCheckin = {
+      date: todayStr,
+      actualHoursAvailable: targetHours,
+      mood: moodForEnergy[targetEnergy],
+      energyLevel: targetEnergy,
+      sleepQualityHours: 7,
+      unexpectedWork: ''
+    };
+
+    setSaveError(null);
+    setIsSaving(true);
+    try {
+      await actions.submitDailyCheckin(checkin);
+      localStorage.setItem(`jeeos_daily_checkin_${todayStr}`, 'true');
+      setIsSubmitted(true);
+    } catch (err: any) {
+      setSaveError(err?.message || 'Could not save your check-in. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -96,15 +111,22 @@ export function DailyCheckinCard() {
             <button
               type="button"
               onClick={() => handleQuickSubmit(hours, pyqCount, energy)}
-              className="px-4 py-2.5 text-xs font-bold font-mono text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl shadow-lg shadow-indigo-600/25 border border-indigo-400/30 transition-all cursor-pointer flex items-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
+              disabled={isSaving}
+              className="px-4 py-2.5 text-xs font-bold font-mono text-white bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed rounded-xl shadow-lg shadow-indigo-600/25 border border-indigo-400/30 transition-all cursor-pointer flex items-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
             >
               <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-              <span>Confirm {hours}h Target</span>
+              <span>{isSaving ? 'Saving...' : `Confirm ${hours}h Target`}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
 
         </div>
+
+        {saveError && (
+          <p className="mt-2 text-xs font-mono text-red-400 relative z-10">
+            {saveError}
+          </p>
+        )}
 
         {/* CUSTOMIZER PANEL (EXPOSES ADJUSTMENT SLIDERS WHEN TOGGLED) */}
         {showCustomizer && (

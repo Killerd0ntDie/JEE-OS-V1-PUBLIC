@@ -6,7 +6,7 @@ export class QuestionRepository {
   private static COLLECTION = 'pyq_bank';
 
   /**
-   * Fetch all questions for a specific chapter
+   * Fetch all questions for a specific chapter (with deduplication)
    */
   static async getQuestionsByChapter(chapterId: string): Promise<Question[]> {
     try {
@@ -15,8 +15,15 @@ export class QuestionRepository {
       const snapshot = await getDocs(q);
       
       const questions: Question[] = [];
+      const seenIds = new Set<string>();
+      
       snapshot.forEach(doc => {
-        questions.push({ id: doc.id, ...doc.data() } as Question);
+        const docId = doc.id;
+        // Prevent duplicate questions
+        if (!seenIds.has(docId)) {
+          seenIds.add(docId);
+          questions.push({ id: docId, ...doc.data() } as Question);
+        }
       });
       
       return questions;

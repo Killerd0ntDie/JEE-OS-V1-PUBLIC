@@ -42,6 +42,7 @@ export interface StudyBrainState {
     soundEffects: boolean;
     desktopNotifications: boolean;
     volume: number;
+    pauseOnTabChange?: boolean;
     revisionSettings?: RevisionSettings;
     migratedToPristine?: boolean;
   };
@@ -84,6 +85,7 @@ export interface StudyBrainState {
   deletedMissionIds?: string[];
   writeBlocked?: boolean;
   lastRefresh: string | null;
+  levelUpData?: { oldLevel: number; newLevel: number; xp: XPState } | null;
   
   // 3. Diagnostics
   diagnostics: {
@@ -159,6 +161,7 @@ export class StudyBrainRuntime {
         soundEffects: false,
         desktopNotifications: false,
         volume: 75,
+        pauseOnTabChange: true,
       },
       knowledgeGraph: [],
       plannerOutput: null,
@@ -194,6 +197,7 @@ export class StudyBrainRuntime {
       initializationError: null,
       writeBlocked: false,
       lastRefresh: null,
+      levelUpData: null,
       diagnostics: {
         cacheHits: 0,
         cacheMisses: 0,
@@ -579,8 +583,18 @@ export class StudyBrainRuntime {
       totalEngineRuntime: this.totalEngineRuntimeMs,
       engineExecutionTimes: engineTimes
     };
-    
+
     this.state.lastRefresh = new Date().toISOString();
+
+    // Clear levelUpData after it's been processed by subscribers
+    if (this.state.levelUpData) {
+      // Keep it for one notification cycle, then clear
+      setTimeout(() => {
+        this.state.levelUpData = null;
+        this.notifySubscribers();
+      }, 100);
+    }
+
     this.notifySubscribers();
   }
 

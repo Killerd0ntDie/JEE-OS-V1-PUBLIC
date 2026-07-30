@@ -9,6 +9,7 @@ import rateLimit from "express-rate-limit";
 import { LRUCache } from "lru-cache";
 import crypto from "crypto";
 import { z } from "zod";
+import { createServer as createNetServer } from "node:net";
 
 if (fs.existsSync('.env.local')) {
   dotenv.config({ path: '.env.local' });
@@ -17,9 +18,35 @@ dotenv.config();
 
 // Fix for Google GenAI SDK conflict with Firebase ADC
 delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
+
+const findAvailablePort = async (preferredPort: number, host: string) => {
+  const isPortFree = (port: number) =>
+    new Promise<boolean>((resolve) => {
+      const tester = createNetServer();
+      tester.once("error", () => resolve(false));
+      tester.once("listening", () => {
+        tester.close(() => resolve(true));
+      });
+      tester.listen(port, host);
+    });
+
+  let portToTry = preferredPort;
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    if (await isPortFree(portToTry)) {
+      return portToTry;
+    }
+    portToTry += 1;
+  }
+
+  throw new Error(`Unable to find an available port starting from ${preferredPort}`);
+};
+
 async function startServer() {
   const app = express();
-  const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
+  const host = process.env.HOST || "0.0.0.0";
+  const requestedPort = process.env.PORT ? Number(process.env.PORT) : 3000;
+  const preferredPort = Number.isFinite(requestedPort) && requestedPort > 0 ? requestedPort : 3000;
+  const port = await findAvailablePort(preferredPort, host);
 
   // Render (and most PaaS hosts) run this app behind a reverse proxy that sets
   // X-Forwarded-For. Trusting exactly 1 hop lets express-rate-limit identify
@@ -474,16 +501,19 @@ You MUST output these actions at the very end of your response, wrapped in a mar
   });
 
 
-  const httpServer = app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+  const httpServer = app.listen(port, host, () => {
+    const fallbackMessage = port !== preferredPort ? ` (fallback from ${preferredPort})` : "";
+    console.log(`Server running on http://localhost:${port}${fallbackMessage}`);
   });
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
-      server: { 
+      server: {
         middlewareMode: true,
-        hmr: { server: httpServer }
+        hmr: { server: httpServer },
+        port,
+        strictPort: false,
       },
       appType: "spa",
     });

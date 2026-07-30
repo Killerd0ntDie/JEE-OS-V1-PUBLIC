@@ -41,17 +41,27 @@ try {
   if (!(0, import_app.getApps)().length) {
     let credentialOptions = {};
     const keyPath = import_path.default.resolve(process.cwd(), "firebase-admin-key.json");
-    if (import_fs.default.existsSync(keyPath)) {
+    const keyJson = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+    console.log(
+      `[firebaseAdmin] FIREBASE_SERVICE_ACCOUNT_KEY present: ${!!keyJson}, length: ${keyJson ? keyJson.length : 0}`
+    );
+    if (keyJson) {
+      const serviceAccount = JSON.parse(keyJson);
+      credentialOptions = { credential: (0, import_app.cert)(serviceAccount) };
+      console.log(
+        `[firebaseAdmin] Initialized from env var. project_id in key: ${serviceAccount.project_id}`
+      );
+    } else if (import_fs.default.existsSync(keyPath)) {
       const serviceAccount = JSON.parse(import_fs.default.readFileSync(keyPath, "utf8"));
       credentialOptions = { credential: (0, import_app.cert)(serviceAccount) };
-      console.log("Firebase Admin initialized with local key file.");
+      console.log("[firebaseAdmin] Initialized with local key file.");
     } else {
-      console.log("Firebase Admin initialized (using default credentials or emulator).");
+      console.log("[firebaseAdmin] No key found \u2014 falling back to default credentials (will fail on Render).");
     }
     (0, import_app.initializeApp)(credentialOptions);
   }
 } catch (error) {
-  console.error("Firebase Admin initialization error", error);
+  console.error("[firebaseAdmin] Initialization error:", error);
 }
 var adminAuth = (0, import_app.getApps)().length > 0 ? (0, import_auth.getAuth)() : null;
 var adminDb = (0, import_app.getApps)().length > 0 ? (0, import_firestore.getFirestore)() : null;
@@ -81,14 +91,37 @@ var import_express_rate_limit = __toESM(require("express-rate-limit"), 1);
 var import_lru_cache = require("lru-cache");
 var import_crypto = __toESM(require("crypto"), 1);
 var import_zod = require("zod");
+var import_node_net = require("node:net");
 if (import_fs2.default.existsSync(".env.local")) {
   import_dotenv2.default.config({ path: ".env.local" });
 }
 import_dotenv2.default.config();
 delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
+var findAvailablePort = async (preferredPort, host) => {
+  const isPortFree = (port) => new Promise((resolve) => {
+    const tester = (0, import_node_net.createServer)();
+    tester.once("error", () => resolve(false));
+    tester.once("listening", () => {
+      tester.close(() => resolve(true));
+    });
+    tester.listen(port, host);
+  });
+  let portToTry = preferredPort;
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    if (await isPortFree(portToTry)) {
+      return portToTry;
+    }
+    portToTry += 1;
+  }
+  throw new Error(`Unable to find an available port starting from ${preferredPort}`);
+};
 async function startServer() {
   const app = (0, import_express.default)();
-  const PORT = process.env.PORT ? Number(process.env.PORT) : 3e3;
+  const host = process.env.HOST || "0.0.0.0";
+  const requestedPort = process.env.PORT ? Number(process.env.PORT) : 3e3;
+  const preferredPort = Number.isFinite(requestedPort) && requestedPort > 0 ? requestedPort : 3e3;
+  const port = await findAvailablePort(preferredPort, host);
+  app.set("trust proxy", 1);
   app.use(import_express.default.json({ limit: "5mb" }));
   const apiLimiter = (0, import_express_rate_limit.default)({
     windowMs: 15 * 60 * 1e3,
@@ -488,14 +521,17 @@ You MUST output these actions at the very end of your response, wrapped in a mar
       res.status(500).json({ error: error.message });
     }
   });
-  const httpServer = app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+  const httpServer = app.listen(port, host, () => {
+    const fallbackMessage = port !== preferredPort ? ` (fallback from ${preferredPort})` : "";
+    console.log(`Server running on http://localhost:${port}${fallbackMessage}`);
   });
   if (process.env.NODE_ENV !== "production") {
     const vite = await (0, import_vite.createServer)({
       server: {
         middlewareMode: true,
-        hmr: { server: httpServer }
+        hmr: { server: httpServer },
+        port,
+        strictPort: false
       },
       appType: "spa"
     });

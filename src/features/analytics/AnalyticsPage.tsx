@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useStudyBrain } from '../../context/StudyBrainContext';
 import { Icon } from '../../components/ui/Icon';
 import { Badge } from '../../components/ui/Badge';
-import { LevelingSystem } from '../../services/studyBrainService';
+import { calculateLevelFromXP, getTitleAndColor } from '../../utils/levelingCalculations';
 import { ChapterTelemetry } from '../../engines/chapterInfo';
 
 export function AnalyticsPage() {
@@ -45,8 +45,8 @@ export function AnalyticsPage() {
 
   // Level & XP Title
   const totalXP = state.xp?.total || 0;
-  const { level, progressPercent } = LevelingSystem.calculateLevel(totalXP);
-  const { title } = LevelingSystem.getTitle(level);
+  const { level, progressPercent } = calculateLevelFromXP(totalXP);
+  const { title } = getTitleAndColor(level);
 
   // Overall Accuracy & Questions
   const totalQuestions = state.analytics.questionsSolved || 0;

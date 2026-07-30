@@ -186,7 +186,8 @@ export function normalizeChapter(chapter: Chapter): Chapter {
     healthScore: Math.round((acad.practiceProgress.accuracyPercent * 0.6) + ((acad.revisionState.retentionScore ?? 60) * 0.4)),
     lectureProgress: acad.lectureProgress,
     practiceProgress: acad.practiceProgress,
-    revisionProgress: acad.revisionState
+    revisionProgress: acad.revisionState,
+    serialNumber: chapter.serialNumber
   };
 }
 

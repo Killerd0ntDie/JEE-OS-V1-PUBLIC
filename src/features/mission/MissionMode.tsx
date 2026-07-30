@@ -15,6 +15,7 @@ import { MissionTimeUpModal } from './components/MissionTimeUpModal';
 
 import { MissionCoachWidget } from './components/MissionCoachWidget';
 import { QuestionViewerWidget } from './components/QuestionViewerWidget';
+import { calculateFocusScore } from '../../utils/focusScore';
 import { 
   Play, 
   Pause, 
@@ -111,7 +112,7 @@ export function MissionMode({
   const [isPauseOverlayDismissed, setIsPauseOverlayDismissed] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
   const [seconds, setSeconds] = useState(0);
-  const [focusScore, setFocusScore] = useState(98);
+  const [focusScore, setFocusScore] = useState(100);
   const [lectureSpeed, setLectureSpeed] = useState(1.25);
   
   // Simulated stats tracking
@@ -127,6 +128,15 @@ export function MissionMode({
   const [formulaSearch, setFormulaSearch] = useState('');
   
   const { state, actions } = useStudyBrain();
+  const pauseOnTabChangeEnabled = state.settings.pauseOnTabChange ?? true;
+  const uninterruptedSecondsRef = useRef(0);
+  const focusInterruptionsRef = useRef(0);
+  const idleTimeRef = useRef(0);
+
+  const incrementInterruption = () => {
+    focusInterruptionsRef.current += 1;
+    setFocusInterruptions(prev => prev + 1);
+  };
 
   // Dynamically build micro-steps checklist based on the current active mission type for this subject
   const dynamicChecklist = useMemo(() => {
@@ -191,7 +201,14 @@ export function MissionMode({
   const subjectsDetails = useMemo(() => {
     const getActiveChapterInfo = (subj: 'physics' | 'chemistry' | 'maths') => {
       const subjChaps = state.chapters.filter(c => c.subject === subj);
-      const activeChap = subjChaps.find(c => c.completion < 100) || subjChaps[0];
+      // Respect the chapter the user actually launched the cockpit for (Radar Focused Chapter)
+      // instead of always defaulting to "first incomplete chapter" — this was why the cockpit
+      // could show/start a totally different chapter than the one the user clicked into.
+      const focusedId = (state as any).radarFocusedChapter;
+      const focusedChap = focusedId
+        ? subjChaps.find(c => c.id === focusedId || c.name === focusedId)
+        : undefined;
+      const activeChap = focusedChap || subjChaps.find(c => c.completion < 100) || subjChaps[0];
 
       if (!activeChap) {
         return {
@@ -237,7 +254,7 @@ export function MissionMode({
       chemistry: getActiveChapterInfo('chemistry'),
       maths: getActiveChapterInfo('maths')
     };
-  }, [state.chapters]);
+  }, [state.chapters, (state as any).radarFocusedChapter]);
 
   const activeDetails = subjectsDetails[activeSubject];
 
@@ -298,18 +315,16 @@ export function MissionMode({
           if (!isPaused) {
             setSeconds(prev => prev + deltaSecs);
             
-            // Slower decline if idle, or small fluctuations for focus score realism
-            setFocusScore(score => {
-              const rand = Math.random();
-              if (rand > 0.94) {
-                return Math.max(85, Math.min(100, score + 1));
-              } else if (rand < 0.06) {
-                return Math.max(85, Math.min(100, score - 1));
-              }
-              return score;
-            });
+            uninterruptedSecondsRef.current += deltaSecs;
+            setFocusScore(calculateFocusScore({
+              interruptions: focusInterruptionsRef.current,
+              idleSeconds: idleTimeRef.current,
+              uninterruptedSeconds: uninterruptedSecondsRef.current,
+            }));
           } else {
             setIdleTime(prev => prev + deltaSecs);
+            idleTimeRef.current += deltaSecs;
+            uninterruptedSecondsRef.current = 0;
           }
           // Adjust last tick precisely by the discrete seconds counted
           lastTick += deltaSecs * 1000; 
@@ -322,16 +337,16 @@ export function MissionMode({
   // Telemetry: Auto-pause and log interruption if tab loses focus/visibility
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.hidden && !isPaused && !isCompleted) {
+      if (document.hidden && !isPaused && !isCompleted && pauseOnTabChangeEnabled) {
         setIsPaused(true);
-        setFocusInterruptions(prev => prev + 1);
+        incrementInterruption();
         setCoachTip('Session auto-paused due to tab switch. Focus lost.');
       }
     };
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [isPaused, isCompleted]);
+  }, [isPaused, isCompleted, pauseOnTabChangeEnabled]);
 
   // Monitor for time up
   useEffect(() => {
@@ -393,7 +408,7 @@ export function MissionMode({
           e.preventDefault();
           setIsPaused(prev => {
             const next = !prev;
-            if (next) setFocusInterruptions(prevInt => prevInt + 1);
+            if (next) incrementInterruption();
             return next;
           });
           break;
@@ -451,6 +466,23 @@ export function MissionMode({
       ...prev,
       [task]: !prev[task]
     }));
+  };
+
+  // Let the user add their own custom checklist items for this session
+  const handleAddCustomTask = (task: string) => {
+    setChecklist(prev => ({
+      ...prev,
+      [task]: false
+    }));
+  };
+
+  // Let the user remove any checklist item (default or custom)
+  const handleRemoveTask = (task: string) => {
+    setChecklist(prev => {
+      const next = { ...prev };
+      delete next[task];
+      return next;
+    });
   };
 
   // Compute checklist completion percentage
@@ -634,7 +666,20 @@ export function MissionMode({
               <QuestionViewerWidget 
                 chapterId={activeChap.id} 
                 subject={activeSubject} 
-                onExitPractice={() => setForcePracticeMode(false)}
+                onExitPractice={() => {
+                  // Save practice session before exiting (duration in seconds for consistency)
+                  onComplete({
+                    missionId: state.todayMissions.find(m => m.subject === activeSubject && !m.completed)?.id,
+                    duration: Math.max(60, seconds),  // Send in seconds, minimum 1 minute
+                    questions: 0,  // No specific questions tracked in practice mode
+                    xp: Math.max(5, Math.floor(seconds / 60) * 5),
+                    streak: 0,
+                    idleTime,
+                    focusInterruptions,
+                    focusScore
+                  });
+                  setForcePracticeMode(false);
+                }}
               />
             ) : (
               <MissionChecklistWidget
@@ -643,7 +688,7 @@ export function MissionMode({
                 onToggleTask={handleToggleTask}
                 isPaused={isPaused}
                 onTogglePause={() => setIsPaused(prev => {
-                  if (!prev) setFocusInterruptions(prevI => prevI + 1);
+                  if (!prev) incrementInterruption();
                   return !prev;
                 })}
                 onCompleteAll={() => {
@@ -657,6 +702,8 @@ export function MissionMode({
                   setIsCompleted(true);
                 }}
                 onStartPractice={() => setForcePracticeMode(true)}
+                onAddTask={handleAddCustomTask}
+                onRemoveTask={handleRemoveTask}
               />
             )}
           </div>
@@ -707,6 +754,10 @@ export function MissionMode({
         focusScore={focusScore}
         onComplete={(data) => {
           const activeSubjectMission = state.todayMissions.find(m => m.subject === activeSubject && !m.completed);
+          // First, mark the current mission as complete
+          if (activeSubjectMission?.id) {
+            actions.completeTask(activeSubjectMission.id);
+          }
           onComplete({
             missionId: activeSubjectMission?.id,
             duration: seconds,
@@ -719,9 +770,28 @@ export function MissionMode({
           });
         }}
         onNextSubject={() => {
-          const subjects: ('physics' | 'chemistry' | 'maths')[] = ['physics', 'chemistry', 'maths'];
-          const nextIdx = (subjects.indexOf(activeSubject) + 1) % subjects.length;
-          setActiveSubject(subjects[nextIdx]);
+          // Mark current mission complete and get the next incomplete mission
+          const activeSubjectMission = state.todayMissions.find(m => m.subject === activeSubject && !m.completed);
+          if (activeSubjectMission?.id) {
+            actions.completeTask(activeSubjectMission.id);
+          }
+          
+          // Find the next incomplete mission from the full list
+          const allIncompleteMissions = state.todayMissions.filter(m => !m.completed);
+          const currentMissionIdx = allIncompleteMissions.findIndex(m => m.subject === activeSubject);
+          const nextMission = allIncompleteMissions[currentMissionIdx + 1] || allIncompleteMissions[0];
+          
+          if (nextMission && nextMission.subject) {
+            const nextSubj = nextMission.subject as 'physics' | 'chemistry' | 'maths';
+            setActiveSubject(nextSubj);
+            setCoachTip(`Commencing next mission: ${nextMission.taskName}. Focus locked.`);
+          } else {
+            // All missions complete, cycle back to first subject
+            const subjects: ('physics' | 'chemistry' | 'maths')[] = ['physics', 'chemistry', 'maths'];
+            setActiveSubject(subjects[0]);
+            setCoachTip('All missions completed for today! Starting fresh cycle.');
+          }
+          
           setChecklist({
             'Watch lecture': false,
             'Make notes': false,
@@ -731,8 +801,12 @@ export function MissionMode({
           });
           setIsCompleted(false);
           setSeconds(0);
-          setFocusScore(98);
-          setCoachTip(`Commencing next cockpit session in ${subjectsDetails[subjects[nextIdx]].name}. Track focused.`);
+          setFocusScore(100);
+          uninterruptedSecondsRef.current = 0;
+          focusInterruptionsRef.current = 0;
+          idleTimeRef.current = 0;
+          setIdleTime(0);
+          setFocusInterruptions(0);
         }}
       />
 

@@ -74,11 +74,13 @@ export class PyqGeneratorEngine {
       2. Ensure exactly 4 options per question.
       3. The solution must be extremely detailed and step-by-step.
       4. Make sure questions are at the actual difficulty level of JEE Advanced.
+      5. IMPORTANT: Each question MUST include a chapterId property set to exactly "${chapterId}".
 
       OUTPUT FORMAT:
       You MUST respond ONLY with a raw JSON array of objects. Do not include markdown codeblocks like \`\`\`json.
       Schema per object:
       {
+        "chapterId": "${chapterId}",
         "topic": "string",
         "type": "MCQ_SINGLE",
         "difficulty": "JEE_ADVANCED",

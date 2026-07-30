@@ -1,5 +1,5 @@
-import React from 'react';
-import { ListTodo, Check, ChevronRight, Play, Pause, CheckCircle2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { ListTodo, Check, ChevronRight, Play, Pause, CheckCircle2, Plus, X } from 'lucide-react';
 
 export interface MissionChecklistWidgetProps {
   progressPercent: number;
@@ -9,6 +9,8 @@ export interface MissionChecklistWidgetProps {
   onTogglePause: () => void;
   onCompleteAll: () => void;
   onStartPractice: () => void;
+  onAddTask?: (task: string) => void;
+  onRemoveTask?: (task: string) => void;
 }
 
 export function MissionChecklistWidget({
@@ -18,8 +20,24 @@ export function MissionChecklistWidget({
   isPaused,
   onTogglePause,
   onCompleteAll,
-  onStartPractice
+  onStartPractice,
+  onAddTask,
+  onRemoveTask
 }: MissionChecklistWidgetProps) {
+  const [newTaskInput, setNewTaskInput] = useState('');
+
+  const handleAddTask = () => {
+    const trimmed = newTaskInput.trim();
+    if (!trimmed || !onAddTask) return;
+    // Avoid duplicate keys clobbering existing checklist entries
+    if (checklist[trimmed] !== undefined) {
+      setNewTaskInput('');
+      return;
+    }
+    onAddTask(trimmed);
+    setNewTaskInput('');
+  };
+
   return (
     <div className="w-full h-full flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md space-y-5">
@@ -74,17 +92,61 @@ export function MissionChecklistWidget({
                 </div>
 
                 {/* Icon status indicator */}
-                <div>
+                <div className="flex items-center gap-2">
                   {isChecked ? (
                     <span className="text-[10px] font-mono text-indigo-400 font-semibold uppercase tracking-wider">LOGGED ✓</span>
                   ) : (
                     <ChevronRight className="w-3.5 h-3.5 text-zinc-600 hover:text-zinc-400" />
+                  )}
+                  {onRemoveTask && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onRemoveTask(task);
+                      }}
+                      title="Remove item"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity text-zinc-600 hover:text-red-400 cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
                   )}
                 </div>
               </div>
             );
           })}
         </div>
+
+        {/* Add Custom Checklist Item */}
+        {onAddTask && (
+          <div className="flex items-center gap-2 pt-1">
+            <input
+              type="text"
+              value={newTaskInput}
+              onChange={(e) => setNewTaskInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleAddTask();
+                }
+                // Prevent the mission-mode global keyboard shortcuts (Enter/Tab/etc.)
+                // from firing while the user is typing a custom checklist item.
+                e.stopPropagation();
+              }}
+              placeholder="Add your own checklist item..."
+              className="flex-1 bg-zinc-900/60 border border-zinc-850 rounded-lg px-3 py-2 text-[12px] font-mono text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-indigo-500 transition-all"
+            />
+            <button
+              type="button"
+              onClick={handleAddTask}
+              disabled={!newTaskInput.trim()}
+              className="shrink-0 flex items-center gap-1 px-3 py-2 rounded-lg bg-indigo-600/10 hover:bg-indigo-600/20 disabled:opacity-40 disabled:cursor-not-allowed border border-indigo-500/30 text-indigo-300 text-[11px] font-mono font-bold uppercase transition-colors cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Add
+            </button>
+          </div>
+        )}
 
         {/* Primary Footer CTAs */}
         <div className="flex items-center gap-3 pt-6 mt-4">

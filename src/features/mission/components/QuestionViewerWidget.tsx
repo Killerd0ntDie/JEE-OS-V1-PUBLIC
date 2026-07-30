@@ -186,27 +186,20 @@ export function QuestionViewerWidget({ chapterId, subject, onExitPractice }: Que
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-[#09090b] text-zinc-100 overflow-hidden rounded-3xl">
+    <div className="flex-1 flex flex-col h-full bg-[#09090b] text-zinc-100 overflow-hidden rounded-3xl relative">
       
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 border-b border-zinc-900 bg-zinc-950/50 gap-3">
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={onExitPractice}
-            className="flex items-center justify-center w-8 h-8 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-all"
-            title="Exit Practice"
-          >
-            <Icon name="X" className="w-4 h-4" />
-          </button>
-          <div className="flex items-center gap-2">
-            <Icon name="Target" className="w-4 h-4 text-orange-400" />
-            <span className="text-xs sm:text-sm font-mono font-bold tracking-widest uppercase text-orange-400">
-              PYQ Arena
-            </span>
-          </div>
+      <div className="relative flex items-center justify-between p-3 sm:p-4 border-b border-zinc-900 bg-zinc-950/50">
+        {/* Left: PYQ Arena Title */}
+        <div className="flex items-center gap-2 min-w-fit">
+          <Icon name="Target" className="w-4 h-4 text-orange-400" />
+          <span className="text-xs sm:text-sm font-mono font-bold tracking-widest uppercase text-orange-400">
+            PYQ Arena
+          </span>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+        {/* Center: Question metadata */}
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-center px-4">
           <Badge type={activeQuestion.difficulty} />
           <span className="text-[10px] sm:text-xs font-mono text-zinc-500">ID: {activeQuestion.id}</span>
           
@@ -221,8 +214,18 @@ export function QuestionViewerWidget({ chapterId, subject, onExitPractice }: Que
           )}
         </div>
 
-        <div className="text-xs font-mono font-bold text-zinc-500 text-right sm:text-left">
-          Q {currentIndex + 1} / {chapterQuestions.length}
+        {/* Right: Counter and close button */}
+        <div className="flex items-center gap-3 min-w-fit">
+          <span className="text-xs font-mono font-bold text-zinc-500 hidden sm:inline">
+            Q {currentIndex + 1} / {chapterQuestions.length}
+          </span>
+          <button 
+            onClick={onExitPractice}
+            className="flex-shrink-0 relative z-50 flex items-center justify-center w-10 h-10 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800 hover:border-zinc-700 transition-all active:scale-95 pointer-events-auto"
+            title="Exit Practice (Esc)"
+          >
+            <Icon name="X" className="w-5 h-5" />
+          </button>
         </div>
       </div>
 

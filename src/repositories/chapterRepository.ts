@@ -1,4 +1,4 @@
-import { collection, doc, getDocs, setDoc, updateDoc, writeBatch } from 'firebase/firestore';
+import { collection, doc, getDocs, setDoc, updateDoc, writeBatch, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Chapter } from '../types/index';
 
@@ -49,5 +49,11 @@ export const ChapterRepository = {
       batch.set(chapDoc, sanitizeForFirestore(chap));
     });
     await batch.commit();
+  },
+
+  // Delete a chapter document
+  async deleteChapter(userId: string, chapterId: string): Promise<void> {
+    const chapDoc = doc(db, 'users', userId, 'chapters', chapterId);
+    await deleteDoc(chapDoc);
   }
 };

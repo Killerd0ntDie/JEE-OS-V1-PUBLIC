@@ -66,6 +66,7 @@ const validateAndSanitizeChapters = (chaps: any[]): Chapter[] => {
       retentionStatus: c.retentionStatus || 'Fresh',
       nextRevisionDueAt: c.nextRevisionDueAt || new Date().toISOString(),
       lastRevisedAt: c.lastRevisedAt || new Date().toISOString(),
+      serialNumber: c.serialNumber || seed?.serialNumber,
     };
 
     return normalizeChapter(rawChap);
@@ -218,6 +219,7 @@ export const StudyBrainProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             soundEffects: false,
             desktopNotifications: false,
             volume: 75,
+            pauseOnTabChange: true,
             migratedToPristine: true
           }
         };
