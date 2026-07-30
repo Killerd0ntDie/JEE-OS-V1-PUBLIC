@@ -742,7 +742,14 @@ export class PlannerEngine {
           let taskToPush = { ...baseTask, id: `plan-${day}-${baseTask.id}-${ptr}` };
           if (taskToPush.type === 'Watch Lecture') {
             const chapId = baseTask.chapterId;
-            const currentSimLec = (chapterSimulatedLecture[chapId] || 1) + Math.floor(day / 2) + (subjMins > 0 ? 1 : 0);
+            const chapter = input.chapters?.find(c => c.id === chapId);
+            const totalLecs = chapter?.totalLectures || 12;
+            const baseLec = chapter?.currentLecture || 0;
+            
+            const currentSimLec = (chapterSimulatedLecture[chapId] || baseLec) + 1;
+            if (currentSimLec > totalLecs) {
+              continue; // Skip ghost lectures in weekly simulation
+            }
             chapterSimulatedLecture[chapId] = currentSimLec;
             taskToPush.taskName = `Lecture ${currentSimLec}: ${baseTask.chapterName}`;
           }

@@ -22,37 +22,22 @@ export interface LevelCalculationResult {
  * Level 51+: 2500 XP per level
  */
 export function calculateLevelFromXP(totalXP: number): LevelCalculationResult {
-  let level = 1;
-  let xpForCurrentLevel = 0;
-  let xpForNextLevel = 500;
-  let accumulatedXP = 0;
-
-  // Calculate level based on tiered XP requirements
-  while (accumulatedXP + getXpForLevel(level + 1) <= totalXP) {
-    accumulatedXP += getXpForLevel(level);
-    level++;
-  }
-
-  xpForCurrentLevel = accumulatedXP;
-  xpForNextLevel = accumulatedXP + getXpForLevel(level);
+  const level = Math.floor(Math.sqrt(totalXP / 100)) + 1;
+  const xpForCurrentLevel = 100 * Math.pow(level - 1, 2);
+  const xpForNextLevel = 100 * Math.pow(level, 2);
   
   const currentLevelXP = totalXP - xpForCurrentLevel;
-  const requiredForNextLevel = getXpForLevel(level);
+  const requiredForNextLevel = xpForNextLevel - xpForCurrentLevel;
   const progressPercent = Math.min(100, Math.max(0, (currentLevelXP / requiredForNextLevel) * 100));
   
-  return { level, currentLevelXP, nextLevelXP: requiredForNextLevel, progressPercent, xpForCurrentLevel, xpForNextLevel };
-}
-
-/**
- * Get XP required for a specific level
- */
-function getXpForLevel(level: number): number {
-  if (level <= 10) return 500;
-  if (level <= 20) return 750;
-  if (level <= 30) return 1000;
-  if (level <= 40) return 1500;
-  if (level <= 50) return 2000;
-  return 2500;
+  return { 
+    level, 
+    currentLevelXP, 
+    nextLevelXP: requiredForNextLevel, 
+    progressPercent, 
+    xpForCurrentLevel, 
+    xpForNextLevel 
+  };
 }
 
 /**

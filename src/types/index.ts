@@ -279,6 +279,10 @@ export interface TodayMission {
     confidenceScorePercent: number;
     factorsBreakdown?: Record<string, number>;
   };
+
+  /** When true the mission has been user-dismissed: it stays visible (struck-out at the bottom)
+   *  and is blocked from re-appearing from the planner, but is NOT counted in progress metrics. */
+  dismissed?: boolean;
 }
 
 export type Mission = TodayMission;

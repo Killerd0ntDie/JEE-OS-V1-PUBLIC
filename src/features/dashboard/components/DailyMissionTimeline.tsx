@@ -65,8 +65,8 @@ export function DailyMissionTimeline({
   const [selectedMissionId, setSelectedMissionId] = useState<string | null>(null);
   const [missionToDelete, setMissionToDelete] = useState<string | null>(null);
 
-  const completedCount = todayMissions.filter(m => m.completed).length;
-  const totalCount = todayMissions.length;
+  const completedCount = todayMissions.filter(m => m.completed && !m.dismissed).length;
+  const totalCount = todayMissions.filter(m => !m.dismissed).length;
   const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
   // Active mission selection logic: automatically advance focus to next incomplete mission upon task completion
@@ -208,8 +208,13 @@ export function DailyMissionTimeline({
               </div>
             ) : (
               [...todayMissions]
-                .sort((a, b) => (a.completed === b.completed ? 0 : a.completed ? 1 : -1))
+                .sort((a, b) => {
+                  // Sort order: active → completed → dismissed
+                  const rank = (m: typeof a) => m.dismissed ? 2 : m.completed ? 1 : 0;
+                  return rank(a) - rank(b);
+                })
                 .map((mission, idx) => {
+                  const isDismissed = !!mission.dismissed;
                   const badgeStyle = getSubjectBadgeStyle(mission.subject);
                   const isExpanded = expandedMission === mission.id;
                   const isSelected = activeMission?.id === mission.id;
@@ -246,8 +251,10 @@ export function DailyMissionTimeline({
                           actions.setRadarFocusedChapter(chap.id);
                         }
                       }}
-                      className={`group rounded-xl border p-4 transition-all duration-100 cursor-pointer ${
-                        mission.completed
+                    className={`group rounded-xl border p-4 transition-all duration-100 cursor-pointer ${
+                        isDismissed
+                          ? 'bg-zinc-950/10 border-red-900/20 opacity-40 cursor-default'
+                          : mission.completed
                           ? 'bg-zinc-950/20 border-zinc-900/40 opacity-60'
                           : isSelected
                           ? 'bg-indigo-950/[0.25] border-indigo-500/50 shadow-[0_4px_25px_rgba(99,102,241,0.08)]'
@@ -256,7 +263,8 @@ export function DailyMissionTimeline({
                     >
                       <div className="flex items-center justify-between gap-4">
                         
-                        {/* Circular Checkbox */}
+                        {/* Circular Checkbox — hidden for dismissed missions */}
+                        {!isDismissed && (
                         <button
                           type="button"
                           onClick={(e) => {
@@ -272,11 +280,22 @@ export function DailyMissionTimeline({
                         >
                           <Icon name="Check" className="w-3 h-3 stroke-[3]" />
                         </button>
+                        )}
+                        {isDismissed && (
+                          <div className="w-5 h-5 rounded-full border border-red-900/40 bg-red-950/30 flex items-center justify-center shrink-0">
+                            <Icon name="X" className="w-3 h-3 text-red-500/60" />
+                          </div>
+                        )}
 
                         {/* Content Area */}
                         <div className="space-y-1 min-w-0 flex-1">
                           {/* Badges */}
                           <div className="flex items-center gap-2 flex-wrap text-[9px] font-mono">
+                            {isDismissed && (
+                              <span className="font-bold uppercase tracking-wider px-2 py-0.5 rounded border bg-red-950/30 text-red-400/70 border-red-900/30">
+                                Dismissed
+                              </span>
+                            )}
                             <span className={`font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${badgeStyle}`}>
                               {mission.subject.toUpperCase()}
                             </span>
@@ -295,8 +314,8 @@ export function DailyMissionTimeline({
 
                           {/* Title */}
                           <p className={`text-xs md:text-sm font-semibold tracking-tight transition-colors ${
-                            mission.completed ? 'text-zinc-500 line-through' : 'text-zinc-100 group-hover:text-indigo-300'
-                          }`}>
+                              isDismissed ? 'text-zinc-600 line-through' : mission.completed ? 'text-zinc-500 line-through' : 'text-zinc-100 group-hover:text-indigo-300'
+                            }`}>
                             {mission.taskName}
                           </p>
 
@@ -353,6 +372,8 @@ export function DailyMissionTimeline({
                             ⏱️ {mission.duration}m
                           </span>
 
+                          {/* Delete button — hidden for dismissed missions (already dismissed) */}
+                          {!isDismissed && (
                           <button
                             type="button"
                             onClick={(e) => {
@@ -364,6 +385,7 @@ export function DailyMissionTimeline({
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
+                          )}
 
                           <button
                             type="button"

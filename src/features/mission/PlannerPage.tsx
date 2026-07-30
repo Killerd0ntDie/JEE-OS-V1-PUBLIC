@@ -21,6 +21,8 @@ import {
 
 
 import { MonthlyCalendarWidget } from './components/MonthlyCalendarWidget';
+import { MonthlyCampaignBanner } from './components/MonthlyCampaignBanner';
+import { WarRoomSandbox } from './components/WarRoomSandbox';
 import { CustomMissionModal } from './components/CustomMissionModal';
 import { AiRevisionPlanModal } from '../../components/shared/AiRevisionPlanModal';
 import { ConfirmDeleteModal } from '../../components/ui/ConfirmDeleteModal';
@@ -60,6 +62,8 @@ export function PlannerPage() {
 
   const [isAutoBalancing, setIsAutoBalancing] = useState(false);
   const [balanceToast, setBalanceToast] = useState(false);
+  
+  const [isSandboxMode, setIsSandboxMode] = useState(false);
 
   const mentorProfile = state.mentorProfile;
 
@@ -611,35 +615,29 @@ export function PlannerPage() {
         {/* 3. MONTHLY STRATEGY VIEW MODE */}
         {viewMode === 'monthly' && (
           <div className="space-y-6">
-      <MonthlyCalendarWidget />
-
-            
-            {/* Monthly Target Header */}
-            <div className="p-5 rounded-2xl border border-purple-900/40 bg-purple-950/20 flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 text-purple-300 font-mono text-xs font-bold uppercase tracking-wider flex-wrap">
-                  <Target className="w-4 h-4" />
-                  <span>Monthly Strategic Objective</span>
-                  <span className="text-[10px] font-mono text-purple-300 bg-purple-950/60 border border-purple-800/60 px-2.5 py-0.5 rounded-full uppercase">
-                    Split Strategy: {mentorProfile?.subjectSplitStrategy === '1_a_day_alternating' ? '1 Subject Focus' : mentorProfile?.subjectSplitStrategy === '2_a_day_alternating' ? '2 Subjects Alternating' : '3 Subjects Daily'}
-                  </span>
-                </div>
-                <h3 className="text-lg font-display font-bold text-white">
-                  {mentorProfile?.monthlyObjective?.category || 'Finish Mechanics & Organic Chemistry Foundations'}
-                </h3>
-                <p className="text-xs text-zinc-400">
-                  {mentorProfile?.monthlyObjective?.description || 'Target completion benchmark: Nov 2026. Required score gain: +35 Marks.'}
-                </p>
-              </div>
-
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-mono font-bold text-zinc-300 uppercase tracking-wider">Monthly War Room</h2>
               <button
-                type="button"
-                onClick={() => setIsMonthlyObjectiveModalOpen(true)}
-                className="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-mono text-xs font-bold uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-purple-600/30 cursor-pointer shrink-0"
+                onClick={() => setIsSandboxMode(!isSandboxMode)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-xs font-mono font-bold transition-all ${
+                  isSandboxMode 
+                    ? 'bg-indigo-600/20 border-indigo-500 text-indigo-300 shadow-[0_0_15px_rgba(99,102,241,0.2)]'
+                    : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700'
+                }`}
               >
-                Set Monthly Goal
+                <ArrowRightLeft className="w-3.5 h-3.5" />
+                {isSandboxMode ? 'Exit Sandbox' : 'Simulate Strategy'}
               </button>
             </div>
+
+            {isSandboxMode ? (
+              <WarRoomSandbox />
+            ) : (
+              <>
+                <MonthlyCampaignBanner />
+                <MonthlyCalendarWidget />
+              </>
+            )}
 
             {/* 4-WEEK MILESTONE ROADMAP GRID */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

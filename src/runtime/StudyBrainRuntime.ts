@@ -339,7 +339,22 @@ export class StudyBrainRuntime {
       // Energy sets the intensity of the day based on max userQuota
       // High = 100% of available time, Medium = 75%, Low = 50%
       const energyMultiplier = this.state.energyLevel === 'Low' ? 0.5 : this.state.energyLevel === 'Medium' ? 0.75 : 1.0;
-      const effectiveStudyHours = Math.min(14, Math.max(1.0, Math.round(userQuota * energyMultiplier * 10) / 10));
+      const totalDailyQuotaHours = Math.min(14, Math.max(1.0, Math.round(userQuota * energyMultiplier * 10) / 10));
+
+      // Calculate time already consumed by preserved missions so the planner doesn't exceed the quota
+      const preservedMissionsForQuota = [
+        ...this.state.customMissions,
+        ...this.state.todayMissions.filter(m => !m.id.startsWith('custom-') && m.completed),
+        ...this.state.todayMissions.filter(m => m.id.startsWith('mission-ai-') && !m.completed)
+      ];
+      // Only count missions that weren't dismissed
+      const consumedMinutes = preservedMissionsForQuota
+        .filter(m => !m.dismissed)
+        .reduce((acc, m) => acc + (m.duration || 0), 0);
+      
+      const consumedHours = consumedMinutes / 60;
+      // Provide at least 0.1h to planner to prevent potential zero-division errors, but not enough to schedule large tasks
+      const effectiveStudyHours = Math.max(0.1, totalDailyQuotaHours - consumedHours);
 
       const plannerInput: PlannerInput = {
         studyHours: effectiveStudyHours, 
@@ -374,13 +389,17 @@ export class StudyBrainRuntime {
       this.state.completionPrediction = optResult;
       
       // Directly map planner output into today's missions and preserve local complete checkboxes
-      const existingMissionsMap = new Map(this.state.todayMissions.map(m => [m.id, m.completed]));
-      const completedAiMissions = this.state.todayMissions.filter(m => m.id.startsWith('mission-ai-') && m.completed);
+      const existingMissionsMap = new Map(this.state.todayMissions.map(m => [m.id, m]));
+      
+      // Retain all completed missions that are NOT persistent custom missions (those are handled below)
+      const completedPlannerMissions = this.state.todayMissions.filter(m => !m.id.startsWith('custom-') && m.completed);
+      
+      // Retain explicit AI assistant custom missions that are incomplete
       const customAiMissions = this.state.todayMissions.filter(m => m.id.startsWith('mission-ai-') && !m.completed);
 
       this.state.todayMissions = [
         ...this.state.customMissions, // User's persistent custom missions
-        ...completedAiMissions,       // Retain checked-off planner missions
+        ...completedPlannerMissions,  // Retain checked-off planner missions (lectures, DPPs, PYQs, AI missions)
         ...customAiMissions,          // Retain explicit AI assistant custom missions
         ...(this.state.plannerOutput?.todaysMission || []).map(t => ({
         id: t.id,
@@ -389,8 +408,8 @@ export class StudyBrainRuntime {
         type: t.type,
         taskName: t.taskName,
         duration: t.duration,
-        completed: existingMissionsMap.get(t.id) || false,
-        xp: Math.round(t.priorityScore * 10),
+        completed: existingMissionsMap.get(t.id)?.completed || false,
+        xp: Math.round(t.priorityScore),
         unlocked: true,
         priorityScore: t.priorityScore,
         expectedMarksGain: t.expectedMarksGain,
@@ -407,7 +426,7 @@ export class StudyBrainRuntime {
       }))
       ];
 
-      // Remove duplicates by ID and filter out user-deleted missions
+      // Remove duplicates by ID and filter out deleted IDs from planner (don't re-add them)
       const deletedIds = new Set(this.state.deletedMissionIds || []);
       const uniqueMissions = new Map<string, TodayMission>();
       for (const m of this.state.todayMissions) {
@@ -415,6 +434,7 @@ export class StudyBrainRuntime {
           uniqueMissions.set(m.id, m);
         }
       }
+
       this.state.todayMissions = Array.from(uniqueMissions.values());
 
       // Dynamically generate daily algorithmic timeline missions

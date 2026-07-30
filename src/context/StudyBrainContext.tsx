@@ -243,6 +243,9 @@ export const StudyBrainProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       snapshotState.coachMessage = profile.coachMessage || '';
       snapshotState.mentorProfile = profile.mentorProfile;
       snapshotState.settings = profile.settings || {};
+      // Restore the user's deleted-mission blocklist so planner-regenerated missions
+      // that were previously dismissed don't reappear after a page reload.
+      snapshotState.deletedMissionIds = profile.deletedMissionIds || [];
       
       loadedFlags.profile = true;
       checkAndInit();

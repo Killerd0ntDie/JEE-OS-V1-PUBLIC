@@ -108,8 +108,8 @@ export class StudyBrainActions {
       };
     }
 
-    // Base mission XP: 500 (increased to match new leveling system)
-    const baseXp = 500;
+    // Base mission XP: 50 (slower progression)
+    const baseXp = 50;
     const gainedXp = mission.xp || baseXp;
     const deltaXp = isCompleting ? gainedXp : -gainedXp;
     
@@ -189,10 +189,39 @@ export class StudyBrainActions {
               theoryComplete = false;
             }
           }
+
+          // Keep lectureProgress.completedLectures in sync with currentLecture so that
+          // normalizeChapter → getAcademicState doesn't silently overwrite the updated
+          // value with the stale nested field (getAcademicState prefers lectureProgress
+          // .completedLectures over the top-level currentLecture field).
+          const updatedLectureProgress = c.lectureProgress
+            ? {
+                ...c.lectureProgress,
+                completedLectures: currentLecture,
+                totalLectures,
+              }
+            : { completedLectures: currentLecture, totalLectures };
           
+          const updatedPracticeProgress = c.practiceProgress
+            ? {
+                ...c.practiceProgress,
+                dppCompleted: dppComplete ? true : c.practiceProgress.dppCompleted,
+                dppPercent: dppComplete ? 100 : c.practiceProgress.dppPercent,
+                pyqsCompleted: pyqsComplete ? true : c.practiceProgress.pyqsCompleted,
+                pyqPercent: pyqsComplete ? 100 : c.practiceProgress.pyqPercent,
+              }
+            : { 
+                dppCompleted: dppComplete, 
+                dppPercent: dppComplete ? 100 : 0,
+                pyqsCompleted: pyqsComplete,
+                pyqPercent: pyqsComplete ? 100 : 0
+              };
+
           const updatedChap: Chapter = {
             ...c,
             currentLecture,
+            lectureProgress: updatedLectureProgress,
+            practiceProgress: updatedPracticeProgress,
             theoryComplete,
             dppComplete,
             pyqsComplete,
@@ -247,14 +276,28 @@ export class StudyBrainActions {
 
   async deleteMission(taskId: string) {
     this.checkWriteBlock();
-    const updatedCustomMissions = this.state.customMissions.filter(m => m.id !== taskId);
-    const updatedTodayMissions = this.state.todayMissions.filter(m => m.id !== taskId);
     const updatedDeletedMissionIds = Array.from(new Set([...(this.state.deletedMissionIds || []), taskId]));
 
+    // For custom missions: hard-delete from Firestore and remove from list entirely.
+    // For planner missions: mark dismissed so they sink to the bottom with a strikethrough
+    // rather than disappearing and being replaced by new planner missions.
+    const isCustom = taskId.startsWith('custom-');
+
+    const updatedCustomMissions = isCustom
+      ? this.state.customMissions.filter(m => m.id !== taskId)
+      : this.state.customMissions;
+
+    // Completely remove the deleted mission from the queue
+    const updatedTodayMissions = this.state.todayMissions.filter(m => m.id !== taskId);
+
     try {
-      if (taskId.startsWith('custom-')) {
+      if (isCustom) {
         await CustomMissionRepository.deleteMission(this.userId, taskId);
       }
+      // Persist the deleted-mission blocklist to Firestore so it survives reloads.
+      // AI-planner missions regenerate every session with deterministic IDs, so without
+      // this they'd reappear every time the page is refreshed.
+      await UserRepository.updateUserProfile(this.userId, { deletedMissionIds: updatedDeletedMissionIds } as any);
       await this.runtime.refresh('SESSION_UPDATE', {
         todayMissions: updatedTodayMissions,
         customMissions: updatedCustomMissions,
@@ -864,6 +907,43 @@ export class StudyBrainActions {
       });
     } catch (err) {
       await this.handleWriteError(err, 'setSettings');
+    }
+  }
+
+  /**
+   * Resets the user's XP, level, and streak to zero while preserving all other
+   * progress (chapters, missions, deleted-mission blocklist, etc.).
+   * Persists immediately to Firestore so the reset survives page reloads.
+   */
+  async resetHiddenMissions() {
+    this.checkWriteBlock();
+    try {
+      await UserRepository.updateUserProfile(this.userId, { deletedMissionIds: [] } as any);
+      await this.runtime.refresh('SESSION_UPDATE', {
+        deletedMissionIds: [],
+        lastSyncError: null
+      });
+    } catch (err) {
+      await this.handleWriteError(err, 'resetHiddenMissions');
+    }
+  }
+
+  async resetXpAndLevel() {
+    this.checkWriteBlock();
+    const resetXp = {
+      daily: 0,
+      weekly: 0,
+      total: 0,
+      level: 1,
+      streak: 0,
+      nextLevelXP: 1000,
+      lastActiveDate: ''
+    };
+    try {
+      await UserRepository.updateUserProfile(this.userId, { xp: resetXp });
+      await this.runtime.refresh('SETTINGS_UPDATE', { xp: resetXp, lastSyncError: null });
+    } catch (err) {
+      await this.handleWriteError(err, 'resetXpAndLevel');
     }
   }
 
