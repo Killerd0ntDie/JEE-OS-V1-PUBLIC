@@ -13,9 +13,10 @@ interface QuestionViewerWidgetProps {
   chapterId: string;
   subject: string;
   onExitPractice: () => void;
+  onCorrectAnswer?: () => void;
 }
 
-export function QuestionViewerWidget({ chapterId, subject, onExitPractice }: QuestionViewerWidgetProps) {
+export function QuestionViewerWidget({ chapterId, subject, onExitPractice, onCorrectAnswer }: QuestionViewerWidgetProps) {
   const [chapterQuestions, setChapterQuestions] = useState<Question[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -144,7 +145,10 @@ export function QuestionViewerWidget({ chapterId, subject, onExitPractice }: Que
         correct.every(id => selectedOptions.includes(id));
       
       setIsCorrect(isAnsCorrect);
-      if (isAnsCorrect) audioEngine.playSuccessChime(0.5);
+      if (isAnsCorrect) {
+        audioEngine.playSuccessChime(0.5);
+        if (onCorrectAnswer) onCorrectAnswer();
+      }
     } else if (activeQuestion.type === 'NUMERICAL') {
       const target = activeQuestion.solution.correctNumericalValue;
       const tol = activeQuestion.solution.numericalTolerance || 0;
@@ -153,7 +157,10 @@ export function QuestionViewerWidget({ chapterId, subject, onExitPractice }: Que
       if (target !== undefined && !isNaN(val)) {
         const isAnsCorrect = Math.abs(val - target) <= tol;
         setIsCorrect(isAnsCorrect);
-        if (isAnsCorrect) audioEngine.playSuccessChime(0.5);
+        if (isAnsCorrect) {
+          audioEngine.playSuccessChime(0.5);
+          if (onCorrectAnswer) onCorrectAnswer();
+        }
       } else {
         setIsCorrect(false);
       }
@@ -174,10 +181,15 @@ export function QuestionViewerWidget({ chapterId, subject, onExitPractice }: Que
   };
 
   // Helper to render text with inline math: parses text replacing $math$ with <InlineMath math="math"/>
-  const renderMathText = (text: string) => {
-    const parts = text.split(/(\$.*?\$)/g);
+  const renderMathText = (text: string | undefined | null) => {
+    if (!text) return null;
+    const cleanText = text.replace(/\\\$/g, '$');
+    const parts = cleanText.split(/(\$\$.*?\$\$|\$.*?\$)/gs);
     return parts.map((part, i) => {
-      if (part.startsWith('$') && part.endsWith('$')) {
+      if (part.startsWith('$$') && part.endsWith('$$')) {
+        const math = part.slice(2, -2);
+        return <BlockMath key={i} math={math} />;
+      } else if (part.startsWith('$') && part.endsWith('$')) {
         const math = part.slice(1, -1);
         return <InlineMath key={i} math={math} />;
       }

@@ -2,7 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   ChevronDown, ChevronUp, AlertTriangle, CheckCircle, 
-  BookOpen, Sparkles, Trash2 
+  BookOpen, Sparkles, Trash2, Skull 
 } from 'lucide-react';
 import { Badge } from '../../../components/ui/Badge';
 import { Mistake, SubjectId } from '../../../types/index';
@@ -189,28 +189,19 @@ export const MistakeCard: React.FC<MistakeCardProps> = ({
 
                   {item.revisionStatus !== 'Mastered' && (
                     <button
-                      onClick={() => onUpdateStatus(item.id, 'Mastered')}
-                      className="bg-emerald-950/40 hover:bg-emerald-900/30 border border-emerald-900/50 text-emerald-400 px-2.5 py-1 rounded text-2xs font-bold cursor-pointer transition-colors"
+                      onClick={onPracticeWithAI}
+                      className="bg-red-950/40 hover:bg-red-900/40 border border-red-900/50 text-red-400 px-3 py-1.5 rounded-lg text-[10px] font-bold cursor-pointer transition-colors shadow-[0_0_15px_rgba(220,38,38,0.15)] flex items-center gap-1.5 ml-2"
                     >
-                      Mark Mastered [100%]
+                      <Skull className="w-3.5 h-3.5 text-red-500" />
+                      ENTER INTERROGATION ROOM
                     </button>
                   )}
 
                   {item.revisionStatus === 'Mastered' && (
-                    <div className="flex items-center gap-1 px-3 py-1 bg-emerald-950/20 text-emerald-400 border border-emerald-900/30 rounded text-2xs font-semibold select-none">
+                    <div className="flex items-center gap-1 px-3 py-1.5 bg-emerald-950/20 text-emerald-400 border border-emerald-900/30 rounded-lg text-[10px] font-bold select-none ml-2 shadow-[0_0_15px_rgba(16,185,129,0.15)]">
                       <CheckCircle className="w-3.5 h-3.5" />
-                      100% Fully Recovered!
+                      MISTAKE EXORCISED
                     </div>
-                  )}
-
-                  {onPracticeWithAI && (
-                    <button
-                      onClick={onPracticeWithAI}
-                      className="flex items-center gap-1.5 ml-2 bg-indigo-950/40 hover:bg-indigo-900/40 border border-indigo-900/50 text-indigo-300 px-2.5 py-1 rounded text-2xs font-bold cursor-pointer transition-colors shadow-sm"
-                    >
-                      <Sparkles className="w-3 h-3 text-indigo-400" />
-                      Practice AI PYQs
-                    </button>
                   )}
                 </div>
 

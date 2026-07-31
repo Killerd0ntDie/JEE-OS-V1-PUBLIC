@@ -4,6 +4,7 @@ import { motion } from 'motion/react';
 import { useStudyBrain } from '../../../context/StudyBrainContext';
 import { ChapterTelemetry } from '../../../engines/chapterInfo';
 import { Chapter } from '../../../types';
+import { MonthlyCampaignBanner } from '../../mission/components/MonthlyCampaignBanner';
 
 interface CommandOverviewBannerProps {
   chapters: Chapter[];
@@ -109,6 +110,9 @@ export function CommandOverviewBanner({
           isExpanded ? 'max-h-[800px] opacity-100 mt-3 pt-3 border-t border-zinc-800 space-y-4' : 'max-h-0 opacity-0 mt-0 pt-0 border-t-0 space-y-0'
         }`}
       >
+        {/* MONTHLY BOSS ENCOUNTER */}
+        <MonthlyCampaignBanner />
+
         {/* Integrated On-Hold Chapters Box (if any chapters on hold) */}
         {onHoldChapters.length > 0 && (
           <div className="w-full bg-amber-950/40 border border-amber-500/40 rounded-xl p-3 text-left">

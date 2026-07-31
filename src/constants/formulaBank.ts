@@ -235,7 +235,10 @@ export const FORMULA_BANK: ChapterFormulas[] = [
     chapterName: 'Some Basic Concepts of Chemistry',
     subject: 'chemistry',
     formulas: [
-      { title: 'Molarity, Molality & Mole Fraction', concept: 'Concentration units of solutions', formula: 'Molarity (M) = Moles / Vol (L)\nMolality (m) = Moles / Mass of solvent (kg)' }
+      { title: 'Molarity, Molality & Mole Fraction', concept: 'Concentration units of solutions', formula: 'Molarity (M) = Moles / Vol (L)\nMolality (m) = Moles / Mass of solvent (kg)' },
+      { title: 'Ideal Gas Equation', concept: 'State equation for an ideal gas', formula: 'PV = nRT' },
+      { title: 'Dalton\'s Law of Partial Pressures', concept: 'Total pressure of a mixture of non-reacting gases', formula: 'P_total = P_1 + P_2 + ... + P_n' },
+      { title: 'Graham\'s Law of Effusion', concept: 'Rate of effusion of a gas', formula: 'Rate ∝ 1/√(Molar Mass)' }
     ]
   },
   {
@@ -477,7 +480,9 @@ export const FORMULA_BANK: ChapterFormulas[] = [
     chapterName: 'Quadratic Equations',
     subject: 'maths',
     formulas: [
-      { title: 'Roots & Discriminant Relation', concept: 'Sum and product of quadratic roots', formula: 'α + β = -b/a,  α β = c/a\nD = b² - 4ac' }
+      { title: 'Quadratic Roots', concept: 'Sum and Product of Roots for ax² + bx + c = 0', formula: 'Sum (α+β) = -b/a\nProduct (αβ) = c/a' },
+      { title: 'Nature of Roots', concept: 'Discriminant conditions', formula: 'D = b² - 4ac\nD > 0: Real & Distinct\nD = 0: Real & Equal\nD < 0: Imaginary' },
+      { title: 'Maximum/Minimum Value', concept: 'Vertex of a parabola', formula: 'y_min/max = -D / 4a at x = -b / 2a' }
     ]
   },
   {

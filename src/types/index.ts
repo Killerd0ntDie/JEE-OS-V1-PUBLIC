@@ -4,6 +4,7 @@ export type PageId =
   | 'chemistry'
   | 'mathematics'
   | 'planner'
+  | 'focus-vault'
   | 'revision'
   | 'mistakes'
   | 'analytics'
@@ -62,6 +63,15 @@ export const PAGES: PageDefinition[] = [
     category: 'utilities',
     badge: 'Today',
     badgeStyle: 'accent',
+  },
+  {
+    id: 'focus-vault',
+    label: 'Focus Vault',
+    icon: 'Headphones',
+    description: 'Immersive deep-work zen mode with Lofi music and ambient focus tracking.',
+    category: 'utilities',
+    badge: 'Zen',
+    badgeStyle: 'success',
   },
   {
     id: 'revision',
@@ -605,6 +615,12 @@ export interface UserProfile {
   isMissionModeActive: boolean;
   coachMessage: string;
   mentorProfile?: MentorProfile;
+  weeklyGoals?: {
+    weekIndex: number;
+    title: string;
+    focus: string;
+    status: 'Completed' | 'Active' | 'Upcoming';
+  }[];
   settings: {
     targetYear: string;
     dreamIit: string;
@@ -617,5 +633,6 @@ export interface UserProfile {
     pauseOnTabChange?: boolean;
     migratedToPristine?: boolean;
     revisionSettings?: RevisionSettings;
+    enableGodMode?: boolean;
   };
 }

@@ -12,6 +12,7 @@ import { MentorInterviewModal } from '../../components/mentor/MentorInterviewMod
 import { SyllabusDiagnosisModal } from '../../components/mentor/SyllabusDiagnosisModal';
 import { WeeklyCheckinModal } from '../../components/mentor/WeeklyCheckinModal';
 import { MonthlyObjectiveModal } from '../../components/mentor/MonthlyObjectiveModal';
+import { EditWeeklyGoalsModal } from './components/EditWeeklyGoalsModal';
 import { 
   Sparkles, ShieldCheck, Target, Clock, ArrowRight, CheckCircle2, 
   RefreshCw, Sun, Calendar, AlertTriangle, ChevronDown, ChevronLeft, ChevronRight, Info, SlidersHorizontal,
@@ -31,6 +32,8 @@ import { OnHoldReminderBanner } from '../dashboard/components/OnHoldReminderBann
 
 export function PlannerPage() {
   const { state, actions } = useStudyBrain();
+  const [isSandboxMode, setIsSandboxMode] = useState(false);
+  const [isEditGoalsOpen, setIsEditGoalsOpen] = useState(false);
 
   // Dynamic Daily Capacity (defaults to AI Mentor Interview response)
   const dailyCapHours = state.mentorProfile?.dailyAvailableHours || state.settings.dailyQuota || 4;
@@ -62,8 +65,6 @@ export function PlannerPage() {
 
   const [isAutoBalancing, setIsAutoBalancing] = useState(false);
   const [balanceToast, setBalanceToast] = useState(false);
-  
-  const [isSandboxMode, setIsSandboxMode] = useState(false);
 
   const mentorProfile = state.mentorProfile;
 
@@ -149,7 +150,7 @@ export function PlannerPage() {
       <OnHoldReminderBanner chapters={state.chapters} onOpenChapter={(id) => actions.openChapterEditModal(id)} />
       
       {/* HEADER & CONTROL BAR */}
-      <div className="p-6 rounded-2xl border border-zinc-800/80 bg-zinc-950/40 backdrop-blur-xl space-y-4">
+      <div className="relative z-20 p-6 rounded-2xl border border-zinc-800/80 bg-zinc-950/40 backdrop-blur-xl space-y-4">
         
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           
@@ -640,53 +641,56 @@ export function PlannerPage() {
             )}
 
             {/* 4-WEEK MILESTONE ROADMAP GRID */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              
-              <div className="p-4 rounded-xl border border-zinc-800 bg-zinc-900/30 space-y-3">
-                <div className="flex items-center justify-between border-b border-zinc-850 pb-2 font-mono text-xs">
-                  <span className="text-indigo-400 font-bold">WEEK 1</span>
-                  <span className="text-emerald-400 font-bold">Completed ✓</span>
-                </div>
-                <h4 className="font-display font-bold text-white text-xs">Mechanics Core & Vectors</h4>
-                <p className="text-[10px] text-zinc-400 font-mono leading-relaxed">
-                  Focus: Kinematics, NLM, Work Power Energy. Complete 45 DPPs & 30 PYQs.
-                </p>
+            <div className="relative mt-8">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-mono text-sm font-bold text-zinc-500 uppercase tracking-widest">Milestone Roadmap</h3>
+                <button
+                  onClick={() => setIsEditGoalsOpen(true)}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900/50 text-xs font-mono text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+                >
+                  <PenTool className="w-3 h-3" />
+                  Edit Goals
+                </button>
               </div>
-
-              <div className="p-4 rounded-xl border border-indigo-500/50 bg-indigo-950/20 space-y-3">
-                <div className="flex items-center justify-between border-b border-zinc-850 pb-2 font-mono text-xs">
-                  <span className="text-indigo-400 font-bold">WEEK 2</span>
-                  <span className="text-indigo-300 font-bold animate-pulse">ACTIVE FOCUS</span>
-                </div>
-                <h4 className="font-display font-bold text-white text-xs">GOC & Reaction Mechanisms</h4>
-                <p className="text-[10px] text-zinc-400 font-mono leading-relaxed">
-                  Focus: Inductive & Resonance Effects, Isomerism, Hydrocarbons.
-                </p>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                {(state.weeklyGoals || [
+                  { weekIndex: 1, title: 'Mechanics Core & Vectors', focus: 'Focus: Kinematics, NLM, Work Power Energy. Complete 45 DPPs & 30 PYQs.', status: 'Completed' },
+                  { weekIndex: 2, title: 'GOC & Reaction Mechanisms', focus: 'Focus: Inductive & Resonance Effects, Isomerism, Hydrocarbons.', status: 'Active' },
+                  { weekIndex: 3, title: 'Algebra & Differential Calculus', focus: 'Focus: Sets & Relations, Functions, Limits & Continuity.', status: 'Upcoming' },
+                  { weekIndex: 4, title: 'Full Monthly Mock & Error Audit', focus: 'Focus: Full-Syllabus Mock Test Session 1 Benchmark & Mistakes Review.', status: 'Upcoming' }
+                ]).map((goal, idx) => {
+                  
+                  let borderStyle = 'border-zinc-800';
+                  let bgStyle = 'bg-zinc-900/30';
+                  let textStyle = 'text-zinc-400';
+                  let statusEl = <span className="text-zinc-500 font-bold">Upcoming</span>;
+                  
+                  if (goal.status === 'Completed') {
+                    statusEl = <span className="text-emerald-400 font-bold">Completed ✓</span>;
+                    textStyle = 'text-indigo-400';
+                  } else if (goal.status === 'Active') {
+                    statusEl = <span className="text-indigo-300 font-bold animate-pulse">ACTIVE FOCUS</span>;
+                    borderStyle = 'border-indigo-500/50';
+                    bgStyle = 'bg-indigo-950/20';
+                    textStyle = 'text-indigo-400';
+                  }
+                  
+                  return (
+                    <div key={idx} className={`p-4 rounded-xl border ${borderStyle} ${bgStyle} space-y-3`}>
+                      <div className="flex items-center justify-between border-b border-zinc-850 pb-2 font-mono text-xs">
+                        <span className={`${textStyle} font-bold`}>WEEK {goal.weekIndex}</span>
+                        {statusEl}
+                      </div>
+                      <h4 className="font-display font-bold text-white text-xs">{goal.title || `Week ${goal.weekIndex} Goal`}</h4>
+                      <p className="text-[10px] text-zinc-400 font-mono leading-relaxed">
+                        {goal.focus || 'No specific focus set.'}
+                      </p>
+                    </div>
+                  );
+                })}
               </div>
-
-              <div className="p-4 rounded-xl border border-zinc-800 bg-zinc-900/30 space-y-3">
-                <div className="flex items-center justify-between border-b border-zinc-850 pb-2 font-mono text-xs">
-                  <span className="text-zinc-400 font-bold">WEEK 3</span>
-                  <span className="text-zinc-500 font-bold">Upcoming</span>
-                </div>
-                <h4 className="font-display font-bold text-white text-xs">Algebra & Differential Calculus</h4>
-                <p className="text-[10px] text-zinc-400 font-mono leading-relaxed">
-                  Focus: Sets & Relations, Functions, Limits & Continuity.
-                </p>
-              </div>
-
-              <div className="p-4 rounded-xl border border-zinc-800 bg-zinc-900/30 space-y-3">
-                <div className="flex items-center justify-between border-b border-zinc-850 pb-2 font-mono text-xs">
-                  <span className="text-zinc-400 font-bold">WEEK 4</span>
-                  <span className="text-zinc-500 font-bold">Consolidation</span>
-                </div>
-                <h4 className="font-display font-bold text-white text-xs">Full Monthly Mock & Error Audit</h4>
-                <p className="text-[10px] text-zinc-400 font-mono leading-relaxed">
-                  Focus: Full-Syllabus Mock Test Session 1 Benchmark & Mistakes Review.
-                </p>
-              </div>
-
             </div>
+
 
           </div>
         )}
@@ -891,6 +895,17 @@ export function PlannerPage() {
         onClose={() => setMissionToSwap(null)}
         mission={missionToSwap}
       />
+
+      {isEditGoalsOpen && (
+        <EditWeeklyGoalsModal
+          initialGoals={state.weeklyGoals || []}
+          onClose={() => setIsEditGoalsOpen(false)}
+          onSave={async (goals) => {
+            await actions.updateWeeklyGoals(goals);
+            setIsEditGoalsOpen(false);
+          }}
+        />
+      )}
 
     </div>
   );

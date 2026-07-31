@@ -27,7 +27,8 @@ const renderSafeMath = (mathStr: string) => {
   }
 };
 
-const renderSingleLine = (line: string) => {
+const renderSingleLine = (rawLine: string) => {
+  const line = rawLine.replace(/\\\$/g, '$');
   if (line.includes('$')) {
     const parts = line.split(/(\$\$.*?\$\$|\$.*?\$)/g);
     return parts.map((part, i) => {
@@ -94,6 +95,17 @@ interface MockTestResultProps {
   onNavigate?: (pageId: import('../../types').PageId) => void;
 }
 
+const calculateRank = (score: number, maxMarks: number) => {
+  const normalizedScore = Math.max(0, (score / maxMarks) * 300);
+  if (normalizedScore >= 280) return Math.floor(Math.max(1, (300 - normalizedScore) * 5));
+  if (normalizedScore >= 250) return Math.floor(100 + (280 - normalizedScore) * 30);
+  if (normalizedScore >= 200) return Math.floor(1000 + (250 - normalizedScore) * 150);
+  if (normalizedScore >= 150) return Math.floor(8500 + (200 - normalizedScore) * 400);
+  if (normalizedScore >= 100) return Math.floor(28500 + (150 - normalizedScore) * 1000);
+  if (normalizedScore >= 50) return Math.floor(78500 + (100 - normalizedScore) * 3000);
+  return Math.floor(228500 + (50 - normalizedScore) * 10000);
+};
+
 export function MockTestResult({ test, attempt, onClose, onNavigate }: MockTestResultProps) {
   const { actions } = useStudyBrain();
   const hasLoggedMistakes = useRef(false);
@@ -142,7 +154,24 @@ export function MockTestResult({ test, attempt, onClose, onNavigate }: MockTestR
 
     const totalTimeSpent = (Object.values(attempt.questions) as any[]).reduce((acc, q) => acc + q.timeSpentSeconds, 0);
 
-    return { totalScore, correct, incorrect, unattempted, subjectStats, totalTimeSpent, incorrectQuestions };
+    // AI Autopsy Calculator (What-If Analysis)
+    // Assume all incorrect answers were "silly mistakes" that should have been correct
+    let whatIfScore = totalScore;
+    test.sections.forEach(sec => {
+      sec.questions.forEach(q => {
+        const a = attempt.questions[q.id];
+        const isAnswered = a.status === 'Answered' || a.status === 'Answered & Marked for Review';
+        if (isAnswered && a.selectedAnswer && a.selectedAnswer !== q.correctAnswer) {
+          // Refund the negative penalty and add the correct marks
+          whatIfScore += Math.abs(q.marks.incorrect) + q.marks.correct;
+        }
+      });
+    });
+
+    const actualRank = calculateRank(totalScore, test.totalMarks);
+    const whatIfRank = calculateRank(whatIfScore, test.totalMarks);
+
+    return { totalScore, correct, incorrect, unattempted, subjectStats, totalTimeSpent, incorrectQuestions, whatIfScore, actualRank, whatIfRank };
   }, [test, attempt]);
 
   useEffect(() => {
@@ -221,28 +250,85 @@ export function MockTestResult({ test, attempt, onClose, onNavigate }: MockTestR
         </div>
       </div>
 
-      {/* Overview Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-[#121318] border border-zinc-800 rounded-2xl p-5 relative overflow-hidden group">
-          <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-          <div className="text-zinc-500 text-xs font-mono font-bold uppercase tracking-wider mb-2">Total Score</div>
-          <div className="text-4xl font-display font-bold text-indigo-400">{analysis.totalScore} <span className="text-lg text-zinc-600">/ {test.totalMarks}</span></div>
+      {/* The Autopsy Room (Rank Predictor & What-If) */}
+      <div className="bg-[#121318] border border-red-900/40 rounded-3xl p-8 relative overflow-hidden group shadow-[0_0_50px_rgba(239,68,68,0.05)]">
+        <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
+          <AlertTriangle className="w-64 h-64 text-red-500" />
         </div>
         
+        <div className="relative z-10 flex flex-col md:flex-row gap-8 items-center justify-between">
+          
+          {/* Actual Score & Rank */}
+          <div className="flex-1 space-y-2">
+            <div className="text-zinc-500 text-xs font-mono font-bold uppercase tracking-wider">Actual Performance</div>
+            <div className="flex items-end gap-3">
+              <div className="text-5xl font-display font-bold text-white">{analysis.totalScore} <span className="text-xl text-zinc-600">/ {test.totalMarks}</span></div>
+            </div>
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800">
+              <span className="text-xs text-zinc-400 font-mono">Predicted AIR:</span>
+              <span className="text-sm font-bold text-indigo-400">{analysis.actualRank.toLocaleString()}</span>
+            </div>
+          </div>
+
+          {/* The Delta / Transition */}
+          <div className="flex-shrink-0 flex flex-col items-center justify-center px-4">
+            <div className="text-[10px] font-mono text-red-400 font-bold uppercase tracking-widest mb-2 bg-red-950/40 px-3 py-1 rounded-full border border-red-900/50">
+              {analysis.incorrect} Mistakes Cost You
+            </div>
+            <div className="h-0.5 w-24 bg-gradient-to-r from-zinc-800 via-red-500/50 to-zinc-800 relative">
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-6 bg-[#121318] border border-red-900/50 rounded-full flex items-center justify-center">
+                <ArrowRight className="w-3 h-3 text-red-400" />
+              </div>
+            </div>
+            <div className="mt-3 text-xs font-mono text-zinc-500">
+              <span className="text-red-400 font-bold">-{analysis.whatIfScore - analysis.totalScore}</span> Marks Lost
+            </div>
+          </div>
+
+          {/* What-If Score & Rank */}
+          <div className="flex-1 space-y-2 text-right">
+            <div className="text-zinc-500 text-xs font-mono font-bold uppercase tracking-wider flex justify-end items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              What-If Analysis
+            </div>
+            <div className="flex items-end justify-end gap-3">
+              <div className="text-5xl font-display font-bold text-zinc-700 opacity-50">{analysis.whatIfScore} <span className="text-xl text-zinc-800">/ {test.totalMarks}</span></div>
+            </div>
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-950/20 border border-emerald-900/30">
+              <span className="text-xs text-emerald-600 font-mono">Potential AIR:</span>
+              <span className="text-sm font-bold text-emerald-400">{analysis.whatIfRank.toLocaleString()}</span>
+            </div>
+          </div>
+
+        </div>
+
+        {/* Delta Banner */}
+        <div className="relative z-10 mt-8 p-4 rounded-xl bg-zinc-950/50 border border-zinc-800/80 flex items-center justify-between">
+          <div className="text-sm text-zinc-400">
+            If you fixed these <strong className="text-white">{analysis.incorrect}</strong> incorrect answers, your rank would jump by
+          </div>
+          <div className="text-2xl font-display font-bold text-emerald-400">
+            +{(analysis.actualRank - analysis.whatIfRank).toLocaleString()} Ranks
+          </div>
+        </div>
+      </div>
+
+      {/* Secondary Stats Grid */}
+      <div className="grid grid-cols-3 gap-4">
         <div className="bg-[#121318] border border-zinc-800 rounded-2xl p-5 relative overflow-hidden group">
           <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
           <div className="text-zinc-500 text-xs font-mono font-bold uppercase tracking-wider mb-2">Accuracy</div>
-          <div className="text-4xl font-display font-bold text-emerald-400">
+          <div className="text-3xl font-display font-bold text-emerald-400">
             {analysis.correct + analysis.incorrect > 0 ? Math.round((analysis.correct / (analysis.correct + analysis.incorrect)) * 100) : 0}%
           </div>
         </div>
 
         <div className="bg-[#121318] border border-zinc-800 rounded-2xl p-5 relative overflow-hidden group">
-          <div className="text-zinc-500 text-xs font-mono font-bold uppercase tracking-wider mb-2">Questions</div>
+          <div className="text-zinc-500 text-xs font-mono font-bold uppercase tracking-wider mb-2">Questions Profile</div>
           <div className="flex items-end gap-2">
-            <span className="text-3xl font-display font-bold text-emerald-500">{analysis.correct}</span>
-            <span className="text-3xl font-display font-bold text-rose-500">{analysis.incorrect}</span>
-            <span className="text-3xl font-display font-bold text-zinc-600">{analysis.unattempted}</span>
+            <span className="text-2xl font-display font-bold text-emerald-500">{analysis.correct}</span>
+            <span className="text-2xl font-display font-bold text-rose-500">{analysis.incorrect}</span>
+            <span className="text-2xl font-display font-bold text-zinc-600">{analysis.unattempted}</span>
           </div>
         </div>
 

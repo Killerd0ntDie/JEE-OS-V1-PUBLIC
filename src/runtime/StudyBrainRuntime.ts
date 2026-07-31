@@ -45,7 +45,14 @@ export interface StudyBrainState {
     pauseOnTabChange?: boolean;
     revisionSettings?: RevisionSettings;
     migratedToPristine?: boolean;
+    enableGodMode?: boolean;
   };
+  weeklyGoals?: {
+    weekIndex: number;
+    title: string;
+    focus: string;
+    status: 'Completed' | 'Active' | 'Upcoming';
+  }[];
 
   knowledgeGraph: SyllabusNode[];
   plannerOutput: PlannerOutput | null;

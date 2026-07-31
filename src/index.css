@@ -22,6 +22,29 @@
   --font-size-2xs: 0.75rem; /* ~12px */
 }
 
+/* --- THEME SHIFTS (GOD MODE & ROT MODE) --- */
+.theme-god-mode {
+  /* Shift brand colors to divine gold/amber */
+  --color-brand-accent: #f59e0b; 
+  --color-brand-accent-glow: rgba(245, 158, 11, 0.25);
+  
+  /* Shift dark backgrounds to warmer, deeper amber-blacks */
+  --color-zinc-950: #0d0a05;
+  --color-zinc-900: #141007;
+  --color-zinc-850: #211a0b;
+  --color-zinc-800: #332810;
+  --color-zinc-750: #3b2e12;
+  --color-zinc-700: #574418;
+}
+
+.theme-rot-mode {
+  /* Extreme desaturation and red tint */
+  filter: grayscale(80%) sepia(20%) hue-rotate(-50deg);
+}
+.theme-rot-mode * {
+  /* Force cursor to show urgency */
+}
+
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
@@ -169,3 +192,14 @@ input[type="number"] {
   filter: blur(40px);
   pointer-events: none;
 }
+
+.vault-ambient-bg {
+  background: radial-gradient(circle at 50% 50%, rgba(30, 27, 75, 0.4) 0%, rgba(5, 5, 5, 1) 100%);
+  animation: vaultPulse 10s ease-in-out infinite alternate;
+}
+
+@keyframes vaultPulse {
+  0% { background-position: 0% 50%; opacity: 0.8; }
+  100% { background-position: 100% 50%; opacity: 1; }
+}
+

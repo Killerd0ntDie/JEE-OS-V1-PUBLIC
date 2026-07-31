@@ -8,7 +8,8 @@ import { LogMistakeModal } from './components/LogMistakeModal';
 import { BatchReviewModal } from './components/BatchReviewModal';
 import { MistakesStatsWidget } from './components/MistakesStatsWidget';
 import { ErrorHeatmapWidget } from './components/ErrorHeatmapWidget';
-import { AiPracticeModal } from '../../components/mentor/AiPracticeModal';
+import { AiInterrogationModal } from './components/AiInterrogationModal';
+import { MistakeTestModal } from './components/MistakeTestModal';
 
 export const MISTAKE_CATEGORIES = [
   'Conceptual Error',
@@ -38,9 +39,10 @@ export function MistakesPage() {
 
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
   const [isBatchReviewOpen, setIsBatchReviewOpen] = useState(false);
+  const [isTestModalOpen, setIsTestModalOpen] = useState(false);
   const [reSolvingMistake, setReSolvingMistake] = useState<Mistake | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [aiPracticeConfig, setAiPracticeConfig] = useState<{ chapterId: string; subject: string } | null>(null);
+  const [interrogationMistake, setInterrogationMistake] = useState<Mistake | null>(null);
 
   const getSubjectColor = (sub: SubjectId) => {
     switch (sub) {
@@ -115,6 +117,16 @@ export function MistakesPage() {
             <Icon name="RotateCcw" className="w-3.5 h-3.5 text-indigo-400" />
             <span>Batch Retest ({unresolvedCount})</span>
           </button>
+          
+          <button
+            onClick={() => setIsTestModalOpen(true)}
+            disabled={unresolvedCount === 0}
+            className="bg-indigo-900/40 hover:bg-indigo-800/60 disabled:opacity-40 border border-indigo-500/30 text-indigo-200 py-2.5 px-4 rounded-xl transition-all cursor-pointer flex items-center gap-2 font-bold"
+          >
+            <Icon name="Target" className="w-3.5 h-3.5 text-indigo-400" />
+            <span>Test My Mistakes</span>
+          </button>
+
           <button
             onClick={() => setIsLogModalOpen(true)}
             className="bg-indigo-600 hover:bg-indigo-500 text-white py-2.5 px-4 rounded-xl transition-all cursor-pointer flex items-center gap-2 font-bold shadow-lg shadow-indigo-600/30"
@@ -185,11 +197,7 @@ export function MistakesPage() {
                 onPinToPlanner={(item) => console.log('Pin to planner', item)}
                 onDelete={(id) => actions.deleteMistake(id)}
                 onPracticeWithAI={() => {
-                  const chapter = state.chapters.find(c => c.name === m.chapter);
-                  setAiPracticeConfig({ 
-                    chapterId: chapter?.id || m.chapter, 
-                    subject: m.subject 
-                  });
+                  setInterrogationMistake(m);
                 }}
               />
             ))}
@@ -213,11 +221,16 @@ export function MistakesPage() {
         onUpdateStatus={(id, status) => actions.updateMistakeStatus(id, status)}
       />
 
-      <AiPracticeModal
-        isOpen={aiPracticeConfig !== null}
-        onClose={() => setAiPracticeConfig(null)}
-        chapterId={aiPracticeConfig?.chapterId || null}
-        subject={aiPracticeConfig?.subject || 'physics'}
+      <AiInterrogationModal
+        isOpen={!!interrogationMistake}
+        onClose={() => setInterrogationMistake(null)}
+        mistake={interrogationMistake}
+      />
+
+      <MistakeTestModal
+        isOpen={isTestModalOpen}
+        onClose={() => setIsTestModalOpen(false)}
+        mistakes={mistakes}
       />
 
     </div>

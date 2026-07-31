@@ -38,6 +38,7 @@ export function SettingsPage() {
   const [desktopNotifications, setDesktopNotifications] = useState(state.settings.desktopNotifications ?? false);
   const [volume, setVolume] = useState(state.settings.volume ?? 75);
   const [pauseOnTabChange, setPauseOnTabChange] = useState(state.settings.pauseOnTabChange ?? true);
+  const [enableGodMode, setEnableGodMode] = useState(state.settings.enableGodMode ?? true);
 
   const [isSaved, setIsSaved] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -63,6 +64,7 @@ export function SettingsPage() {
     setDesktopNotifications(state.settings.desktopNotifications ?? false);
     setVolume(state.settings.volume ?? 75);
     setPauseOnTabChange(state.settings.pauseOnTabChange ?? true);
+    setEnableGodMode(state.settings.enableGodMode ?? true);
     setSubjectSplitStrategy(state.mentorProfile?.subjectSplitStrategy || '3_a_day');
     setTwoDaySplitConfig(normalizeTwoDaySplitConfig(state.mentorProfile?.twoDaySplitConfig));
   }, [state.settings, state.mentorProfile]);
@@ -91,7 +93,8 @@ export function SettingsPage() {
       soundEffects,
       desktopNotifications,
       volume,
-      pauseOnTabChange
+      pauseOnTabChange,
+      enableGodMode
     });
 
     if (state.mentorProfile) {
@@ -384,7 +387,51 @@ export function SettingsPage() {
           )}
         </div>
 
-        {/* SECTION 3: AUDIO & DESKTOP ALERTS */}
+        {/* SECTION 3: GAMIFICATION & GOD MODE */}
+        <div className="p-6 rounded-2xl border border-amber-500/20 bg-zinc-950/60 backdrop-blur-xl space-y-6 shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/5 rounded-full blur-[80px] pointer-events-none" />
+          
+          <div className="flex items-center gap-2.5 border-b border-zinc-900 pb-3 relative">
+            <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+              <Sparkles className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-sm font-display font-bold text-white tracking-tight">
+                Gamification & God Mode
+              </h3>
+              <p className="text-[11px] text-zinc-400">
+                Unlock God Mode themes and XP multipliers for maintaining high study streaks.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 relative">
+            {/* God Mode Toggle */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border border-zinc-850 bg-zinc-900/40 gap-4">
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5">
+                  <div className="w-6 h-6 rounded-md bg-zinc-800 flex items-center justify-center border border-zinc-700">
+                    <Sparkles className={`w-3 h-3 ${enableGodMode ? 'text-amber-400' : 'text-zinc-500'}`} />
+                  </div>
+                </div>
+                <div>
+                  <div className="text-sm font-mono font-bold text-white">Enable God Mode</div>
+                  <div className="text-[11px] text-zinc-400 mt-1 max-w-xl leading-relaxed">
+                    When enabled, maintaining a <span className="text-white font-bold">7-day streak</span> activates God Mode. This coats the entire app in a divine amber theme and grants a <span className="text-amber-400 font-bold border border-amber-500/30 bg-amber-500/10 px-1 py-0.5 rounded">1.5x XP Multiplier</span> on all completed tasks until the streak is broken.
+                  </div>
+                </div>
+              </div>
+              <input
+                type="checkbox"
+                checked={enableGodMode}
+                onChange={(e) => setEnableGodMode(e.target.checked)}
+                className="w-5 h-5 accent-amber-500 cursor-pointer shrink-0"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* SECTION 4: AUDIO & DESKTOP ALERTS */}
         <div className="p-6 rounded-2xl border border-zinc-800/80 bg-zinc-950/60 backdrop-blur-xl space-y-6 shadow-2xl">
           <div className="flex items-center gap-2.5 border-b border-zinc-900 pb-3">
             <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">

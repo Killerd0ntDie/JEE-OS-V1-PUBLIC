@@ -19,6 +19,7 @@ import { PlannerPage } from './features/mission/PlannerPage';
 import { RevisionPage } from './features/revision/RevisionPage';
 import { MistakesPage } from './features/mistakes/MistakesPage';
 import { AnalyticsPage } from './features/analytics/AnalyticsPage';
+import { FocusVaultPage } from './features/focus/FocusVaultPage';
 import { AiCoachPage } from './features/coach/AiCoachPage';
 import { CoachHistoryPage } from './features/coach/CoachHistoryPage';
 import { SettingsPage } from './features/dashboard/SettingsPage';
@@ -48,6 +49,14 @@ export default function App() {
 
   const handlePageNavigate = (nextPageId: PageId) => {
     if (!isPageId(nextPageId) || nextPageId === activePageId) return;
+
+    if (activePageId === 'focus-vault' && sessionStorage.getItem('vault-active') === 'true') {
+      if (!window.confirm("You have an active Focus Vault session. Leaving will lose your progress. Are you sure you want to exit?")) {
+        return;
+      }
+      sessionStorage.removeItem('vault-active'); // Clean up if they accept
+    }
+
     setActivePageId(nextPageId);
     updateUrlForPage(nextPageId);
   };
@@ -234,6 +243,8 @@ export default function App() {
         return <MathsPage onNavigate={handlePageNavigate} />;
       case 'planner':
         return <PlannerPage />;
+      case 'focus-vault':
+        return <FocusVaultPage />;
       case 'revision':
         return <RevisionPage />;
       case 'mistakes':
@@ -253,8 +264,13 @@ export default function App() {
     }
   };
 
+  // God Mode & Rot Mode Logic (Based on Streak)
+  const isGodMode = (state.xp?.streak || 0) >= 7 && (state.settings?.enableGodMode !== false);
+  const isRotMode = (state.xp?.streak || 0) < 3 && (state.settings?.enableGodMode !== false);
+  const themeClass = isGodMode ? 'theme-god-mode' : isRotMode ? 'theme-rot-mode' : '';
+
   return (
-    <div className="flex min-h-screen bg-[#09090b] text-zinc-400 font-sans antialiased overflow-x-hidden selection:bg-indigo-500/30 selection:text-zinc-100">
+    <div className={`flex min-h-screen bg-[#09090b] text-zinc-400 font-sans antialiased overflow-x-hidden selection:bg-indigo-500/30 selection:text-zinc-100 ${themeClass}`}>
       {/* Sidebar Navigation */}
       <Sidebar
         activePageId={activePageId}

@@ -17,6 +17,8 @@ import { CustomMissionModal } from '../mission/components/CustomMissionModal';
 import { ShortcutGuideModal } from '../../components/ui/ShortcutGuideModal';
 import { DailyCheckinCard } from '../../components/mentor/DailyCheckinCard';
 import { OnHoldReminderBanner } from './components/OnHoldReminderBanner';
+import { MonthlyCampaignBanner } from '../mission/components/MonthlyCampaignBanner';
+import { MonthlyObjectiveModal } from '../../components/mentor/MonthlyObjectiveModal';
 import { Keyboard } from 'lucide-react';
 
 export function DashboardPage({ onNavigate }: { onNavigate: (page: string) => void }) {
@@ -32,6 +34,7 @@ export function DashboardPage({ onNavigate }: { onNavigate: (page: string) => vo
   const [missionToEdit, setMissionToEdit] = useState<any>(null);
   const [isShortcutGuideOpen, setIsShortcutGuideOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'focus' | 'analytics'>('focus');
+  const [isMonthlyObjectiveModalOpen, setIsMonthlyObjectiveModalOpen] = useState(false);
 
   // Header cards smart expand/collapse state
   const [isHeaderExpanded, setIsHeaderExpanded] = useState<boolean>(false);
@@ -272,10 +275,15 @@ export function DashboardPage({ onNavigate }: { onNavigate: (page: string) => vo
       <CommandOverviewBanner 
         chapters={state.chapters}
         onOpenChapter={(chapterId) => actions.openChapterEditModal(chapterId)}
-        onSetMonthlyObjective={() => onNavigate('planner')}
+        onSetMonthlyObjective={() => setIsMonthlyObjectiveModalOpen(true)}
         onSetDailyCapacity={() => onNavigate('planner')}
         isExpanded={isHeaderExpanded}
         onToggleExpand={handleManualToggleHeader}
+      />
+
+      <MonthlyObjectiveModal 
+        isOpen={isMonthlyObjectiveModalOpen} 
+        onClose={() => setIsMonthlyObjectiveModalOpen(false)} 
       />
 
       {/* TODAY'S MISSIONS HERO SECTION (65%/35% Split Layout) */}

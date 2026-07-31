@@ -3,7 +3,7 @@ import { PageId } from '../types';
 const VALID_PAGE_IDS: Set<string> = new Set([
   'dashboard', 'physics', 'chemistry', 'mathematics', 'planner',
   'revision', 'mistakes', 'analytics', 'ai-coach', 'coach-history',
-  'mock-tests', 'settings'
+  'mock-tests', 'settings', 'focus-vault'
 ]);
 
 export function isPageId(value: unknown): value is PageId {

@@ -76,15 +76,12 @@ export function AiRevisionPlanModal({ isOpen, onClose }: AiRevisionPlanModalProp
     const tasksToImport = day.tasks || [];
     for (const t of tasksToImport) {
       const taskId = `mission-ai-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
-      await actions.addTodayMission({
-        id: taskId,
+      await actions.addAiMission({
         chapter: t.chapter || t.title,
         taskName: t.title,
         type: (t.type as any) || 'Solve PYQs',
         subject: (t.subject as any) || 'physics',
         duration: t.durationMinutes || 60,
-        completed: false,
-        unlocked: true,
         xp: 20
       });
       setImportedTaskIds(prev => [...prev, `${day.dayNumber}-${t.title}`]);

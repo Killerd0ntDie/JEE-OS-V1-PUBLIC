@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { SubjectId } from '../../../types/index';
 import { useStudyBrain } from '../../../context/StudyBrainContext';
 import { ChapterTelemetry } from '../../../engines/chapterInfo';
@@ -7,6 +7,8 @@ import { Icon } from '../../../components/ui/Icon';
 import { Search, Sparkles, Play, Filter, CheckCircle2 } from 'lucide-react';
 import { SubjectExpandedView } from './SubjectExpandedView';
 import { AddCustomChapterModal } from './AddCustomChapterModal';
+import { RpgKnowledgeTreeWidget } from './RpgKnowledgeTreeWidget';
+import { Network } from 'lucide-react';
 
 interface SubjectCommandCenterProps {
   subjectId: SubjectId;
@@ -34,6 +36,13 @@ export function SubjectCommandCenter({
   const [activeUnit, setActiveUnit] = useState<string>('All');
   const [expandedChapterId, setExpandedChapterId] = useState<string | null>(null);
   const [isAddChapterOpen, setIsAddChapterOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'rpg'>(() => {
+    return (localStorage.getItem('syllabusViewMode') as 'list' | 'rpg') || 'list';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('syllabusViewMode', viewMode);
+  }, [viewMode]);
 
   // Subject specific chapters
   const subjectChapters = useMemo(() => {
@@ -210,20 +219,46 @@ export function SubjectCommandCenter({
                   className="bg-[#0d0e12] border border-zinc-800 rounded-xl px-3 py-2 text-xs font-mono font-bold text-zinc-200 focus:outline-none focus:border-indigo-500 cursor-pointer"
                 >
                   <option value="All">All Statuses</option>
-                  <option value="Learning">In Progress</option>
-                  <option value="Revision Due">Revision Due</option>
-                  <option value="Mastered">Mastered</option>
                 </select>
               </div>
             </div>
 
+            {/* View Mode Toggle */}
+            <div className="flex items-center gap-2 mt-4 pt-4 border-t border-zinc-900/50">
+                <span className="text-[10px] font-mono font-bold text-zinc-500 uppercase tracking-widest">Layout View:</span>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('list')}
+                  className={`px-3 py-1 text-[10px] font-mono font-bold uppercase rounded-md transition-all ${
+                    viewMode === 'list' ? 'bg-zinc-800 text-white' : 'text-zinc-500 hover:text-zinc-300'
+                  }`}
+                >
+                  List
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('rpg')}
+                  className={`px-3 py-1 text-[10px] font-mono font-bold uppercase rounded-md transition-all flex items-center gap-1.5 ${
+                    viewMode === 'rpg' ? 'bg-indigo-600 text-white shadow-[0_0_10px_rgba(79,70,229,0.3)]' : 'text-zinc-500 hover:text-zinc-300'
+                  }`}
+                >
+                  <Network className="w-3 h-3" />
+                  Knowledge Tree
+                </button>
+              </div>
           </div>
-
         </div>
       )}
 
-      {/* MAIN 2-COLUMN GRID */}
-      {expandedChapterId ? (
+      {/* MAIN CONTENT AREA */}
+      {viewMode === 'rpg' && !expandedChapterId ? (
+        <RpgKnowledgeTreeWidget 
+          chapters={filteredChapters} 
+          allChapters={subjectChapters} 
+          subjectId={subjectId} 
+          onChapterClick={(id) => setExpandedChapterId(id)}
+        />
+      ) : expandedChapterId ? (
         <div className="flex-grow overflow-hidden flex flex-col">
           <SubjectExpandedView 
             chapterId={expandedChapterId} 

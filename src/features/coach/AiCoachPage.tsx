@@ -33,15 +33,12 @@ export function AiCoachPage({ onNavigate, isActive }: { onNavigate?: (id: PageId
     try {
       switch (action.type) {
         case 'ADD_MISSION':
-          await actions.addTodayMission({
-            id: `mission-ai-${Date.now()}`,
+          await actions.addAiMission({
             chapter: action.payload.chapterId || action.payload.title,
             taskName: action.payload.title,
             type: 'Solve PYQs',
             subject: action.payload.subject || 'physics',
             duration: action.payload.duration || 60,
-            completed: false,
-            unlocked: true,
             xp: 15
           });
           break;

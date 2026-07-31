@@ -46,104 +46,83 @@ export function MonthlyCampaignBanner() {
   }, [state.xp]);
 
   return (
-    <div className="p-5 rounded-2xl border border-red-900/40 bg-red-950/10 flex flex-col gap-6 relative overflow-hidden">
+    <div className="px-4 py-3 rounded-xl border border-red-900/40 bg-red-950/10 flex flex-col md:flex-row gap-4 relative overflow-hidden items-center shadow-sm">
       
       {/* Background styling for gaming feel */}
-      <div className="absolute top-0 right-0 p-8 opacity-5">
-        <Skull className="w-48 h-48 text-red-500" />
+      <div className="absolute -right-4 -top-4 opacity-5 pointer-events-none">
+        <Skull className="w-24 h-24 text-red-500" />
       </div>
 
-      {/* Header Info */}
-      <div className="relative z-10 flex flex-col md:flex-row md:items-start justify-between gap-4">
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-2 text-red-400 font-mono text-xs font-bold uppercase tracking-wider flex-wrap">
-            <Target className="w-4 h-4" />
-            <span>30-Day Campaign Boss</span>
-            <span className="text-[10px] font-mono text-red-300 bg-red-950/60 border border-red-800/60 px-2.5 py-0.5 rounded-full uppercase">
-              Lv. {state.xp?.level || 1} Encounter
-            </span>
-          </div>
-          <h3 className="text-xl font-display font-bold text-white drop-shadow-sm">
-            {boss.title}
-          </h3>
-          <p className="text-xs text-zinc-400 max-w-lg">
-            {boss.desc}
-          </p>
+      {/* Left: Info */}
+      <div className="w-full md:w-1/3 space-y-1 z-10">
+        <div className="flex items-center gap-1.5 text-red-400 font-mono text-[10px] font-bold uppercase tracking-wider">
+          <Target className="w-3.5 h-3.5" />
+          <span>Campaign Boss: Lv. {state.xp?.level || 1}</span>
         </div>
-        
-        <div className="shrink-0 text-right">
-          <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider font-bold mb-1">
-            Boss Health
-          </div>
-          <div className="text-2xl font-display font-bold text-red-400">
-            {boss.currentHealth} / {boss.baseHealth}
-          </div>
+        <h3 className="text-sm font-display font-bold text-white truncate" title={boss.desc}>
+          {boss.title}
+        </h3>
+      </div>
+      
+      {/* Middle: Boss HP */}
+      <div className="w-full md:w-1/3 space-y-1.5 z-10">
+        <div className="flex justify-between text-[9px] font-mono font-bold uppercase tracking-wider">
+          <span className="text-red-400 flex items-center gap-1"><Skull className="w-3 h-3" /> Boss HP</span>
+          <span className="text-zinc-500">{boss.currentHealth} / {boss.baseHealth} ({Math.round(boss.healthPercent)}%)</span>
+        </div>
+        <div className="h-1.5 rounded-full bg-red-950/50 border border-red-900/50 overflow-hidden flex justify-end">
+          <div 
+            className="h-full bg-gradient-to-l from-red-600 to-red-500 transition-all duration-1000 ease-out"
+            style={{ width: `${boss.healthPercent}%` }}
+          />
         </div>
       </div>
 
-      {/* Progress Bars */}
-      <div className="relative z-10 space-y-5">
-        
-        {/* Boss Health Bar */}
-        <div className="space-y-2">
-          <div className="flex justify-between text-[10px] font-mono font-bold uppercase tracking-wider">
-            <span className="text-red-400 flex items-center gap-1.5"><Skull className="w-3.5 h-3.5" /> Boss HP</span>
-            <span className="text-zinc-500">{Math.round(boss.healthPercent)}% Remaining</span>
+      {/* Right: Ghost Race */}
+      <div className="w-full md:w-1/3 bg-black/30 rounded-lg p-2 px-3 border border-zinc-800/50 z-10">
+        <div className="flex justify-between items-center mb-2">
+          <div className="flex items-center gap-1.5">
+            <Crosshair className="w-3 h-3 text-zinc-400" />
+            <span className="text-[9px] font-mono font-bold text-zinc-300 uppercase tracking-wider">XP Race</span>
           </div>
-          <div className="h-3 rounded-full bg-red-950/50 border border-red-900/50 overflow-hidden flex justify-end">
+          <div className="text-[8.5px] font-mono font-bold text-zinc-500">
+            {ghost.isAhead ? <span className="text-emerald-400">Winning</span> : `Ghost +${ghost.ghostXp - ghost.userXp}`}
+          </div>
+        </div>
+
+        <div className="relative pt-1 pb-1">
+          {/* Base track */}
+          <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-1 bg-zinc-900 rounded-full overflow-hidden">
             <div 
-              className="h-full bg-gradient-to-l from-red-600 to-red-500 transition-all duration-1000 ease-out"
-              style={{ width: `${boss.healthPercent}%` }}
+              className={`absolute inset-y-0 left-0 ${ghost.isAhead ? 'bg-emerald-500/30' : 'bg-amber-500/30'}`} 
+              style={{ width: `${ghost.userPercent}%` }} 
             />
           </div>
-        </div>
-
-        {/* Ghost Racing Bar */}
-        <div className="p-4 rounded-xl bg-black/40 border border-zinc-800/50 space-y-4">
-          <div className="flex justify-between items-center border-b border-zinc-800/80 pb-2">
-            <div className="flex items-center gap-2">
-              <Crosshair className="w-4 h-4 text-zinc-400" />
-              <span className="text-xs font-mono font-bold text-zinc-300 uppercase tracking-wider">Monthly XP Race</span>
-            </div>
-            <div className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-400">
-              {ghost.isAhead ? 'You are pulling ahead!' : `Ghost is +${ghost.ghostXp - ghost.userXp} XP ahead`}
-            </div>
+          
+          {/* Ghost Marker */}
+          <div 
+            className="absolute top-1/2 -translate-y-1/2 -ml-2 w-4 h-4 rounded-full bg-zinc-900 border border-zinc-700 flex items-center justify-center z-10 transition-all duration-1000"
+            style={{ left: `${ghost.ghostPercent}%` }}
+            title={`Ghost XP: ${ghost.ghostXp}`}
+          >
+            <Ghost className="w-2 h-2 text-zinc-400" />
           </div>
 
-          <div className="relative pt-2 pb-6">
-            
-            {/* Base track */}
-            <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-1.5 bg-zinc-900 rounded-full overflow-hidden">
-              <div 
-                className={`absolute inset-y-0 left-0 ${ghost.isAhead ? 'bg-emerald-500/30' : 'bg-amber-500/30'}`} 
-                style={{ width: `${ghost.userPercent}%` }} 
-              />
-            </div>
-            
-            {/* Ghost Marker */}
-            <div 
-              className="absolute top-1/2 -translate-y-1/2 -ml-3 w-6 h-6 rounded-full bg-zinc-900 border-2 border-zinc-700 flex items-center justify-center shadow-[0_0_10px_rgba(255,255,255,0.1)] z-10 transition-all duration-1000"
-              style={{ left: `${ghost.ghostPercent}%` }}
-            >
-              <Ghost className="w-3 h-3 text-zinc-400" />
-            </div>
-
-            {/* User Marker */}
-            <div 
-              className={`absolute top-1/2 -translate-y-1/2 -ml-4 w-8 h-8 rounded-full flex items-center justify-center shadow-lg z-20 transition-all duration-1000 ${
-                ghost.isAhead 
-                  ? 'bg-emerald-950 border-2 border-emerald-500 shadow-emerald-500/20' 
-                  : 'bg-amber-950 border-2 border-amber-500 shadow-amber-500/20'
-              }`}
-              style={{ left: `${ghost.userPercent}%` }}
-            >
-              <Zap className={`w-4 h-4 ${ghost.isAhead ? 'text-emerald-400' : 'text-amber-400'}`} />
-            </div>
-
+          {/* User Marker */}
+          <div 
+            className={`absolute top-1/2 -translate-y-1/2 -ml-2.5 w-5 h-5 rounded-full flex items-center justify-center shadow-md z-20 transition-all duration-1000 ${
+              ghost.isAhead 
+                ? 'bg-emerald-950 border border-emerald-500' 
+                : 'bg-amber-950 border border-amber-500'
+            }`}
+            style={{ left: `${ghost.userPercent}%` }}
+            title={`Your XP: ${ghost.userXp}`}
+          >
+            <Zap className={`w-2.5 h-2.5 ${ghost.isAhead ? 'text-emerald-400' : 'text-amber-400'}`} />
           </div>
         </div>
-
       </div>
+
     </div>
   );
 }

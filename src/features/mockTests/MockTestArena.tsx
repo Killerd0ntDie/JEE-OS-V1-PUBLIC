@@ -3,7 +3,7 @@ import { Clock, User, X, Check, Bookmark, Target, AlertCircle } from 'lucide-rea
 import { SubjectId } from '../../types';
 import { MockTest, MockTestAttempt, MockTestAttemptQuestion, QuestionStatus } from '../../types/mockTest';
 import { MissionMode } from '../mission/MissionMode';
-import { InlineMath } from 'react-katex';
+import { InlineMath, BlockMath } from 'react-katex';
 
 interface MockTestArenaProps {
   test: MockTest;
@@ -43,11 +43,15 @@ export function MockTestArena({ test, onComplete, onExit }: MockTestArenaProps) 
   const activeQuestion = activeSection.questions[currentQIdx];
 
   // Helper to render text with inline math: parses text replacing $math$ with <InlineMath math="math"/>
-  const renderMathText = (text: string) => {
+  const renderMathText = (text: string | undefined | null) => {
     if (!text) return null;
-    const parts = text.split(/(\$.*?\$)/g);
+    const cleanText = text.replace(/\\\$/g, '$');
+    const parts = cleanText.split(/(\$\$.*?\$\$|\$.*?\$)/gs);
     return parts.map((part, i) => {
-      if (part.startsWith('$') && part.endsWith('$')) {
+      if (part.startsWith('$$') && part.endsWith('$$')) {
+        const math = part.slice(2, -2);
+        return <BlockMath key={i} math={math} />;
+      } else if (part.startsWith('$') && part.endsWith('$')) {
         const math = part.slice(1, -1);
         return <InlineMath key={i} math={math} />;
       }

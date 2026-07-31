@@ -224,7 +224,13 @@ export const StudyBrainProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             volume: 75,
             pauseOnTabChange: true,
             migratedToPristine: true
-          }
+          },
+          weeklyGoals: [
+            { weekIndex: 1, title: 'Mechanics Core & Vectors', focus: 'Focus: Kinematics, NLM, Work Power Energy. Complete 45 DPPs & 30 PYQs.', status: 'Completed' as const },
+            { weekIndex: 2, title: 'GOC & Reaction Mechanisms', focus: 'Focus: Inductive & Resonance Effects, Isomerism, Hydrocarbons.', status: 'Active' as const },
+            { weekIndex: 3, title: 'Algebra & Differential Calculus', focus: 'Focus: Sets & Relations, Functions, Limits & Continuity.', status: 'Upcoming' as const },
+            { weekIndex: 4, title: 'Full Monthly Mock & Error Audit', focus: 'Focus: Full-Syllabus Mock Test Session 1 Benchmark & Mistakes Review.', status: 'Upcoming' as const }
+          ]
         };
         await UserRepository.saveUserProfile(currentUid, initialProfile);
         await ChapterRepository.seedChapters(currentUid, INITIAL_CHAPTERS);
@@ -243,6 +249,7 @@ export const StudyBrainProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       snapshotState.coachMessage = profile.coachMessage || '';
       snapshotState.mentorProfile = profile.mentorProfile;
       snapshotState.settings = profile.settings || {};
+      snapshotState.weeklyGoals = profile.weeklyGoals;
       // Restore the user's deleted-mission blocklist so planner-regenerated missions
       // that were previously dismissed don't reappear after a page reload.
       snapshotState.deletedMissionIds = profile.deletedMissionIds || [];

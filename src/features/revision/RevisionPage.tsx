@@ -7,12 +7,15 @@ import { useStudyBrain } from '../../context/StudyBrainContext';
 import { RevisionCardItem } from '../../engines/revision';
 import { ChapterRevisionInspectorModal } from '../../components/mentor/ChapterRevisionInspectorModal';
 import { AiPracticeModal } from '../../components/mentor/AiPracticeModal';
+import { ActiveRecallArena } from './components/ActiveRecallArena';
+import { Flame, Brain } from 'lucide-react';
 
 export function RevisionPage() {
   const { state, actions } = useStudyBrain();
 
   const [activeSubject, setActiveSubject] = useState<'all' | 'physics' | 'chemistry' | 'maths'>('all');
   const [filterScope, setFilterScope] = useState<'urgent' | 'overdue' | 'all'>('urgent');
+  const [isArenaActive, setIsArenaActive] = useState(false);
   const [flippedCards, setFlippedCards] = useState<Record<string, boolean>>({});
   const [recalledToast, setRecalledToast] = useState<string | null>(null);
 
@@ -70,19 +73,25 @@ export function RevisionPage() {
     return pool;
   }, [revisionData, filterScope, activeSubject]);
 
+  const [animatingCard, setAnimatingCard] = useState<{ id: string, type: 'success' | 'fail' } | null>(null);
+
   const toggleFlip = (id: string) => {
     setFlippedCards(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
   const markCardRecall = (card: RevisionCardItem, difficulty: 'High' | 'Medium' | 'Low') => {
+    setAnimatingCard({ id: card.id, type: difficulty === 'Low' ? 'fail' : 'success' });
     actions.completeRevision(card.chapterId, difficulty);
 
     if (difficulty !== 'Low') {
-      setRecalledToast(`Recalled "${card.title}" (${card.chapterName})! Interval extended.`);
+      setRecalledToast(`Recalled "${card.title}"! Interval extended.`);
       setTimeout(() => setRecalledToast(null), 3000);
     }
 
-    setFlippedCards(prev => ({ ...prev, [card.id]: false }));
+    setTimeout(() => {
+      setAnimatingCard(null);
+      setFlippedCards(prev => ({ ...prev, [card.id]: false }));
+    }, 600);
   };
 
   const getConfidenceBadge = (confidence: 'High' | 'Medium' | 'Low' | 'Not Started') => {
@@ -109,22 +118,56 @@ export function RevisionPage() {
         </div>
       )}
 
-      {/* Header Banner & Retention Telemetry Summary */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-850/80 pb-5">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 text-indigo-400 font-mono text-[10px] uppercase font-bold tracking-widest">
-            <Icon name="Bookmark" className="w-3.5 h-3.5" />
-            <span>Spaced Repetition & Retention Engine</span>
+      {/* HEADER SECTION */}
+      {!isArenaActive && (
+        <div className="p-6 rounded-2xl border border-red-900/40 bg-red-950/10 backdrop-blur-xl flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden mb-8">
+          
+          <div className="absolute top-0 right-0 p-8 opacity-5">
+            <Flame className="w-32 h-32 text-red-500" />
           </div>
-          <h1 className="text-2xl md:text-3xl font-display font-black text-white tracking-tight">
-            Chapter Retention & Formula Vault
-          </h1>
-          <p className="text-xs text-zinc-400 max-w-2xl leading-relaxed">
-            Revision schedules are calculated exclusively for started and completed chapters by <strong className="text-zinc-200">RevisionEngine</strong> across all 70 NTA/NCERT JEE chapters.
-          </p>
-        </div>
 
-        {/* Global Retention Stats Cards */}
+          <div className="relative z-10 space-y-2">
+            <div className="flex items-center gap-2 text-red-400 font-mono text-xs font-bold uppercase tracking-wider">
+              <Brain className="w-4 h-4" />
+              Decay Heatmap Linked
+            </div>
+            <h2 className="text-2xl font-display font-bold text-white">The High-Stakes Arena</h2>
+            <p className="text-xs text-zinc-400 max-w-lg">
+              {stats.totalOverdue} chapters are actively decaying in your memory. Enter the timed arena to force active recall and reset their retention scores.
+            </p>
+          </div>
+
+          <button
+            onClick={() => setIsArenaActive(true)}
+            className="relative z-10 px-6 py-4 bg-red-600 hover:bg-red-500 text-white rounded-xl font-mono text-sm font-bold uppercase tracking-wider transition-all shadow-[0_0_20px_rgba(220,38,38,0.3)] hover:scale-105 flex items-center gap-3 shrink-0 cursor-pointer"
+          >
+            <Flame className="w-5 h-5" /> Enter the Arena
+          </button>
+        </div>
+      )}
+
+      {isArenaActive ? (
+        <ActiveRecallArena 
+          cards={revisionData?.urgentCards || []} 
+          onExit={() => setIsArenaActive(false)} 
+        />
+      ) : (
+        <>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-850/80 pb-5">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-indigo-400 font-mono text-[10px] uppercase font-bold tracking-widest">
+                <Icon name="Bookmark" className="w-3.5 h-3.5" />
+                <span>Spaced Repetition & Retention Engine</span>
+              </div>
+              <h1 className="text-2xl md:text-3xl font-display font-black text-white tracking-tight">
+                Chapter Retention & Formula Vault
+              </h1>
+              <p className="text-xs text-zinc-400 max-w-2xl leading-relaxed">
+                Revision schedules are calculated exclusively for started and completed chapters by <strong className="text-zinc-200">RevisionEngine</strong> across all 70 NTA/NCERT JEE chapters.
+              </p>
+            </div>
+
+            {/* Global Retention Stats Cards */}
         <div className="flex flex-wrap gap-2.5 shrink-0 font-mono">
           <div className="bg-zinc-900/60 border border-zinc-800/80 px-3.5 py-2 rounded-xl text-center min-w-[95px] shadow-sm">
             <span className="text-[9px] text-zinc-500 block uppercase font-semibold">Overdue</span>
@@ -320,8 +363,10 @@ export function RevisionPage() {
             return (
               <Card
                 key={card.id}
-                className={`min-h-[210px] flex flex-col justify-between transition-all duration-200 relative border overflow-hidden text-left ${
-                  isFlipped
+                className={`min-h-[210px] flex flex-col justify-between transition-all duration-300 relative border overflow-hidden text-left ${
+                  animatingCard?.id === card.id 
+                    ? (animatingCard.type === 'success' ? 'border-emerald-500 bg-emerald-950/40 scale-95 shadow-[0_0_20px_rgba(16,185,129,0.2)]' : 'border-red-500 bg-red-950/40 scale-95 shadow-[0_0_20px_rgba(239,68,68,0.2)]')
+                    : isFlipped
                     ? 'border-indigo-500/40 bg-zinc-900/60 shadow-xl'
                     : card.retentionConfidence === 'Low'
                     ? 'border-red-950/60 bg-red-950/10 hover:border-red-900/80'
@@ -420,6 +465,8 @@ export function RevisionPage() {
           </div>
         )}
       </div>
+        </>
+      )}
 
       {/* Chapter Revision Inspector Modal */}
       <ChapterRevisionInspectorModal

@@ -184,53 +184,97 @@ export function AnalyticsPage() {
         </div>
       </div>
 
+      {/* Pomodoro & Deep Work Session Breakdown */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 font-mono">
+        <div className="glass-card p-4 rounded-2xl border border-zinc-800/80 bg-zinc-950/40 backdrop-blur-xl space-y-2">
+          <span className="text-[10px] text-zinc-400 uppercase font-bold tracking-wider">Deep Focus Ratio</span>
+          <div className="flex justify-between items-end">
+            <span className="text-2xl font-black text-indigo-400 font-display">
+              {state.analytics.studyTime > 0 ? Math.round((state.analytics.focusTime / state.analytics.studyTime) * 100) : 0}%
+            </span>
+            <span className="text-[10px] text-zinc-500">{state.analytics.focusTime}m pure focus</span>
+          </div>
+          <div className="h-1.5 w-full bg-zinc-900 rounded-full overflow-hidden">
+            <div className="h-full bg-indigo-500" style={{ width: `${state.analytics.studyTime > 0 ? (state.analytics.focusTime / state.analytics.studyTime) * 100 : 0}%` }} />
+          </div>
+        </div>
+
+        <div className="glass-card p-4 rounded-2xl border border-zinc-800/80 bg-zinc-950/40 backdrop-blur-xl space-y-2">
+          <span className="text-[10px] text-zinc-400 uppercase font-bold tracking-wider">Total Interruptions & Idle</span>
+          <div className="flex justify-between items-end">
+            <span className="text-2xl font-black text-amber-400 font-display">
+              {state.analytics.idleTime}m
+            </span>
+            <span className="text-[10px] text-zinc-500">Wasted time</span>
+          </div>
+        </div>
+
+        <div className="glass-card p-4 rounded-2xl border border-zinc-800/80 bg-zinc-950/40 backdrop-blur-xl space-y-2">
+          <span className="text-[10px] text-zinc-400 uppercase font-bold tracking-wider">Recovery & Break Time</span>
+          <div className="flex justify-between items-end">
+            <span className="text-2xl font-black text-emerald-400 font-display">
+              {state.analytics.breakTime}m
+            </span>
+            <span className="text-[10px] text-zinc-500">Total breaks taken</span>
+          </div>
+        </div>
+      </div>
+
       {/* 3-Column Grid: Mastery, Time Dist, 7-Day Velocity */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* Subject Mastery Distribution */}
-        <div className="bg-zinc-950/60 border border-zinc-850/80 rounded-2xl p-5 space-y-4 text-left">
+        {/* Subject Mastery Distribution (Radar Chart) */}
+        <div className="bg-zinc-950/60 border border-zinc-850/80 rounded-2xl p-5 space-y-4 text-left flex flex-col">
           <div className="flex items-center justify-between border-b border-zinc-900 pb-3">
             <div className="flex items-center gap-2">
               <Icon name="Target" className="w-4 h-4 text-indigo-400" />
               <h3 className="text-xs font-mono font-bold uppercase text-white tracking-wider">
-                Subject Mastery Distribution
+                Subject Accuracy Radar
               </h3>
             </div>
           </div>
 
-          <div className="space-y-4 font-mono text-xs pt-1">
-            {/* Physics */}
-            <div className="space-y-1.5">
-              <div className="flex justify-between">
-                <span className="text-sky-400 font-bold">Physics</span>
-                <span className="text-zinc-300 font-bold">{subjectMastery.physics}% Mastery</span>
-              </div>
-              <div className="h-2 w-full bg-zinc-900 rounded-full overflow-hidden border border-zinc-850">
-                <div className="h-full bg-sky-500 rounded-full transition-all duration-500" style={{ width: `${subjectMastery.physics}%` }} />
-              </div>
-            </div>
+          <div className="flex-1 flex items-center justify-center relative min-h-[200px]">
+            <svg viewBox="-120 -120 240 240" className="w-full h-full max-w-[200px] overflow-visible">
+              {/* Background Web */}
+              {[20, 40, 60, 80, 100].map(r => (
+                <polygon
+                  key={r}
+                  points={`0,${-r} ${r * 0.866},${r * 0.5} ${-r * 0.866},${r * 0.5}`}
+                  fill="none"
+                  stroke="rgba(255,255,255,0.05)"
+                  strokeWidth="1"
+                />
+              ))}
+              {/* Axes */}
+              <line x1="0" y1="0" x2="0" y2="-100" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+              <line x1="0" y1="0" x2="86.6" y2="50" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+              <line x1="0" y1="0" x2="-86.6" y2="50" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+              
+              {/* Labels */}
+              <text x="0" y="-110" fill="#38bdf8" fontSize="10" textAnchor="middle" fontFamily="monospace" fontWeight="bold">PHY ({subjectMastery.physics}%)</text>
+              <text x="100" y="65" fill="#34d399" fontSize="10" textAnchor="middle" fontFamily="monospace" fontWeight="bold">CHEM ({subjectMastery.chemistry}%)</text>
+              <text x="-100" y="65" fill="#818cf8" fontSize="10" textAnchor="middle" fontFamily="monospace" fontWeight="bold">MATH ({subjectMastery.maths}%)</text>
 
-            {/* Chemistry */}
-            <div className="space-y-1.5">
-              <div className="flex justify-between">
-                <span className="text-emerald-400 font-bold">Chemistry</span>
-                <span className="text-zinc-300 font-bold">{subjectMastery.chemistry}% Mastery</span>
-              </div>
-              <div className="h-2 w-full bg-zinc-900 rounded-full overflow-hidden border border-zinc-850">
-                <div className="h-full bg-emerald-500 rounded-full transition-all duration-500" style={{ width: `${subjectMastery.chemistry}%` }} />
-              </div>
-            </div>
-
-            {/* Mathematics */}
-            <div className="space-y-1.5">
-              <div className="flex justify-between">
-                <span className="text-indigo-400 font-bold">Mathematics</span>
-                <span className="text-zinc-300 font-bold">{subjectMastery.maths}% Mastery</span>
-              </div>
-              <div className="h-2 w-full bg-zinc-900 rounded-full overflow-hidden border border-zinc-850">
-                <div className="h-full bg-indigo-500 rounded-full transition-all duration-500" style={{ width: `${subjectMastery.maths}%` }} />
-              </div>
-            </div>
+              {/* Data Polygon */}
+              {(() => {
+                const p = subjectMastery.physics || 0;
+                const c = subjectMastery.chemistry || 0;
+                const m = subjectMastery.maths || 0;
+                const p1 = `0,${-p}`;
+                const p2 = `${c * 0.866},${c * 0.5}`;
+                const p3 = `${-m * 0.866},${m * 0.5}`;
+                return (
+                  <polygon
+                    points={`${p1} ${p2} ${p3}`}
+                    fill="rgba(99, 102, 241, 0.2)"
+                    stroke="#6366f1"
+                    strokeWidth="2"
+                    className="drop-shadow-[0_0_10px_rgba(99,102,241,0.5)]"
+                  />
+                );
+              })()}
+            </svg>
           </div>
         </div>
 
@@ -246,25 +290,36 @@ export function AnalyticsPage() {
             <span className="text-[10px] font-mono text-zinc-500">Total Logged</span>
           </div>
           
-          <div className="flex-1 flex flex-col justify-center gap-4">
-            <div className="flex h-4 w-full rounded-full overflow-hidden bg-zinc-900 border border-zinc-850">
-              <div className="bg-sky-500 h-full transition-all duration-500" style={{ width: `${subjectTimeDistribution.physics.pct}%` }} title={`Physics: ${subjectTimeDistribution.physics.mins}m`} />
-              <div className="bg-emerald-500 h-full transition-all duration-500" style={{ width: `${subjectTimeDistribution.chemistry.pct}%` }} title={`Chemistry: ${subjectTimeDistribution.chemistry.mins}m`} />
-              <div className="bg-indigo-500 h-full transition-all duration-500" style={{ width: `${subjectTimeDistribution.maths.pct}%` }} title={`Maths: ${subjectTimeDistribution.maths.mins}m`} />
+          <div className="flex-1 flex flex-col justify-center items-center gap-6">
+            <div 
+              className="w-40 h-40 rounded-full border-4 border-zinc-900 shadow-[0_0_30px_rgba(0,0,0,0.5)] flex items-center justify-center relative"
+              style={{
+                background: `conic-gradient(
+                  #38bdf8 0% ${subjectTimeDistribution.physics.pct}%, 
+                  #34d399 ${subjectTimeDistribution.physics.pct}% ${subjectTimeDistribution.physics.pct + subjectTimeDistribution.chemistry.pct}%, 
+                  #818cf8 ${subjectTimeDistribution.physics.pct + subjectTimeDistribution.chemistry.pct}% 100%
+                )`
+              }}
+            >
+              {/* Inner cutout for donut chart effect */}
+              <div className="w-28 h-28 bg-[#050505] rounded-full flex items-center justify-center flex-col shadow-inner">
+                <span className="text-[10px] text-zinc-500 font-bold">TOTAL</span>
+                <span className="text-lg text-white font-black">{studyHours}h</span>
+              </div>
             </div>
             
-            <div className="grid grid-cols-3 gap-2 text-center text-xs font-mono">
-              <div>
-                <div className="text-sky-400 font-bold">{subjectTimeDistribution.physics.pct}%</div>
-                <div className="text-zinc-500 text-[9px]">PHY</div>
+            <div className="grid grid-cols-3 gap-6 text-center text-xs font-mono w-full px-2">
+              <div className="space-y-1 bg-sky-950/20 py-2 rounded-xl border border-sky-900/30">
+                <div className="text-sky-400 font-black text-sm">{subjectTimeDistribution.physics.pct}%</div>
+                <div className="text-zinc-500 text-[9px] uppercase tracking-wider font-bold">PHY</div>
               </div>
-              <div>
-                <div className="text-emerald-400 font-bold">{subjectTimeDistribution.chemistry.pct}%</div>
-                <div className="text-zinc-500 text-[9px]">CHEM</div>
+              <div className="space-y-1 bg-emerald-950/20 py-2 rounded-xl border border-emerald-900/30">
+                <div className="text-emerald-400 font-black text-sm">{subjectTimeDistribution.chemistry.pct}%</div>
+                <div className="text-zinc-500 text-[9px] uppercase tracking-wider font-bold">CHEM</div>
               </div>
-              <div>
-                <div className="text-indigo-400 font-bold">{subjectTimeDistribution.maths.pct}%</div>
-                <div className="text-zinc-500 text-[9px]">MATH</div>
+              <div className="space-y-1 bg-indigo-950/20 py-2 rounded-xl border border-indigo-900/30">
+                <div className="text-indigo-400 font-black text-sm">{subjectTimeDistribution.maths.pct}%</div>
+                <div className="text-zinc-500 text-[9px] uppercase tracking-wider font-bold">MATH</div>
               </div>
             </div>
           </div>
@@ -366,6 +421,92 @@ export function AnalyticsPage() {
               </div>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Retention Decay Chart */}
+      <div className="bg-zinc-950/60 border border-zinc-850/80 rounded-2xl p-5 space-y-4 text-left mt-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-900 pb-3">
+          <div className="flex items-center gap-2">
+            <Icon name="Activity" className="w-4 h-4 text-emerald-400" />
+            <h3 className="text-xs font-mono font-bold uppercase text-white tracking-wider">
+              Retention Decay Simulation
+            </h3>
+          </div>
+          <span className="text-[10px] text-zinc-500 font-mono">Ebbinghaus Curve Estimation</span>
+        </div>
+
+        <div className="h-48 w-full relative pt-4 pr-4 border-l border-b border-zinc-800">
+          <svg className="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 100 100">
+            {/* Grid lines */}
+            {[25, 50, 75].map(y => (
+              <line key={y} x1="0" y1={y} x2="100" y2={y} stroke="rgba(255,255,255,0.05)" strokeWidth="0.5" />
+            ))}
+            {/* Decay curve */}
+            <path 
+              d="M0,0 Q20,60 100,85" 
+              fill="none" 
+              stroke="#10b981" 
+              strokeWidth="2" 
+              className="drop-shadow-[0_0_5px_rgba(16,185,129,0.5)]" 
+            />
+            {/* Area under curve */}
+            <path 
+              d="M0,0 Q20,60 100,85 L100,100 L0,100 Z" 
+              fill="url(#decayGradient)" 
+              opacity="0.3" 
+            />
+            
+            <defs>
+              <linearGradient id="decayGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#10b981" />
+                <stop offset="100%" stopColor="transparent" />
+              </linearGradient>
+            </defs>
+
+            {/* Theoretical Baseline Curve (Faint) */}
+            <path 
+              d="M0,0 Q20,60 100,85" 
+              fill="none" 
+              stroke="#10b981" 
+              strokeWidth="1" 
+              opacity="0.3"
+              strokeDasharray="4 4"
+            />
+
+            {/* Real Chapter Data Points */}
+            {state.chapters
+              .filter(c => c.lastRevisionDaysAgo > 0)
+              .map(c => {
+                const x = Math.min(100, (c.lastRevisionDaysAgo / 30) * 100);
+                const y = 100 - c.confidence;
+                return (
+                  <circle 
+                    key={c.id} 
+                    cx={x} 
+                    cy={y} 
+                    r="1.5" 
+                    fill="#34d399" 
+                    className="hover:fill-white hover:r-2 transition-all cursor-pointer"
+                  >
+                    <title>{c.name}: {c.confidence}% retention ({c.lastRevisionDaysAgo} days ago)</title>
+                  </circle>
+                );
+              })
+            }
+          </svg>
+          
+          {/* Axis Labels */}
+          <div className="absolute top-0 -left-6 text-[9px] font-mono text-zinc-500 h-full flex flex-col justify-between pb-6">
+            <span>100%</span>
+            <span>50%</span>
+            <span>0%</span>
+          </div>
+          <div className="absolute bottom-[-20px] left-0 w-full flex justify-between text-[9px] font-mono text-zinc-500 pl-2">
+            <span>Now</span>
+            <span>1 Week</span>
+            <span>1 Month</span>
+          </div>
         </div>
       </div>
 

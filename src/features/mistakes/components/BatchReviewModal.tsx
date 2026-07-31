@@ -9,6 +9,7 @@ import { Mistake, SubjectId } from '../../../types/index';
 import { useLockBodyScroll } from '../../../hooks/useLockBodyScroll';
 import { useEscapeKey } from '../../../hooks/useEscapeKey';
 import { MissionMode } from '../../mission/MissionMode';
+import { BlockMath, InlineMath } from 'react-katex';
 
 export interface BatchReviewModalProps {
   isOpen: boolean;
@@ -33,6 +34,22 @@ export const BatchReviewModal: React.FC<BatchReviewModalProps> = ({
   useLockBodyScroll(isOpen);
   useEscapeKey(onClose, isOpen);
 
+  const renderMathText = (text: string | undefined | null) => {
+    if (!text) return null;
+    const cleanText = text.replace(/\\\$/g, '$');
+    const parts = cleanText.split(/(\$\$.*?\$\$|\$.*?\$)/gs);
+    return parts.map((part, i) => {
+      if (part.startsWith('$$') && part.endsWith('$$')) {
+        const math = part.slice(2, -2);
+        return <BlockMath key={i} math={math} />;
+      } else if (part.startsWith('$') && part.endsWith('$')) {
+        const math = part.slice(1, -1);
+        return <InlineMath key={i} math={math} />;
+      }
+      return <span key={i}>{part}</span>;
+    });
+  };
+
   if (!isOpen) return null;
 
   const currentItem = activeMistakes[currentIndex];
@@ -56,6 +73,7 @@ export const BatchReviewModal: React.FC<BatchReviewModalProps> = ({
       mode="mistake" 
       activeSubject="all" 
       customDurationSecs={1800} 
+      skipSetup={true}
       onExit={onClose} 
       onComplete={onClose}
     >
@@ -129,8 +147,8 @@ export const BatchReviewModal: React.FC<BatchReviewModalProps> = ({
                 <span className="text-[10px] font-mono uppercase text-zinc-500 tracking-wider">
                   Question (Source: {currentItem.source})
                 </span>
-                <div className="p-4 bg-zinc-950 border border-zinc-900 rounded-xl font-mono text-xs text-zinc-200 leading-relaxed whitespace-pre-line shadow-inner">
-                  {currentItem.questionText}
+                <div className="p-4 bg-zinc-950 border border-zinc-900 rounded-xl text-xs text-zinc-200 leading-relaxed whitespace-pre-line shadow-inner">
+                  {renderMathText(currentItem.questionText)}
                 </div>
               </div>
 
@@ -157,7 +175,7 @@ export const BatchReviewModal: React.FC<BatchReviewModalProps> = ({
                           <AlertTriangle className="w-3.5 h-3.5" />
                           My Original Error
                         </span>
-                        <p className="text-xs text-zinc-300 font-sans">{currentItem.studentMethod}</p>
+                        <p className="text-xs text-zinc-300 font-sans">{renderMathText(currentItem.studentMethod)}</p>
                       </div>
 
                       <div className="p-4 bg-emerald-950/10 border border-emerald-950/30 rounded-xl space-y-1.5">
@@ -165,7 +183,7 @@ export const BatchReviewModal: React.FC<BatchReviewModalProps> = ({
                           <CheckCircle className="w-3.5 h-3.5" />
                           Correct Approach
                         </span>
-                        <p className="text-xs text-zinc-300 font-sans">{currentItem.correctMethod}</p>
+                        <p className="text-xs text-zinc-300 font-sans">{renderMathText(currentItem.correctMethod)}</p>
                       </div>
                     </div>
 
@@ -175,8 +193,8 @@ export const BatchReviewModal: React.FC<BatchReviewModalProps> = ({
                         <BookOpen className="w-3.5 h-3.5" />
                         Complete Solution Steps
                       </span>
-                      <div className="p-4 bg-zinc-950 border border-zinc-900 rounded-xl font-mono text-xs text-zinc-300 leading-relaxed whitespace-pre-line">
-                        {currentItem.correctSolution}
+                      <div className="p-4 bg-zinc-950 border border-zinc-900 rounded-xl text-xs text-zinc-300 leading-relaxed whitespace-pre-line">
+                        {renderMathText(currentItem.correctSolution)}
                       </div>
                     </div>
 
@@ -184,7 +202,7 @@ export const BatchReviewModal: React.FC<BatchReviewModalProps> = ({
                     {currentItem.aiAdvice && (
                       <div className="p-3.5 bg-amber-950/15 border border-amber-900/40 rounded-xl flex items-start gap-2.5">
                         <Sparkles className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                        <p className="text-xs text-zinc-300 font-sans">{currentItem.aiAdvice}</p>
+                        <p className="text-xs text-zinc-300 font-sans">{renderMathText(currentItem.aiAdvice)}</p>
                       </div>
                     )}
 
