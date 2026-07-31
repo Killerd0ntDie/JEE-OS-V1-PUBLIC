@@ -35,7 +35,7 @@ export function MissionCompleteModal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[110] bg-[#060607]/95 backdrop-blur-xl flex flex-col justify-center items-center text-center p-6"
+          className="fixed inset-0 z-[10000] bg-[#060607]/95 backdrop-blur-xl flex flex-col justify-center items-center text-center p-6"
         >
           
           {/* SPARKLES PARTICLES GRAPHIC DECORATIONS */}

@@ -164,8 +164,8 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
       dppOnHold,
       pyqOnHold,
       serialNumber: serialNumber ? `CH${serialNumber}` : undefined,
-      status: calculatedCompletion === 100 ? 'Mastered' : calculatedCompletion > 0 ? 'Learning' : 'Not Started',
-      syllabusStage: calculatedCompletion === 100 ? 'Mastered' : calculatedCompletion > 0 ? 'Watching Lectures' : 'Never Started',
+      status: calculatedCompletion === 100 ? 'Mastered' : 'Learning',
+      syllabusStage: calculatedCompletion === 100 ? 'Mastered' : 'Watching Lectures',
       lectureProgress: {
         totalLectures,
         completedLectures: currentLecture,

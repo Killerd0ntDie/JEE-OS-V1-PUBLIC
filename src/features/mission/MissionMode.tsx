@@ -279,7 +279,7 @@ export function MissionMode({
   // placeholder must never be treated as completing a mission, since there's no
   // missionId to attach the completion to.
   const activeSubjectMission = useMemo(
-    () => state.todayMissions.find(m => m.subject === activeSubject && !m.completed),
+    () => state.todayMissions.find(m => m.subject.toLowerCase() === activeSubject.toLowerCase() && !m.completed),
     [state.todayMissions, activeSubject]
   );
 

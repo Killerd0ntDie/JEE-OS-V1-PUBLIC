@@ -32,7 +32,8 @@ export class ChapterInfoEngine {
 
       const isStarted = (chapter.completion > 0 && chapter.completion < 100) || 
                         (chapter.currentLecture && chapter.currentLecture > 0) || 
-                        chapter.theoryComplete;
+                        chapter.theoryComplete ||
+                        chapter.hasTelemetry;
                         
       const isMastered = chapter.status === 'Mastered' || chapter.completion === 100;
       const syllabusStage: 'Not Started' | 'In Progress' | 'Mastered' = isMastered ? 'Mastered' : isStarted ? 'In Progress' : 'Not Started';

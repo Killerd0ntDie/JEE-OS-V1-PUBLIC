@@ -28,7 +28,7 @@ export function MissionPauseOverlay({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[110] bg-[#070708]/85 backdrop-blur-xl flex flex-col justify-center items-center text-center p-6"
+          className="fixed inset-0 z-[10000] bg-[#070708]/85 backdrop-blur-xl flex flex-col justify-center items-center text-center p-6"
         >
           <div className="max-w-md space-y-6">
             

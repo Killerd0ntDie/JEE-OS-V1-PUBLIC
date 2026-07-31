@@ -199,14 +199,7 @@ export function DashboardPage({ onNavigate }: { onNavigate: (page: string) => vo
                   setSessionState('paused');
                 }}
                 onComplete={(stats) => {
-                  if (stats.missionId) {
-                    actions.completeTask(stats.missionId);
-                  } else {
-                    // Should be rare now that MissionMode always opens on a subject with a
-                    // real pending mission, but if it still happens, surface it instead of
-                    // silently dropping the completion on the floor.
-                    console.warn('[MissionMode] Session completed without a missionId — no task was marked complete.', stats);
-                  }
+                  // Mission completion is already handled by MissionMode.tsx
                   // Convert duration from seconds to minutes (duration is always sent in seconds from MissionMode)
                   const durationMinutes = Math.max(1, Math.ceil(stats.duration / 60));
                   actions.completeStudySession({

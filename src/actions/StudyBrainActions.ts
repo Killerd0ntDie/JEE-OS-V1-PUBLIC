@@ -254,7 +254,8 @@ export class StudyBrainActions {
       }
 
       let updatedCustomMissions = this.state.customMissions;
-      if (taskId.startsWith('custom-')) {
+      const isCustom = this.state.customMissions.some(cm => cm.id === taskId);
+      if (isCustom) {
         const updatedCustomMission = updatedMissions[missionIndex];
         savePromises.push(CustomMissionRepository.saveMission(this.userId, updatedCustomMission));
         updatedCustomMissions = this.state.customMissions.map(cm => updatedMissions.find(um => um.id === cm.id) || cm);
@@ -286,7 +287,7 @@ export class StudyBrainActions {
     // For custom missions: hard-delete from Firestore and remove from list entirely.
     // For planner missions: mark dismissed so they sink to the bottom with a strikethrough
     // rather than disappearing and being replaced by new planner missions.
-    const isCustom = taskId.startsWith('custom-');
+    const isCustom = this.state.customMissions.some(cm => cm.id === taskId);
 
     const updatedCustomMissions = isCustom
       ? this.state.customMissions.filter(m => m.id !== taskId)
@@ -641,8 +642,8 @@ export class StudyBrainActions {
         weekly: this.state.xp.weekly + (session.xpEarned || 0)
       };
       
-      // Calculate new level using LevelingSystem
-      const { level: newLevel, nextLevelXP: xpNeededForNext } = require('../services/studyBrainService').LevelingSystem.calculateLevel(newXp.total);
+      // Calculate new level
+      const { level: newLevel, nextLevelXP: xpNeededForNext } = calculateLevelFromXP(newXp.total);
       newXp.level = newLevel;
       newXp.nextLevelXP = xpNeededForNext;
       

@@ -381,7 +381,8 @@ export class PlannerEngine {
           !c.chapterOnHold &&
           ((c.completion > 0 && c.completion < 100) ||
            (c.currentLecture && c.currentLecture > 0) ||
-           (c.theoryComplete && !c.pyqsComplete))
+           (c.theoryComplete && !c.pyqsComplete) ||
+           c.hasTelemetry)
         );
 
         if (activeNotOnHold) {

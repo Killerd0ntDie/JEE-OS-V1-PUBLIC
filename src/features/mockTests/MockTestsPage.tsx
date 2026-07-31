@@ -148,6 +148,7 @@ export function MockTestsPage({ onNavigate }: MockTestsPageProps) {
         },
         body: JSON.stringify({
           chapterId,
+          chapterName,
           subject,
           count: 10,
           difficulty: 'JEE_MAIN'

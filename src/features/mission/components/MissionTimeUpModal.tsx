@@ -64,7 +64,7 @@ export function MissionTimeUpModal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[110] bg-[#060607]/80 backdrop-blur-md flex flex-col justify-center items-center p-6"
+          className="fixed inset-0 z-[10000] bg-[#060607]/80 backdrop-blur-md flex flex-col justify-center items-center p-6"
         >
           <div
             role="dialog"

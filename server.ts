@@ -304,6 +304,7 @@ You MUST output these actions at the very end of your response, wrapped in a mar
 
   const MocktestSchema = z.object({
     chapterId: z.string().min(1),
+    chapterName: z.string().optional(),
     subject: z.string().min(1),
     count: z.number().optional(),
     difficulty: z.string().optional()
@@ -325,7 +326,7 @@ You MUST output these actions at the very end of your response, wrapped in a mar
         return res.status(503).json({ error: "GEMINI_API_KEY not configured." });
       }
       
-      const { chapterId, subject, count, difficulty } = req.validatedBody;
+      const { chapterId, chapterName, subject, count, difficulty } = req.validatedBody;
       const numQuestions = count || 10;
       const diffStr = difficulty || "JEE_MAIN";
       
@@ -336,7 +337,7 @@ You MUST output these actions at the very end of your response, wrapped in a mar
       
       const prompt = `
       You are an expert IIT-JEE professor. 
-      Generate exactly ${numQuestions} highly realistic, challenging JEE level questions for the subject: ${subject} and chapter/topic ID: ${chapterId}.
+      Generate exactly ${numQuestions} highly realistic, challenging JEE level questions for the subject: ${subject} and chapter/topic: ${chapterName || chapterId}.
       Difficulty level: ${diffStr}.
       
       Requirements:
