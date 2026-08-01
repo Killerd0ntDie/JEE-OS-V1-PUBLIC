@@ -1,9 +1,10 @@
 import React from 'react';
-import { ModalPortal } from '../../../components/ui/ModalPortal';
+import { ModalPortal } from '@/components/ui/ModalPortal';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Award, Flame } from 'lucide-react';
 import { SubjectDetail } from './MissionSubjectSwitcherWidget';
-import { useEscapeKey } from '../../../hooks/useEscapeKey';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 
 export interface MissionCompleteModalProps {
   isCompleted: boolean;
@@ -25,6 +26,8 @@ export function MissionCompleteModal({
   onComplete,
   onNextSubject
 }: MissionCompleteModalProps) {
+  useLockBodyScroll(true);
+
   useEscapeKey(onNextSubject, isCompleted);
 
   return (

@@ -1,4 +1,4 @@
-import { SubjectId, Chapter, Mistake, StudySession, MockResult } from '../../types/index';
+import { SubjectId, Chapter, Mistake, StudySession, MockResult } from '@/types/index';
 
 export interface ChapterStrategyRadar {
   masteryScore: number;

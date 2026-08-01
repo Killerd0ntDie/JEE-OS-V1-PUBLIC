@@ -1,6 +1,6 @@
 import { collection, doc, getDocs, setDoc, updateDoc, writeBatch, deleteDoc, query, orderBy, limit } from 'firebase/firestore';
-import { db } from '../firebase';
-import { MockResult } from '../types/index';
+import { db } from '@/firebase';
+import { MockResult } from '@/types/index';
 
 export const MockResultRepository = {
   async getMockResults(userId: string): Promise<MockResult[]> {

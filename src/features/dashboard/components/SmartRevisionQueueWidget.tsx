@@ -1,20 +1,22 @@
 import React from 'react';
-import { Card } from '../../../components/ui/Card';
-import { Button } from '../../../components/ui/Button';
-import { Icon } from '../../../components/ui/Icon';
-import { RevisionCard } from '../../../services/revisionEngineService';
+import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { Icon } from '@/components/ui/Icon';
+import { RevisionCard } from '@/services/revisionEngineService';
+
+import { useNavigate } from 'react-router-dom';
 
 interface SmartRevisionQueueWidgetProps {
   revisionQueue: RevisionCard[];
-  onNavigate: (page: string) => void;
-  setSelectedRevision: (rev: RevisionCard | null) => void;
+  onLaunchRevision: (rev: RevisionCard | null) => void;
 }
 
 export function SmartRevisionQueueWidget({
-  revisionQueue,
-  onNavigate,
-  setSelectedRevision
+  revisionQueue = [],
+  onLaunchRevision
 }: SmartRevisionQueueWidgetProps) {
+  const navigate = useNavigate();
+  const queue = revisionQueue || [];
   return (
     <Card className="p-5 border-zinc-800/80 bg-zinc-950/40 space-y-4 flex-1 flex flex-col justify-between">
       <div className="space-y-3">
@@ -23,11 +25,11 @@ export function SmartRevisionQueueWidget({
             SMART REVISION QUEUE
           </span>
           <span className="text-[10px] font-mono text-zinc-500">
-            {revisionQueue.length} Due
+            {queue.length} Due
           </span>
         </div>
 
-        {revisionQueue.length === 0 ? (
+        {queue.length === 0 ? (
           <div className="p-6 rounded-xl border border-zinc-900 bg-[#0c0c0e]/40 text-center space-y-2">
             <Icon name="CheckCircle" className="w-6 h-6 text-emerald-400 mx-auto" />
             <p className="text-xs font-semibold text-zinc-200">Memory Vault Secure</p>
@@ -37,7 +39,7 @@ export function SmartRevisionQueueWidget({
           </div>
         ) : (
           <div className="space-y-2">
-            {revisionQueue.slice(0, 4).map(rev => (
+            {queue.slice(0, 4).map(rev => (
               <div
                 key={rev.chapterId}
                 className="p-3 rounded-xl bg-zinc-900/30 border border-zinc-850/80 hover:border-zinc-800 transition-all flex items-center justify-between gap-3 group"
@@ -69,7 +71,7 @@ export function SmartRevisionQueueWidget({
 
                 <Button
                   size="sm"
-                  onClick={() => setSelectedRevision(rev)}
+                  onClick={() => onLaunchRevision(rev)}
                   className="px-3 py-1 text-[9px] font-mono font-bold border border-indigo-900/60 bg-indigo-950/50 text-indigo-300 hover:bg-indigo-600 hover:text-white transition-all shrink-0 uppercase tracking-wider"
                 >
                   REV
@@ -86,7 +88,7 @@ export function SmartRevisionQueueWidget({
           variant="outline" 
           size="sm" 
           className="flex-1 text-[10px] font-mono uppercase tracking-widest h-8 border-zinc-800 text-zinc-300 hover:bg-zinc-900/60"
-          onClick={() => onNavigate('planner')}
+          onClick={() => navigate('/planner')}
         >
           Planner
         </Button>
@@ -94,7 +96,7 @@ export function SmartRevisionQueueWidget({
           variant="outline" 
           size="sm" 
           className="flex-1 text-[10px] font-mono uppercase tracking-widest h-8 border-zinc-800 text-zinc-300 hover:bg-zinc-900/60"
-          onClick={() => onNavigate('ai-coach')}
+          onClick={() => navigate('/ai-coach')}
         >
           AI Coach
         </Button>

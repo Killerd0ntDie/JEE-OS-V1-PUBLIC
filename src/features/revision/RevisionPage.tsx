@@ -1,12 +1,12 @@
 import { useState, useMemo } from 'react';
-import { Card } from '../../components/ui/Card';
-import { Button } from '../../components/ui/Button';
-import { Badge } from '../../components/ui/Badge';
-import { Icon } from '../../components/ui/Icon';
-import { useStudyBrain } from '../../context/StudyBrainContext';
-import { RevisionCardItem } from '../../engines/revision';
-import { ChapterRevisionInspectorModal } from '../../components/mentor/ChapterRevisionInspectorModal';
-import { AiPracticeModal } from '../../components/mentor/AiPracticeModal';
+import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
+import { Icon } from '@/components/ui/Icon';
+import { useStudyBrain } from '@/context/StudyBrainContext';
+import { RevisionCardItem } from '@/engines/revision';
+import { ChapterRevisionInspectorModal } from '@/components/mentor/ChapterRevisionInspectorModal';
+import { AiPracticeModal } from '@/components/mentor/AiPracticeModal';
 import { ActiveRecallArena } from './components/ActiveRecallArena';
 import { Flame, Brain } from 'lucide-react';
 

@@ -1,6 +1,6 @@
-import { SubjectId, Chapter, Mistake, StudySession } from '../../types/index';
-import { ChapterTelemetry } from '../chapterInfo';
-import { FormulaEntry } from '../../constants/formulaBank';
+import { SubjectId, Chapter, Mistake, StudySession } from '@/types/index';
+import { ChapterTelemetry } from '@/engines/chapterInfo';
+import { FormulaEntry } from '@/constants/formulaBank';
 
 export interface RevisionCardItem extends FormulaEntry {
   id: string;

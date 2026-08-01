@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { SubjectId, Chapter } from '../../types/index';
+import { SubjectId, Chapter } from '@/types/index';
 
 // Replicate exact matrix logic from PlannerPage.tsx for empirical validation
-import { generateWeeklyMatrix, getDayFocusPill, getHeaderBadgeText, WeeklyBlock } from '../../engines/planner/PlannerEngine';
+import { generateWeeklyMatrix, getDayFocusPill, getHeaderBadgeText, WeeklyBlock } from '@/engines/planner/PlannerEngine';
 
 // Helper to create a minimal active in-progress chapter for testing
 function makeActiveChapter(id: string, name: string, subject: SubjectId, completion: number = 30): Chapter {

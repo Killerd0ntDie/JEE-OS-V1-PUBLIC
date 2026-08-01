@@ -1,13 +1,12 @@
 import React from 'react';
-import { Chapter } from '../../../types/index';
-import { useStudyBrain } from '../../../context/StudyBrainContext';
+import { Chapter } from '@/types/index';
+import { useStudyBrain } from '@/context/StudyBrainContext';
 import { Lock, Clock, AlertTriangle, BookOpen, PenTool, CheckCircle2, SlidersHorizontal, PauseCircle } from 'lucide-react';
 
 interface ChapterCommandCardProps {
   chapter: Chapter;
   data: any;
   onExpand?: () => void;
-  onNavigate?: (page: string) => void;
 }
 
 export const ChapterCommandCard: React.FC<ChapterCommandCardProps> = ({ chapter, data, onExpand }) => {

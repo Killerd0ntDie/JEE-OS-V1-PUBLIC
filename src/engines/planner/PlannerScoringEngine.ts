@@ -1,7 +1,7 @@
-import { SyllabusNode, ProgressState } from '../knowledge/types';
+import { SyllabusNode, ProgressState } from '@/engines/knowledge/types';
 import { PlannerInput } from './types';
-import { SubjectId, Chapter } from '../../types/index';
-import { calculateMistakeScore } from '../../utils/mistakeIntelligence';
+import { SubjectId, Chapter } from '@/types/index';
+import { calculateMistakeScore } from '@/utils/mistakeIntelligence';
 
 export interface ScoringContext {
   taskType: 'Watch Lecture' | 'Solve DPP' | 'Solve PYQs' | 'Revise Formulas' | 'Review Mistakes';

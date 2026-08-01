@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { useStudyBrain } from '../../../context/StudyBrainContext';
-import { Card } from '../../../components/ui/Card';
+import { useStudyBrain } from '@/context/StudyBrainContext';
+import { Card } from '@/components/ui/Card';
 import { Network, AlertTriangle, ArrowRight, Activity, CalendarDays, RefreshCw } from 'lucide-react';
-import { Chapter } from '../../../types';
+import { Chapter } from '@/types';
 
 export function WarRoomSandbox() {
   const { state } = useStudyBrain();
@@ -34,7 +34,7 @@ export function WarRoomSandbox() {
     delayedIds.forEach(id => {
       const chap = chapters.find(c => c.id === id);
       if (chap) {
-        projectedDrop += chap.expectedMarksGain || 4;
+        projectedDrop += chap.weightage || 4;
         
         // Count dependencies mapped in telemetry
         const telemetry = state.chapterTelemetryMap?.[id];

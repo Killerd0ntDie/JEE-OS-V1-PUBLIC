@@ -1,10 +1,10 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { Target, Clock, AlertTriangle, TrendingUp, ChevronDown, ChevronUp, ShieldAlert, PauseCircle, LayoutDashboard } from 'lucide-react';
 import { motion } from 'motion/react';
-import { useStudyBrain } from '../../../context/StudyBrainContext';
-import { ChapterTelemetry } from '../../../engines/chapterInfo';
-import { Chapter } from '../../../types';
-import { MonthlyCampaignBanner } from '../../mission/components/MonthlyCampaignBanner';
+import { useStudyBrainStore } from '@/store/useStudyBrainStore';
+import { ChapterTelemetry } from '@/engines/chapterInfo';
+import { Chapter } from '@/types';
+import { MonthlyCampaignBanner } from '@/features/mission/components/MonthlyCampaignBanner';
 
 interface CommandOverviewBannerProps {
   chapters: Chapter[];
@@ -23,8 +23,9 @@ export function CommandOverviewBanner({
   isExpanded: externalExpanded,
   onToggleExpand
 }: CommandOverviewBannerProps) {
-  const { state } = useStudyBrain();
-  const { mentorProfile, projectedReadiness, chapterTelemetryMap } = state;
+  const mentorProfile = useStudyBrainStore(s => s.mentorProfile);
+  const projectedReadiness = useStudyBrainStore(s => s.projectedReadiness);
+  const chapterTelemetryMap = useStudyBrainStore(s => s.chapterTelemetryMap);
 
   const [internalExpanded, setInternalExpanded] = useState<boolean>(true);
   const isExpanded = externalExpanded !== undefined ? externalExpanded : internalExpanded;

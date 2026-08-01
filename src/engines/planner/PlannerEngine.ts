@@ -1,7 +1,7 @@
-import { KnowledgeEngine, ProgressState } from '../knowledge';
+import { KnowledgeEngine, ProgressState } from '@/engines/knowledge';
 import { PlannerInput, PlannerOutput, ScheduledTask, MissionReasoning, ReasoningPipelineSummary } from './types';
 import { PlannerScoringEngine, ScoringContext, PLANNER_CONFIG } from './PlannerScoringEngine';
-import { SubjectId, Chapter } from '../../types/index';
+import { SubjectId, Chapter } from '@/types/index';
 
 export class PlannerEngine {
   private knowledgeEngine: KnowledgeEngine;
@@ -17,6 +17,7 @@ export class PlannerEngine {
     // PIPELINE PHASE 1: ANALYZE CURRENT ACADEMIC STATE (SINGLE SOURCE OF TRUTH)
     // =========================================================================
     const chaptersList = input.chapters || [];
+    input.chapterTelemetryMap = input.chapterTelemetryMap || {};
     const totalChapters = chaptersList.length || 56;
     const chapterById = new Map(chaptersList.map(c => [c.id, c]));
     let completedChaptersCount = 0;
@@ -377,7 +378,7 @@ export class PlannerEngine {
 
         // Only schedule chapters the user has explicitly started and that are NOT on hold.
         // NEVER auto-schedule unstarted chapters.
-        const activeNotOnHold = subjChapters.find(c =>
+        const activeNotOnHoldChapters = subjChapters.filter(c =>
           !c.chapterOnHold &&
           ((c.completion > 0 && c.completion < 100) ||
            (c.currentLecture && c.currentLecture > 0) ||
@@ -385,10 +386,10 @@ export class PlannerEngine {
            c.hasTelemetry)
         );
 
-        if (activeNotOnHold) {
-          const n = this.knowledgeEngine.getNode(activeNotOnHold.id);
+        activeNotOnHoldChapters.forEach(activeChap => {
+          const n = this.knowledgeEngine.getNode(activeChap.id);
           if (n) targetNodesMap.set(n.id, n);
-        }
+        });
         // If no active in-progress non-on-hold chapter exists, schedule nothing for this subject.
       });
     } else {

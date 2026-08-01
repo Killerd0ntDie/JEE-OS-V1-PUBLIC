@@ -1,9 +1,12 @@
-import React, { useState, useMemo } from 'react';
-import { useStudyBrain } from '../../context/StudyBrainContext';
-import { SubjectId, Chapter } from '../../types/index';
-import { useLockBodyScroll } from '../../hooks/useLockBodyScroll';
-import { ModalPortal } from '../ui/ModalPortal';
-import { normalizeTwoDaySplitConfig } from '../../engines/planner/PlannerEngine';
+import React, { useState, useMemo, useRef } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { useStudyBrain } from '@/context/StudyBrainContext';
+import { SubjectId, Chapter } from '@/types/index';
+import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { ModalPortal } from '@/components/ui/ModalPortal';
+import { normalizeTwoDaySplitConfig } from '@/engines/planner/PlannerEngine';
 import { 
   Sparkles, CheckCircle, ArrowRight, ShieldCheck, 
   Clock, Target, GraduationCap, X, Check, Search, 
@@ -20,6 +23,16 @@ type ExamOption = 'JEE Main' | 'JEE Advanced' | 'Boards' | 'MHT CET' | 'BITSAT' 
 
 export const MentorInterviewModal: React.FC<Props> = ({ isOpen, onClose, isMandatory = false }) => {
   const { state, actions } = useStudyBrain();
+  const modalRef = useRef<HTMLDivElement>(null);
+  
+  useLockBodyScroll(isOpen);
+  useFocusTrap(modalRef, isOpen);
+  
+  const handleClose = () => {
+    if (!isMandatory && onClose) onClose();
+  };
+  
+  useEscapeKey(handleClose, isOpen);
 
   // Step state: 1: Intro, 2: Academic Goals, 3: Class & Coaching, 4: Reality Audit, 5: Roadmap Synthesis
   const [step, setStep] = useState<number>(1);
@@ -184,14 +197,29 @@ export const MentorInterviewModal: React.FC<Props> = ({ isOpen, onClose, isManda
     'Roadmap Lock'
   ];
 
+  if (!isOpen) return null;
+
   return (
     <ModalPortal>
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-xl animate-fade-in overflow-y-auto">
-      <div
+    <AnimatePresence>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="absolute inset-0 bg-black/85 backdrop-blur-xl"
+      />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+        ref={modalRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="mentor-interview-modal-title"
-        className="relative w-full max-w-3xl bg-[#090a0f]/95 border border-indigo-500/25 rounded-3xl shadow-[0_0_80px_rgba(79,70,229,0.2)] overflow-hidden my-6 text-left flex flex-col max-h-[90vh]"
+        tabIndex={-1}
+        className="relative w-full max-w-3xl bg-[#090a0f]/95 border border-indigo-500/25 rounded-3xl shadow-[0_0_80px_rgba(79,70,229,0.2)] overflow-hidden my-6 text-left flex flex-col max-h-[90vh] focus:outline-none"
       >
         
         {/* Modern Glowing Header */}
@@ -405,7 +433,7 @@ export const MentorInterviewModal: React.FC<Props> = ({ isOpen, onClose, isManda
                   value={targetRank}
                   onChange={(e) => setTargetRank(e.target.value)}
                   placeholder="Custom target rank, e.g. AIR < 500"
-                  className="w-full bg-[#0d0e14] border border-zinc-800 rounded-xl px-4 py-3 text-xs text-white focus:border-indigo-500 focus:outline-none font-mono placeholder:text-zinc-600"
+                  className="w-full bg-[#0d0e14] border border-zinc-800 rounded-xl px-4 py-3 text-xs text-white focus:border-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 font-mono placeholder:text-zinc-600"
                 />
               </div>
 
@@ -434,7 +462,7 @@ export const MentorInterviewModal: React.FC<Props> = ({ isOpen, onClose, isManda
                     value={targetCollege}
                     onChange={(e) => setTargetCollege(e.target.value)}
                     placeholder="e.g. IIT Bombay"
-                    className="w-full bg-[#0d0e14] border border-zinc-800 rounded-xl px-4 py-2.5 text-xs text-white focus:border-indigo-500 focus:outline-none placeholder:text-zinc-600"
+                    className="w-full bg-[#0d0e14] border border-zinc-800 rounded-xl px-4 py-2.5 text-xs text-white focus:border-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 placeholder:text-zinc-600"
                   />
                 </div>
 
@@ -461,7 +489,7 @@ export const MentorInterviewModal: React.FC<Props> = ({ isOpen, onClose, isManda
                     value={targetBranch}
                     onChange={(e) => setTargetBranch(e.target.value)}
                     placeholder="e.g. Computer Science & Engineering"
-                    className="w-full bg-[#0d0e14] border border-zinc-800 rounded-xl px-4 py-2.5 text-xs text-white focus:border-indigo-500 focus:outline-none placeholder:text-zinc-600"
+                    className="w-full bg-[#0d0e14] border border-zinc-800 rounded-xl px-4 py-2.5 text-xs text-white focus:border-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 placeholder:text-zinc-600"
                   />
                 </div>
               </div>
@@ -542,7 +570,7 @@ export const MentorInterviewModal: React.FC<Props> = ({ isOpen, onClose, isManda
                   value={coachingName}
                   onChange={(e) => setCoachingName(e.target.value)}
                   placeholder="e.g. Allen, Unacademy, PW, FIITJEE, Self"
-                  className="w-full bg-[#0d0e14] border border-zinc-800 rounded-xl px-4 py-3 text-xs text-white focus:border-indigo-500 focus:outline-none placeholder:text-zinc-600"
+                  className="w-full bg-[#0d0e14] border border-zinc-800 rounded-xl px-4 py-3 text-xs text-white focus:border-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 placeholder:text-zinc-600"
                 />
               </div>
 
@@ -735,7 +763,7 @@ export const MentorInterviewModal: React.FC<Props> = ({ isOpen, onClose, isManda
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={`Search ${activeAuditSubject} chapters or units...`}
-                  className="w-full bg-[#0d0e14] border border-zinc-800 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white focus:border-indigo-500 focus:outline-none placeholder:text-zinc-600"
+                  className="w-full bg-[#0d0e14] border border-zinc-800 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white focus:border-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 placeholder:text-zinc-600"
                 />
                 {searchQuery && (
                   <button
@@ -931,8 +959,9 @@ export const MentorInterviewModal: React.FC<Props> = ({ isOpen, onClose, isManda
 
         </div>
 
-      </div>
+      </motion.div>
     </div>
+    </AnimatePresence>
     </ModalPortal>
   );
 };

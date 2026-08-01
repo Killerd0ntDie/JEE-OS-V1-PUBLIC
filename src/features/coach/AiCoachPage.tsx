@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useStudyBrain } from '../../context/StudyBrainContext';
-import { Icon } from '../../components/ui/Icon';
-import { Badge } from '../../components/ui/Badge';
-import { ChapterTelemetry } from '../../engines/chapterInfo';
-import { CoachEngine } from '../../engines/coach';
-import { CoachAction } from '../../engines/coach/types';
-import { PageId } from '../../types';
-import { AiRevisionPlanModal } from '../../components/shared/AiRevisionPlanModal';
+import { useStudyBrain } from '@/context/StudyBrainContext';
+import { safelyParseJSON } from '@/utils/jsonParser';
+import { Icon } from '@/components/ui/Icon';
+import { Badge } from '@/components/ui/Badge';
+import { ChapterTelemetry } from '@/engines/chapterInfo';
+import { CoachEngine } from '@/engines/coach';
+import { CoachAction } from '@/engines/coach/types';
+import { PageId } from '@/types';
+import { AiRevisionPlanModal } from '@/components/shared/AiRevisionPlanModal';
+import { useNavigate } from 'react-router-dom';
 
 export interface ChatMessage {
   role: 'user' | 'coach';
@@ -23,8 +25,9 @@ export interface ChatSession {
   messages: ChatMessage[];
 }
 
-export function AiCoachPage({ onNavigate, isActive }: { onNavigate?: (id: PageId) => void, isActive?: boolean }) {
+export function AiCoachPage({ isActive }: { isActive?: boolean }) {
   const { state, actions } = useStudyBrain();
+  const navigate = useNavigate();
   
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isRevisionModalOpen, setIsRevisionModalOpen] = useState(false);
@@ -119,7 +122,7 @@ export function AiCoachPage({ onNavigate, isActive }: { onNavigate?: (id: PageId
       const savedChatsStr = localStorage.getItem('jeeos_chats');
       if (savedChatsStr) {
         try {
-          const savedChats: Record<string, ChatSession> = JSON.parse(savedChatsStr);
+          const savedChats: Record<string, ChatSession> = safelyParseJSON<Record<string, ChatSession>>(savedChatsStr, {});
           if (savedChats[activeSession] && savedChats[activeSession].messages.length > 0) {
             setChatHistory(savedChats[activeSession].messages);
             return;
@@ -154,7 +157,7 @@ export function AiCoachPage({ onNavigate, isActive }: { onNavigate?: (id: PageId
     }
 
     const savedChatsStr = localStorage.getItem('jeeos_chats');
-    const savedChats: Record<string, ChatSession> = savedChatsStr ? JSON.parse(savedChatsStr) : {};
+    const savedChats: Record<string, ChatSession> = safelyParseJSON<Record<string, ChatSession>>(savedChatsStr, {});
     
     // Generate a title based on the first user message if it doesn't exist
     let title = savedChats[currentId]?.title;
@@ -204,15 +207,23 @@ export function AiCoachPage({ onNavigate, isActive }: { onNavigate?: (id: PageId
       const coachEngine = new CoachEngine();
       const output = await coachEngine.getAnalysis({
         question: messageText,
-        chapters: state.chapters,
-        weakTopics: state.mistakes,
-        mission: state.todayMissions,
-        revisionQueue: state.chapters.filter((c: any) => c.status === 'Learning' || c.status === 'Theory Complete' || c.status === 'DPP Pending' || c.status === 'PYQ Pending'),
+        chapters: state.chapters.filter((c: any) => c.status !== 'Unstarted' || c.completion > 0).map((c: any) => ({
+          name: c.name,
+          progress: c.completion,
+          status: c.status
+        })) as any,
+        weakTopics: state.mistakes.map((m: any) => ({
+          topic: m.topicName,
+          errorType: m.errorType,
+          status: m.revisionStatus
+        })) as any,
+        mission: state.todayMissions.map((m: any) => ({ title: m.title, subject: m.subject, completed: m.completed })) as any,
+        revisionQueue: state.chapters.filter((c: any) => c.status === 'Learning' || c.status === 'Theory Complete' || c.status === 'DPP Pending' || c.status === 'PYQ Pending').map((c: any) => c.name) as any,
         // BUGFIX: PlannerOutput has no `.phases` field, so this was always `[]` and, because
         // an empty array is truthy in JS, it silently discarded the real scheduled tasks.
         // The real field is `todaysMission`.
         plannerDecisions: state.plannerOutput?.todaysMission || [],
-        plannerOutput: state.plannerOutput || undefined,
+        plannerOutput: undefined, // Stripping massive output; frontend uses it, but AI just needs plannerDecisions and analytics
         // BUGFIX: targetYear/targetCollege must come from the student's actual settings,
         // not from PlannerOutput (which never had these fields — they were always undefined,
         // silently defaulting to hardcoded '2026' / 'IIT Bombay').
@@ -242,11 +253,14 @@ export function AiCoachPage({ onNavigate, isActive }: { onNavigate?: (id: PageId
       const newHistoryCoach = [...newHistoryUser, { role: 'coach' as const, text: output.analysis, time: replyTime, actions: output.actions }];
       setChatHistory(newHistoryCoach);
       saveSession(newHistoryCoach);
-    } catch (err) {
+    } catch (err: any) {
       const replyTime = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-      const newHistoryCoach = [...newHistoryUser, { role: 'coach' as const, text: `AI Coach: Models synchronized. Target vector set for ${state.settings.dreamIit}. Maintain focus!`, time: replyTime }];
+      const newHistoryCoach = [...newHistoryUser, { role: 'coach' as const, text: `[SYSTEM ERROR] Connection to CoachEngine failed: ${err.message || 'Network Timeout'}. Please try again.`, time: replyTime }];
       setChatHistory(newHistoryCoach);
       saveSession(newHistoryCoach);
+      if (typeof window !== 'undefined') {
+         // Fallback if useToast isn't easily plumbed, we just use the chat message.
+      }
     } finally {
       setIsLoading(false);
     }
@@ -285,7 +299,7 @@ export function AiCoachPage({ onNavigate, isActive }: { onNavigate?: (id: PageId
               AI Revision Sprint
             </button>
             <button 
-              onClick={() => onNavigate?.('coach-history')}
+              onClick={() => navigate('/coach-history')}
               className="flex items-center gap-2 px-4 py-2 bg-zinc-900 border border-zinc-800 text-zinc-300 rounded-xl hover:bg-zinc-800 transition-colors font-mono text-[10px] uppercase font-bold"
             >
               <Icon name="History" className="w-3.5 h-3.5" />

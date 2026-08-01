@@ -27,5 +27,5 @@
 ## Phase 7: Codebase Stabilization & Refactoring [In Progress]
 - [x] Clean up repo root files and patch scripts.
 - [x] Refactor large component files (`DashboardPage.tsx`, `MistakesPage.tsx`) into modular sub-components. `MissionMode.tsx` still needs refactoring if applicable.
-- [ ] Remove fake/placeholder features (`MockTestsPage.tsx`).
+- [x] Integrate Mock Tests engine to support NTA simulation and auto-log mistakes to the Revision Engine.
 

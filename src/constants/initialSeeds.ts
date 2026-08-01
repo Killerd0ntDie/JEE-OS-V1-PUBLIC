@@ -1,4 +1,4 @@
-import { Chapter, Mistake } from '../types/index';
+import { Chapter, Mistake } from '@/types/index';
 
 // Initial Database Seeding Chapters
 export const INITIAL_CHAPTERS: Chapter[] = [

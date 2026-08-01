@@ -1,6 +1,6 @@
 import { collection, doc, getDocs, getDoc, setDoc, query, where, writeBatch } from 'firebase/firestore';
 import { db } from './index';
-import { Question } from '../types/curriculum';
+import { Question } from '@/types/curriculum';
 
 export class QuestionRepository {
   private static COLLECTION = 'pyq_bank';

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CheckCircle2, Zap, Target, Sliders, ArrowRight } from 'lucide-react';
-import { useStudyBrain } from '../../context/StudyBrainContext';
-import { DailyCheckin } from '../../types';
+import { useStudyBrain } from '@/context/StudyBrainContext';
+import { DailyCheckin } from '@/types';
 
 export function DailyCheckinCard() {
   const { state, actions } = useStudyBrain();

@@ -1,4 +1,4 @@
-import { Chapter, Mistake } from '../types/index';
+import { Chapter, Mistake } from '@/types/index';
 
 export interface MistakeScoreResult {
   score: number;

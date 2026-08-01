@@ -1,6 +1,6 @@
 import { collection, doc, getDocs, setDoc, updateDoc, writeBatch, deleteDoc, query, orderBy, limit } from 'firebase/firestore';
-import { db } from '../firebase';
-import { StudySession } from '../types/index';
+import { db } from '@/firebase';
+import { StudySession } from '@/types/index';
 
 export const StudySessionRepository = {
   // Fetch study sessions for a user

@@ -1,17 +1,17 @@
 import React, { useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card';
-import { Button } from '../../components/ui/Button';
-import { Icon } from '../../components/ui/Icon';
-import { Badge } from '../../components/ui/Badge';
-import { useStudyBrain } from '../../context/StudyBrainContext';
-import { generateWeeklyMatrix, getDayFocusPill, getHeaderBadgeText, WeeklyBlock } from '../../engines/planner/PlannerEngine';
-import { SubjectId, Chapter, TodayMission } from '../../types/index';
-import { ChapterTelemetry } from '../../engines/chapterInfo';
-import { MentorInterviewModal } from '../../components/mentor/MentorInterviewModal';
-import { SyllabusDiagnosisModal } from '../../components/mentor/SyllabusDiagnosisModal';
-import { WeeklyCheckinModal } from '../../components/mentor/WeeklyCheckinModal';
-import { MonthlyObjectiveModal } from '../../components/mentor/MonthlyObjectiveModal';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { Icon } from '@/components/ui/Icon';
+import { Badge } from '@/components/ui/Badge';
+import { useStudyBrain } from '@/context/StudyBrainContext';
+import { generateWeeklyMatrix, getDayFocusPill, getHeaderBadgeText, WeeklyBlock } from '@/engines/planner/PlannerEngine';
+import { SubjectId, Chapter, TodayMission } from '@/types/index';
+import { ChapterTelemetry } from '@/engines/chapterInfo';
+import { MentorInterviewModal } from '@/components/mentor/MentorInterviewModal';
+import { SyllabusDiagnosisModal } from '@/components/mentor/SyllabusDiagnosisModal';
+import { WeeklyCheckinModal } from '@/components/mentor/WeeklyCheckinModal';
+import { MonthlyObjectiveModal } from '@/components/mentor/MonthlyObjectiveModal';
 import { EditWeeklyGoalsModal } from './components/EditWeeklyGoalsModal';
 import { 
   Sparkles, ShieldCheck, Target, Clock, ArrowRight, CheckCircle2, 
@@ -25,10 +25,10 @@ import { MonthlyCalendarWidget } from './components/MonthlyCalendarWidget';
 import { MonthlyCampaignBanner } from './components/MonthlyCampaignBanner';
 import { WarRoomSandbox } from './components/WarRoomSandbox';
 import { CustomMissionModal } from './components/CustomMissionModal';
-import { AiRevisionPlanModal } from '../../components/shared/AiRevisionPlanModal';
-import { ConfirmDeleteModal } from '../../components/ui/ConfirmDeleteModal';
+import { AiRevisionPlanModal } from '@/components/shared/AiRevisionPlanModal';
+import { ConfirmDeleteModal } from '@/components/ui/ConfirmDeleteModal';
 import { SwapSubjectModal } from './components/SwapSubjectModal';
-import { OnHoldReminderBanner } from '../dashboard/components/OnHoldReminderBanner';
+import { OnHoldReminderBanner } from '@/features/dashboard/components/OnHoldReminderBanner';
 
 export function PlannerPage() {
   const { state, actions } = useStudyBrain();

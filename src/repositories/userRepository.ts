@@ -1,6 +1,6 @@
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '../firebase';
-import { UserProfile } from '../types/index';
+import { db } from '@/firebase';
+import { UserProfile } from '@/types/index';
 
 function sanitizeForFirestore(obj: any): any {
   if (obj === null || obj === undefined) return null;

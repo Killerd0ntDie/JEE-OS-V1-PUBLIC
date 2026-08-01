@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { calculateMistakeScore } from './mistakeIntelligence';
-import { Chapter, Mistake } from '../types/index';
+import { Chapter, Mistake } from '@/types/index';
 
 describe('calculateMistakeScore', () => {
   const mockChapter: Chapter = {

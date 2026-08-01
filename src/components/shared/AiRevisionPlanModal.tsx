@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { Sparkles, Calendar, Clock, Check, Loader2, X, ArrowRight, Zap, Target } from 'lucide-react';
-import { useStudyBrain } from '../../context/StudyBrainContext';
-import { ChapterTelemetry } from '../../engines/chapterInfo';
-import { ModalPortal } from '../ui/ModalPortal';
+import { useStudyBrain } from '@/context/StudyBrainContext';
+import { ChapterTelemetry } from '@/engines/chapterInfo';
+import { ModalPortal } from '@/components/ui/ModalPortal';
+import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 
 interface AiRevisionPlanModalProps {
   isOpen: boolean;
@@ -11,6 +12,8 @@ interface AiRevisionPlanModalProps {
 }
 
 export function AiRevisionPlanModal({ isOpen, onClose }: AiRevisionPlanModalProps) {
+  useLockBodyScroll(isOpen || false);
+
   const { state, actions } = useStudyBrain();
   const [selectedDays, setSelectedDays] = useState<3 | 7>(3);
   const [isGenerating, setIsGenerating] = useState(false);

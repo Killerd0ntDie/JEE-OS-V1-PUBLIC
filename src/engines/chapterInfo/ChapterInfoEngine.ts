@@ -1,7 +1,7 @@
-import { SubjectId, Chapter } from '../../types/index';
+import { SubjectId, Chapter } from '@/types/index';
 import { ChapterInfoInput, ChapterTelemetry, ChapterStrategyRadar, ChapterInfographicsData } from './types';
-import { getAcademicState } from '../../utils/academicState';
-import { StudyBrainService } from '../../services/studyBrainService';
+import { getAcademicState } from '@/utils/academicState';
+import { StudyBrainService } from '@/services/studyBrainService';
 
 export class ChapterInfoEngine {
   private cache: Map<string, ChapterTelemetry> = new Map();

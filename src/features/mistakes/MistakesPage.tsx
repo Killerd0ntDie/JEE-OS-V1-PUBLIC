@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { useStudyBrain } from '../../context/StudyBrainContext';
-import { SubjectId, Mistake } from '../../types/index';
-import { Icon } from '../../components/ui/Icon';
+import { useStudyBrain } from '@/context/StudyBrainContext';
+import { SubjectId, Mistake } from '@/types/index';
+import { Icon } from '@/components/ui/Icon';
 import { MistakeFilterToolbar } from './components/MistakeFilterToolbar';
 import { MistakeCard } from './components/MistakeCard';
 import { LogMistakeModal } from './components/LogMistakeModal';

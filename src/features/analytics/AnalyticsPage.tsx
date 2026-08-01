@@ -1,9 +1,9 @@
 import { useState, useMemo } from 'react';
-import { useStudyBrain } from '../../context/StudyBrainContext';
-import { Icon } from '../../components/ui/Icon';
-import { Badge } from '../../components/ui/Badge';
-import { calculateLevelFromXP, getTitleAndColor } from '../../utils/levelingCalculations';
-import { ChapterTelemetry } from '../../engines/chapterInfo';
+import { useStudyBrain } from '@/context/StudyBrainContext';
+import { Icon } from '@/components/ui/Icon';
+import { Badge } from '@/components/ui/Badge';
+import { calculateLevelFromXP, getTitleAndColor } from '@/utils/levelingCalculations';
+import { ChapterTelemetry } from '@/engines/chapterInfo';
 
 export function AnalyticsPage() {
   const { state, actions } = useStudyBrain();

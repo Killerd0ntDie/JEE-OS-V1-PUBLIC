@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { Zap, Target } from 'lucide-react';
-import { calculateLevelFromXP, getTitleAndColor } from '../../../utils/levelingCalculations';
+import { calculateLevelFromXP, getTitleAndColor } from '@/utils/levelingCalculations';
 
 interface DailyStudyTrackerWidgetProps {
   studyTime: number; // in seconds

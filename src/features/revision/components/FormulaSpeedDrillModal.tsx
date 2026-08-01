@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Icon } from '../../../components/ui/Icon';
-import { useStudyBrain } from '../../../context/StudyBrainContext';
-import { RevisionCardItem } from '../../../engines/revision';
-import { useLockBodyScroll } from '../../../hooks/useLockBodyScroll';
-import { useEscapeKey } from '../../../hooks/useEscapeKey';
-import { MissionMode } from '../../mission/MissionMode';
+import { Icon } from '@/components/ui/Icon';
+import { useStudyBrain } from '@/context/StudyBrainContext';
+import { RevisionCardItem } from '@/engines/revision';
+import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { MissionMode } from '@/features/mission/MissionMode';
 
 interface FormulaSpeedDrillModalProps {
   isOpen: boolean;

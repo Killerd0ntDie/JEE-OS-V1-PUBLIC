@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useStudyBrain } from '../../../context/StudyBrainContext';
-import { Chapter } from '../../../types/index';
-import { Badge } from '../../../components/ui/Badge';
+import { useStudyBrain } from '@/context/StudyBrainContext';
+import { Chapter } from '@/types/index';
+import { Badge } from '@/components/ui/Badge';
 import { ArrowLeft, CheckCircle, SlidersHorizontal, CheckSquare, Zap, BookOpen, Save, Sparkles } from 'lucide-react';
 
 interface SubjectExpandedViewProps {

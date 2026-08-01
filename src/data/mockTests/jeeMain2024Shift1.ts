@@ -1,4 +1,4 @@
-import { MockTest } from '../../types/mockTest';
+import { MockTest } from '@/types/mockTest';
 
 export const mockTest1: MockTest = {
   "id": "jee-main-2024-shift-1",

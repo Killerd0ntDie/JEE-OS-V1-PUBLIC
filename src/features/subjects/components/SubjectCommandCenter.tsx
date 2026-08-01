@@ -1,14 +1,15 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { SubjectId } from '../../../types/index';
-import { useStudyBrain } from '../../../context/StudyBrainContext';
-import { ChapterTelemetry } from '../../../engines/chapterInfo';
+import { SubjectId } from '@/types/index';
+import { useStudyBrain } from '@/context/StudyBrainContext';
+import { ChapterTelemetry } from '@/engines/chapterInfo';
 import { ChapterCommandCard } from './ChapterCommandCard';
-import { Icon } from '../../../components/ui/Icon';
+import { Icon } from '@/components/ui/Icon';
 import { Search, Sparkles, Play, Filter, CheckCircle2 } from 'lucide-react';
 import { SubjectExpandedView } from './SubjectExpandedView';
 import { AddCustomChapterModal } from './AddCustomChapterModal';
 import { RpgKnowledgeTreeWidget } from './RpgKnowledgeTreeWidget';
 import { Network } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface SubjectCommandCenterProps {
   subjectId: SubjectId;
@@ -16,7 +17,6 @@ interface SubjectCommandCenterProps {
   subjectSubtitle: string;
   subjectIcon: string;
   unitCategories?: string[];
-  onNavigate?: (page: string) => void;
 }
 
 type FilterType = 'All' | 'Learning' | 'Revision Due' | 'Mastered';
@@ -26,9 +26,9 @@ export function SubjectCommandCenter({
   subjectTitle,
   subjectSubtitle,
   subjectIcon,
-  unitCategories = ['All'],
-  onNavigate
+  unitCategories = ['All']
 }: SubjectCommandCenterProps) {
+  const navigate = useNavigate();
   const { state, actions } = useStudyBrain();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -129,9 +129,7 @@ export function SubjectCommandCenter({
       actions.setRadarFocusedChapter(focusChapter.id);
       actions.setActiveSubject(focusChapter.subject);
       actions.setMissionModeActive(true);
-      if (onNavigate) {
-        onNavigate('dashboard');
-      }
+      navigate('/dashboard');
     }
   };
 
@@ -175,7 +173,7 @@ export function SubjectCommandCenter({
                   placeholder={`Search ${subjectTitle}...`}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-[#0d0e12] border border-zinc-800 rounded-xl pl-9 pr-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-indigo-500 transition-all"
+                  className="w-full bg-[#0d0e12] border border-zinc-800 rounded-xl pl-9 pr-3 py-2 text-xs font-mono text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500 transition-all"
                 />
               </div>
               <button
@@ -216,7 +214,7 @@ export function SubjectCommandCenter({
                 <select
                   value={activeFilter}
                   onChange={(e) => setActiveFilter(e.target.value as FilterType)}
-                  className="bg-[#0d0e12] border border-zinc-800 rounded-xl px-3 py-2 text-xs font-mono font-bold text-zinc-200 focus:outline-none focus:border-indigo-500 cursor-pointer"
+                  className="bg-[#0d0e12] border border-zinc-800 rounded-xl px-3 py-2 text-xs font-mono font-bold text-zinc-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500 cursor-pointer"
                 >
                   <option value="All">All Statuses</option>
                 </select>
@@ -288,7 +286,6 @@ export function SubjectCommandCenter({
                   chapter={chapter}
                   data={chapter}
                   onExpand={() => setExpandedChapterId(chapter.id)}
-                  onNavigate={onNavigate}
                 />
               ))
             )}

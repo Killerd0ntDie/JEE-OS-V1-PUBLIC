@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { BlockMath, InlineMath } from 'react-katex';
-import { Icon } from '../../../components/ui/Icon';
-import pyqData from '../../../data/pyqBank.json';
-import { Question, Difficulty } from '../../../types/curriculum';
-import { audioEngine } from '../../../utils/audioEngine';
-import { QuestionRepository } from '../../../firebase/QuestionRepository';
-import { PyqGeneratorEngine } from '../../../lib/PyqGeneratorEngine';
+import { Icon } from '@/components/ui/Icon';
+import pyqData from '@/data/pyqBank.json';
+import { Question, Difficulty } from '@/types/curriculum';
+import { audioEngine } from '@/utils/audioEngine';
+import { QuestionRepository } from '@/firebase/QuestionRepository';
+import { PyqGeneratorEngine } from '@/lib/PyqGeneratorEngine';
 import { Sparkles } from 'lucide-react';
 
 interface QuestionViewerWidgetProps {
@@ -55,7 +55,7 @@ export function QuestionViewerWidget({ chapterId, subject, onExitPractice, onCor
         console.error("Failed to fetch/generate questions:", err);
         if (isMounted) {
           setIsGenerating(false);
-          setGenError(err.message || "Failed to generate questions. Did you set VITE_GEMINI_API_KEY?");
+          setGenError(err.message || "Failed to generate questions. Ensure GEMINI_API_KEY is configured on the backend server.");
         }
       } finally {
         if (isMounted) setIsLoading(false);

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { ModalPortal } from '../../../components/ui/ModalPortal';
+import { ModalPortal } from '@/components/ui/ModalPortal';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Clock, Plus, CheckCircle2, ShieldAlert, Target } from 'lucide-react';
-import { useEscapeKey } from '../../../hooks/useEscapeKey';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 
 export interface MissionTimeUpModalProps {
   isOpen: boolean;
@@ -19,6 +20,8 @@ export function MissionTimeUpModal({
   onComplete,
   onAddExtraTime
 }: MissionTimeUpModalProps) {
+  useLockBodyScroll(isOpen || false);
+
   useEscapeKey(onComplete, isOpen);
   
   const [summary, setSummary] = useState('');
@@ -100,7 +103,7 @@ export function MissionTimeUpModal({
                     value={summary}
                     onChange={(e) => setSummary(e.target.value)}
                     placeholder="I learned about..."
-                    className="w-full h-32 bg-zinc-900 border border-zinc-800 rounded-xl p-4 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-amber-500/50 resize-none font-sans"
+                    className="w-full h-32 bg-zinc-900 border border-zinc-800 rounded-xl p-4 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-amber-500/50 resize-none font-sans"
                   />
                   <div className="flex justify-between text-xs font-mono">
                     <span className={charsLeft > 0 ? "text-rose-400" : "text-emerald-400"}>

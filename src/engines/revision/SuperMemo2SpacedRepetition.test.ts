@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { StudyBrainActions } from '../../actions/StudyBrainActions';
-import { StudyBrainRuntime } from '../../runtime/StudyBrainRuntime';
-import { ChapterRepository } from '../../repositories/chapterRepository';
-import { Chapter } from '../../types/index';
+import { StudyBrainActions } from '@/actions/StudyBrainActions';
+import { StudyBrainRuntime } from '@/runtime/StudyBrainRuntime';
+import { ChapterRepository } from '@/repositories/chapterRepository';
+import { Chapter } from '@/types/index';
 
 vi.mock('../../repositories/userRepository', () => ({
   UserRepository: {

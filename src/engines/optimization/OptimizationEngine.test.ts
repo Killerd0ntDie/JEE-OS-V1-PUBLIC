@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { OptimizationEngine } from './OptimizationEngine';
-import { KnowledgeEngine, SyllabusNode } from '../knowledge';
-import { PlannerInput } from '../planner/types';
+import { KnowledgeEngine, SyllabusNode } from '@/engines/knowledge';
+import { PlannerInput } from '@/engines/planner/types';
 
 const MOCK_SYLLABUS: SyllabusNode[] = [
   { id: 'p1', name: 'Physics 1', subject: 'physics', module: 'Mechanics', prerequisites: [], unlockedChapters: [], lectureCount: 5, estimatedHours: 10, weightage: 5,

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Clock } from 'lucide-react';
-import { SubjectId } from '../../../types/index';
+import { SubjectId } from '@/types/index';
 
 export interface SubjectDetail {
   name: string;

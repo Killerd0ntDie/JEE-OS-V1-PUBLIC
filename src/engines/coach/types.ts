@@ -1,5 +1,5 @@
-import { Chapter, Mistake, MockResult, StudySession, TodayMission, StudyRecommendation } from '../../types/index';
-import { AnalyticsOutput } from '../analytics';
+import { Chapter, Mistake, MockResult, StudySession, TodayMission, StudyRecommendation } from '@/types/index';
+import { AnalyticsOutput } from '@/engines/analytics';
 
 export interface CoachInput {
   mission: TodayMission[];

@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useStudyBrain } from '../../context/StudyBrainContext';
-import { audioEngine } from '../../utils/audioEngine';
+import { useStudyBrain } from '@/context/StudyBrainContext';
+import { audioEngine } from '@/utils/audioEngine';
 import { Icon } from './Icon';
 
 export interface Toast {
@@ -57,6 +57,14 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const removeToast = (id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   };
+
+  React.useEffect(() => {
+    const handleGlobalToast = (e: CustomEvent<Omit<Toast, 'id'>>) => {
+      toast(e.detail);
+    };
+    window.addEventListener('global-toast', handleGlobalToast as EventListener);
+    return () => window.removeEventListener('global-toast', handleGlobalToast as EventListener);
+  }, [toast]);
 
   return (
     <ToastContext.Provider value={{ toast }}>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ModalPortal } from '../../../components/ui/ModalPortal';
+import { ModalPortal } from '@/components/ui/ModalPortal';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Pause } from 'lucide-react';
 

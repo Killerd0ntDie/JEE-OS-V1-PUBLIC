@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { useStudyBrain } from '../../context/StudyBrainContext';
-import { useAuth } from '../../hooks/useAuth';
-import { Icon } from '../../components/ui/Icon';
-import { soundSystem } from '../../utils/audioEffects';
-import { SubjectId } from '../../types';
+import { useStudyBrain } from '@/context/StudyBrainContext';
+import { useAuth } from '@/features/auth';
+import { Icon } from '@/components/ui/Icon';
+import { soundSystem } from '@/utils/audioEffects';
+import { SubjectId } from '@/types';
 import { 
   Target, Clock, Volume2, VolumeX, Bell, BellOff, ShieldCheck, 
   Sparkles, CheckCircle2, RotateCcw, AlertTriangle, User, LogOut, Lock, SlidersHorizontal
 } from 'lucide-react';
 
-import { normalizeTwoDaySplitConfig } from '../../engines/planner/PlannerEngine';
+import { normalizeTwoDaySplitConfig } from '@/engines/planner/PlannerEngine';
 
 export function SettingsPage() {
   const { state, actions } = useStudyBrain();
@@ -206,7 +206,7 @@ export function SettingsPage() {
               <select
                 value={targetYear}
                 onChange={(e) => setTargetYear(e.target.value)}
-                className="w-full bg-zinc-900/90 border border-zinc-800 text-zinc-100 rounded-xl px-3.5 py-2.5 text-xs font-mono focus:outline-none focus:border-indigo-500 cursor-pointer"
+                className="w-full bg-zinc-900/90 border border-zinc-800 text-zinc-100 rounded-xl px-3.5 py-2.5 text-xs font-mono focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500 cursor-pointer"
               >
                 <option value="2026">JEE 2026 (Class 12 / Dropper)</option>
                 <option value="2027">JEE 2027 (Class 11 / Target)</option>
@@ -222,7 +222,7 @@ export function SettingsPage() {
               <select
                 value={dreamIit}
                 onChange={(e) => setDreamIit(e.target.value)}
-                className="w-full bg-zinc-900/90 border border-zinc-800 text-zinc-100 rounded-xl px-3.5 py-2.5 text-xs font-mono focus:outline-none focus:border-indigo-500 cursor-pointer"
+                className="w-full bg-zinc-900/90 border border-zinc-800 text-zinc-100 rounded-xl px-3.5 py-2.5 text-xs font-mono focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500 cursor-pointer"
               >
                 <option value="IIT Bombay">IIT Bombay</option>
                 <option value="IIT Delhi">IIT Delhi</option>
@@ -243,7 +243,7 @@ export function SettingsPage() {
               <select
                 value={targetBranch}
                 onChange={(e) => setTargetBranch(e.target.value)}
-                className="w-full bg-zinc-900/90 border border-zinc-800 text-zinc-100 rounded-xl px-3.5 py-2.5 text-xs font-mono focus:outline-none focus:border-indigo-500 cursor-pointer"
+                className="w-full bg-zinc-900/90 border border-zinc-800 text-zinc-100 rounded-xl px-3.5 py-2.5 text-xs font-mono focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500 cursor-pointer"
               >
                 <option value="Computer Science & Engineering">Computer Science & Engineering</option>
                 <option value="Data Science & Artificial Intelligence">Data Science & AI</option>
@@ -306,7 +306,7 @@ export function SettingsPage() {
               <select
                 value={subjectSplitStrategy}
                 onChange={(e) => setSubjectSplitStrategy(e.target.value as any)}
-                className="w-full bg-zinc-900/90 border border-zinc-800 text-zinc-100 rounded-xl px-3.5 py-2.5 text-xs font-mono focus:outline-none focus:border-indigo-500 cursor-pointer"
+                className="w-full bg-zinc-900/90 border border-zinc-800 text-zinc-100 rounded-xl px-3.5 py-2.5 text-xs font-mono focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500 cursor-pointer"
               >
                 <option value="3_a_day">3 Subjects Daily (Balanced Coverage)</option>
                 <option value="2_a_day_alternating">2 Subjects Alternating (Deeper Focus)</option>
@@ -621,7 +621,7 @@ export function SettingsPage() {
                       value={displayName}
                       onChange={(e) => setDisplayName(e.target.value)}
                       required
-                      className="bg-zinc-950 border border-zinc-800 text-zinc-200 px-3 py-2 rounded-xl text-xs font-mono focus:outline-none focus:border-indigo-500"
+                      className="bg-zinc-950 border border-zinc-800 text-zinc-200 px-3 py-2 rounded-xl text-xs font-mono focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500"
                     />
                   )}
                   <input
@@ -630,7 +630,7 @@ export function SettingsPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="bg-zinc-950 border border-zinc-800 text-zinc-200 px-3 py-2 rounded-xl text-xs font-mono focus:outline-none focus:border-indigo-500"
+                    className="bg-zinc-950 border border-zinc-800 text-zinc-200 px-3 py-2 rounded-xl text-xs font-mono focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500"
                   />
                   <input
                     type="password"
@@ -638,7 +638,7 @@ export function SettingsPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="bg-zinc-950 border border-zinc-800 text-zinc-200 px-3 py-2 rounded-xl text-xs font-mono focus:outline-none focus:border-indigo-500"
+                    className="bg-zinc-950 border border-zinc-800 text-zinc-200 px-3 py-2 rounded-xl text-xs font-mono focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500"
                   />
                 </div>
 

@@ -1,19 +1,20 @@
 import React, { useState } from 'react';
-import { Button } from '../../../components/ui/Button';
-import { Icon } from '../../../components/ui/Icon';
+import { Button } from '@/components/ui/Button';
+import { Icon } from '@/components/ui/Icon';
 import { 
   Settings,
   Trash2,
-  Pause
+  Pause,
+  History
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { TodayMission, SubjectId, Chapter } from '../../../types/index';
-import { useStudyBrain } from '../../../context/StudyBrainContext';
-import { ConfirmDeleteModal } from '../../../components/ui/ConfirmDeleteModal';
+import { TodayMission, SubjectId, Chapter } from '@/types/index';
+import { useStudyBrainStore } from '@/store/useStudyBrainStore';
+import { ConfirmDeleteModal } from '@/components/ui/ConfirmDeleteModal';
+import { CustomMissionHistoryModal } from '@/features/mission/components/CustomMissionHistoryModal';
+import { audioEngine } from '@/utils/audioEngine';
 
 interface DailyMissionTimelineProps {
-  todayMissions: TodayMission[];
-  energyLevel: string;
   sessionState: 'idle' | 'active' | 'paused';
   secondsElapsed: number;
   expandedMission: string | null;
@@ -21,11 +22,6 @@ interface DailyMissionTimelineProps {
   handleStartSession: () => void;
   handleResetSession: (e?: React.MouseEvent) => void;
   formatTimer: (totalSecs: number) => string;
-  estimatedRemainingHours: number | string;
-  plannedQuestions: number;
-  targetFinishTime: string;
-  onCompleteTask: (id: string) => void;
-  onSkipTask: (id: string) => void;
   onOpenCustomMission?: () => void;
   onEditMission?: (mission: TodayMission) => void;
 }
@@ -44,8 +40,6 @@ const getSubjectBadgeStyle = (subj: SubjectId) => {
 };
 
 export function DailyMissionTimeline({
-  todayMissions,
-  energyLevel,
   sessionState,
   secondsElapsed,
   expandedMission,
@@ -53,17 +47,20 @@ export function DailyMissionTimeline({
   handleStartSession,
   handleResetSession,
   formatTimer,
-  estimatedRemainingHours,
-  plannedQuestions,
-  targetFinishTime,
-  onCompleteTask,
-  onSkipTask,
   onOpenCustomMission,
   onEditMission
 }: DailyMissionTimelineProps) {
-  const { state, actions } = useStudyBrain();
+  const actions = useStudyBrainStore(s => s.actions);
+  const todayMissions = useStudyBrainStore(s => s.todayMissions);
+  const energyLevel = useStudyBrainStore(s => s.energyLevel);
+  const estimatedRemainingHours = useStudyBrainStore(s => s.estimatedRemainingHours);
+  const plannedQuestions = useStudyBrainStore(s => s.plannedQuestions);
+  const targetFinishTime = useStudyBrainStore(s => s.targetFinishTime);
+  const chapters = useStudyBrainStore(s => s.chapters);
+  const chapterTelemetryMap = useStudyBrainStore(s => s.chapterTelemetryMap);
   const [selectedMissionId, setSelectedMissionId] = useState<string | null>(null);
   const [missionToDelete, setMissionToDelete] = useState<string | null>(null);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
 
   const completedCount = todayMissions.filter(m => m.completed && !m.dismissed).length;
   const totalCount = todayMissions.filter(m => !m.dismissed).length;
@@ -77,12 +74,12 @@ export function DailyMissionTimeline({
   const activeMission = todayMissions.find(m => m.id === effectiveSelectedId) || incompleteMissions[0] || todayMissions[0];
 
   // Strategy Radar data for active mission
-  const activeChap = activeMission ? state.chapters.find(c => 
+  const activeChap = activeMission ? chapters.find(c => 
     c.name.toLowerCase() === (activeMission.chapter || activeMission.chapterName || '').toLowerCase() || 
     (activeMission.chapterId && c.id === activeMission.chapterId)
   ) : null;
 
-  const activeTelemetry = activeChap && state.chapterTelemetryMap ? state.chapterTelemetryMap[activeChap.id] : null;
+  const activeTelemetry = activeChap && chapterTelemetryMap ? chapterTelemetryMap[activeChap.id] : null;
   const rawRadar = activeTelemetry?.strategyRadar;
   const strategyRadar = {
     formulas: rawRadar?.formulas || [
@@ -123,6 +120,14 @@ export function DailyMissionTimeline({
                   Execution Queue
                 </h2>
                 <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsHistoryModalOpen(true)}
+                    className="text-xs font-mono text-zinc-400 hover:text-indigo-300 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 px-2.5 py-1 rounded-lg flex items-center gap-1.5 cursor-pointer transition-colors"
+                  >
+                    <History className="w-3.5 h-3.5" />
+                    History
+                  </button>
                   <button
                     type="button"
                     onClick={onOpenCustomMission}
@@ -168,7 +173,7 @@ export function DailyMissionTimeline({
                   <button
                     type="button"
                     onClick={() => {
-                      const c = state.chapters.find(ch => ch.name.includes("General Organic"));
+                      const c = chapters.find(ch => ch.name.includes("General Organic"));
                       if (c) {
                         actions.updateChapterData(c.id, { status: "Learning", currentLecture: 1 });
                         actions.setEnergyLevel("High");
@@ -181,7 +186,7 @@ export function DailyMissionTimeline({
                   <button
                     type="button"
                     onClick={() => {
-                      const c = state.chapters.find(ch => ch.name.includes("Sets"));
+                      const c = chapters.find(ch => ch.name.includes("Sets"));
                       if (c) {
                         actions.updateChapterData(c.id, { status: "Learning", currentLecture: 1 });
                         actions.setEnergyLevel("High");
@@ -194,7 +199,7 @@ export function DailyMissionTimeline({
                   <button
                     type="button"
                     onClick={() => {
-                      const c = state.chapters.find(ch => ch.name.includes("Units") || ch.name.includes("Kinematics"));
+                      const c = chapters.find(ch => ch.name.includes("Units") || ch.name.includes("Kinematics"));
                       if (c) {
                         actions.updateChapterData(c.id, { status: "Learning", currentLecture: 1 });
                         actions.setEnergyLevel("High");
@@ -221,7 +226,7 @@ export function DailyMissionTimeline({
                   const isNextUp = !mission.completed && idx === 0;
 
                   // Chapter metadata
-                  const chap = state.chapters.find(c => 
+                  const chap = chapters.find(c => 
                     c.name.toLowerCase() === (mission.chapter || mission.chapterName || '').toLowerCase() || 
                     (mission.chapterId && c.id === mission.chapterId)
                   );
@@ -251,14 +256,14 @@ export function DailyMissionTimeline({
                           actions.setRadarFocusedChapter(chap.id);
                         }
                       }}
-                    className={`group rounded-xl border p-4 transition-all duration-100 cursor-pointer ${
+                    className={`group rounded-xl border p-4 transition-all duration-200 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 active:scale-[0.99] ${
                         isDismissed
                           ? 'bg-zinc-950/10 border-red-900/20 opacity-40 cursor-default'
                           : mission.completed
                           ? 'bg-zinc-950/20 border-zinc-900/40 opacity-60'
                           : isSelected
                           ? 'bg-indigo-950/[0.25] border-indigo-500/50 shadow-[0_4px_25px_rgba(99,102,241,0.08)]'
-                          : 'bg-zinc-900/30 border-zinc-850/80 hover:border-zinc-800 hover:bg-zinc-900/50'
+                          : 'bg-zinc-900/30 border-zinc-850/80 hover:border-zinc-800 hover:bg-zinc-900/50 hover:shadow-lg hover:shadow-zinc-900/20'
                       }`}
                     >
                       <div className="flex items-center justify-between gap-4">
@@ -269,7 +274,7 @@ export function DailyMissionTimeline({
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            onCompleteTask(mission.id);
+                            actions.completeTask(mission.id);
                           }}
                           className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-all duration-100 cursor-pointer ${
                             mission.completed
@@ -419,10 +424,15 @@ export function DailyMissionTimeline({
                               <button
                                 type="button"
                                 onClick={() => {
-                                  onCompleteTask(mission.id);
-                                  if (!mission.completed) setExpandedMission(null);
+                                  actions.completeTask(mission.id);
+                                  if (!mission.completed) {
+                                    audioEngine.playSuccessChime();
+                                    setExpandedMission(null);
+                                  } else {
+                                    audioEngine.playAlertPop();
+                                  }
                                 }}
-                                className={`text-[10px] font-bold py-1.5 px-3 rounded-md transition-all cursor-pointer border ${
+                                className={`text-[10px] font-bold py-1.5 px-3 rounded-md transition-all cursor-pointer border active:scale-[0.98] hover:scale-[1.02] ${
                                   mission.completed 
                                     ? 'bg-emerald-950/40 text-emerald-400 border-emerald-900/60 hover:bg-emerald-950/60 hover:text-emerald-300' 
                                     : 'bg-zinc-800 hover:bg-emerald-600/90 text-zinc-300 hover:text-white border-zinc-700 hover:border-emerald-500 shadow-sm'
@@ -433,10 +443,11 @@ export function DailyMissionTimeline({
                               <button
                                 type="button"
                                 onClick={() => {
-                                  onSkipTask(mission.id);
+                                  audioEngine.playAlertPop();
+                                  actions.deleteMission(mission.id);
                                   setExpandedMission(null);
                                 }}
-                                className="bg-transparent hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300 text-[10px] py-1.5 px-3 rounded-md transition-colors cursor-pointer border border-zinc-800"
+                                className="bg-transparent hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300 text-[10px] py-1.5 px-3 rounded-md transition-all active:scale-[0.98] hover:scale-[1.02] cursor-pointer border border-zinc-800"
                               >
                                 Skip
                               </button>
@@ -621,6 +632,11 @@ export function DailyMissionTimeline({
           }
         }}
         onClose={() => setMissionToDelete(null)}
+      />
+
+      <CustomMissionHistoryModal 
+        isOpen={isHistoryModalOpen} 
+        onClose={() => setIsHistoryModalOpen(false)} 
       />
     </div>
   );

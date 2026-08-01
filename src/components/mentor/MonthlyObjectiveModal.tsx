@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { useStudyBrain } from '../../context/StudyBrainContext';
-import { MonthlyObjective } from '../../types/index';
+import { useStudyBrain } from '@/context/StudyBrainContext';
+import { MonthlyObjective } from '@/types/index';
 import { Target, Sparkles, X, Check } from 'lucide-react';
-import { useLockBodyScroll } from '../../hooks/useLockBodyScroll';
-import { useEscapeKey } from '../../hooks/useEscapeKey';
-import { ModalPortal } from '../ui/ModalPortal';
+import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { ModalPortal } from '@/components/ui/ModalPortal';
 
 interface Props {
   isOpen: boolean;
@@ -131,7 +131,7 @@ export const MonthlyObjectiveModal: React.FC<Props> = ({ isOpen, onClose }) => {
               value={customDescription}
               onChange={(e) => setCustomDescription(e.target.value)}
               placeholder="e.g., Focus strictly on HC Verma Mechanics Vol 1 questions"
-              className="w-full bg-[#121318] border border-zinc-800 rounded-lg px-3 py-2 text-white font-mono text-xs focus:border-purple-500 focus:outline-none"
+              className="w-full bg-[#121318] border border-zinc-800 rounded-lg px-3 py-2 text-white font-mono text-xs focus:border-purple-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
             />
           </div>
 

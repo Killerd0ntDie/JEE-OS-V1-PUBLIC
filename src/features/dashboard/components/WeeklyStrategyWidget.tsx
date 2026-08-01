@@ -1,17 +1,18 @@
 import React from 'react';
-import { Card } from '../../../components/ui/Card';
-import { Icon } from '../../../components/ui/Icon';
+import { Card } from '@/components/ui/Card';
+import { Icon } from '@/components/ui/Icon';
 
-import { Chapter, MentorProfile } from '../../../types';
+import { Chapter, MentorProfile } from '@/types';
+import { useNavigate } from 'react-router-dom';
 
 interface WeeklyStrategyWidgetProps {
   chapters: Chapter[];
   mentorProfile?: MentorProfile;
   projectedReadiness: number;
-  onNavigate: (page: string) => void;
 }
 
-export function WeeklyStrategyWidget({ chapters, mentorProfile, projectedReadiness, onNavigate }: WeeklyStrategyWidgetProps) {
+export function WeeklyStrategyWidget({ chapters, mentorProfile, projectedReadiness }: WeeklyStrategyWidgetProps) {
+  const navigate = useNavigate();
   return (
     <Card className="p-4 border-indigo-900/40 bg-indigo-950/20 space-y-3">
       <div className="flex items-center justify-between">
@@ -23,7 +24,7 @@ export function WeeklyStrategyWidget({ chapters, mentorProfile, projectedReadine
         </div>
         <button
           type="button"
-          onClick={() => onNavigate('planner')}
+          onClick={() => navigate('/planner')}
           className="text-[10px] font-mono text-indigo-400 hover:text-indigo-300 font-bold hover:underline cursor-pointer"
         >
           Open Planner →

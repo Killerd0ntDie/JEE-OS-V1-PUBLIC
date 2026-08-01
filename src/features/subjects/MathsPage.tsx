@@ -1,6 +1,6 @@
 import { SubjectDetailPage } from './SubjectDetailPage';
 
-export function MathsPage({ onNavigate }: { onNavigate?: (page: string) => void }) {
+export function MathsPage() {
   return (
     <SubjectDetailPage
       subjectId="maths"
@@ -8,7 +8,6 @@ export function MathsPage({ onNavigate }: { onNavigate?: (page: string) => void 
       subjectSubtitle="Solidify your analytical rigour, geometric proofs, calculus limits, and algebraic modeling with intensive multi-conceptual problem drill sets."
       subjectIcon="Binary"
       unitCategories={['All', 'Calculus', 'Algebra', 'Geometry']}
-      onNavigate={onNavigate}
     />
   );
 }

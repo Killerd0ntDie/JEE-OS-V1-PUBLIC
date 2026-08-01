@@ -2,16 +2,16 @@ import {
   Chapter, TodayMission, TimelineBlock, Note, StudySession, MockResult, 
   Mistake, XPState, SessionAnalytics, SubjectId, RevisionSettings, UserProfile, MentorProfile
 } from '../types/index';
-import { MockTest } from '../types/mockTest';
-import { KnowledgeEngine, SyllabusNode } from '../engines/knowledge';
-import { PlannerEngine, PlannerInput, PlannerOutput } from '../engines/planner';
-import { OptimizationEngine, OptimizationInput, OptimizationResult } from '../engines/optimization';
-import { AnalyticsEngine, AnalyticsInput, AnalyticsOutput } from '../engines/analytics';
-import { CoachEngine, CoachInput, CoachOutput } from '../engines/coach';
-import { ChapterInfoEngine, ChapterTelemetry } from '../engines/chapterInfo';
-import { RevisionEngine, RevisionEngineOutput } from '../engines/revision';
-import { StudyBrainService, createSyllabusGraph } from '../services/studyBrainService';
-import { RevisionCard } from '../services/revisionEngineService';
+import { MockTest } from '@/types/mockTest';
+import { KnowledgeEngine, SyllabusNode } from '@/engines/knowledge';
+import { PlannerEngine, PlannerInput, PlannerOutput } from '@/engines/planner';
+import { OptimizationEngine, OptimizationInput, OptimizationResult } from '@/engines/optimization';
+import { AnalyticsEngine, AnalyticsInput, AnalyticsOutput } from '@/engines/analytics';
+import { CoachEngine, CoachInput, CoachOutput } from '@/engines/coach';
+import { ChapterInfoEngine, ChapterTelemetry } from '@/engines/chapterInfo';
+import { RevisionEngine, RevisionEngineOutput } from '@/engines/revision';
+import { StudyBrainService, createSyllabusGraph } from '@/services/studyBrainService';
+import { RevisionCard } from '@/services/revisionEngineService';
 
 export interface StudyBrainState {
   chapters: Chapter[];
@@ -344,8 +344,8 @@ export class StudyBrainRuntime {
       }
 
       // Energy sets the intensity of the day based on max userQuota
-      // High = 100% of available time, Medium = 75%, Low = 50%
-      const energyMultiplier = this.state.energyLevel === 'Low' ? 0.5 : this.state.energyLevel === 'Medium' ? 0.75 : 1.0;
+      // High = 125% of available time (push harder), Medium = 100% (normal day), Low = 50% (rest day)
+      const energyMultiplier = this.state.energyLevel === 'Low' ? 0.5 : this.state.energyLevel === 'Medium' ? 1.0 : 1.25;
       const totalDailyQuotaHours = Math.min(14, Math.max(1.0, Math.round(userQuota * energyMultiplier * 10) / 10));
 
       // Calculate time already consumed by preserved missions so the planner doesn't exceed the quota
@@ -405,7 +405,7 @@ export class StudyBrainRuntime {
       const customAiMissions = this.state.todayMissions.filter(m => m.id.startsWith('mission-ai-') && !m.completed);
 
       this.state.todayMissions = [
-        ...this.state.customMissions, // User's persistent custom missions
+        ...this.state.customMissions, // User's persistent custom missions (active and completed for today)
         ...completedPlannerMissions,  // Retain checked-off planner missions (lectures, DPPs, PYQs, AI missions)
         ...customAiMissions,          // Retain explicit AI assistant custom missions
         ...(this.state.plannerOutput?.todaysMission || []).map(t => ({
@@ -631,24 +631,27 @@ export class StudyBrainRuntime {
     if (this.coachEngine && this.state.analyticsSummary && this.state.plannerOutput) {
       try {
         const coachInput: CoachInput = {
-          mission: this.state.todayMissions,
-          weakTopics: this.state.mistakes.filter(m => m.revisionStatus !== 'Mastered'),
-          revisionQueue: this.state.chapters.filter(c => c.status === 'Learning' || c.status === 'Theory Complete' || c.status === 'DPP Pending' || c.status === 'PYQ Pending'),
-          // BUGFIX: this was hardcoded to `[]`, which — because empty arrays are truthy in
-          // JS — always won out over the real `plannerOutput.todaysMission` fallback inside
-          // CoachEngine, so the Coach never actually saw what the Planner scheduled.
+          mission: this.state.todayMissions.map((m: any) => ({ title: m.title, subject: m.subject, completed: m.completed })) as any,
+          weakTopics: this.state.mistakes.filter((m: any) => m.revisionStatus !== 'Mastered').map((m: any) => ({
+            topic: m.topicName,
+            errorType: m.errorType,
+            status: m.revisionStatus
+          })) as any,
+          revisionQueue: this.state.chapters.filter((c: any) => c.status === 'Learning' || c.status === 'Theory Complete' || c.status === 'DPP Pending' || c.status === 'PYQ Pending').map((c: any) => c.name) as any,
           plannerDecisions: this.state.plannerOutput?.todaysMission || [],
           analyticsSummary: this.state.analyticsSummary,
-          plannerOutput: this.state.plannerOutput,
-          chapters: this.state.chapters,
-          studyHistory: this.state.studySessions,
+          plannerOutput: undefined, // Strip massive payload
+          chapters: this.state.chapters.filter((c: any) => c.status !== 'Unstarted' || c.completion > 0).map((c: any) => ({
+            name: c.name,
+            progress: c.completion,
+            status: c.status
+          })) as any,
+          studyHistory: undefined, // Strip massive payload
           remainingDays: this.state.daysRemaining,
           question: question,
-          // BUGFIX: pass real student targets instead of relying on nonexistent
-          // plannerOutput.targetYear/targetCollege fields.
           targetYear: this.state.settings?.targetYear,
           targetCollege: this.state.settings?.dreamIit,
-          mockHistory: this.state.mocks
+          mockHistory: this.state.mocks.map((m: any) => ({ score: m.score, maxScore: m.maxScore, date: m.date })) as any
         };
         const analysis = await this.coachEngine.getAnalysis(coachInput);
         this.state.coachAnalysis = analysis;

@@ -1,4 +1,4 @@
-import { SubjectId } from '../../types/index';
+import { SubjectId } from '@/types/index';
 
 export interface SyllabusNode {
   id: string;

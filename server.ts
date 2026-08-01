@@ -1,7 +1,7 @@
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
 import fs from "fs";
 import { verifyAuth } from "./server/firebaseAdmin.js";
@@ -74,17 +74,19 @@ async function startServer() {
   };
 
   const CoachSchema = z.object({
-    mission: z.any().optional(),
+    mission: z.array(z.any()).optional(),
     weakTopics: z.array(z.any()).optional(),
-    revisionQueue: z.array(z.any()).optional(),
-    plannerDecisions: z.any().optional(),
+    revisionQueue: z.array(z.string()).optional(),
+    plannerDecisions: z.array(z.any()).optional(),
     analyticsSummary: z.any().optional(),
-    plannerOutput: z.any().optional(),
     chapters: z.array(z.any()).optional(),
-    studyHistory: z.array(z.any()).optional(),
     remainingDays: z.number().optional(),
-    question: z.string().optional()
-  });
+    question: z.string().max(1000).optional(),
+    targetYear: z.string().optional(),
+    targetCollege: z.string().optional(),
+    coachingType: z.string().optional(),
+    mockHistory: z.array(z.any()).optional()
+  }).strict();
 
   const validateCoach = (req: any, res: any, next: any) => {
     const parsedBody = CoachSchema.safeParse(req.body);
@@ -115,25 +117,27 @@ async function startServer() {
         revisionQueue, 
         plannerDecisions, 
         analyticsSummary,
-        plannerOutput,
         chapters,
-        studyHistory,
         remainingDays,
-        question
+        question,
+        targetYear,
+        targetCollege,
+        mockHistory
       } = req.validatedBody;
 
       const prompt = `
 You are an expert, highly encouraging AI Coach for a student preparing for the JEE exam.
 Your goal is to help the student understand their current study schedule and provide actionable, data-driven advice.
 
-STUDYBRAIN CONTEXT:
+STUDENT TELEMETRY:
+- Target: ${targetCollege} (${targetYear})
+- Remaining Days for Exam: ${remainingDays}
 - Today's Scheduled Mission: ${JSON.stringify(mission, null, 2)}
 - Active Unresolved Mistakes: ${JSON.stringify(weakTopics, null, 2)}
 - Revision Backlog / Due Queue: ${JSON.stringify(revisionQueue, null, 2)}
-- Planner Engine Outputs: ${JSON.stringify(plannerOutput, null, 2)}
-- Full Chapter Syllabus Master State: ${JSON.stringify(chapters, null, 2)}
-- Study History / Past Sessions: ${JSON.stringify(studyHistory, null, 2)}
-- Remaining Days for Exam: ${remainingDays}
+- Planner Engine Outputs: ${JSON.stringify(plannerDecisions, null, 2)}
+- Filtered Active Chapters: ${JSON.stringify(chapters, null, 2)}
+- Mock Test History: ${JSON.stringify(mockHistory, null, 2)}
 - Recent Performance Analytics: ${JSON.stringify(analyticsSummary, null, 2)}
 
 ${question ? `
@@ -149,21 +153,17 @@ Keep it strictly under 100 words.
 `}
 
 FORMATTING RULES (apply to every response, always):
-- Keep it clean, friendly, and strictly under 100 words.
+- Keep your analysis/reply clean, friendly, and strictly under 100 words.
 - Do not include unnecessary info that wasn't asked for.
-- STRICT NO-MARKDOWN RULE: Do not use markdown syntax of any kind (no **bold**, no # headers, no ==== banners, no code fences around prose) because the chat UI renders plain text.
+- STRICT NO-MARKDOWN RULE: Do not use markdown syntax in your analysis (no **bold**, no # headers, no ==== banners, no code fences around prose).
 
-If applicable, suggest up to 2 actionable quick-actions for the user.
-You MUST output these actions at the very end of your response, wrapped in a markdown json block
-(use an empty array \`[]\` if there are no relevant actions — never describe actions in plain text):
-\`\`\`json
-[
-  { "type": "ADD_MISSION", "payload": { "subject": "physics", "title": "Mechanics Practice", "duration": 60 } },
-  { "type": "UPDATE_TARGET", "payload": { "targetYear": "2025", "targetCollege": "IIT Bombay" } },
-  { "type": "UPDATE_CHAPTER", "payload": { "chapterId": "physics-1", "status": "Learning" } },
-  { "type": "CLEAR_MISSIONS", "payload": {} }
-]
-\`\`\`
+If applicable, suggest up to 2 actionable quick-actions for the user in the actions array.
+(use an empty array \`[]\` if there are no relevant actions).
+Valid Action examples (as payload):
+- { "type": "ADD_MISSION", "payload": { "subject": "physics", "title": "Mechanics Practice", "duration": 60 } }
+- { "type": "UPDATE_TARGET", "payload": { "targetYear": "2025", "targetCollege": "IIT Bombay" } }
+- { "type": "UPDATE_CHAPTER", "payload": { "chapterId": "physics-1", "status": "Learning" } }
+- { "type": "CLEAR_MISSIONS", "payload": {} }
 `;
 
       const cacheKey = generateCacheKey(req.body, 'coach');
@@ -176,35 +176,46 @@ You MUST output these actions at the very end of your response, wrapped in a mar
       const response = await ai.models.generateContent({
         model: 'gemini-3.6-flash',
         contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              analysis: { type: Type.STRING, description: "Highly specific, personalized text answer or summary. No markdown allowed." },
+              actions: {
+                type: Type.ARRAY,
+                description: "Up to 2 actionable quick-actions for the UI to execute. Empty array if none.",
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    type: { type: Type.STRING },
+                    payload: { type: Type.OBJECT }
+                  },
+                  required: ["type", "payload"]
+                }
+              }
+            },
+            required: ["analysis", "actions"]
+          }
+        }
       });
 
-      let cleanText = (response.text || "").replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
-      let actions: any[] = [];
+      let cleanText = response.text || "{}";
+      // Strip any residual thinking tags if they leak into the response (they shouldn't with Schema)
+      cleanText = cleanText.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
 
-      // Matches ```json [ ... ] ``` where [...] may be empty (`[]`) or contain one+ objects.
-      const jsonMatch = cleanText.match(/```(?:json)?\s*(\[[\s\S]*?\])\s*```/i);
-      if (jsonMatch && jsonMatch[1]) {
-        try {
-          actions = JSON.parse(jsonMatch[1]);
-          cleanText = cleanText.replace(jsonMatch[0], '').trim();
-        } catch (e) {
-          console.error("Failed to parse Coach actions JSON:", e);
-          cleanText = cleanText.replace(jsonMatch[0], '').trim();
-        }
-      } else {
-        const arrayMatch = cleanText.match(/(\[[\s\S]*?\])$/);
-        if (arrayMatch && arrayMatch[1]) {
-          try {
-            actions = JSON.parse(arrayMatch[1]);
-            cleanText = cleanText.replace(arrayMatch[0], '').trim();
-          } catch(e) {}
-        }
+      let parsedResult;
+      try {
+        parsedResult = JSON.parse(cleanText);
+      } catch (e) {
+        console.error("Failed to parse Structured Output from Gemini:", e);
+        parsedResult = { analysis: "I encountered an error analyzing your data. Please try again.", actions: [] };
       }
 
-      cleanText = cleanText.replace(/```[a-z]*\n?/gi, '').trim();
+      const { analysis, actions } = parsedResult;
 
-      aiCache.set(cacheKey, JSON.stringify({ analysis: cleanText, actions }));
-      res.json({ analysis: cleanText, actions });
+      aiCache.set(cacheKey, JSON.stringify({ analysis, actions }));
+      res.json({ analysis, actions });
     } catch (error: any) {
       console.error("Coach API error:", error);
       res.status(500).json({ error: error.message });
@@ -347,7 +358,7 @@ You MUST output these actions at the very end of your response, wrapped in a mar
       4. Make sure questions are at the actual difficulty level of ${diffStr}.
 
       OUTPUT FORMAT:
-      Wrap your JSON array in a markdown codeblock \`\`\`json
+      Return ONLY a JSON array.
       Schema per object:
       {
         "topic": "string",
@@ -382,15 +393,30 @@ You MUST output these actions at the very end of your response, wrapped in a mar
         }
       });
 
-      let text = (response.text || "[]").replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+      let text = response.text || "[]";
+      // Clean up any potential markdown if the model hallucinated it despite application/json
+      text = text.replace(/```json/gi, '').replace(/```/gi, '').trim();
+      // Remove think blocks
+      text = text.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+
+      // Ensure we extract the array if there is trailing/leading text
       let jsonStr = "[]";
       const jsonMatch = text.match(/\[[\s\S]*\]/);
       if (jsonMatch) {
         jsonStr = jsonMatch[0];
       }
       
-      aiCache.set(cacheKey, jsonStr);
-      res.json({ questions: JSON.parse(jsonStr) });
+      let parsed = [];
+      try {
+        parsed = JSON.parse(jsonStr);
+      } catch (e) {
+        // If strict parsing fails, fallback to raw text or a safer parse
+        console.error("Failed to parse JSON from AI:", e);
+        throw new Error("AI generated malformed JSON. Please try again.");
+      }
+
+      aiCache.set(cacheKey, JSON.stringify(parsed));
+      res.json({ questions: parsed });
     } catch (error: any) {
       console.error("Mocktest API error:", error);
       res.status(500).json({ error: error.message });

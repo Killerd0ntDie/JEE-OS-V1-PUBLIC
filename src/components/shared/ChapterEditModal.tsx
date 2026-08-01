@@ -1,14 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   X, Save, CheckCircle2, Clock, BookOpen, Layers, Flame, Award,
   AlertCircle, SlidersHorizontal, Calendar, FileText, Target, Activity, Check
 } from 'lucide-react';
-import { Chapter, SubjectId, SyllabusDiagnosisStage } from '../../types/index';
-import { useStudyBrain } from '../../context/StudyBrainContext';
-import { ChapterTelemetry } from '../../engines/chapterInfo';
-import { useLockBodyScroll } from '../../hooks/useLockBodyScroll';
-import { ModalPortal } from '../ui/ModalPortal';
+import { Chapter, SubjectId, SyllabusDiagnosisStage } from '@/types/index';
+import { useStudyBrain } from '@/context/StudyBrainContext';
+import { ChapterTelemetry } from '@/engines/chapterInfo';
+import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { ModalPortal } from '@/components/ui/ModalPortal';
 
 export interface ChapterEditModalProps {
   isOpen?: boolean;
@@ -31,6 +33,11 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
 
   const chapter: Chapter | undefined = state.chapters.find(c => c.id === effectiveChapterId || c.name === effectiveChapterId);
   const telemetry: ChapterTelemetry | undefined = effectiveChapterId && state.chapterTelemetryMap ? state.chapterTelemetryMap[effectiveChapterId] : undefined;
+
+  const modalRef = useRef<HTMLDivElement>(null);
+  useLockBodyScroll(effectiveIsOpen);
+  useFocusTrap(modalRef, effectiveIsOpen);
+  useEscapeKey(handleClose, effectiveIsOpen);
 
   const [activeTab, setActiveTab] = useState<'progress' | 'practice' | 'meta' | 'radar'>(defaultTab);
 
@@ -205,10 +212,12 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
     <ModalPortal>
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto" aria-label="Chapter Edit Modal">
       <div 
+        ref={modalRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="chapter-modal-title"
-        className="relative bg-[#09090b] border border-zinc-800 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl z-50 text-left my-4 flex flex-col"
+        tabIndex={-1}
+        className="relative bg-[#09090b] border border-zinc-800 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl z-50 text-left my-4 flex flex-col focus:outline-none"
       >
         
         {/* Toast */}
@@ -336,7 +345,7 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
                         const val = parseInt(e.target.value) || 0;
                         setCurrentLecture(Math.max(0, Math.min(totalLectures, val)));
                       }}
-                      className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white font-mono text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500"
                     />
                   </div>
                   <div>
@@ -347,7 +356,7 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
                       max="100"
                       value={totalLectures}
                       onChange={(e) => setTotalLectures(parseInt(e.target.value) || 1)}
-                      className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white font-mono text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500"
                     />
                   </div>
                 </div>
@@ -361,7 +370,7 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
                     placeholder="e.g. Physics Galaxy, PW, Allen"
                     value={teacher}
                     onChange={(e) => setTeacher(e.target.value)}
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-indigo-500"
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white font-mono text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500"
                   />
                 </div>
                 <div>
@@ -370,7 +379,7 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
                     type="number"
                     value={avgLectureDuration}
                     onChange={(e) => setAvgLectureDuration(parseInt(e.target.value) || 60)}
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-indigo-500"
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white font-mono text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500"
                   />
                 </div>
               </div>
@@ -544,7 +553,7 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
                   <select
                     value={priority}
                     onChange={(e) => setPriority(parseInt(e.target.value) as any)}
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500 cursor-pointer"
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500 cursor-pointer"
                   >
                     <option value={1}>Tier 1 (High Priority)</option>
                     <option value={2}>Tier 2 (Medium Priority)</option>
@@ -560,7 +569,7 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
                   value={serialNumber}
                   onChange={(e) => setSerialNumber(e.target.value)}
                   placeholder="e.g. 22"
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-indigo-500 font-mono"
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white placeholder-zinc-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500 font-mono"
                 />
                 <span className="text-[9px] text-zinc-600 italic mt-1 block">* Optional: Enter a number (will be prefixed with CH)</span>
               </div>
@@ -571,7 +580,7 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
                   <select
                     value={difficulty}
                     onChange={(e) => setDifficulty(e.target.value as any)}
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500 cursor-pointer"
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500 cursor-pointer"
                   >
                     <option value="Easy">Easy</option>
                     <option value="Medium">Medium</option>
@@ -596,7 +605,7 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Key concepts to revise, formula pitfalls, weak sub-topics..."
-                  className="w-full min-h-[80px] bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-indigo-500 font-mono"
+                  className="w-full min-h-[80px] bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-xs text-white placeholder-zinc-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500 font-mono"
                 />
               </div>
             </div>

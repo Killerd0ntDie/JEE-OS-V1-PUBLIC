@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { PlannerEngine, getDayFocusPill } from './PlannerEngine';
-import { KnowledgeEngine, SyllabusNode } from '../knowledge';
+import { KnowledgeEngine, SyllabusNode } from '@/engines/knowledge';
 import { PlannerInput } from './types';
-import { Chapter } from '../../types';
+import { Chapter } from '@/types';
 
 const MOCK_SYLLABUS: SyllabusNode[] = [
   {

@@ -11,6 +11,7 @@ export type PageId =
   | 'ai-coach'
   | 'coach-history'
   | 'mock-tests'
+  | 'neural-link'
   | 'settings';
 
 export interface PageDefinition {
@@ -79,6 +80,15 @@ export const PAGES: PageDefinition[] = [
     icon: 'Bookmark',
     description: 'Spaced repetition dashboard, formula cards, and high-yield notes collection.',
     category: 'utilities',
+  },
+  {
+    id: 'neural-link',
+    label: 'Neural Link',
+    icon: 'BrainCircuit',
+    description: 'Breathtaking 2D Knowledge Graph of the entire syllabus showing interconnected mastery progression.',
+    category: 'intelligence',
+    badge: 'NEW',
+    badgeStyle: 'accent'
   },
   {
     id: 'mistakes',

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { X, ArrowRightLeft, BookOpen, AlertTriangle, CheckCircle2 } from 'lucide-react';
-import { SubjectId, Chapter, TodayMission } from '../../../types';
-import { useStudyBrain } from '../../../context/StudyBrainContext';
-import { ModalPortal } from '../../../components/ui/ModalPortal';
-import { HoldNotificationModal } from '../../../components/shared/HoldNotificationModal';
+import { SubjectId, Chapter, TodayMission } from '@/types';
+import { useStudyBrain } from '@/context/StudyBrainContext';
+import { ModalPortal } from '@/components/ui/ModalPortal';
+import { HoldNotificationModal } from '@/components/shared/HoldNotificationModal';
 
 interface SwapSubjectModalProps {
   isOpen: boolean;

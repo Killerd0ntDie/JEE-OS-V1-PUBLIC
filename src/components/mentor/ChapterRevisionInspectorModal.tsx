@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { useStudyBrain } from '../../context/StudyBrainContext';
-import { Icon } from '../ui/Icon';
-import { Badge } from '../ui/Badge';
-import { FORMULA_BANK } from '../../constants/formulaBank';
-import { useLockBodyScroll } from '../../hooks/useLockBodyScroll';
-import { ModalPortal } from '../ui/ModalPortal';
+import { useStudyBrain } from '@/context/StudyBrainContext';
+import { Icon } from '@/components/ui/Icon';
+import { Badge } from '@/components/ui/Badge';
+import { FORMULA_BANK } from '@/constants/formulaBank';
+import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
+import { ModalPortal } from '@/components/ui/ModalPortal';
 import { Sparkles } from 'lucide-react';
 
 interface ChapterRevisionInspectorModalProps {

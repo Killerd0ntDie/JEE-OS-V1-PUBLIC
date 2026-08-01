@@ -1,9 +1,9 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Command, Keyboard } from 'lucide-react';
-import { useEscapeKey } from '../../hooks/useEscapeKey';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { ModalPortal } from './ModalPortal';
-import { useLockBodyScroll } from '../../hooks/useLockBodyScroll';
+import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 
 interface ShortcutGuideModalProps {
   isOpen: boolean;

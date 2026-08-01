@@ -1,9 +1,10 @@
 import React from 'react';
-import { ModalPortal } from '../../../components/ui/ModalPortal';
+import { ModalPortal } from '@/components/ui/ModalPortal';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BookOpen, X, Search } from 'lucide-react';
 import { SubjectDetail } from './MissionSubjectSwitcherWidget';
-import { useEscapeKey } from '../../../hooks/useEscapeKey';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 
 export interface Formula {
   name: string;
@@ -30,6 +31,8 @@ export function MissionFormulaSheetModal({
   filteredFormulas,
   handleQuickPresetNote
 }: MissionFormulaSheetModalProps) {
+  useLockBodyScroll(true);
+
   useEscapeKey(() => setIsFormulaOpen(false), isFormulaOpen);
 
   return (
@@ -71,7 +74,7 @@ export function MissionFormulaSheetModal({
                 value={formulaSearch}
                 onChange={(e) => setFormulaSearch(e.target.value)}
                 placeholder="Type formula keys or names... (Ctrl+F)"
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950/60 text-xs font-mono text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950/60 text-xs font-mono text-white placeholder-zinc-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-emerald-500"
               />
             </div>
 

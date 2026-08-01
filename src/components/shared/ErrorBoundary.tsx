@@ -1,5 +1,5 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { Icon } from '../ui/Icon';
+import { Icon } from '@/components/ui/Icon';
 
 interface Props {
   children: ReactNode;

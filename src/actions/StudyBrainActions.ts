@@ -1,18 +1,18 @@
-import { StudyBrainRuntime } from '../runtime/StudyBrainRuntime';
-import { ChapterRepository } from '../repositories/chapterRepository';
-import { MistakeRepository } from '../repositories/mistakeRepository';
-import { StudySessionRepository } from '../repositories/studySessionRepository';
-import { TimelineRepository } from '../repositories/timelineRepository';
-import { UserRepository } from '../repositories/userRepository';
-import { MockResultRepository } from '../repositories/mockResultRepository';
-import { MockTestRepository } from '../repositories/mockTestRepository';
-import { CustomMissionRepository } from '../repositories/customMissionRepository';
-import { TodayMission, SubjectId, TimelineBlock, Mistake, Chapter, StudySession, MentorProfile, PlannerOutputs, DailyCheckin, WeeklyCheckin, MonthlyObjective, MockResult } from '../types/index';
-import { MockTest } from '../types/mockTest';
-import { normalizeChapter } from '../utils/academicState';
-import { calculateLevelFromXP } from '../utils/levelingCalculations';
+import { StudyBrainRuntime } from '@/runtime/StudyBrainRuntime';
+import { ChapterRepository } from '@/repositories/chapterRepository';
+import { MistakeRepository } from '@/repositories/mistakeRepository';
+import { StudySessionRepository } from '@/repositories/studySessionRepository';
+import { TimelineRepository } from '@/repositories/timelineRepository';
+import { UserRepository } from '@/repositories/userRepository';
+import { MockResultRepository } from '@/repositories/mockResultRepository';
+import { MockTestRepository } from '@/repositories/mockTestRepository';
+import { CustomMissionRepository } from '@/repositories/customMissionRepository';
+import { TodayMission, SubjectId, TimelineBlock, Mistake, Chapter, StudySession, MentorProfile, PlannerOutputs, DailyCheckin, WeeklyCheckin, MonthlyObjective, MockResult } from '@/types/index';
+import { MockTest } from '@/types/mockTest';
+import { normalizeChapter } from '@/utils/academicState';
+import { calculateLevelFromXP } from '@/utils/levelingCalculations';
 import { collection, getDocs, writeBatch, deleteDoc, doc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db } from '@/firebase';
 
 export class StudyBrainActions {
   private runtime: StudyBrainRuntime;
@@ -38,8 +38,17 @@ export class StudyBrainActions {
   private async handleWriteError(err: any, actionName: string): Promise<never> {
     const errorMsg = `Sync Error (${actionName}): ${err?.message || 'Database write failed'}`;
     console.error(errorMsg, err);
+    this.triggerToast('Sync Error', errorMsg, 'error');
     await this.runtime.refresh('SETTINGS_UPDATE', { lastSyncError: errorMsg });
     throw new Error(errorMsg);
+  }
+
+  private triggerToast(title: string, message?: string, type: 'success' | 'info' | 'warning' | 'error' = 'success') {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('global-toast', {
+        detail: { title, message, type }
+      }));
+    }
   }
 
   async clearSyncError() {
@@ -48,9 +57,10 @@ export class StudyBrainActions {
 
   async setActiveSubject(subject: SubjectId | 'all') {
     this.checkWriteBlock();
+    // Optimistic Update
+    await this.runtime.refresh('SETTINGS_UPDATE', { activeSubject: subject, lastSyncError: null });
     try {
       await UserRepository.updateUserProfile(this.userId, { activeSubject: subject });
-      await this.runtime.refresh('SETTINGS_UPDATE', { activeSubject: subject, lastSyncError: null });
     } catch (err) {
       await this.handleWriteError(err, 'setActiveSubject');
     }
@@ -68,9 +78,10 @@ export class StudyBrainActions {
 
   async setEnergyLevel(level: 'High' | 'Medium' | 'Low') {
     this.checkWriteBlock();
+    // Optimistic Update
+    await this.runtime.refresh('INIT', { energyLevel: level, plannerOutput: null, todayMissions: [], lastSyncError: null });
     try {
       await UserRepository.updateUserProfile(this.userId, { energyLevel: level });
-      await this.runtime.refresh('INIT', { energyLevel: level, plannerOutput: null, todayMissions: [], lastSyncError: null });
     } catch (err) {
       await this.handleWriteError(err, 'setEnergyLevel');
     }
@@ -78,9 +89,10 @@ export class StudyBrainActions {
 
   async setMissionModeActive(active: boolean) {
     this.checkWriteBlock();
+    // Optimistic Update
+    await this.runtime.refresh('SETTINGS_UPDATE', { isMissionModeActive: active, lastSyncError: null });
     try {
       await UserRepository.updateUserProfile(this.userId, { isMissionModeActive: active });
-      await this.runtime.refresh('SETTINGS_UPDATE', { isMissionModeActive: active, lastSyncError: null });
     } catch (err) {
       await this.handleWriteError(err, 'setMissionModeActive');
     }
@@ -205,7 +217,7 @@ export class StudyBrainActions {
                 completedLectures: currentLecture,
                 totalLectures,
               }
-            : { completedLectures: currentLecture, totalLectures };
+            : { completedLectures: currentLecture, totalLectures, avgLectureDurationMinutes: 60 };
           
           const updatedPracticeProgress = c.practiceProgress
             ? {
@@ -216,10 +228,13 @@ export class StudyBrainActions {
                 pyqPercent: pyqsComplete ? 100 : c.practiceProgress.pyqPercent,
               }
             : { 
-                dppCompleted: dppComplete, 
+                dppCompleted: dppComplete || false, 
                 dppPercent: dppComplete ? 100 : 0,
-                pyqsCompleted: pyqsComplete,
-                pyqPercent: pyqsComplete ? 100 : 0
+                pyqsCompleted: pyqsComplete || false,
+                pyqPercent: pyqsComplete ? 100 : 0,
+                moduleCompleted: false,
+                accuracyPercent: 0,
+                confidencePercent: 0
               };
 
           const updatedChap: Chapter = {
@@ -275,6 +290,13 @@ export class StudyBrainActions {
       });
 
       await Promise.all(savePromises);
+
+      // Trigger success toast for task completion if we just completed it
+      if (isCompleting) {
+        this.triggerToast('Mission Accomplished', `${mission.taskName} finished successfully!`, 'success');
+      } else {
+        this.triggerToast('Mission Restored', `${mission.taskName} added back to queue.`, 'info');
+      }
     } catch (err) {
       await this.handleWriteError(err, 'completeTask');
     }
@@ -310,6 +332,7 @@ export class StudyBrainActions {
         deletedMissionIds: updatedDeletedMissionIds,
         lastSyncError: null
       });
+      this.triggerToast('Mission Removed', 'Task successfully removed from your queue.', 'info');
     } catch (err) {
       await this.handleWriteError(err, 'deleteMission');
     }
@@ -337,6 +360,7 @@ export class StudyBrainActions {
         customMissions: updatedCustomMissions,
         lastSyncError: null
       });
+      this.triggerToast('Mission Created', `Custom mission "${newMission.taskName}" added to queue.`, 'success');
     } catch (err) {
       await this.handleWriteError(err, 'addCustomMission');
     }
@@ -1059,15 +1083,17 @@ export class StudyBrainActions {
           });
           await batch.commit();
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error(`Error deleting collection ${colName}:`, err);
+        throw new Error(`Failed to delete collection ${colName}: ${err.message}`);
       }
     }
 
     try {
       await deleteDoc(doc(db, 'users', this.userId));
-    } catch (err) {
+    } catch (err: any) {
       console.error(`Error deleting user document ${this.userId}:`, err);
+      throw new Error(`Failed to delete account data: ${err.message}`);
     }
   }
 

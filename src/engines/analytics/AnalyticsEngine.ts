@@ -1,4 +1,4 @@
-import { SubjectId } from '../../types/index';
+import { SubjectId } from '@/types/index';
 import { AnalyticsInput, AnalyticsOutput } from './types';
 
 export class AnalyticsEngine {

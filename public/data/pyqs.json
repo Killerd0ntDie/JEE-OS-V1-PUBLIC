@@ -1,0 +1,326 @@
+{
+  "version": "1.2",
+  "lastUpdated": "2026-08-01T00:00:00Z",
+  "questions": [
+    {
+      "id": "pyq-phys-p1-1",
+      "subject": "physics",
+      "chapterId": "p1",
+      "topic": "Dimensional Analysis",
+      "type": "MCQ_SINGLE",
+      "difficulty": "JEE_MAIN",
+      "content": "If energy ($E$), velocity ($V$) and time ($T$) are chosen as the fundamental quantities, the dimensional formula of surface tension will be:",
+      "options": [
+        { "id": "A", "text": "$[E V^{-1} T^{-2}]$" },
+        { "id": "B", "text": "$[E V^{-2} T^{-2}]$" },
+        { "id": "C", "text": "$[E V^{-2} T^{-1}]$" },
+        { "id": "D", "text": "$[E V^{-1} T^{-3}]$" }
+      ],
+      "solution": {
+        "text": "Surface tension ($S$) is force per unit length or energy per unit area. So, $[S] = [M L^0 T^{-2}]$. Let $S \\propto E^a V^b T^c$. Then $[M L^0 T^{-2}] = [M L^2 T^{-2}]^a [L T^{-1}]^b [T]^c$. Equating powers of $M, L, T$:\n$a = 1$\n$2a + b = 0 \\implies b = -2$\n$-2a - b + c = -2 \\implies -2(1) - (-2) + c = -2 \\implies c = -2$.\nThus, $[S] = [E V^{-2} T^{-2}]$.",
+        "correctOptionIds": ["B"]
+      },
+      "source": "JEE Main Past Year"
+    },
+    {
+      "id": "pyq-phys-p1-2",
+      "subject": "physics",
+      "chapterId": "p1",
+      "topic": "Errors and Measurements",
+      "type": "MCQ_SINGLE",
+      "difficulty": "JEE_ADVANCED",
+      "content": "A physical quantity $P$ is described by the relation $P = a^{1/2} b^2 c^3 d^{-4}$. If the relative errors in the measurement of $a, b, c$ and $d$ respectively, are $2\\%, 1\\%, 3\\%$ and $5\\%$, then the relative error in $P$ will be:",
+      "options": [
+        { "id": "A", "text": "$32\\%$" },
+        { "id": "B", "text": "$8\\%$" },
+        { "id": "C", "text": "$25\\%$" },
+        { "id": "D", "text": "$12\\%$" }
+      ],
+      "solution": {
+        "text": "The maximum percentage error is given by: $\\frac{\\Delta P}{P} \\times 100 = \\frac{1}{2}\\frac{\\Delta a}{a} \\times 100 + 2\\frac{\\Delta b}{b} \\times 100 + 3\\frac{\\Delta c}{c} \\times 100 + 4\\frac{\\Delta d}{d} \\times 100$. Substituting the values: $\\frac{\\Delta P}{P} \\times 100 = \\frac{1}{2}(2\\%) + 2(1\\%) + 3(3\\%) + 4(5\\%) = 1\\% + 2\\% + 9\\% + 20\\% = 32\\%$.",
+        "correctOptionIds": ["A"]
+      },
+      "source": "JEE Advanced Past Year"
+    },
+    {
+      "id": "pyq-phys-p2-1",
+      "subject": "physics",
+      "chapterId": "p2",
+      "topic": "Relative Motion",
+      "type": "MCQ_SINGLE",
+      "difficulty": "JEE_ADVANCED",
+      "content": "Two particles $A$ and $B$ are projected simultaneously in the direction of the horizontal and the vertical respectively from the same point, with speeds $u$ and $v$. The shortest distance between them is:",
+      "options": [
+        { "id": "A", "text": "$0$" },
+        { "id": "B", "text": "$\\frac{uv}{g}$" },
+        { "id": "C", "text": "$\\frac{uv}{\\sqrt{u^2+v^2}}$" },
+        { "id": "D", "text": "They will never be at a minimum distance other than $0$" }
+      ],
+      "solution": {
+        "text": "Since they are both in free fall, their relative acceleration is zero. Therefore, their relative velocity is constant. The initial relative velocity of $B$ with respect to $A$ is $\\vec{v}_{BA} = v\\hat{j} - u\\hat{i}$. The relative path is a straight line. Since they start from the same point, the relative path passes through the origin. Therefore, the shortest distance between them is $0$ at $t=0$, and they continuously separate.",
+        "correctOptionIds": ["A"]
+      },
+      "source": "JEE Advanced Concept"
+    },
+    {
+      "id": "pyq-phys-p2-2",
+      "subject": "physics",
+      "chapterId": "p2",
+      "topic": "Projectile Motion on Incline",
+      "type": "MCQ_SINGLE",
+      "difficulty": "JEE_MAIN",
+      "content": "A particle is projected horizontally with a speed $u$ from the top of a plane inclined at an angle $\\theta$ with the horizontal. How far from the point of projection will the particle strike the plane?",
+      "options": [
+        { "id": "A", "text": "$\\frac{u^2}{g} \\tan\\theta$" },
+        { "id": "B", "text": "$\\frac{2u^2}{g} \\tan\\theta \\sec\\theta$" },
+        { "id": "C", "text": "$\\frac{u^2}{2g} \\sin2\\theta$" },
+        { "id": "D", "text": "$\\frac{2u^2}{g} \\sin\\theta$" }
+      ],
+      "solution": {
+        "text": "Let the point of projection be the origin. The equation of the trajectory is $y = -\\frac{gx^2}{2u^2}$. The equation of the inclined plane is $y = -x \\tan\\theta$. Finding the intersection: $-x \\tan\\theta = -\\frac{gx^2}{2u^2} \\implies x = \\frac{2u^2 \\tan\\theta}{g}$. The distance along the incline is $s = x \\sec\\theta = \\frac{2u^2 \\tan\\theta \\sec\\theta}{g}$.",
+        "correctOptionIds": ["B"]
+      },
+      "source": "H.C. Verma Vol 1"
+    },
+    {
+      "id": "pyq-phys-p3-1",
+      "subject": "physics",
+      "chapterId": "p3",
+      "topic": "Newton's Laws of Motion",
+      "type": "MCQ_SINGLE",
+      "difficulty": "JEE_ADVANCED",
+      "content": "A system consists of two identical blocks, each of mass $m$, connected by a light spring of stiffness $k$, resting on a smooth horizontal surface. A constant horizontal force $F$ is applied to one of the blocks. What is the maximum extension of the spring during the subsequent motion?",
+      "options": [
+        { "id": "A", "text": "$\\frac{F}{k}$" },
+        { "id": "B", "text": "$\\frac{2F}{k}$" },
+        { "id": "C", "text": "$\\frac{F}{2k}$" },
+        { "id": "D", "text": "$\\frac{\\sqrt{2}F}{k}$" }
+      ],
+      "solution": {
+        "text": "Let us use the center of mass frame. The acceleration of the CM is $a_{cm} = \\frac{F}{2m}$. In the CM frame, a pseudo force $-\\frac{F}{2}$ acts on both blocks. The block where $F$ is applied experiences a net force $F - \\frac{F}{2} = \\frac{F}{2}$ away from the CM, while the other block experiences a pseudo force $\\frac{F}{2}$ also away from the CM. The work done by these pseudo forces in the CM frame until maximum extension $x_{max}$ (where both blocks come to rest in CM frame) is $\\frac{F}{2} \\frac{x_{max}}{2} + \\frac{F}{2} \\frac{x_{max}}{2} = \\frac{F}{2} x_{max}$. Equating this work to the potential energy of the spring $\\frac{1}{2} k x_{max}^2$, we get $\\frac{F}{2} x_{max} = \\frac{1}{2} k x_{max}^2 \\implies x_{max} = \\frac{F}{k}$.",
+        "correctOptionIds": ["A"]
+      },
+      "source": "S.S. Krotov - Science for Everyone"
+    },
+    {
+      "id": "pyq-phys-p3-2",
+      "subject": "physics",
+      "chapterId": "p3",
+      "topic": "Friction",
+      "type": "NUMERICAL",
+      "difficulty": "JEE_MAIN",
+      "content": "A block of mass 10 kg is placed on a rough horizontal surface having coefficient of friction $\\mu = 0.5$. If a horizontal force of 100 N is acting on it, then the acceleration of the block will be ($g = 10 \\text{ m/s}^2$):",
+      "options": [],
+      "solution": {
+        "text": "Normal reaction $N = mg = 10 \\times 10 = 100$ N. Maximum friction $f_{max} = \\mu N = 0.5 \\times 100 = 50$ N. The applied force is $F = 100$ N. Since $F > f_{max}$, the block moves. Net force $= F - f_{max} = 100 - 50 = 50$ N. Acceleration $a = \\frac{F_{net}}{m} = \\frac{50}{10} = 5 \\text{ m/s}^2$.",
+        "correctOptionIds": ["5"]
+      },
+      "source": "JEE Main Past Year"
+    },
+    {
+      "id": "pyq-phys-p4-1",
+      "subject": "physics",
+      "chapterId": "p4",
+      "topic": "Work Energy Theorem",
+      "type": "MCQ_SINGLE",
+      "difficulty": "JEE_MAIN",
+      "content": "A body of mass $m$ starts from rest and is subjected to a force $F = cx$ where $c$ is a constant and $x$ is the distance. The work done by the force in moving the body a distance $d$ is:",
+      "options": [
+        { "id": "A", "text": "$cd$" },
+        { "id": "B", "text": "$\\frac{cd^2}{2}$" },
+        { "id": "C", "text": "$cd^2$" },
+        { "id": "D", "text": "$\\frac{c^2 d}{2}$" }
+      ],
+      "solution": {
+        "text": "Work done $W = \\int_{0}^{d} F dx = \\int_{0}^{d} (cx) dx = c \\left[\\frac{x^2}{2}\\right]_0^d = \\frac{1}{2}cd^2$.",
+        "correctOptionIds": ["B"]
+      },
+      "source": "JEE Main Concepts"
+    },
+    {
+      "id": "pyq-phys-p5-1",
+      "subject": "physics",
+      "chapterId": "p5",
+      "topic": "Conservation of Angular Momentum",
+      "type": "MCQ_SINGLE",
+      "difficulty": "JEE_ADVANCED",
+      "content": "A child is standing with folded hands at the center of a platform rotating about its central axis. The kinetic energy of the system is $K$. The child now stretches his arms so that the moment of inertia of the system doubles. The kinetic energy of the system now is:",
+      "options": [
+        { "id": "A", "text": "$2K$" },
+        { "id": "B", "text": "$\\frac{K}{2}$" },
+        { "id": "C", "text": "$\\frac{K}{4}$" },
+        { "id": "D", "text": "$4K$" }
+      ],
+      "solution": {
+        "text": "Since no external torque acts on the system, angular momentum $L$ is conserved. Kinetic energy $K = \\frac{L^2}{2I}$. If the moment of inertia becomes $2I$, the new kinetic energy $K' = \\frac{L^2}{2(2I)} = \\frac{1}{2} \\frac{L^2}{2I} = \\frac{K}{2}$.",
+        "correctOptionIds": ["B"]
+      },
+      "source": "JEE Main / Advanced"
+    },
+    {
+      "id": "pyq-chem-c1-1",
+      "subject": "chemistry",
+      "chapterId": "c1",
+      "topic": "Mole Concept & Stoichiometry",
+      "type": "NUMERICAL",
+      "difficulty": "JEE_MAIN",
+      "content": "If $20.0 \\text{ g}$ of $\\text{CaCO}_3$ is treated with $20.0 \\text{ g}$ of $\\text{HCl}$, how many grams of $\\text{CO}_2$ can be generated according to the following reaction? (Molar mass: $\\text{CaCO}_3 = 100$, $\\text{HCl} = 36.5$, $\\text{CO}_2 = 44$) \n $\\text{CaCO}_3(s) + 2\\text{HCl}(aq) \\rightarrow \\text{CaCl}_2(aq) + \\text{H}_2\\text{O}(l) + \\text{CO}_2(g)$",
+      "options": [],
+      "solution": {
+        "text": "Moles of $\\text{CaCO}_3 = \\frac{20.0}{100} = 0.20 \\text{ mol}$. Moles of $\\text{HCl} = \\frac{20.0}{36.5} = 0.548 \\text{ mol}$. From the stoichiometry, 1 mole of $\\text{CaCO}_3$ requires 2 moles of $\\text{HCl}$. Therefore, 0.20 mole of $\\text{CaCO}_3$ requires $0.20 \\times 2 = 0.40 \\text{ mol}$ of $\\text{HCl}$. Since we have 0.548 mol of HCl, $\\text{CaCO}_3$ is the limiting reagent. Moles of $\\text{CO}_2$ produced = Moles of $\\text{CaCO}_3$ consumed = $0.20 \\text{ mol}$. Mass of $\\text{CO}_2 = 0.20 \\times 44 = 8.80 \\text{ g}$.",
+        "correctOptionIds": ["8.8"]
+      },
+      "source": "JEE Main Past Year"
+    },
+    {
+      "id": "pyq-chem-c2-1",
+      "subject": "chemistry",
+      "chapterId": "c2",
+      "topic": "Bohr Model",
+      "type": "MCQ_SINGLE",
+      "difficulty": "JEE_MAIN",
+      "content": "The ratio of the radius of the second orbit of $\\text{Li}^{2+}$ to the radius of the third orbit of $\\text{He}^{+}$ is:",
+      "options": [
+        { "id": "A", "text": "8 : 27" },
+        { "id": "B", "text": "27 : 8" },
+        { "id": "C", "text": "9 : 4" },
+        { "id": "D", "text": "4 : 9" }
+      ],
+      "solution": {
+        "text": "The radius of the $n^{\\text{th}}$ Bohr orbit is given by $r \\propto \\frac{n^2}{Z}$. For $\\text{Li}^{2+}$, $n = 2$ and $Z = 3$. Therefore, $r_{\\text{Li}^{2+}} \\propto \\frac{2^2}{3} = \\frac{4}{3}$. For $\\text{He}^{+}$, $n = 3$ and $Z = 2$. Therefore, $r_{\\text{He}^{+}} \\propto \\frac{3^2}{2} = \\frac{9}{2}$. The ratio is $\\frac{4/3}{9/2} = \\frac{4}{3} \\times \\frac{2}{9} = \\frac{8}{27}$.",
+        "correctOptionIds": ["A"]
+      },
+      "source": "JEE Main"
+    },
+    {
+      "id": "pyq-chem-c18-1",
+      "subject": "chemistry",
+      "chapterId": "c18",
+      "topic": "Aromaticity & Stability",
+      "type": "MCQ_SINGLE",
+      "difficulty": "JEE_ADVANCED",
+      "content": "Which of the following carbocations is most stable?",
+      "options": [
+        { "id": "A", "text": "Tropylium cation (Cycloheptatrienyl cation)" },
+        { "id": "B", "text": "Benzyl cation" },
+        { "id": "C", "text": "Triphenylmethyl cation" },
+        { "id": "D", "text": "Allyl cation" }
+      ],
+      "solution": {
+        "text": "Tropylium cation is a 7-membered ring with 6 $\\pi$ electrons in complete conjugation. It satisfies Huckel's rule ($4n+2 \\pi$ electrons, where $n=1$) and is therefore aromatic. Aromatic carbocations are exceptionally stable, often more stable than even triphenylmethyl cation in certain conditions, but generally Tropylium is considered highly stable due to aromaticity.",
+        "correctOptionIds": ["A"]
+      },
+      "source": "M.S. Chouhan Advanced Organic Chemistry"
+    },
+    {
+      "id": "pyq-chem-c18-2",
+      "subject": "chemistry",
+      "chapterId": "c18",
+      "topic": "Acidic Strength",
+      "type": "MCQ_SINGLE",
+      "difficulty": "JEE_MAIN",
+      "content": "Arrange the following in increasing order of acidic strength: (I) Phenol (II) p-Nitrophenol (III) m-Nitrophenol (IV) p-Cresol",
+      "options": [
+        { "id": "A", "text": "IV < I < III < II" },
+        { "id": "B", "text": "I < IV < III < II" },
+        { "id": "C", "text": "IV < I < II < III" },
+        { "id": "D", "text": "II < III < I < IV" }
+      ],
+      "solution": {
+        "text": "Acidic strength depends on the stability of the phenoxide ion. Electron Withdrawing Groups (EWG) like $-\\text{NO}_2$ increase stability (and thus acidity) via $-R$ and $-I$ effects. The $-R$ effect of $-\\text{NO}_2$ is highly stabilizing at the para position, making p-nitrophenol the most acidic. m-Nitrophenol experiences only the $-I$ effect, so it's less acidic than p-nitrophenol but more acidic than phenol. Electron Donating Groups (EDG) like $-\\text{CH}_3$ decrease acidity via $+I$ and hyperconjugation. Thus p-cresol is the least acidic. Order: IV < I < III < II.",
+        "correctOptionIds": ["A"]
+      },
+      "source": "JEE Main Past Year"
+    },
+    {
+      "id": "pyq-chem-c18-3",
+      "subject": "chemistry",
+      "chapterId": "c18",
+      "topic": "Isomerism",
+      "type": "NUMERICAL",
+      "difficulty": "JEE_ADVANCED",
+      "content": "How many total structural isomers are possible for the molecular formula $\\text{C}_6\\text{H}_{14}$?",
+      "options": [],
+      "solution": {
+        "text": "The structural isomers of hexane ($\\text{C}_6\\text{H}_{14}$) are:\n1. n-hexane\n2. 2-methylpentane\n3. 3-methylpentane\n4. 2,2-dimethylbutane\n5. 2,3-dimethylbutane\nThere are exactly 5 structural isomers.",
+        "correctOptionIds": ["5"]
+      },
+      "source": "JEE Advanced"
+    },
+    {
+      "id": "pyq-math-m1-1",
+      "subject": "maths",
+      "chapterId": "m1",
+      "topic": "Relations",
+      "type": "MCQ_SINGLE",
+      "difficulty": "JEE_MAIN",
+      "content": "Let $R$ be a relation on the set $N$ of natural numbers defined by $n R m$ if $n$ divides $m$. Then $R$ is:",
+      "options": [
+        { "id": "A", "text": "Reflexive and symmetric" },
+        { "id": "B", "text": "Transitive and symmetric" },
+        { "id": "C", "text": "Equivalence" },
+        { "id": "D", "text": "Reflexive, transitive but not symmetric" }
+      ],
+      "solution": {
+        "text": "For any $n \\in N$, $n$ divides $n$, so $R$ is reflexive.\nIf $n$ divides $m$ and $m$ divides $p$, then $n$ divides $p$. So $R$ is transitive.\nIf $2$ divides $4$, it is not true that $4$ divides $2$. So $R$ is not symmetric.\nHence, $R$ is reflexive and transitive but not symmetric.",
+        "correctOptionIds": ["D"]
+      },
+      "source": "JEE Main"
+    },
+    {
+      "id": "pyq-math-m2-1",
+      "subject": "maths",
+      "chapterId": "m2",
+      "topic": "Geometry of Complex Numbers",
+      "type": "MCQ_SINGLE",
+      "difficulty": "JEE_ADVANCED",
+      "content": "If $|z - 1| + |z + 1| = 2$, then the locus of $z$ in the complex plane is:",
+      "options": [
+        { "id": "A", "text": "An ellipse" },
+        { "id": "B", "text": "A circle" },
+        { "id": "C", "text": "A straight line segment" },
+        { "id": "D", "text": "A parabola" }
+      ],
+      "solution": {
+        "text": "The equation $|z - z_1| + |z - z_2| = 2a$ represents an ellipse if $2a > |z_1 - z_2|$. If $2a = |z_1 - z_2|$, it represents the line segment joining $z_1$ and $z_2$. Here, $z_1 = 1, z_2 = -1$. The distance is $|1 - (-1)| = 2$. Since the given sum is exactly $2$, the locus is the straight line segment joining $1$ and $-1$ on the real axis.",
+        "correctOptionIds": ["C"]
+      },
+      "source": "Cengage Mathematics"
+    },
+    {
+      "id": "pyq-math-m3-1",
+      "subject": "maths",
+      "chapterId": "m3",
+      "topic": "Quadratic Equations",
+      "type": "MCQ_SINGLE",
+      "difficulty": "JEE_MAIN",
+      "content": "If $\\alpha$ and $\\beta$ are the roots of the equation $x^2 - x + 1 = 0$, then $\\alpha^{2009} + \\beta^{2009} = $",
+      "options": [
+        { "id": "A", "text": "-1" },
+        { "id": "B", "text": "1" },
+        { "id": "C", "text": "2" },
+        { "id": "D", "text": "-2" }
+      ],
+      "solution": {
+        "text": "The roots of $x^2 - x + 1 = 0$ are $-\\omega$ and $-\\omega^2$, where $\\omega$ is a complex cube root of unity.\nSo, $\\alpha = -\\omega$ and $\\beta = -\\omega^2$.\n$\\alpha^{2009} + \\beta^{2009} = (-\\omega)^{2009} + (-\\omega^2)^{2009} = -(\\omega^{2009} + \\omega^{4018})$.\nSince $2009 = 3 \\times 669 + 2$, $\\omega^{2009} = \\omega^2$.\nAnd $4018 = 3 \\times 1339 + 1$, $\\omega^{4018} = \\omega^1$.\nTherefore, $\\alpha^{2009} + \\beta^{2009} = -(\\omega^2 + \\omega)$.\nSince $1 + \\omega + \\omega^2 = 0$, $\\omega + \\omega^2 = -1$.\nSo, $\\alpha^{2009} + \\beta^{2009} = -(-1) = 1$.",
+        "correctOptionIds": ["B"]
+      },
+      "source": "JEE Main Past Year"
+    },
+    {
+      "id": "pyq-math-m11-1",
+      "subject": "maths",
+      "chapterId": "m11",
+      "topic": "Definite Integration Properties",
+      "type": "NUMERICAL",
+      "difficulty": "JEE_ADVANCED",
+      "content": "Evaluate the integral $I = \\int_{0}^{\\pi/2} \\frac{\\sin^3 x}{\\sin^3 x + \\cos^3 x} dx$.",
+      "options": [],
+      "solution": {
+        "text": "Using the property $\\int_0^a f(x) dx = \\int_0^a f(a - x) dx$, we have $I = \\int_0^{\\pi/2} \\frac{\\sin^3(\\pi/2 - x)}{\\sin^3(\\pi/2 - x) + \\cos^3(\\pi/2 - x)} dx = \\int_0^{\\pi/2} \\frac{\\cos^3 x}{\\cos^3 x + \\sin^3 x} dx$. Adding the two expressions for $I$, we get $2I = \\int_0^{\\pi/2} \\frac{\\sin^3 x + \\cos^3 x}{\\sin^3 x + \\cos^3 x} dx = \\int_0^{\\pi/2} 1 dx = \\frac{\\pi}{2}$. Therefore, $I = \\frac{\\pi}{4}$.",
+        "correctOptionIds": ["0.785"]
+      },
+      "source": "Vikas Gupta Black Book"
+    }
+  ]
+}

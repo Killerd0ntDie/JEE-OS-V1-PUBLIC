@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { PlannerEngine } from './PlannerEngine';
-import { KnowledgeEngine, SyllabusNode } from '../knowledge';
+import { KnowledgeEngine, SyllabusNode } from '@/engines/knowledge';
 import { PlannerInput } from './types';
 
 const MOCK_SYLLABUS: SyllabusNode[] = [

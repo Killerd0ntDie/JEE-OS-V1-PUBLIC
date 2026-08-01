@@ -1,7 +1,7 @@
 import React from 'react';
 import { PauseCircle, CheckCircle, X } from 'lucide-react';
-import { Chapter } from '../../types';
-import { ModalPortal } from '../ui/ModalPortal';
+import { Chapter } from '@/types';
+import { ModalPortal } from '@/components/ui/ModalPortal';
 
 interface HoldNotificationModalProps {
   isOpen: boolean;

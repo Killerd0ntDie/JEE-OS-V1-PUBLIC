@@ -1,6 +1,6 @@
 import { collection, doc, getDocs, setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
-import { db } from '../firebase';
-import { Note } from '../types/index';
+import { db } from '@/firebase';
+import { Note } from '@/types/index';
 
 export const NoteRepository = {
   // Fetch all notes for a user

@@ -1,6 +1,6 @@
 import { collection, doc, getDocs, setDoc, updateDoc, deleteDoc, writeBatch } from 'firebase/firestore';
-import { db } from '../firebase';
-import { Mistake } from '../types/index';
+import { db } from '@/firebase';
+import { Mistake } from '@/types/index';
 
 export const MistakeRepository = {
   // Fetch all mistakes for a user

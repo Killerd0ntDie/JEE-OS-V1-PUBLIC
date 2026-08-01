@@ -4,11 +4,11 @@ import {
   CheckCircle, ChevronLeft, ChevronRight, Eye, EyeOff, 
   Sparkles, Award, RotateCcw, AlertTriangle, BookOpen 
 } from 'lucide-react';
-import { Badge } from '../../../components/ui/Badge';
-import { Mistake, SubjectId } from '../../../types/index';
-import { useLockBodyScroll } from '../../../hooks/useLockBodyScroll';
-import { useEscapeKey } from '../../../hooks/useEscapeKey';
-import { MissionMode } from '../../mission/MissionMode';
+import { Badge } from '@/components/ui/Badge';
+import { Mistake, SubjectId } from '@/types/index';
+import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { MissionMode } from '@/features/mission/MissionMode';
 import { BlockMath, InlineMath } from 'react-katex';
 
 export interface BatchReviewModalProps {

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { ModalPortal } from '../../../components/ui/ModalPortal';
+import { ModalPortal } from '@/components/ui/ModalPortal';
 import { X, Plus, Clock, Sparkles } from 'lucide-react';
-import { useStudyBrain } from '../../../context/StudyBrainContext';
-import { SubjectId, TodayMission } from '../../../types/index';
-import { useEscapeKey } from '../../../hooks/useEscapeKey';
+import { useStudyBrain } from '@/context/StudyBrainContext';
+import { SubjectId, TodayMission } from '@/types/index';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
 
 interface CustomMissionModalProps {
   isOpen: boolean;
@@ -129,7 +129,7 @@ export const CustomMissionModal: React.FC<CustomMissionModalProps> = ({ isOpen, 
               value={taskName}
               onChange={e => setTaskName(e.target.value)}
               placeholder="e.g., Complete coaching module"
-              className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white font-mono text-sm placeholder-zinc-600 focus:outline-none focus:border-indigo-500 transition-colors"
+              className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white font-mono text-sm placeholder-zinc-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500 transition-colors"
             />
           </div>
 
@@ -160,7 +160,7 @@ export const CustomMissionModal: React.FC<CustomMissionModalProps> = ({ isOpen, 
             <select
               value={chapter}
               onChange={e => setChapter(e.target.value)}
-              className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white font-mono text-sm focus:outline-none focus:border-indigo-500 transition-colors"
+              className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white font-mono text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500 transition-colors"
             >
               <option value="">General / None</option>
               {state.chapters.filter(c => c.subject === subject).map(c => (
@@ -175,7 +175,7 @@ export const CustomMissionModal: React.FC<CustomMissionModalProps> = ({ isOpen, 
             <select
               value={type}
               onChange={e => setType(e.target.value as TodayMission['type'])}
-              className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white font-mono text-sm focus:outline-none focus:border-indigo-500 transition-colors"
+              className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white font-mono text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500 transition-colors"
             >
               <option value="Solve DPP">Solve Questions (DPP)</option>
               <option value="Solve PYQs">Solve PYQs</option>

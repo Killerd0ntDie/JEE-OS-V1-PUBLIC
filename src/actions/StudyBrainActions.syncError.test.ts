@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { StudyBrainActions } from './StudyBrainActions';
-import { StudyBrainRuntime } from '../runtime/StudyBrainRuntime';
-import { MistakeRepository } from '../repositories/mistakeRepository';
-import { UserRepository } from '../repositories/userRepository';
-import { CustomMissionRepository } from '../repositories/customMissionRepository';
+import { StudyBrainRuntime } from '@/runtime/StudyBrainRuntime';
+import { MistakeRepository } from '@/repositories/mistakeRepository';
+import { UserRepository } from '@/repositories/userRepository';
+import { CustomMissionRepository } from '@/repositories/customMissionRepository';
 
 vi.mock('../firebase', () => ({
   db: {}
@@ -195,6 +195,8 @@ describe('StudyBrainActions - Write Failure & Sync Error Handling', () => {
           { id: 'custom-del-1', subject: 'physics', chapter: 'Kinematics', type: 'Solve DPP', taskName: 'Test DPP', duration: 30, completed: false, xp: 50, unlocked: true }
         ]
       });
+      const mockDelete = vi.spyOn(CustomMissionRepository, 'deleteMission').mockResolvedValue();
+      const mockUpdate = vi.spyOn(UserRepository, 'updateUserProfile').mockResolvedValue();
 
       await actions.deleteMission('custom-del-1');
 
@@ -202,6 +204,9 @@ describe('StudyBrainActions - Write Failure & Sync Error Handling', () => {
       expect(state.todayMissions.find(m => m.id === 'custom-del-1')).toBeUndefined();
       expect(state.customMissions.find(m => m.id === 'custom-del-1')).toBeUndefined();
       expect(state.deletedMissionIds).toContain('custom-del-1');
+      
+      mockDelete.mockRestore();
+      mockUpdate.mockRestore();
     });
   });
 });

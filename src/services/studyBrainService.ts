@@ -1,13 +1,13 @@
-import { Chapter, TodayMission, SubjectId } from '../types/index';
-import { KnowledgeEngine, SyllabusNode } from '../engines/knowledge';
-import { PlannerEngine, PlannerInput } from '../engines/planner';
-import { OptimizationEngine, OptimizationInput } from '../engines/optimization';
+import { Chapter, TodayMission, SubjectId } from '@/types/index';
+import { KnowledgeEngine, SyllabusNode } from '@/engines/knowledge';
+import { PlannerEngine, PlannerInput } from '@/engines/planner';
+import { OptimizationEngine, OptimizationInput } from '@/engines/optimization';
 import { RevisionEngineService } from './revisionEngineService';
-import { Mistake, MockResult, StudySession } from '../types/index';
-import { AnalyticsEngine, AnalyticsInput } from '../engines/analytics';
-import { CoachEngine, CoachInput } from '../engines/coach';
-import { calculateMistakeScore } from '../utils/mistakeIntelligence';
-import { getAcademicState } from '../utils/academicState';
+import { Mistake, MockResult, StudySession } from '@/types/index';
+import { AnalyticsEngine, AnalyticsInput } from '@/engines/analytics';
+import { CoachEngine, CoachInput } from '@/engines/coach';
+import { calculateMistakeScore } from '@/utils/mistakeIntelligence';
+import { getAcademicState } from '@/utils/academicState';
 
 export function createSyllabusGraph(chapters: Chapter[]): SyllabusNode[] {
   const nameToId = new Map<string, string>();

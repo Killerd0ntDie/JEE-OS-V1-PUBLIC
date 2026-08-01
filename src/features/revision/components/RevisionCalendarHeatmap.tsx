@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
-import { Icon } from '../../../components/ui/Icon';
-import { StudySession } from '../../../types/index';
+import { Icon } from '@/components/ui/Icon';
+import { StudySession } from '@/types/index';
 
 interface RevisionCalendarHeatmapProps {
   sessions: StudySession[];

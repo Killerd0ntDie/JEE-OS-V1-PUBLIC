@@ -1,9 +1,20 @@
-import React, { useState } from 'react';
-import { useAuth } from '../../context/AuthContext';
-import { Icon } from '../../components/ui/Icon';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '@/features/auth';
+import { Icon } from '@/components/ui/Icon';
 
 export function AuthPage() {
-  const { loginWithGoogle, loginWithEmail, registerWithEmail, loginGuest, error, clearError } = useAuth();
+  const { user, loginWithGoogle, loginWithEmail, registerWithEmail, loginGuest, error, clearError } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (user) {
+      const returnUrl = location.state?.returnUrl || '/dashboard';
+      navigate(returnUrl, { replace: true });
+    }
+  }, [user, navigate, location]);
+
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -70,7 +81,7 @@ export function AuthPage() {
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-zinc-200 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 focus:bg-black/40 transition-all placeholder:text-zinc-600 shadow-inner"
+                className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-zinc-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 focus:bg-black/40 transition-all placeholder:text-zinc-600 shadow-inner"
                 placeholder="Aspirant Name"
               />
             </div>
@@ -83,7 +94,7 @@ export function AuthPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-zinc-200 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 focus:bg-black/40 transition-all placeholder:text-zinc-600 shadow-inner"
+              className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-zinc-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 focus:bg-black/40 transition-all placeholder:text-zinc-600 shadow-inner"
               placeholder="astronaut@jeeos.in"
             />
           </div>
@@ -95,7 +106,7 @@ export function AuthPage() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-zinc-200 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 focus:bg-black/40 transition-all placeholder:text-zinc-600 shadow-inner"
+              className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-zinc-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 focus:bg-black/40 transition-all placeholder:text-zinc-600 shadow-inner"
               placeholder="••••••••"
             />
           </div>

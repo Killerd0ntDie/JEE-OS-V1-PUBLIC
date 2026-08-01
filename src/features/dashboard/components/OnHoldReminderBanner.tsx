@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { PauseCircle, ChevronDown, ChevronUp } from 'lucide-react';
-import { Chapter } from '../../../types';
+import { Chapter } from '@/types';
 
 interface OnHoldReminderBannerProps {
   chapters: Chapter[];

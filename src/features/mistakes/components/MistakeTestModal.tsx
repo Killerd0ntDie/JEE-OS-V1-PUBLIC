@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, ChevronRight, CheckCircle2, XCircle, RefreshCw, AlertCircle, Eye } from 'lucide-react';
-import { Mistake } from '../../../types';
-import { useStudyBrain } from '../../../context/StudyBrainContext';
-import { soundSystem } from '../../../utils/audioEffects';
+import { Mistake } from '@/types';
+import { useStudyBrain } from '@/context/StudyBrainContext';
+import { soundSystem } from '@/utils/audioEffects';
 import { BlockMath, InlineMath } from 'react-katex';
-import { ModalPortal } from '../../../components/ui/ModalPortal';
+import { ModalPortal } from '@/components/ui/ModalPortal';
+import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 
 interface MistakeTestModalProps {
   isOpen: boolean;
@@ -14,6 +15,8 @@ interface MistakeTestModalProps {
 }
 
 export function MistakeTestModal({ isOpen, onClose, mistakes }: MistakeTestModalProps) {
+  useLockBodyScroll(isOpen || false);
+
   const { actions, state } = useStudyBrain();
   
   // Filter only mistakes that are not Mastered and have question text

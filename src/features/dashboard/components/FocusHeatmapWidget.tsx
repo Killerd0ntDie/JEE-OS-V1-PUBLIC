@@ -1,6 +1,6 @@
 import React from 'react';
-import { Card } from '../../../components/ui/Card';
-import { StudySession } from '../../../types';
+import { Card } from '@/components/ui/Card';
+import { StudySession } from '@/types';
 
 interface FocusHeatmapWidgetProps {
   studySessions: StudySession[];

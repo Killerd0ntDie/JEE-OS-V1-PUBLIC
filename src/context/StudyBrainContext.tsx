@@ -1,21 +1,21 @@
 import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
 import { onSnapshot, collection, doc } from 'firebase/firestore';
-import { db } from '../firebase';
-import { StudyBrainRuntime, StudyBrainState } from '../runtime/StudyBrainRuntime';
-import { useStudyBrainStore } from '../store/useStudyBrainStore';
-import { useAuth } from '../hooks/useAuth';
-import { UserRepository } from '../repositories/userRepository';
-import { ChapterRepository } from '../repositories/chapterRepository';
-import { NoteRepository } from '../repositories/noteRepository';
-import { MistakeRepository } from '../repositories/mistakeRepository';
-import { StudySessionRepository } from '../repositories/studySessionRepository';
-import { MockResultRepository } from '../repositories/mockResultRepository';
-import { MockTestRepository } from '../repositories/mockTestRepository';
-import { TimelineRepository } from '../repositories/timelineRepository';
-import { DEFAULT_COACH_BRIEFING, INITIAL_CHAPTERS, INITIAL_MISTAKES } from '../constants/initialSeeds';
-import { StudyBrainActions } from '../actions/StudyBrainActions';
-import { Chapter, Mistake, TimelineBlock, UserProfile } from '../types/index';
-import { normalizeChapter } from '../utils/academicState';
+import { db } from '@/firebase';
+import { StudyBrainRuntime, StudyBrainState } from '@/runtime/StudyBrainRuntime';
+import { useStudyBrainStore } from '@/store/useStudyBrainStore';
+import { useAuth } from '@/features/auth';
+import { UserRepository } from '@/repositories/userRepository';
+import { ChapterRepository } from '@/repositories/chapterRepository';
+import { NoteRepository } from '@/repositories/noteRepository';
+import { MistakeRepository } from '@/repositories/mistakeRepository';
+import { StudySessionRepository } from '@/repositories/studySessionRepository';
+import { MockResultRepository } from '@/repositories/mockResultRepository';
+import { MockTestRepository } from '@/repositories/mockTestRepository';
+import { TimelineRepository } from '@/repositories/timelineRepository';
+import { DEFAULT_COACH_BRIEFING, INITIAL_CHAPTERS, INITIAL_MISTAKES } from '@/constants/initialSeeds';
+import { StudyBrainActions } from '@/actions/StudyBrainActions';
+import { Chapter, Mistake, TimelineBlock, UserProfile } from '@/types/index';
+import { normalizeChapter } from '@/utils/academicState';
 
 const validateAndSanitizeChapters = (chaps: any[]): Chapter[] => {
   if (!Array.isArray(chaps)) {
@@ -343,11 +343,12 @@ export const StudyBrainProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 };
 
 export const useStudyBrain = () => {
-  const state = useStudyBrainStore(s => s.state);
-  const actions = useStudyBrainStore(s => s.actions);
-
-  if (!state || !actions) {
+  const store = useStudyBrainStore(); // Subscribe to everything (legacy behavior)
+  
+  if (!store || !store.actions) {
     throw new Error('useStudyBrain must be used within a StudyBrainProvider initialized state');
   }
-  return { state, actions, runtime: StudyBrainRuntime.getInstance() };
+  
+  // Return the entire store as `state` so legacy destructuring `const { state, actions } = useStudyBrain()` still works
+  return { state: store, actions: store.actions, runtime: StudyBrainRuntime.getInstance() };
 };

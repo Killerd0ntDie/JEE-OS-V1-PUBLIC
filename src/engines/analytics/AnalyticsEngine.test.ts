@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { AnalyticsEngine } from './AnalyticsEngine';
-import { Chapter, Mistake, StudySession, MockResult } from '../../types/index';
+import { Chapter, Mistake, StudySession, MockResult } from '@/types/index';
 
 describe('AnalyticsEngine', () => {
   const engine = new AnalyticsEngine();

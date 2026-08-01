@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
-import { Icon } from '../../../components/ui/Icon';
-import { Mistake } from '../../../types/index';
-import { MISTAKE_CATEGORIES } from '../MistakesPage';
+import { Icon } from '@/components/ui/Icon';
+import { Mistake } from '@/types/index';
+import { MISTAKE_CATEGORIES } from '@/features/mistakes/MistakesPage';
 
 export interface ErrorHeatmapWidgetProps {
   mistakes: Mistake[];

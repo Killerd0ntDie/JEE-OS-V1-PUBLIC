@@ -4,8 +4,8 @@ import {
   ChevronDown, ChevronUp, AlertTriangle, CheckCircle, 
   BookOpen, Sparkles, Trash2, Skull 
 } from 'lucide-react';
-import { Badge } from '../../../components/ui/Badge';
-import { Mistake, SubjectId } from '../../../types/index';
+import { Badge } from '@/components/ui/Badge';
+import { Mistake, SubjectId } from '@/types/index';
 
 export interface MistakeCardProps {
   item: Mistake;

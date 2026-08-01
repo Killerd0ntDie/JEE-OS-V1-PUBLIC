@@ -1,6 +1,6 @@
 import { SubjectDetailPage } from './SubjectDetailPage';
 
-export function PhysicsPage({ onNavigate }: { onNavigate?: (page: string) => void }) {
+export function PhysicsPage() {
   return (
     <SubjectDetailPage
       subjectId="physics"
@@ -8,7 +8,6 @@ export function PhysicsPage({ onNavigate }: { onNavigate?: (page: string) => voi
       subjectSubtitle="Calibrate your understanding of physical laws, mechanics, and wave dynamics through rigorous quantitative practice and spaced recall drills."
       subjectIcon="Atom"
       unitCategories={['All', 'Mechanics', 'Electrodynamics', 'Optics & Waves']}
-      onNavigate={onNavigate}
     />
   );
 }

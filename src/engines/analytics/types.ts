@@ -1,5 +1,5 @@
-import { SubjectId, Chapter, Mistake, StudySession, MockResult } from '../../types/index';
-import { ChapterTelemetry } from '../chapterInfo/types';
+import { SubjectId, Chapter, Mistake, StudySession, MockResult } from '@/types/index';
+import { ChapterTelemetry } from '@/engines/chapterInfo/types';
 
 export interface AnalyticsInput {
   chapters: Chapter[];

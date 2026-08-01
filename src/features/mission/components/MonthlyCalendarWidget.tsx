@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { useStudyBrain } from '../../../context/StudyBrainContext';
-import { Card } from '../../../components/ui/Card';
+import { useStudyBrain } from '@/context/StudyBrainContext';
+import { Card } from '@/components/ui/Card';
 import { Flame, Brain, Info, CheckCircle2 } from 'lucide-react';
 
 export function MonthlyCalendarWidget() {
@@ -26,7 +26,7 @@ export function MonthlyCalendarWidget() {
     studySessions.forEach(s => {
       if (!s.startTime) return;
       const dStr = s.startTime.split('T')[0];
-      const mins = s.durationMinutes || 0;
+      const mins = s.duration || 0;
       sessionMap.set(dStr, (sessionMap.get(dStr) || 0) + mins);
     });
 

@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 
-import { useStudyBrain } from '../../context/StudyBrainContext';
-import { audioEngine } from '../../utils/audioEngine';
+import { useStudyBrain } from '@/context/StudyBrainContext';
+import { audioEngine } from '@/utils/audioEngine';
 import { MissionTimerWidget } from './components/MissionTimerWidget';
 import { MissionSubjectSwitcherWidget } from './components/MissionSubjectSwitcherWidget';
 import { MissionActionBarWidget } from './components/MissionActionBarWidget';
@@ -15,8 +15,8 @@ import { MissionTimeUpModal } from './components/MissionTimeUpModal';
 
 import { MissionCoachWidget } from './components/MissionCoachWidget';
 import { QuestionViewerWidget } from './components/QuestionViewerWidget';
-import { calculateFocusScore } from '../../utils/focusScore';
-import { ModalPortal } from '../../components/ui/ModalPortal';
+import { calculateFocusScore } from '@/utils/focusScore';
+import { ModalPortal } from '@/components/ui/ModalPortal';
 import { 
   Play, 
   Pause, 
@@ -39,7 +39,8 @@ import {
   Volume2, 
   Keyboard, 
   Eye, 
-  FileText 
+  FileText,
+  Skull
 } from 'lucide-react';
 
 interface MissionModeProps {
@@ -621,7 +622,7 @@ export function MissionMode({
               <input 
                 type="range" 
                 min="0" 
-                max={Math.max(100, state.user?.xp || 0)} 
+                max={Math.max(100, state.xp?.total || 0)} 
                 step="10" 
                 value={xpWager} 
                 onChange={(e) => setXpWager(Number(e.target.value))}
@@ -885,8 +886,7 @@ export function MissionMode({
             streak: 12,
             idleTime,
             focusInterruptions,
-            focusScore,
-            xpWager
+            focusScore
           });
         }}
         onNextSubject={() => {
@@ -928,18 +928,8 @@ export function MissionMode({
           idleTimeRef.current = 0;
           setIdleTime(0);
           setFocusInterruptions(0);
-        }}
-        onRestart={() => {
-          setIsCompleted(false);
-          setSeconds(0);
-          setExtraTimeAdded(0);
-          setIdleTime(0);
-          setFocusInterruptions(0);
-          uninterruptedSecondsRef.current = 0;
-          focusInterruptionsRef.current = 0;
-          idleTimeRef.current = 0;
           setFocusScore(100);
-          setIsSettingUp(true); // Return to casino setup
+          setIsSettingUp(true);
         }}
       />
 
@@ -948,7 +938,6 @@ export function MissionMode({
         xpWager={xpWager}
         onFail={() => {
           setIsTimeUpModalOpen(false);
-          audioEngine.play('error');
           setMissionFailed(true);
           setCoachTip('CASINO PENALTY: You failed to provide Proof of Work. Wager lost.');
         }}

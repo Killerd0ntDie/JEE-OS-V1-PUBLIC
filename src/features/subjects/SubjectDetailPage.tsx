@@ -1,5 +1,5 @@
 import React from 'react';
-import { SubjectId } from '../../types/index';
+import { SubjectId } from '@/types/index';
 import { SubjectCommandCenter } from './components/SubjectCommandCenter';
 
 interface SubjectDetailPageProps {
@@ -8,7 +8,6 @@ interface SubjectDetailPageProps {
   subjectSubtitle: string;
   subjectIcon: string;
   unitCategories: string[];
-  onNavigate?: (page: string) => void;
 }
 
 export function SubjectDetailPage({
@@ -16,8 +15,7 @@ export function SubjectDetailPage({
   subjectTitle,
   subjectSubtitle,
   subjectIcon,
-  unitCategories,
-  onNavigate
+  unitCategories
 }: SubjectDetailPageProps) {
   return (
     <SubjectCommandCenter 
@@ -26,7 +24,6 @@ export function SubjectDetailPage({
       subjectSubtitle={subjectSubtitle} 
       subjectIcon={subjectIcon} 
       unitCategories={unitCategories}
-      onNavigate={onNavigate}
     />
   );
 }

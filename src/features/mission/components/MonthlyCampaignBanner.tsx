@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Target, Skull, Ghost, Zap, Crosshair } from 'lucide-react';
-import { useStudyBrain } from '../../../context/StudyBrainContext';
+import { useStudyBrain } from '@/context/StudyBrainContext';
 
 export function MonthlyCampaignBanner() {
   const { state } = useStudyBrain();

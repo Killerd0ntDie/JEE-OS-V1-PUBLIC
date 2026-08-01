@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { StudyBrainService } from './studyBrainService';
-import { Chapter } from '../types/index';
+import { Chapter } from '@/types/index';
 
 describe('StudyBrainService.calculateMastery', () => {
   it('returns 0 score and clear message if chapter is not started', () => {

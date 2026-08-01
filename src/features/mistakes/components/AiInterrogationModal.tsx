@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { ModalPortal } from '../../../components/ui/ModalPortal';
-import { useEscapeKey } from '../../../hooks/useEscapeKey';
-import { QuestionViewerWidget } from '../../mission/components/QuestionViewerWidget';
+import { motion, AnimatePresence } from 'motion/react';
+import { ModalPortal } from '@/components/ui/ModalPortal';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { QuestionViewerWidget } from '@/features/mission/components/QuestionViewerWidget';
 import { CheckCircle2, Skull, ArrowRight } from 'lucide-react';
-import { Mistake } from '../../../types/index';
-import { useStudyBrain } from '../../../context/StudyBrainContext';
-import { audioEngine } from '../../../utils/audioEngine';
+import { Mistake } from '@/types/index';
+import { useStudyBrain } from '@/context/StudyBrainContext';
+import { audioEngine } from '@/utils/audioEngine';
 
 interface AiInterrogationModalProps {
   isOpen: boolean;
@@ -23,12 +24,10 @@ export const AiInterrogationModal: React.FC<AiInterrogationModalProps> = ({
 
   useEscapeKey(onClose, isOpen);
 
-  if (!isOpen || !mistake) return null;
-
   const handleCorrectAnswer = () => {
     setExorcised(true);
-    audioEngine.play('levelUp');
-    actions.updateMistakeStatus(mistake.id, 'Mastered');
+    audioEngine.playSuccessChime();
+    actions.updateMistakeStatus(mistake?.id || '', 'Mastered');
   };
 
   const handleClose = () => {
@@ -38,12 +37,23 @@ export const AiInterrogationModal: React.FC<AiInterrogationModalProps> = ({
 
   return (
     <ModalPortal>
-      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md animate-fade-in p-2 sm:p-6 text-left">
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="w-full h-full max-w-5xl rounded-3xl overflow-hidden shadow-[0_0_80px_rgba(220,38,38,0.15)] flex flex-col bg-[#09090b] border border-red-900/50"
-        >
+      <AnimatePresence>
+        {isOpen && mistake && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-xl p-2 sm:p-6 text-left"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              role="dialog"
+              aria-modal="true"
+              className="w-full h-full max-w-5xl rounded-3xl overflow-hidden shadow-[0_0_80px_rgba(220,38,38,0.15)] flex flex-col bg-[#09090b] border border-red-900/50"
+            >
           {/* Header */}
           <div className="px-6 py-4 border-b border-red-950/50 bg-red-950/20 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-3">
@@ -96,8 +106,10 @@ export const AiInterrogationModal: React.FC<AiInterrogationModalProps> = ({
               />
             )}
           </div>
-        </div>
-      </div>
+          </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </ModalPortal>
   );
 };

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { useStudyBrain } from '../../context/StudyBrainContext';
+import { useStudyBrain } from '@/context/StudyBrainContext';
 import { Sparkles, Calendar, RotateCcw, X, Check } from 'lucide-react';
-import { useLockBodyScroll } from '../../hooks/useLockBodyScroll';
-import { useEscapeKey } from '../../hooks/useEscapeKey';
-import { ModalPortal } from '../ui/ModalPortal';
+import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { ModalPortal } from '@/components/ui/ModalPortal';
 
 interface Props {
   isOpen: boolean;
@@ -94,7 +94,7 @@ export const WeeklyCheckinModal: React.FC<Props> = ({ isOpen, onClose }) => {
               value={completedChapters}
               onChange={(e) => setCompletedChapters(e.target.value)}
               placeholder="e.g. Rotation, Electrostatics, Integration"
-              className="w-full bg-[#121318] border border-zinc-800 rounded-lg px-3 py-2 text-white font-mono focus:border-indigo-500 focus:outline-none"
+              className="w-full bg-[#121318] border border-zinc-800 rounded-lg px-3 py-2 text-white font-mono focus:border-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
             />
           </div>
 
@@ -105,7 +105,7 @@ export const WeeklyCheckinModal: React.FC<Props> = ({ isOpen, onClose }) => {
               value={newBacklogNotes}
               onChange={(e) => setNewBacklogNotes(e.target.value)}
               placeholder="e.g. Missed 2 organic lectures in coaching"
-              className="w-full bg-[#121318] border border-zinc-800 rounded-lg px-3 py-2 text-white focus:border-indigo-500 focus:outline-none"
+              className="w-full bg-[#121318] border border-zinc-800 rounded-lg px-3 py-2 text-white focus:border-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
             />
           </div>
 
@@ -116,7 +116,7 @@ export const WeeklyCheckinModal: React.FC<Props> = ({ isOpen, onClose }) => {
               value={upcomingExams}
               onChange={(e) => setUpcomingExams(e.target.value)}
               placeholder="e.g. Major Allen Test on Sunday (Part Syllabus)"
-              className="w-full bg-[#121318] border border-zinc-800 rounded-lg px-3 py-2 text-white focus:border-indigo-500 focus:outline-none"
+              className="w-full bg-[#121318] border border-zinc-800 rounded-lg px-3 py-2 text-white focus:border-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
             />
           </div>
 
@@ -126,7 +126,7 @@ export const WeeklyCheckinModal: React.FC<Props> = ({ isOpen, onClose }) => {
               <select
                 value={healthLevel}
                 onChange={(e) => setHealthLevel(e.target.value as any)}
-                className="w-full bg-[#121318] border border-zinc-800 rounded-lg px-3 py-2 text-white font-mono focus:border-indigo-500 focus:outline-none"
+                className="w-full bg-[#121318] border border-zinc-800 rounded-lg px-3 py-2 text-white font-mono focus:border-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
               >
                 <option value="Good">Good / Fit</option>
                 <option value="Fatigued">Fatigued</option>
@@ -140,7 +140,7 @@ export const WeeklyCheckinModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 type="number"
                 value={availableHoursThisWeek}
                 onChange={(e) => setAvailableHoursThisWeek(parseInt(e.target.value) || 30)}
-                className="w-full bg-[#121318] border border-zinc-800 rounded-lg px-3 py-2 text-white font-mono focus:border-indigo-500 focus:outline-none"
+                className="w-full bg-[#121318] border border-zinc-800 rounded-lg px-3 py-2 text-white font-mono focus:border-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
               />
             </div>
           </div>

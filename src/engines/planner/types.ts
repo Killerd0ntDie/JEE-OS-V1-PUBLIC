@@ -1,4 +1,4 @@
-import { SubjectId, StudySession, TodayMission, Chapter, Mistake, MonthlyObjective, MockResult } from '../../types/index';
+import { SubjectId, StudySession, TodayMission, Chapter, Mistake, MonthlyObjective, MockResult } from '@/types/index';
 
 export interface MissionReasoning {
   whySelected: string;                       // Why this chapter was selected

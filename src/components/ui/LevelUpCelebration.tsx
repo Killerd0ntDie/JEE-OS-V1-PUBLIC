@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Trophy, Star, Zap } from 'lucide-react';
 import { ModalPortal } from './ModalPortal';
-import { getTitleAndColor } from '../../utils/levelingCalculations';
+import { getTitleAndColor } from '@/utils/levelingCalculations';
 
 interface LevelUpCelebrationProps {
   isOpen: boolean;

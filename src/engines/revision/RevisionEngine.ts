@@ -1,5 +1,5 @@
 import { RevisionEngineInput, RevisionEngineOutput, RevisionCardItem, ChapterRevisionSummary } from './types';
-import { FORMULA_BANK } from '../../constants/formulaBank';
+import { FORMULA_BANK } from '@/constants/formulaBank';
 
 export class RevisionEngine {
   private cacheHash: string = '';
@@ -24,7 +24,7 @@ export class RevisionEngine {
 
     // Process chapters & formula cards
     chapters.forEach(chap => {
-      const telemetry = chapterTelemetryMap[chap.id];
+      const telemetry = (chapterTelemetryMap || {})[chap.id];
       const isStartedOrMastered = telemetry 
         ? (telemetry.syllabusStage === 'In Progress' || telemetry.syllabusStage === 'Mastered')
         : (chap.completion > 0 || (chap.currentLecture && chap.currentLecture > 0) || chap.theoryComplete || chap.status === 'Mastered');

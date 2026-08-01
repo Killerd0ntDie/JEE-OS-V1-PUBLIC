@@ -1,11 +1,11 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { Plus } from 'lucide-react';
-import { SubjectId, Mistake } from '../../../types/index';
-import { useLockBodyScroll } from '../../../hooks/useLockBodyScroll';
-import { useEscapeKey } from '../../../hooks/useEscapeKey';
-import { ModalPortal } from '../../../components/ui/ModalPortal';
-import { useStudyBrain } from '../../../context/StudyBrainContext';
+import { SubjectId, Mistake } from '@/types/index';
+import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { ModalPortal } from '@/components/ui/ModalPortal';
+import { useStudyBrain } from '@/context/StudyBrainContext';
 
 export interface LogMistakeModalProps {
   isOpen: boolean;
@@ -153,7 +153,7 @@ export const LogMistakeModal: React.FC<LogMistakeModalProps> = ({
                   placeholder="e.g. Rotational Dynamics"
                   value={formChapter}
                   onChange={(e) => setFormChapter(e.target.value)}
-                  className="w-full bg-zinc-950 border border-zinc-900 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-zinc-700"
+                  className="w-full bg-zinc-950 border border-zinc-900 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-zinc-700"
                   required
                 />
               </div>
@@ -166,7 +166,7 @@ export const LogMistakeModal: React.FC<LogMistakeModalProps> = ({
                   placeholder="e.g. Angular Momentum Conservation"
                   value={formTopic}
                   onChange={(e) => setFormTopic(e.target.value)}
-                  className="w-full bg-zinc-950 border border-zinc-900 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-zinc-700"
+                  className="w-full bg-zinc-950 border border-zinc-900 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-zinc-700"
                   required
                 />
               </div>
@@ -179,7 +179,7 @@ export const LogMistakeModal: React.FC<LogMistakeModalProps> = ({
                   placeholder="e.g. Inelastic Collision on pivoted Rod"
                   value={formSubtopic}
                   onChange={(e) => setFormSubtopic(e.target.value)}
-                  className="w-full bg-zinc-950 border border-zinc-900 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-zinc-700"
+                  className="w-full bg-zinc-950 border border-zinc-900 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-zinc-700"
                 />
               </div>
 
@@ -191,7 +191,7 @@ export const LogMistakeModal: React.FC<LogMistakeModalProps> = ({
                   placeholder="e.g. Past Year JEE 2023 / HC Verma"
                   value={formSource}
                   onChange={(e) => setFormSource(e.target.value)}
-                  className="w-full bg-zinc-950 border border-zinc-900 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-zinc-700"
+                  className="w-full bg-zinc-950 border border-zinc-900 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-zinc-700"
                 />
               </div>
 
@@ -201,7 +201,7 @@ export const LogMistakeModal: React.FC<LogMistakeModalProps> = ({
                 <select
                   value={formDifficulty}
                   onChange={(e) => setFormDifficulty(e.target.value as Mistake['difficulty'])}
-                  className="w-full bg-zinc-950 border border-zinc-900 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-zinc-700"
+                  className="w-full bg-zinc-950 border border-zinc-900 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-zinc-700"
                 >
                   <option value="Easy">Easy</option>
                   <option value="Medium">Medium</option>
@@ -218,7 +218,7 @@ export const LogMistakeModal: React.FC<LogMistakeModalProps> = ({
                   type="number"
                   value={formTimeTaken}
                   onChange={(e) => setFormTimeTaken(Number(e.target.value))}
-                  className="w-full bg-zinc-950 border border-zinc-900 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-zinc-700"
+                  className="w-full bg-zinc-950 border border-zinc-900 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-zinc-700"
                 />
               </div>
             </div>
@@ -231,7 +231,7 @@ export const LogMistakeModal: React.FC<LogMistakeModalProps> = ({
                 value={formQuestionText}
                 onChange={(e) => setFormQuestionText(e.target.value)}
                 rows={3}
-                className="w-full bg-zinc-950 border border-zinc-900 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-zinc-700 resize-none font-mono"
+                className="w-full bg-zinc-950 border border-zinc-900 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-zinc-700 resize-none font-mono"
                 required
               />
             </div>
@@ -248,7 +248,7 @@ export const LogMistakeModal: React.FC<LogMistakeModalProps> = ({
                   value={formStudentMethod}
                   onChange={(e) => setFormStudentMethod(e.target.value)}
                   rows={3}
-                  className="w-full bg-zinc-950 border border-zinc-900 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-zinc-700 resize-none font-sans"
+                  className="w-full bg-zinc-950 border border-zinc-900 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-zinc-700 resize-none font-sans"
                   required
                 />
               </div>
@@ -263,7 +263,7 @@ export const LogMistakeModal: React.FC<LogMistakeModalProps> = ({
                   value={formCorrectMethod}
                   onChange={(e) => setFormCorrectMethod(e.target.value)}
                   rows={3}
-                  className="w-full bg-zinc-950 border border-zinc-900 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-zinc-700 resize-none font-sans"
+                  className="w-full bg-zinc-950 border border-zinc-900 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-zinc-700 resize-none font-sans"
                   required
                 />
               </div>
@@ -279,7 +279,7 @@ export const LogMistakeModal: React.FC<LogMistakeModalProps> = ({
                 value={formCorrectSolution}
                 onChange={(e) => setFormCorrectSolution(e.target.value)}
                 rows={3}
-                className="w-full bg-zinc-950 border border-zinc-900 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-zinc-700 resize-none font-mono"
+                className="w-full bg-zinc-950 border border-zinc-900 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-zinc-700 resize-none font-mono"
                 required
               />
             </div>
@@ -340,7 +340,7 @@ export const LogMistakeModal: React.FC<LogMistakeModalProps> = ({
                 <select
                   value={formPriority}
                   onChange={(e) => setFormPriority(e.target.value as Mistake['priority'])}
-                  className="w-full bg-zinc-950 border border-zinc-900 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-zinc-700"
+                  className="w-full bg-zinc-950 border border-zinc-900 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-zinc-700"
                 >
                   <option value="Low">Low Priority</option>
                   <option value="Medium">Medium Priority</option>
@@ -360,7 +360,7 @@ export const LogMistakeModal: React.FC<LogMistakeModalProps> = ({
                   placeholder="e.g. Teacher said it is a standard exam trap."
                   value={formTeacherNotes}
                   onChange={(e) => setFormTeacherNotes(e.target.value)}
-                  className="w-full bg-zinc-950 border border-zinc-900 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-zinc-700"
+                  className="w-full bg-zinc-950 border border-zinc-900 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-zinc-700"
                 />
               </div>
               <div className="space-y-1.5">
@@ -370,7 +370,7 @@ export const LogMistakeModal: React.FC<LogMistakeModalProps> = ({
                   placeholder="e.g. Always draw the free body diagram first!"
                   value={formPersonalNotes}
                   onChange={(e) => setFormPersonalNotes(e.target.value)}
-                  className="w-full bg-zinc-950 border border-zinc-900 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-zinc-700"
+                  className="w-full bg-zinc-950 border border-zinc-900 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-zinc-700"
                 />
               </div>
             </div>
@@ -382,7 +382,7 @@ export const LogMistakeModal: React.FC<LogMistakeModalProps> = ({
                 placeholder="Leave blank to let AI automatically generate diagnostics based on selected tags..."
                 value={formAiAdvice}
                 onChange={(e) => setFormAiAdvice(e.target.value)}
-                className="w-full bg-zinc-950 border border-zinc-900 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-zinc-700"
+                className="w-full bg-zinc-950 border border-zinc-900 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-zinc-700"
               />
             </div>
           </div>

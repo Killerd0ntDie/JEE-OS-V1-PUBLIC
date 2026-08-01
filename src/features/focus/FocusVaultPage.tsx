@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Play, Pause, Square, Headphones, RefreshCw, Volume2, VolumeX, CheckCircle2 } from 'lucide-react';
-import { useStudyBrain } from '../../context/StudyBrainContext';
-import { useAuth } from '../../hooks/useAuth';
+import { useStudyBrain } from '@/context/StudyBrainContext';
+import { useAuth } from '@/features/auth';
 
 const DEFAULT_MINUTES = 50;
 
@@ -21,12 +21,28 @@ export function FocusVaultPage() {
   const youtubeRef = useRef<HTMLIFrameElement>(null);
 
   // Sync active state to session storage to block navigation in App.tsx
+  // And use native beforeunload to prevent accidental tab closing/refresh
   useEffect(() => {
-    if (isActive || (timeLeft > 0 && sessionDuration > 0 && !isCompleted)) {
+    const isVaultActive = isActive || (timeLeft > 0 && sessionDuration > 0 && !isCompleted);
+    
+    if (isVaultActive) {
       sessionStorage.setItem('vault-active', 'true');
     } else {
       sessionStorage.removeItem('vault-active');
     }
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isVaultActive) {
+        e.preventDefault();
+        e.returnValue = ''; // Required for Chrome
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
   }, [isActive, timeLeft, sessionDuration, isCompleted]);
 
 

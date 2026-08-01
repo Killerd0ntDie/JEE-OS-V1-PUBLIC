@@ -1,28 +1,48 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { MissionMode } from '../mission/MissionMode';
-import { useStudyBrain } from '../../context/StudyBrainContext';
-import { QuickRevisionModal } from '../../components/ui/QuickRevisionModal';
-import { RevisionCard } from '../../services/revisionEngineService';
+import { MissionMode } from '@/features/mission/MissionMode';
+import { useStudyBrainStore } from '@/store/useStudyBrainStore';
+import { QuickRevisionModal } from '@/components/ui/QuickRevisionModal';
+import { RevisionCard } from '@/services/revisionEngineService';
 import { DailyMissionTimeline } from './components/DailyMissionTimeline';
 import { FocusHeatmapWidget } from './components/FocusHeatmapWidget';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '@/features/auth';
 import { ExamReadinessWidget } from './components/ExamReadinessWidget';
 import { DailyStudyTrackerWidget } from './components/DailyStudyTrackerWidget';
 import { WeeklyStrategyWidget } from './components/WeeklyStrategyWidget';
 import { SmartRevisionQueueWidget } from './components/SmartRevisionQueueWidget';
 import { CommandOverviewBanner } from './components/CommandOverviewBanner';
-import { CustomMissionModal } from '../mission/components/CustomMissionModal';
-import { ShortcutGuideModal } from '../../components/ui/ShortcutGuideModal';
-import { DailyCheckinCard } from '../../components/mentor/DailyCheckinCard';
+import { CustomMissionModal } from '@/features/mission/components/CustomMissionModal';
+import { ShortcutGuideModal } from '@/components/ui/ShortcutGuideModal';
+import { DailyCheckinCard } from '@/components/mentor/DailyCheckinCard';
 import { OnHoldReminderBanner } from './components/OnHoldReminderBanner';
-import { MonthlyCampaignBanner } from '../mission/components/MonthlyCampaignBanner';
-import { MonthlyObjectiveModal } from '../../components/mentor/MonthlyObjectiveModal';
+import { MonthlyCampaignBanner } from '@/features/mission/components/MonthlyCampaignBanner';
+import { MonthlyObjectiveModal } from '@/components/mentor/MonthlyObjectiveModal';
+import { DashboardSkeleton } from '@/components/ui/Skeleton';
 import { Keyboard } from 'lucide-react';
 
-export function DashboardPage({ onNavigate }: { onNavigate: (page: string) => void }) {
-  const { state, actions } = useStudyBrain();
+export function DashboardPage() {
+  const navigate = useNavigate();
+  const actions = useStudyBrainStore(s => s.actions);
+  const chapterTelemetryMap = useStudyBrainStore(s => s.chapterTelemetryMap);
+  const mentorProfile = useStudyBrainStore(s => s.mentorProfile);
+  const estimatedRemainingHours = useStudyBrainStore(s => s.estimatedRemainingHours);
+  const plannedQuestions = useStudyBrainStore(s => s.plannedQuestions);
+  const targetFinishTime = useStudyBrainStore(s => s.targetFinishTime);
+  const todayMissions = useStudyBrainStore(s => s.todayMissions);
+  const activeSubject = useStudyBrainStore(s => s.activeSubject);
+  const isMissionModeActive = useStudyBrainStore(s => s.isMissionModeActive);
+  const energyLevel = useStudyBrainStore(s => s.energyLevel);
+  const chapters = useStudyBrainStore(s => s.chapters);
+  const revisionQueue = useStudyBrainStore(s => s.revisionQueue);
+  const settings = useStudyBrainStore(s => s.settings);
+  const syllabusProgress = useStudyBrainStore(s => s.syllabusProgress);
+  const analytics = useStudyBrainStore(s => s.analytics);
+  const xp = useStudyBrainStore(s => s.xp);
+  const studySessions = useStudyBrainStore(s => s.studySessions);
+  const projectedReadiness = useStudyBrainStore(s => s.projectedReadiness);
   const { user } = useAuth();
 
   // Focus session state
@@ -40,12 +60,15 @@ export function DashboardPage({ onNavigate }: { onNavigate: (page: string) => vo
   const [isHeaderExpanded, setIsHeaderExpanded] = useState<boolean>(false);
 
   const hasBottleneckAlert = useMemo(() => {
-    const list = (Object.values(state.chapterTelemetryMap || {}) as any[]).filter(
+    const list = (Object.values(chapterTelemetryMap || {}) as any[]).filter(
       t => t && t.isBottleneck && t.bottleneckReason
     );
     return list.length > 0;
-  }, [state.chapterTelemetryMap]);
+  }, [chapterTelemetryMap]);
 
+  // If the global store is still initializing, render the skeleton UI instead of layout pop-in
+  const loading = useStudyBrainStore(s => s.loading);
+  
   useEffect(() => {
     // 1. Check if user already manually toggled the panel in this session
     const sessionOverride = sessionStorage.getItem('jee_command_center_override');
@@ -146,13 +169,9 @@ export function DashboardPage({ onNavigate }: { onNavigate: (page: string) => vo
     return 'Good evening';
   };
 
-  const userName = user?.displayName?.split(' ')[0] || (state.mentorProfile?.coachingName ? 'Mani' : 'Aspirant');
+  const userName = user?.displayName?.split(' ')[0] || (mentorProfile?.coachingName ? 'Mani' : 'Aspirant');
 
-  const estimatedRemainingHours = state.estimatedRemainingHours;
-  const plannedQuestions = state.plannedQuestions;
-  const targetFinishTime = state.targetFinishTime;
-
-  const incompleteTasks = state.todayMissions.filter(m => !m.completed);
+  const incompleteTasks = todayMissions.filter(m => !m.completed);
   const nextTaskName = incompleteTasks[0]?.taskName || 'All daily tasks complete';
 
   // Resolve which subject Mission Mode should actually open on. Previously this always
@@ -163,8 +182,8 @@ export function DashboardPage({ onNavigate }: { onNavigate: (page: string) => vo
   // only if it still has a pending mission; otherwise fall back to whatever subject the
   // next pending mission actually belongs to.
   const missionModeSubject: 'physics' | 'chemistry' | 'maths' = (() => {
-    if (state.activeSubject !== 'all' && incompleteTasks.some(m => m.subject === state.activeSubject)) {
-      return state.activeSubject;
+    if (activeSubject !== 'all' && incompleteTasks.some(m => m.subject === activeSubject)) {
+      return activeSubject;
     }
     const nextSubject = incompleteTasks[0]?.subject;
     if (nextSubject === 'physics' || nextSubject === 'chemistry' || nextSubject === 'maths') {
@@ -173,18 +192,19 @@ export function DashboardPage({ onNavigate }: { onNavigate: (page: string) => vo
     return 'physics';
   })();
 
+
   return (
     <div className="w-full max-w-6xl mx-auto flex flex-col gap-6 font-sans text-zinc-400 relative pb-8">
       
       {/* FULL-SCREEN FOCUS MODE (MISSION MODE) OVERLAY */}
       {createPortal(
         <AnimatePresence>
-          {state.isMissionModeActive && (
+          {isMissionModeActive && (
             <motion.div
-              initial={{ opacity: 0, scale: 0.96, filter: 'blur(10px)' }}
-              animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
-              exit={{ opacity: 0, scale: 0.96, filter: 'blur(10px)' }}
-              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+              initial={{ opacity: 0, scale: 0.98, y: 20, filter: 'blur(12px)' }}
+              animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }}
+              exit={{ opacity: 0, scale: 0.98, y: 20, filter: 'blur(12px)' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200, mass: 0.8 }}
               className="fixed inset-0 z-[100] bg-[#070708] font-sans antialiased text-zinc-400"
             >
               <MissionMode 
@@ -250,7 +270,7 @@ export function DashboardPage({ onNavigate }: { onNavigate: (page: string) => vo
                 key={level}
                 onClick={() => actions.setEnergyLevel(level)}
                 className={`px-2 py-1 sm:px-2.5 sm:py-1 rounded-lg font-mono text-[10px] font-bold transition-all cursor-pointer ${
-                  state.energyLevel === level
+                  energyLevel === level
                     ? 'bg-indigo-600 text-white shadow-md'
                     : 'text-zinc-500 hover:text-zinc-300'
                 }`}
@@ -266,10 +286,10 @@ export function DashboardPage({ onNavigate }: { onNavigate: (page: string) => vo
       <DailyCheckinCard />
 
       <CommandOverviewBanner 
-        chapters={state.chapters}
+        chapters={chapters}
         onOpenChapter={(chapterId) => actions.openChapterEditModal(chapterId)}
         onSetMonthlyObjective={() => setIsMonthlyObjectiveModalOpen(true)}
-        onSetDailyCapacity={() => onNavigate('planner')}
+        onSetDailyCapacity={() => navigate('/planner')}
         isExpanded={isHeaderExpanded}
         onToggleExpand={handleManualToggleHeader}
       />
@@ -281,8 +301,6 @@ export function DashboardPage({ onNavigate }: { onNavigate: (page: string) => vo
 
       {/* TODAY'S MISSIONS HERO SECTION (65%/35% Split Layout) */}
       <DailyMissionTimeline
-        todayMissions={state.todayMissions}
-        energyLevel={state.energyLevel}
         sessionState={sessionState}
         secondsElapsed={secondsElapsed}
         expandedMission={expandedMission}
@@ -290,15 +308,10 @@ export function DashboardPage({ onNavigate }: { onNavigate: (page: string) => vo
         handleStartSession={handleStartSession}
         handleResetSession={handleResetSession}
         formatTimer={formatTimer}
-        estimatedRemainingHours={estimatedRemainingHours}
-        plannedQuestions={plannedQuestions}
-        targetFinishTime={targetFinishTime}
         onEditMission={(mission) => {
           setMissionToEdit(mission);
           setIsCustomMissionModalOpen(true);
         }}
-        onCompleteTask={(id) => actions.completeTask(id)}
-        onSkipTask={(id) => actions.skipTask(id)}
         onOpenCustomMission={() => setIsCustomMissionModalOpen(true)}
       />
 
@@ -341,14 +354,13 @@ export function DashboardPage({ onNavigate }: { onNavigate: (page: string) => vo
         {activeTab === 'focus' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 text-left items-stretch animate-fade-in">
             <SmartRevisionQueueWidget
-              revisionQueue={state.revisionQueue}
-              onNavigate={onNavigate}
-              setSelectedRevision={setSelectedRevision}
+              revisionQueue={revisionQueue}
+              onLaunchRevision={(rev) => setSelectedRevision(rev)}
             />
 
             <ExamReadinessWidget
-              targetYear={state.settings.targetYear || '2026'}
-              syllabusProgress={state.syllabusProgress}
+              targetYear={settings?.targetYear || '2026'}
+              syllabusProgress={syllabusProgress}
             />
           </div>
         )}
@@ -358,21 +370,20 @@ export function DashboardPage({ onNavigate }: { onNavigate: (page: string) => vo
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 text-left items-stretch animate-fade-in">
             <div className="flex flex-col gap-4 lg:gap-6">
               <DailyStudyTrackerWidget
-                studyTime={state.analytics.studyTime}
-                dailyQuota={state.settings.dailyQuota}
-                xpLevel={state.xp.level}
-                xpTotal={state.xp.total}
-                xpNextLevel={state.xp.nextLevelXP}
+                studyTime={analytics?.studyTime || 0}
+                dailyQuota={settings?.dailyQuota || 360}
+                xpLevel={xp?.level || 1}
+                xpTotal={xp?.total || 0}
+                xpNextLevel={xp?.nextLevelXP || 100}
               />
-              <FocusHeatmapWidget studySessions={state.studySessions} />
+              <FocusHeatmapWidget studySessions={studySessions || []} />
             </div>
 
             <div className="flex flex-col gap-4 lg:gap-6">
               <WeeklyStrategyWidget
-                mentorProfile={state.mentorProfile}
-                chapters={state.chapters}
-                projectedReadiness={state.projectedReadiness}
-                onNavigate={onNavigate}
+                mentorProfile={mentorProfile}
+                chapters={chapters || []}
+                projectedReadiness={projectedReadiness}
               />
             </div>
           </div>

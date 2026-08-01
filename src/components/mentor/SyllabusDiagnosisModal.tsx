@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { useStudyBrain } from '../../context/StudyBrainContext';
-import { SubjectId, Chapter, SyllabusDiagnosisStage } from '../../types/index';
-import { useLockBodyScroll } from '../../hooks/useLockBodyScroll';
-import { useEscapeKey } from '../../hooks/useEscapeKey';
-import { ModalPortal } from '../ui/ModalPortal';
+import { useStudyBrain } from '@/context/StudyBrainContext';
+import { SubjectId, Chapter, SyllabusDiagnosisStage } from '@/types/index';
+import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { ModalPortal } from '@/components/ui/ModalPortal';
 import { 
   BookOpen, Video, FileCheck2, RotateCcw, Sparkles, X, Check, Search, AlertCircle, SlidersHorizontal
 } from 'lucide-react';
@@ -109,8 +109,8 @@ export const SyllabusDiagnosisModal: React.FC<Props> = ({ isOpen, onClose }) => 
     if (!chap) return;
 
     const existingPrac = chap.practiceProgress || {
-      dppCompleted: chap.dppComplete,
-      pyqsCompleted: chap.pyqsComplete,
+      dppCompleted: chap.dppComplete || false,
+      pyqsCompleted: chap.pyqsComplete || false,
       moduleCompleted: false,
       mockTestsAttempted: 1,
       accuracyPercent: chap.confidence || 70,
@@ -218,7 +218,7 @@ export const SyllabusDiagnosisModal: React.FC<Props> = ({ isOpen, onClose }) => 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search chapters..."
-              className="w-full bg-[#121318] border border-zinc-800 rounded-lg pl-8 pr-3 py-1.5 text-xs text-white focus:border-indigo-500 focus:outline-none"
+              className="w-full bg-[#121318] border border-zinc-800 rounded-lg pl-8 pr-3 py-1.5 text-xs text-white focus:border-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
             />
           </div>
         </div>
@@ -324,7 +324,7 @@ export const SyllabusDiagnosisModal: React.FC<Props> = ({ isOpen, onClose }) => 
                       type="text"
                       value={selectedChapter.lectureProgress?.teacher || 'Physics Galaxy / PW'}
                       onChange={(e) => handleUpdateLectureProgress(selectedChapter.id, 'teacher', e.target.value)}
-                      className="w-full bg-[#121318] border border-zinc-800 rounded px-2.5 py-1.5 text-white font-mono text-xs focus:outline-none"
+                      className="w-full bg-[#121318] border border-zinc-800 rounded px-2.5 py-1.5 text-white font-mono text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
                     />
                   </div>
 
@@ -334,7 +334,7 @@ export const SyllabusDiagnosisModal: React.FC<Props> = ({ isOpen, onClose }) => 
                       type="number"
                       value={selectedChapter.lectureProgress?.totalLectures || selectedChapter.totalLectures || 18}
                       onChange={(e) => handleUpdateLectureProgress(selectedChapter.id, 'totalLectures', parseInt(e.target.value) || 1)}
-                      className="w-full bg-[#121318] border border-zinc-800 rounded px-2.5 py-1.5 text-white font-mono text-xs focus:outline-none"
+                      className="w-full bg-[#121318] border border-zinc-800 rounded px-2.5 py-1.5 text-white font-mono text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
                     />
                   </div>
 
@@ -344,7 +344,7 @@ export const SyllabusDiagnosisModal: React.FC<Props> = ({ isOpen, onClose }) => 
                       type="number"
                       value={selectedChapter.lectureProgress?.completedLectures || selectedChapter.currentLecture || 0}
                       onChange={(e) => handleUpdateLectureProgress(selectedChapter.id, 'completedLectures', parseInt(e.target.value) || 0)}
-                      className="w-full bg-[#121318] border border-zinc-800 rounded px-2.5 py-1.5 text-white font-mono text-xs focus:outline-none"
+                      className="w-full bg-[#121318] border border-zinc-800 rounded px-2.5 py-1.5 text-white font-mono text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
                     />
                   </div>
 
@@ -354,7 +354,7 @@ export const SyllabusDiagnosisModal: React.FC<Props> = ({ isOpen, onClose }) => 
                       type="number"
                       value={selectedChapter.lectureProgress?.avgLectureDurationMinutes || 80}
                       onChange={(e) => handleUpdateLectureProgress(selectedChapter.id, 'avgLectureDurationMinutes', parseInt(e.target.value) || 60)}
-                      className="w-full bg-[#121318] border border-zinc-800 rounded px-2.5 py-1.5 text-white font-mono text-xs focus:outline-none"
+                      className="w-full bg-[#121318] border border-zinc-800 rounded px-2.5 py-1.5 text-white font-mono text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
                     />
                   </div>
                 </div>
@@ -448,7 +448,7 @@ export const SyllabusDiagnosisModal: React.FC<Props> = ({ isOpen, onClose }) => 
                       type="number"
                       value={selectedChapter.revisionProgress?.lastRevisedDaysAgo || selectedChapter.lastRevisionDaysAgo || 7}
                       onChange={(e) => handleUpdateRevisionState(selectedChapter.id, 'lastRevisedDaysAgo', parseInt(e.target.value) || 0)}
-                      className="w-full bg-[#121318] border border-zinc-800 rounded px-2.5 py-1.5 text-white font-mono text-xs focus:outline-none"
+                      className="w-full bg-[#121318] border border-zinc-800 rounded px-2.5 py-1.5 text-white font-mono text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
                     />
                   </div>
 
@@ -457,7 +457,7 @@ export const SyllabusDiagnosisModal: React.FC<Props> = ({ isOpen, onClose }) => 
                     <select
                       value={selectedChapter.revisionProgress?.retentionConfidence || 'Medium'}
                       onChange={(e) => handleUpdateRevisionState(selectedChapter.id, 'retentionConfidence', e.target.value)}
-                      className="w-full bg-[#121318] border border-zinc-800 rounded px-2.5 py-1.5 text-white font-mono text-xs focus:outline-none"
+                      className="w-full bg-[#121318] border border-zinc-800 rounded px-2.5 py-1.5 text-white font-mono text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
                     >
                       <option value="High">High Retention</option>
                       <option value="Medium">Medium Retention</option>

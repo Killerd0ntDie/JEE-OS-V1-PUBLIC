@@ -1,6 +1,6 @@
 import { collection, doc, setDoc, getDocs, deleteDoc } from 'firebase/firestore';
-import { db } from '../firebase';
-import { TodayMission } from '../types/index';
+import { db } from '@/firebase';
+import { TodayMission } from '@/types/index';
 
 export class CustomMissionRepository {
   static async saveMission(userId: string, mission: TodayMission): Promise<void> {

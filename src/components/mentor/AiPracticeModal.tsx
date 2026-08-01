@@ -1,7 +1,7 @@
 import React from 'react';
-import { ModalPortal } from '../ui/ModalPortal';
-import { useEscapeKey } from '../../hooks/useEscapeKey';
-import { QuestionViewerWidget } from '../../features/mission/components/QuestionViewerWidget';
+import { ModalPortal } from '@/components/ui/ModalPortal';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { QuestionViewerWidget } from '@/features/mission/components/QuestionViewerWidget';
 
 interface AiPracticeModalProps {
   isOpen: boolean;

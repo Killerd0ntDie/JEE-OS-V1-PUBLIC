@@ -1,4 +1,4 @@
-import { Chapter, Mistake, TodayMission, RevisionSettings, RevisionStage } from '../types/index';
+import { Chapter, Mistake, TodayMission, RevisionSettings, RevisionStage } from '@/types/index';
 
 export interface RevisionCard {
   chapterId: string;

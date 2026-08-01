@@ -1,6 +1,6 @@
 import { collection, doc, getDocs, setDoc, deleteDoc } from 'firebase/firestore';
-import { db } from '../firebase';
-import { MockTest } from '../types/mockTest';
+import { db } from '@/firebase';
+import { MockTest } from '@/types/mockTest';
 
 export const MockTestRepository = {
   async getCustomMockTests(userId: string): Promise<MockTest[]> {

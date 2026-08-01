@@ -1,14 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
-import { PAGES, PageId, PageDefinition } from '../../types/index';
-import { Icon } from '../ui/Icon';
+import { PAGES, PageId, PageDefinition } from '@/types/index';
+import { Icon } from '@/components/ui/Icon';
+
+import { useNavigate } from 'react-router-dom';
 
 interface CommandPaletteProps {
   isOpen: boolean;
   onClose: () => void;
-  onNavigate: (pageId: PageId) => void;
 }
 
-export function CommandPalette({ isOpen, onClose, onNavigate }: CommandPaletteProps) {
+export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -40,7 +42,7 @@ export function CommandPalette({ isOpen, onClose, onNavigate }: CommandPalettePr
       } else if (e.key === 'Enter') {
         e.preventDefault();
         if (filteredPages[selectedIndex]) {
-          onNavigate(filteredPages[selectedIndex].id);
+          navigate(`/${filteredPages[selectedIndex].id}`);
           onClose();
         }
       }
@@ -81,7 +83,7 @@ export function CommandPalette({ isOpen, onClose, onNavigate }: CommandPalettePr
             onChange={e => setSearchQuery(e.target.value)}
             placeholder="Search commands, subjects, planners, or settings..."
             aria-label="Search commands, subjects, planners, or settings"
-            className="flex-grow bg-transparent text-sm text-white focus:outline-none placeholder-zinc-600 font-sans"
+            className="flex-grow bg-transparent text-sm text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 placeholder-zinc-600 font-sans"
           />
           <div className="flex items-center gap-1">
             <span className="text-[10px] bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded text-zinc-500 font-mono">
@@ -103,7 +105,7 @@ export function CommandPalette({ isOpen, onClose, onNavigate }: CommandPalettePr
                 <button
                   key={page.id}
                   onClick={() => {
-                    onNavigate(page.id);
+                    navigate(`/${page.id}`);
                     onClose();
                   }}
                   className={`w-full text-left px-3.5 py-2.5 rounded-xl transition-all flex items-center gap-3.5 cursor-pointer border ${

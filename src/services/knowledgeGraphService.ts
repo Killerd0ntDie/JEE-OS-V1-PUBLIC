@@ -1,5 +1,5 @@
-import { SubjectId } from '../types/index';
-import { JEE_KNOWLEDGE_GRAPH, KnowledgeNode } from '../data/knowledgeGraph';
+import { SubjectId } from '@/types/index';
+import { JEE_KNOWLEDGE_GRAPH, KnowledgeNode } from '@/data/knowledgeGraph';
 
 export const KnowledgeGraphService = {
   /**

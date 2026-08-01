@@ -1,5 +1,5 @@
 import React from 'react';
-import { ModalPortal } from '../../../components/ui/ModalPortal';
+import { ModalPortal } from '@/components/ui/ModalPortal';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Terminal, X, Clock, Send } from 'lucide-react';
 
@@ -150,7 +150,7 @@ export function MissionNotesDrawer({
                   value={noteInput}
                   onChange={(e) => setNoteInput(e.target.value)}
                   placeholder="Capture live note... (Enter)"
-                  className="flex-1 px-3 py-2 text-xs rounded-lg border border-zinc-800 bg-zinc-950/60 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-indigo-500 font-mono"
+                  className="flex-1 px-3 py-2 text-xs rounded-lg border border-zinc-800 bg-zinc-950/60 text-zinc-100 placeholder-zinc-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500 font-mono"
                 />
                 <button
                   type="submit"

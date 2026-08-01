@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { X, Plus } from 'lucide-react';
-import { SubjectId } from '../../../types/index';
-import { useStudyBrain } from '../../../context/StudyBrainContext';
-import { useLockBodyScroll } from '../../../hooks/useLockBodyScroll';
-import { useEscapeKey } from '../../../hooks/useEscapeKey';
-import { ModalPortal } from '../../../components/ui/ModalPortal';
+import { SubjectId } from '@/types/index';
+import { useStudyBrain } from '@/context/StudyBrainContext';
+import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { ModalPortal } from '@/components/ui/ModalPortal';
 
 interface AddCustomChapterModalProps {
   isOpen: boolean;
@@ -119,7 +119,7 @@ export function AddCustomChapterModal({ isOpen, onClose, defaultSubject, default
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. Electrochemistry Extra Topics"
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500"
                 autoFocus
               />
             </div>
@@ -130,7 +130,7 @@ export function AddCustomChapterModal({ isOpen, onClose, defaultSubject, default
                 <select
                   value={subject}
                   onChange={(e) => setSubject(e.target.value as SubjectId)}
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500 cursor-pointer"
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500 cursor-pointer"
                 >
                   <option value="physics">Physics</option>
                   <option value="chemistry">Chemistry</option>
@@ -142,7 +142,7 @@ export function AddCustomChapterModal({ isOpen, onClose, defaultSubject, default
                 <select
                   value={difficulty}
                   onChange={(e) => setDifficulty(e.target.value as 'Easy' | 'Medium' | 'Hard')}
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500 cursor-pointer"
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500 cursor-pointer"
                 >
                   <option value="Easy">Easy</option>
                   <option value="Medium">Medium</option>
@@ -158,7 +158,7 @@ export function AddCustomChapterModal({ isOpen, onClose, defaultSubject, default
                 value={unit}
                 onChange={(e) => setUnit(e.target.value)}
                 placeholder="e.g. Physical Chemistry"
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500"
               />
             </div>
 
@@ -169,7 +169,7 @@ export function AddCustomChapterModal({ isOpen, onClose, defaultSubject, default
                 value={serialNumber}
                 onChange={(e) => setSerialNumber(e.target.value)}
                 placeholder="e.g. 02"
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500"
                 required
               />
               <p className="text-[9px] text-zinc-500 mt-1">Enter a number (will be prefixed with CH, e.g., 02 → CH02)</p>

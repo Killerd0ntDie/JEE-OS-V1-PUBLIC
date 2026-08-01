@@ -1,6 +1,6 @@
 import { collection, doc, getDocs, setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
-import { db } from '../firebase';
-import { TimelineBlock } from '../types/index';
+import { db } from '@/firebase';
+import { TimelineBlock } from '@/types/index';
 
 export const TimelineRepository = {
   // Fetch custom timeline blocks

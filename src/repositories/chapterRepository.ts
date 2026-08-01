@@ -1,6 +1,6 @@
 import { collection, doc, getDocs, setDoc, updateDoc, writeBatch, deleteDoc } from 'firebase/firestore';
-import { db } from '../firebase';
-import { Chapter } from '../types/index';
+import { db } from '@/firebase';
+import { Chapter } from '@/types/index';
 
 /**
  * Recursively removes all undefined values from an object.
@@ -52,12 +52,16 @@ export const ChapterRepository = {
 
   // Seed the initial chapter database for a new user using a batch write
   async seedChapters(userId: string, initialChapters: Chapter[]): Promise<void> {
-    const batch = writeBatch(db);
-    initialChapters.forEach(chap => {
-      const chapDoc = doc(db, 'users', userId, 'chapters', chap.id);
-      batch.set(chapDoc, sanitizeForFirestore(chap));
-    });
-    await batch.commit();
+    const CHUNK_SIZE = 450;
+    for (let i = 0; i < initialChapters.length; i += CHUNK_SIZE) {
+      const chunk = initialChapters.slice(i, i + CHUNK_SIZE);
+      const batch = writeBatch(db);
+      chunk.forEach(chap => {
+        const chapDoc = doc(db, 'users', userId, 'chapters', chap.id);
+        batch.set(chapDoc, sanitizeForFirestore(chap));
+      });
+      await batch.commit();
+    }
   },
 
   // Delete a chapter document

@@ -1,23 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { Icon } from '../../components/ui/Icon';
+import { Icon } from '@/components/ui/Icon';
 import { ChatSession } from './AiCoachPage';
-import { PageId } from '../../types';
-import { ConfirmDeleteModal } from '../../components/ui/ConfirmDeleteModal';
+import { PageId } from '@/types';
+import { ConfirmDeleteModal } from '@/components/ui/ConfirmDeleteModal';
+import { useNavigate } from 'react-router-dom';
+import { safelyParseJSON } from '@/utils/jsonParser';
 
-export function CoachHistoryPage({ onNavigate }: { onNavigate?: (id: PageId) => void }) {
+export function CoachHistoryPage() {
+  const navigate = useNavigate();
   const [sessions, setSessions] = useState<ChatSession[]>([]);
 
   useEffect(() => {
     const savedChatsStr = localStorage.getItem('jeeos_chats');
     if (savedChatsStr) {
-      try {
-        const savedChats: Record<string, ChatSession> = JSON.parse(savedChatsStr);
-        // Sort by updatedAt descending
-        const sortedSessions = Object.values(savedChats).sort((a, b) => b.updatedAt - a.updatedAt);
-        setSessions(sortedSessions);
-      } catch (e) {
-        console.error("Failed to parse chats", e);
-      }
+      const savedChats: Record<string, ChatSession> = safelyParseJSON<Record<string, ChatSession>>(savedChatsStr, {});
+      // Sort by updatedAt descending
+      const sortedSessions = Object.values(savedChats).sort((a, b) => b.updatedAt - a.updatedAt);
+      setSessions(sortedSessions);
     }
   }, []);
 
@@ -25,7 +24,7 @@ export function CoachHistoryPage({ onNavigate }: { onNavigate?: (id: PageId) => 
     e.stopPropagation();
     const savedChatsStr = localStorage.getItem('jeeos_chats');
     if (savedChatsStr) {
-      const savedChats: Record<string, ChatSession> = JSON.parse(savedChatsStr);
+      const savedChats: Record<string, ChatSession> = safelyParseJSON<Record<string, ChatSession>>(savedChatsStr, {});
       delete savedChats[id];
       localStorage.setItem('jeeos_chats', JSON.stringify(savedChats));
       setSessions(prev => prev.filter(s => s.id !== id));
@@ -47,12 +46,12 @@ export function CoachHistoryPage({ onNavigate }: { onNavigate?: (id: PageId) => 
 
   const handleResumeChat = (id: string) => {
     localStorage.setItem('jeeos_active_chat_session', id);
-    onNavigate?.('ai-coach');
+    navigate('/ai-coach');
   };
 
   const handleNewChat = () => {
     localStorage.removeItem('jeeos_active_chat_session');
-    onNavigate?.('ai-coach');
+    navigate('/ai-coach');
   };
 
   return (

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Card } from '../../../components/ui/Card';
-import { AnimatedCounter } from '../../../components/ui/AnimatedCounter';
+import { Card } from '@/components/ui/Card';
+import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
 import { motion } from 'motion/react';
-import { StudyBrainService } from '../../../services/studyBrainService';
+import { StudyBrainService } from '@/services/studyBrainService';
 
 import { AlertTriangle, Clock, Skull, Zap } from 'lucide-react';
 

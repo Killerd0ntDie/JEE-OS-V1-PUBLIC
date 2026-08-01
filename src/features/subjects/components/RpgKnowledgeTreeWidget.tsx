@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Chapter } from '../../../types';
+import { Chapter } from '@/types';
 import { motion } from 'motion/react';
 import { CheckCircle2, Lock, Flame } from 'lucide-react';
 

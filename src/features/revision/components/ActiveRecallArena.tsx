@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Card } from '../../../components/ui/Card';
+import { Card } from '@/components/ui/Card';
 import { Brain, Flame, Skull, CheckCircle2, XCircle, ArrowRight, Timer, Sparkles, Trophy, Zap, TrendingUp } from 'lucide-react';
-import { RevisionCardItem } from '../../../engines/revision';
-import { useStudyBrain } from '../../../context/StudyBrainContext';
+import { RevisionCardItem } from '@/engines/revision';
+import { useStudyBrain } from '@/context/StudyBrainContext';
 import { BlockMath, InlineMath } from 'react-katex';
 
 interface ActiveRecallArenaProps {

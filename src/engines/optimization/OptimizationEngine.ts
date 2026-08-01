@@ -1,6 +1,6 @@
-import { SubjectId } from '../../types/index';
-import { PlannerInput } from '../planner/types';
-import { KnowledgeEngine, ProgressState } from '../knowledge';
+import { SubjectId } from '@/types/index';
+import { PlannerInput } from '@/engines/planner/types';
+import { KnowledgeEngine, ProgressState } from '@/engines/knowledge';
 import { OptimizationInput, OptimizationResult } from './types';
 
 // -----------------------------------------------------------------
@@ -35,7 +35,8 @@ export class OptimizationEngine {
     const targetQuota = Math.min(12, Math.max(2, rawQuota));
     const avgStudyHours = loggedAvg > 0.5 ? Math.min(12, loggedAvg) : targetQuota;
 
-    const progressStates: ProgressState[] = Object.entries(plannerInput.chapterTelemetryMap).map(([chapterId, data]) => ({
+    const telemetryMap = plannerInput.chapterTelemetryMap || {};
+    const progressStates: ProgressState[] = Object.entries(telemetryMap).map(([chapterId, data]) => ({
       chapterId,
       completion: data.masteryScore,
       isMastered: data.isMastered
@@ -93,7 +94,7 @@ export class OptimizationEngine {
 
     const allNodes = this.knowledgeEngine.getAllNodes();
     for (const node of allNodes) {
-      const prog = plannerInput.chapterTelemetryMap[node.id];
+      const prog = telemetryMap[node.id];
       subjectProgress[node.subject].total += 1;
       if (prog && prog.isMastered) {
         subjectProgress[node.subject].completed += 1;

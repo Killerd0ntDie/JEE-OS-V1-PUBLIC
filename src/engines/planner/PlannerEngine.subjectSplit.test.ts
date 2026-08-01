@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { PlannerEngine } from './PlannerEngine';
-import { KnowledgeEngine, SyllabusNode } from '../knowledge';
+import { KnowledgeEngine, SyllabusNode } from '@/engines/knowledge';
 import { PlannerInput } from './types';
-import { Chapter } from '../../types/index';
+import { Chapter } from '@/types/index';
 
 const MOCK_SYLLABUS_3_SUBJECTS: SyllabusNode[] = [
   {
@@ -76,9 +76,9 @@ describe('PlannerEngine - Subject Split Strategy Stress Tests', () => {
   const planner = new PlannerEngine(knowledgeEngine);
 
   const baseProgress = {
-    p1: {  currentLecture: 1, totalLectures: 5, theoryComplete: false, dppComplete: false, pyqsComplete: false, isMastered: false },
-    c1: {  currentLecture: 1, totalLectures: 5, theoryComplete: false, dppComplete: false, pyqsComplete: false, isMastered: false },
-    m1: {  currentLecture: 1, totalLectures: 5, theoryComplete: false, dppComplete: false, pyqsComplete: false, isMastered: false }
+    p1: {  currentLecture: 1, totalLectures: 15, theoryComplete: false, dppComplete: false, pyqsComplete: false, isMastered: false },
+    c1: {  currentLecture: 1, totalLectures: 15, theoryComplete: false, dppComplete: false, pyqsComplete: false, isMastered: false },
+    m1: {  currentLecture: 1, totalLectures: 15, theoryComplete: false, dppComplete: false, pyqsComplete: false, isMastered: false }
   };
 
   const baseChapters: Chapter[] = [
@@ -89,7 +89,7 @@ describe('PlannerEngine - Subject Split Strategy Stress Tests', () => {
       unit: 'Mechanics',
       
       currentLecture: 1,
-      totalLectures: 5,
+      totalLectures: 15,
       theoryComplete: false,
       dppComplete: false,
       pyqsComplete: false,
@@ -112,7 +112,7 @@ describe('PlannerEngine - Subject Split Strategy Stress Tests', () => {
       unit: 'Physical Chem',
       
       currentLecture: 1,
-      totalLectures: 5,
+      totalLectures: 15,
       theoryComplete: false,
       dppComplete: false,
       pyqsComplete: false,
@@ -135,7 +135,7 @@ describe('PlannerEngine - Subject Split Strategy Stress Tests', () => {
       unit: 'Calculus',
       
       currentLecture: 1,
-      totalLectures: 5,
+      totalLectures: 15,
       theoryComplete: false,
       dppComplete: false,
       pyqsComplete: false,
@@ -369,6 +369,7 @@ describe('PlannerEngine - Subject Split Strategy Stress Tests', () => {
 
       for (let day = 0; day < 7; day++) {
         const tasks = output.weeklySchedule?.[day] || [];
+        console.log(`Day ${day} tasks:`, tasks.length);
         expect(tasks.length).toBeGreaterThan(0);
         tasks.forEach(t => {
           expect(expectedRotation[day]).toContain(t.subjectId);

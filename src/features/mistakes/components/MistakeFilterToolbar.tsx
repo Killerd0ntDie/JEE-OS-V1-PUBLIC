@@ -1,6 +1,6 @@
 import React from 'react';
-import { SubjectId } from '../../../types/index';
-import { Icon } from '../../../components/ui/Icon';
+import { SubjectId } from '@/types/index';
+import { Icon } from '@/components/ui/Icon';
 
 export interface MistakeFilterToolbarProps {
   activeSubject: SubjectId | 'all';

@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
-import { ModalPortal } from '../../../components/ui/ModalPortal';
+import { ModalPortal } from '@/components/ui/ModalPortal';
 import { Sparkles } from 'lucide-react';
+import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 
 export interface MissionCalibrationModalProps {
   isCalibrating: boolean;
@@ -47,6 +48,8 @@ export function MissionCalibrationModal({
   setPyqsDoneInput,
   handleConfirmCalibration
 }: MissionCalibrationModalProps) {
+  useLockBodyScroll(true);
+
   useEffect(() => {
     if (isCalibrating && activeChap) {
       document.body.style.overflow = 'hidden';
@@ -178,7 +181,7 @@ export function MissionCalibrationModal({
                         setCurrentLecInput(1);
                       }
                     }}
-                    className={`w-full bg-[#121318] border rounded-xl px-3 py-2 text-xs font-mono font-bold text-white text-center focus:outline-none transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                    className={`w-full bg-[#121318] border rounded-xl px-3 py-2 text-xs font-mono font-bold text-white text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
                       currentLecInput === '' || Number(currentLecInput) <= 0
                         ? 'border-rose-500/80 bg-rose-950/20 text-rose-300 animate-shake'
                         : 'border-zinc-700 focus:border-indigo-500'
@@ -206,7 +209,7 @@ export function MissionCalibrationModal({
                         setTotalLecInput(8);
                       }
                     }}
-                    className={`w-full bg-[#121318] border rounded-xl px-3 py-2 text-xs font-mono font-bold text-white text-center focus:outline-none transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                    className={`w-full bg-[#121318] border rounded-xl px-3 py-2 text-xs font-mono font-bold text-white text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
                       totalLecInput === '' || Number(totalLecInput) <= 0
                         ? 'border-rose-500/80 bg-rose-950/20 text-rose-300 animate-shake'
                         : 'border-zinc-700 focus:border-indigo-500'

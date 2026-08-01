@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { PlannerEngine } from './PlannerEngine';
-import { KnowledgeEngine, SyllabusNode } from '../knowledge';
+import { KnowledgeEngine, SyllabusNode } from '@/engines/knowledge';
 import { PlannerInput } from './types';
 import { PlannerScoringEngine, ScoringContext } from './PlannerScoringEngine';
-import { Chapter } from '../../types/index';
+import { Chapter } from '@/types/index';
 
 const TEST_SYLLABUS: SyllabusNode[] = [
   {

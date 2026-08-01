@@ -1,6 +1,6 @@
 import { SubjectDetailPage } from './SubjectDetailPage';
 
-export function ChemistryPage({ onNavigate }: { onNavigate?: (page: string) => void }) {
+export function ChemistryPage() {
   return (
     <SubjectDetailPage
       subjectId="chemistry"
@@ -8,7 +8,6 @@ export function ChemistryPage({ onNavigate }: { onNavigate?: (page: string) => v
       subjectSubtitle="Master molecular structures, organic synthesis pathways, equilibrium dynamics, and transition metallurgy through systematic diagnostic testing."
       subjectIcon="FlaskConical"
       unitCategories={['All', 'Organic', 'Inorganic', 'Physical']}
-      onNavigate={onNavigate}
     />
   );
 }
