@@ -97,6 +97,11 @@ async function startServer() {
     next();
   };
 
+  // API route for Health Check (Uptime Monitors)
+  app.get("/api/health", (req, res) => {
+    res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
+  });
+
   // API route for Coach Engine
   app.post("/api/coach/analyze", apiLimiter, validateCoach, verifyAuth, async (req: any, res: any) => {
     try {
