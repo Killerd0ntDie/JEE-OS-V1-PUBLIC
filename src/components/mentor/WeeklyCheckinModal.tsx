@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useStudyBrain } from '@/context/StudyBrainContext';
+import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { Sparkles, Calendar, RotateCcw, X, Check } from 'lucide-react';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
@@ -11,7 +11,7 @@ interface Props {
 }
 
 export const WeeklyCheckinModal: React.FC<Props> = ({ isOpen, onClose }) => {
-  const { state, actions } = useStudyBrain();
+  const actions = useStudyBrainStore(state => state.actions);
 
   const [completedChapters, setCompletedChapters] = useState<string>('');
   const [newBacklogNotes, setNewBacklogNotes] = useState<string>('');

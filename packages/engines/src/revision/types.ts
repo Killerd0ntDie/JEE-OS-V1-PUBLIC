@@ -11,9 +11,14 @@ export interface RevisionCardItem extends FormulaEntry {
   retentionScore: number;
   lastReviewedDate?: string;
   nextReviewDays: number;
-  intervalStage: '1d' | '3d' | '7d' | '14d' | '30d';
+  intervalStage: string;
   recalledCount: number;
   urgencyRank: number; // Higher means more urgent
+  sm2State?: {
+    repetitions: number;
+    easeFactor: number;
+    interval: number;
+  };
 }
 
 export interface ChapterRevisionSummary {

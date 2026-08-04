@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useStudyBrain } from '@/context/StudyBrainContext';
+import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { Chapter } from '@/types/index';
 import { Badge } from '@/components/ui/Badge';
 import { ArrowLeft, CheckCircle, SlidersHorizontal, CheckSquare, Zap, BookOpen, Save, Sparkles } from 'lucide-react';
@@ -11,12 +11,14 @@ interface SubjectExpandedViewProps {
 }
 
 export function SubjectExpandedView({ chapterId, onClose }: SubjectExpandedViewProps) {
-  const { state, actions } = useStudyBrain();
+  const actions = useStudyBrainStore(state => state.actions);
+  const chaptersWithData = useStudyBrainStore(state => state.chaptersWithData);
+  const mistakes = useStudyBrainStore(state => state.mistakes);
 
-  const chapterDataObj = state.chaptersWithData.find(c => c.chapter.id === chapterId);
+  const chapterDataObj = chaptersWithData.find(c => c.chapter.id === chapterId);
   const chapter = chapterDataObj?.chapter;
   const data = chapterDataObj?.data;
-  const chapterMistakes = state.mistakes.filter(m => m.chapter === chapter?.name && m.revisionStatus !== 'Mastered');
+  const chapterMistakes = mistakes.filter(m => m.chapter === chapter?.name && m.revisionStatus !== 'Mastered');
 
   const [activeTab, setActiveTab] = useState<'overview' | 'mistakes'>('overview');
   const [showSavedToast, setShowSavedToast] = useState(false);

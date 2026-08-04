@@ -1,6 +1,6 @@
 import { Question } from '@/types/curriculum';
 import { v4 as uuidv4 } from 'uuid';
-import { CoachEngine } from '@/engines/coach/CoachEngine';
+import { CoachEngine } from '@jee-os/engines';
 
 export class PyqGeneratorEngine {
   private static async getAuthToken(): Promise<string> {

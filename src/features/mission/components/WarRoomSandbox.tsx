@@ -1,12 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import { useStudyBrain } from '@/context/StudyBrainContext';
+import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { Card } from '@/components/ui/Card';
 import { Network, AlertTriangle, ArrowRight, Activity, CalendarDays, RefreshCw } from 'lucide-react';
 import { Chapter } from '@/types';
 
 export function WarRoomSandbox() {
-  const { state } = useStudyBrain();
-  const { chapters } = state;
+  const chapters = useStudyBrainStore(state => state.chapters);
+  const chapterTelemetryMap = useStudyBrainStore(state => state.chapterTelemetryMap);
 
   // Sandbox local state for assignments
   // weekId (1, 2, 3, 4) -> Array of Chapter IDs
@@ -37,7 +37,7 @@ export function WarRoomSandbox() {
         projectedDrop += chap.weightage || 4;
         
         // Count dependencies mapped in telemetry
-        const telemetry = state.chapterTelemetryMap?.[id];
+        const telemetry = chapterTelemetryMap?.[id];
         if (telemetry && telemetry.isBottleneck) {
           delayedDependencies += 2; // rough mock of dependencies affected
         }
@@ -45,7 +45,7 @@ export function WarRoomSandbox() {
     });
 
     return { projectedDrop, delayedDependencies };
-  }, [weekAssignments, chapters, state.chapterTelemetryMap]);
+  }, [weekAssignments, chapters, chapterTelemetryMap]);
 
   const handleAssign = (week: number) => {
     if (!selectedChapter) return;

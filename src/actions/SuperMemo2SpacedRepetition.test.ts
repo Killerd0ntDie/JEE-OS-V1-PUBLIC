@@ -4,13 +4,13 @@ import { StudyBrainRuntime } from '@/runtime/StudyBrainRuntime';
 import { ChapterRepository } from '@/repositories/chapterRepository';
 import { Chapter } from '@/types/index';
 
-vi.mock('../../repositories/userRepository', () => ({
+vi.mock('../repositories/userRepository', () => ({
   UserRepository: {
     updateUserProfile: vi.fn().mockResolvedValue(undefined)
   }
 }));
 
-vi.mock('../../repositories/chapterRepository', () => ({
+vi.mock('../repositories/chapterRepository', () => ({
   ChapterRepository: {
     saveChapter: vi.fn().mockResolvedValue(undefined)
   }

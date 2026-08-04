@@ -1,6 +1,6 @@
 import React from 'react';
 import { Chapter } from '@/types/index';
-import { useStudyBrain } from '@/context/StudyBrainContext';
+import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { Lock, Clock, AlertTriangle, BookOpen, PenTool, CheckCircle2, SlidersHorizontal, PauseCircle } from 'lucide-react';
 
 interface ChapterCommandCardProps {
@@ -10,8 +10,9 @@ interface ChapterCommandCardProps {
 }
 
 export const ChapterCommandCard: React.FC<ChapterCommandCardProps> = ({ chapter, data, onExpand }) => {
-  const { state, actions } = useStudyBrain();
-  const telemetry = state.chapterTelemetryMap ? state.chapterTelemetryMap[chapter.id] : undefined;
+  const actions = useStudyBrainStore(state => state.actions);
+  const chapterTelemetryMap = useStudyBrainStore(state => state.chapterTelemetryMap);
+  const telemetry = chapterTelemetryMap ? chapterTelemetryMap[chapter.id] : undefined;
 
   // Use serial number for custom chapters, otherwise extract numerical index from chapter ID
   const curriculumTag = chapter.serialNumber ? (chapter.serialNumber.length > 10 ? chapter.serialNumber.slice(0, 10) + '...' : chapter.serialNumber) : (() => {

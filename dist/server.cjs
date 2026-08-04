@@ -161,6 +161,9 @@ async function startServer() {
     req.validatedBody = parsedBody.data;
     next();
   };
+  app.get("/api/health", (req, res) => {
+    res.status(200).json({ status: "ok", timestamp: (/* @__PURE__ */ new Date()).toISOString() });
+  });
   app.post("/api/coach/analyze", apiLimiter, validateCoach, verifyAuth, async (req, res) => {
     try {
       if (!process.env.GEMINI_API_KEY) {

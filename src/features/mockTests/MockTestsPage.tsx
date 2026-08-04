@@ -5,9 +5,10 @@ import { MockTest, MockTestAttempt, MockQuestion, QuestionType } from '../../typ
 import { MockTestArena } from './MockTestArena';
 import { MockTestResult } from './MockTestResult';
 import { MockTestUploader } from './MockTestUploader';
+import { UploadPDFModal } from './components/UploadPDFModal';
 import { ModalPortal } from '../../components/ui/ModalPortal';
 import { v4 as uuidv4 } from 'uuid';
-import { useStudyBrain } from '../../context/StudyBrainContext';
+import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { MockResult } from '../../types/index';
 import { InlineMath } from 'react-katex';
 
@@ -31,12 +32,17 @@ interface MockTestsPageProps {
 }
 
 export function MockTestsPage({ onNavigate }: MockTestsPageProps) {
-  const { state, actions } = useStudyBrain();
+  const actions = useStudyBrainStore(state => state.actions);
+  const customMockTests = useStudyBrainStore(state => state.customMockTests);
+  const mocks = useStudyBrainStore(state => state.mocks);
+  const chapters = useStudyBrainStore(state => state.chapters);
+
   const [engineState, setEngineState] = useState<MockTestEngineState>('LANDING');
   const [selectedTest, setSelectedTest] = useState<MockTest | null>(null);
   const [currentAttempt, setCurrentAttempt] = useState<MockTestAttempt | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showUploader, setShowUploader] = useState(false);
+  const [showPdfUploader, setShowPdfUploader] = useState(false);
   const [showAiSelector, setShowAiSelector] = useState(false);
   const [isGeneratingAiTest, setIsGeneratingAiTest] = useState(false);
   const [aiGenError, setAiGenError] = useState<string | null>(null);
@@ -44,7 +50,7 @@ export function MockTestsPage({ onNavigate }: MockTestsPageProps) {
 
   // Lock body scroll when a full-page modal is open
   useEffect(() => {
-    const isModalOpen = engineState !== 'LANDING' || isGeneratingAiTest || showUploader || !!selectedPastAttempt;
+    const isModalOpen = engineState !== 'LANDING' || isGeneratingAiTest || showUploader || showPdfUploader || !!selectedPastAttempt;
     if (isModalOpen) {
       document.body.style.overflow = 'hidden';
     } else {
@@ -53,7 +59,7 @@ export function MockTestsPage({ onNavigate }: MockTestsPageProps) {
     return () => {
       document.body.style.overflow = 'unset';
     };
-  }, [engineState, isGeneratingAiTest, showUploader, selectedPastAttempt]);
+  }, [engineState, isGeneratingAiTest, showUploader, showPdfUploader, selectedPastAttempt]);
 
   const handleStartTest = (test: MockTest) => {
     setSelectedTest(test);
@@ -258,6 +264,13 @@ export function MockTestsPage({ onNavigate }: MockTestsPageProps) {
 
                 <div className="flex flex-col sm:flex-row gap-3 shrink-0">
                   <button 
+                    onClick={() => setShowPdfUploader(true)}
+                    className="flex items-center justify-center gap-2 bg-purple-900/40 hover:bg-purple-600/60 border border-purple-500/30 text-white px-5 py-3.5 rounded-xl font-bold transition-all text-sm group"
+                  >
+                    <Sparkles className="w-4 h-4 text-purple-400 group-hover:text-white transition-colors" />
+                    AI Score Grader (PDF)
+                  </button>
+                  <button 
                     onClick={() => setShowAiSelector(true)}
                     className="flex items-center justify-center gap-2 bg-indigo-900/40 hover:bg-indigo-600/60 border border-indigo-500/30 text-white px-5 py-3.5 rounded-xl font-bold transition-all text-sm group"
                   >
@@ -269,7 +282,7 @@ export function MockTestsPage({ onNavigate }: MockTestsPageProps) {
                     className="flex items-center justify-center gap-2 bg-zinc-900 hover:bg-zinc-800 text-white border border-zinc-800 px-5 py-3.5 rounded-xl font-bold transition-all text-sm group"
                   >
                     <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" />
-                    Log External Score
+                    Log Custom JSON
                   </button>
                 </div>
               </div>
@@ -292,11 +305,11 @@ export function MockTestsPage({ onNavigate }: MockTestsPageProps) {
               )}
 
               {/* Available Custom Tests */}
-              {state.customMockTests && state.customMockTests.length > 0 && (
+              {customMockTests && customMockTests.length > 0 && (
                 <div className="space-y-4 pt-6 border-t border-zinc-900">
                   <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-500 font-mono">Available Tests</h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {state.customMockTests.slice().reverse().map((test) => (
+                    {customMockTests.slice().reverse().map((test) => (
                       <div 
                         key={test.id} 
                         onClick={() => handleStartTest(test)}
@@ -316,11 +329,11 @@ export function MockTestsPage({ onNavigate }: MockTestsPageProps) {
               )}
 
               {/* Past Attempts */}
-              {state.mocks && state.mocks.length > 0 && (
+              {mocks && mocks.length > 0 && (
                 <div className="space-y-4 pt-6 border-t border-zinc-900">
                   <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-500 font-mono">Past Attempts</h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {state.mocks.slice().reverse().map((mock) => (
+                    {mocks.slice().reverse().map((mock) => (
                       <div 
                         key={mock.id} 
                         onClick={() => setSelectedPastAttempt(mock)}
@@ -362,6 +375,13 @@ export function MockTestsPage({ onNavigate }: MockTestsPageProps) {
                   setShowUploader(false);
                 }} 
                 onCancel={() => setShowUploader(false)} 
+              />
+            )}
+
+            {showPdfUploader && (
+              <UploadPDFModal
+                onSuccess={() => setShowPdfUploader(false)}
+                onCancel={() => setShowPdfUploader(false)}
               />
             )}
           </motion.div>
@@ -461,7 +481,7 @@ export function MockTestsPage({ onNavigate }: MockTestsPageProps) {
               {['physics', 'chemistry', 'maths'].map(sub => (
                 <div key={sub} className="space-y-2">
                   <h4 className="text-xs font-mono font-bold uppercase text-zinc-500 tracking-wider sticky top-0 bg-zinc-950 py-1">{sub}</h4>
-                  {state.chapters.filter(c => c.subject === sub).map(chapter => (
+                  {chapters.filter(c => c.subject === sub).map(chapter => (
                     <button
                       key={chapter.id}
                       onClick={() => {

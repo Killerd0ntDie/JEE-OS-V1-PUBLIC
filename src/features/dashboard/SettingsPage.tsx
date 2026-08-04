@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { useStudyBrain } from '@/context/StudyBrainContext';
+import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { useAuth } from '@/features/auth';
 import { Icon } from '@/components/ui/Icon';
 import { soundSystem } from '@/utils/audioEffects';
@@ -10,19 +10,23 @@ import {
   Sparkles, CheckCircle2, RotateCcw, AlertTriangle, User, LogOut, Lock, SlidersHorizontal
 } from 'lucide-react';
 
-import { normalizeTwoDaySplitConfig } from '@/engines/planner/PlannerEngine';
+import { normalizeTwoDaySplitConfig } from '@jee-os/engines';
 
 export function SettingsPage() {
-  const { state, actions } = useStudyBrain();
+  const actions = useStudyBrainStore(state => state.actions);
+  const settings = useStudyBrainStore(state => state.settings);
+  const mentorProfile = useStudyBrainStore(state => state.mentorProfile);
+  const xp = useStudyBrainStore(state => state.xp);
+  const deletedMissionIds = useStudyBrainStore(state => state.deletedMissionIds);
   const { user, loginWithGoogle, loginWithEmail, registerWithEmail, logout } = useAuth();
   
   // Settings Form States
-  const [targetYear, setTargetYear] = useState(state.settings.targetYear || '2027');
-  const [dreamIit, setDreamIit] = useState(state.settings.dreamIit || 'IIT Bombay');
-  const [targetBranch, setTargetBranch] = useState(state.settings.targetBranch || 'Computer Science & Engineering');
-  const [dailyQuota, setDailyQuota] = useState(state.settings.dailyQuota || 6);
+  const [targetYear, setTargetYear] = useState(settings.targetYear || '2027');
+  const [dreamIit, setDreamIit] = useState(settings.dreamIit || 'IIT Bombay');
+  const [targetBranch, setTargetBranch] = useState(settings.targetBranch || 'Computer Science & Engineering');
+  const [dailyQuota, setDailyQuota] = useState(settings.dailyQuota || 6);
   const [subjectSplitStrategy, setSubjectSplitStrategy] = useState<'3_a_day' | '2_a_day_alternating' | '1_a_day_alternating'>(
-    state.mentorProfile?.subjectSplitStrategy || '3_a_day'
+    mentorProfile?.subjectSplitStrategy || '3_a_day'
   );
   
   const defaultTwoDayConfig: [SubjectId[], SubjectId[], SubjectId[]] = [
@@ -31,14 +35,14 @@ export function SettingsPage() {
     ['maths', 'physics']
   ];
   const [twoDaySplitConfig, setTwoDaySplitConfig] = useState<[SubjectId[], SubjectId[], SubjectId[]]>(
-    normalizeTwoDaySplitConfig(state.mentorProfile?.twoDaySplitConfig)
+    normalizeTwoDaySplitConfig(mentorProfile?.twoDaySplitConfig)
   );
   
-  const [soundEffects, setSoundEffects] = useState(state.settings.soundEffects ?? false);
-  const [desktopNotifications, setDesktopNotifications] = useState(state.settings.desktopNotifications ?? false);
-  const [volume, setVolume] = useState(state.settings.volume ?? 75);
-  const [pauseOnTabChange, setPauseOnTabChange] = useState(state.settings.pauseOnTabChange ?? true);
-  const [enableGodMode, setEnableGodMode] = useState(state.settings.enableGodMode ?? true);
+  const [soundEffects, setSoundEffects] = useState(settings.soundEffects ?? false);
+  const [desktopNotifications, setDesktopNotifications] = useState(settings.desktopNotifications ?? false);
+  const [volume, setVolume] = useState(settings.volume ?? 75);
+  const [pauseOnTabChange, setPauseOnTabChange] = useState(settings.pauseOnTabChange ?? true);
+  const [enableGodMode, setEnableGodMode] = useState(settings.enableGodMode ?? true);
 
   const [isSaved, setIsSaved] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -56,18 +60,18 @@ export function SettingsPage() {
   const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
-    setTargetYear(state.settings.targetYear || '2027');
-    setDreamIit(state.settings.dreamIit || 'IIT Bombay');
-    setTargetBranch(state.settings.targetBranch || 'Computer Science & Engineering');
-    setDailyQuota(state.settings.dailyQuota || 6);
-    setSoundEffects(state.settings.soundEffects ?? false);
-    setDesktopNotifications(state.settings.desktopNotifications ?? false);
-    setVolume(state.settings.volume ?? 75);
-    setPauseOnTabChange(state.settings.pauseOnTabChange ?? true);
-    setEnableGodMode(state.settings.enableGodMode ?? true);
-    setSubjectSplitStrategy(state.mentorProfile?.subjectSplitStrategy || '3_a_day');
-    setTwoDaySplitConfig(normalizeTwoDaySplitConfig(state.mentorProfile?.twoDaySplitConfig));
-  }, [state.settings, state.mentorProfile]);
+    setTargetYear(settings.targetYear || '2027');
+    setDreamIit(settings.dreamIit || 'IIT Bombay');
+    setTargetBranch(settings.targetBranch || 'Computer Science & Engineering');
+    setDailyQuota(settings.dailyQuota || 6);
+    setSoundEffects(settings.soundEffects ?? false);
+    setDesktopNotifications(settings.desktopNotifications ?? false);
+    setVolume(settings.volume ?? 75);
+    setPauseOnTabChange(settings.pauseOnTabChange ?? true);
+    setEnableGodMode(settings.enableGodMode ?? true);
+    setSubjectSplitStrategy(mentorProfile?.subjectSplitStrategy || '3_a_day');
+    setTwoDaySplitConfig(normalizeTwoDaySplitConfig(mentorProfile?.twoDaySplitConfig));
+  }, [settings, mentorProfile]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,9 +101,9 @@ export function SettingsPage() {
       enableGodMode
     });
 
-    if (state.mentorProfile) {
+    if (mentorProfile) {
       await actions.updateMentorProfile({
-        ...state.mentorProfile,
+        ...mentorProfile,
         dailyAvailableHours: dailyQuota,
         targetYear,
         targetCollege: dreamIit,
@@ -690,7 +694,7 @@ export function SettingsPage() {
           <div>
             <p className="text-xs font-mono font-bold text-zinc-200">Reset XP &amp; Level</p>
             <p className="text-[11px] text-zinc-500">
-              Current: Level {state.xp?.level ?? 1} · {state.xp?.total ?? 0} XP total · {state.xp?.streak ?? 0} day streak
+              Current: Level {xp?.level ?? 1} · {xp?.total ?? 0} XP total · {xp?.streak ?? 0} day streak
             </p>
           </div>
           <button
@@ -714,7 +718,7 @@ export function SettingsPage() {
           <div>
             <p className="text-xs font-mono font-bold text-zinc-200">Reset Hidden Missions</p>
             <p className="text-[11px] text-zinc-500">
-              {state.deletedMissionIds?.length || 0} missions currently hidden. Clears the blocklist.
+              {deletedMissionIds?.length || 0} missions currently hidden. Clears the blocklist.
             </p>
           </div>
           <button

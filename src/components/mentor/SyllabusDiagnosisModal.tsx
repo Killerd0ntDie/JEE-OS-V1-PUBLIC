@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useStudyBrain } from '@/context/StudyBrainContext';
+import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { SubjectId, Chapter, SyllabusDiagnosisStage } from '@/types/index';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
@@ -14,7 +14,8 @@ interface Props {
 }
 
 export const SyllabusDiagnosisModal: React.FC<Props> = ({ isOpen, onClose }) => {
-  const { state, actions } = useStudyBrain();
+  const actions = useStudyBrainStore(state => state.actions);
+  const chapters = useStudyBrainStore(state => state.chapters);
   const [activeSubject, setActiveSubject] = useState<SubjectId>('physics');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
@@ -24,12 +25,12 @@ export const SyllabusDiagnosisModal: React.FC<Props> = ({ isOpen, onClose }) => 
 
   if (!isOpen) return null;
 
-  const subjectChapters = state.chapters.filter(c => 
+  const subjectChapters = chapters.filter(c => 
     c.subject === activeSubject && 
     c.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const selectedChapter = state.chapters.find(c => c.id === selectedChapterId) || subjectChapters[0];
+  const selectedChapter = chapters.find(c => c.id === selectedChapterId) || subjectChapters[0];
 
   // Local editing state for selected chapter
   const stageOptions: SyllabusDiagnosisStage[] = [
@@ -72,7 +73,7 @@ export const SyllabusDiagnosisModal: React.FC<Props> = ({ isOpen, onClose }) => 
     field: 'teacher' | 'lectureSeries' | 'totalLectures' | 'completedLectures' | 'avgLectureDurationMinutes',
     value: any
   ) => {
-    const chap = state.chapters.find(c => c.id === chapId);
+    const chap = chapters.find(c => c.id === chapId);
     if (!chap) return;
 
     const existingLect = chap.lectureProgress || {
@@ -105,7 +106,7 @@ export const SyllabusDiagnosisModal: React.FC<Props> = ({ isOpen, onClose }) => 
     field: 'dppCompleted' | 'pyqsCompleted' | 'moduleCompleted' | 'accuracyPercent' | 'confidencePercent',
     value: any
   ) => {
-    const chap = state.chapters.find(c => c.id === chapId);
+    const chap = chapters.find(c => c.id === chapId);
     if (!chap) return;
 
     const existingPrac = chap.practiceProgress || {
@@ -136,7 +137,7 @@ export const SyllabusDiagnosisModal: React.FC<Props> = ({ isOpen, onClose }) => 
     field: 'lastRevisedDaysAgo' | 'retentionConfidence' | 'formulaMemoryPercent' | 'questionSolvingConfidencePercent' | 'needRevision',
     value: any
   ) => {
-    const chap = state.chapters.find(c => c.id === chapId);
+    const chap = chapters.find(c => c.id === chapId);
     if (!chap) return;
 
     const existingRev = chap.revisionProgress || {

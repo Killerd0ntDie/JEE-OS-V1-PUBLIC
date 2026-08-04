@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useStudyBrain } from '@/context/StudyBrainContext';
+import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { safelyParseJSON } from '@/utils/jsonParser';
 import { Icon } from '@/components/ui/Icon';
 import { Badge } from '@/components/ui/Badge';
-import { ChapterTelemetry } from '@/engines/chapterInfo';
-import { CoachEngine } from '@/engines/coach';
-import { CoachAction } from '@/engines/coach/types';
+import { ChapterTelemetry } from '@jee-os/engines';
+import { CoachEngine } from '@jee-os/engines';
+import { CoachAction } from '@jee-os/engines';
 import { PageId } from '@/types';
 import { AiRevisionPlanModal } from '@/components/shared/AiRevisionPlanModal';
 import { useNavigate } from 'react-router-dom';
@@ -26,7 +26,17 @@ export interface ChatSession {
 }
 
 export function AiCoachPage({ isActive }: { isActive?: boolean }) {
-  const { state, actions } = useStudyBrain();
+  const actions = useStudyBrainStore(state => state.actions);
+  const settings = useStudyBrainStore(state => state.settings);
+  const chapterTelemetryMap = useStudyBrainStore(state => state.chapterTelemetryMap);
+  const chapters = useStudyBrainStore(state => state.chapters);
+  const mistakes = useStudyBrainStore(state => state.mistakes);
+  const todayMissions = useStudyBrainStore(state => state.todayMissions) || [];
+  const plannerOutput = useStudyBrainStore(state => state.plannerOutput);
+  const mentorProfile = useStudyBrainStore(state => state.mentorProfile);
+  const analyticsSummary = useStudyBrainStore(state => state.analyticsSummary);
+  const analytics = useStudyBrainStore(state => state.analytics);
+  const coachMessage = useStudyBrainStore(state => state.coachMessage);
   const navigate = useNavigate();
   
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -52,9 +62,9 @@ export function AiCoachPage({ isActive }: { isActive?: boolean }) {
           break;
         case 'UPDATE_TARGET':
           await actions.setSettings({
-            ...state.settings,
-            targetYear: action.payload.targetYear || state.settings.targetYear,
-            dreamIit: action.payload.targetCollege || state.settings.dreamIit
+            ...settings,
+            targetYear: action.payload.targetYear || settings.targetYear,
+            dreamIit: action.payload.targetCollege || settings.dreamIit
           });
           break;
         case 'CLEAR_MISSIONS':
@@ -97,7 +107,7 @@ export function AiCoachPage({ isActive }: { isActive?: boolean }) {
   
   const initialMessage: ChatMessage = {
     role: 'coach',
-    text: `Hello Aspirant! I am your dedicated AI Prep Coach for JEE ${state.settings.targetYear}. I have analyzed your 70-chapter telemetry and current daily missions. Ask me anything or select a preset prompt below to begin.`,
+    text: `Hello Aspirant! I am your dedicated AI Prep Coach for JEE ${settings.targetYear}. I have analyzed your 70-chapter telemetry and current daily missions. Ask me anything or select a preset prompt below to begin.`,
     time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
   };
 
@@ -177,10 +187,9 @@ export function AiCoachPage({ isActive }: { isActive?: boolean }) {
   };
 
   // Telemetry summaries
-  const telemetryList = (Object.values(state.chapterTelemetryMap || {}) as ChapterTelemetry[]);
+  const telemetryList = (Object.values(chapterTelemetryMap || {}) as ChapterTelemetry[]);
   const bottleneckChaps = telemetryList.filter(t => t.isBottleneck);
   const lowRetentionChaps = telemetryList.filter(t => t.retentionConfidence === 'Low');
-  const todayMissions = state.todayMissions || [];
   const pendingMissions = todayMissions.filter(m => !m.completed);
 
   const presetPrompts = [
@@ -207,30 +216,30 @@ export function AiCoachPage({ isActive }: { isActive?: boolean }) {
       const coachEngine = new CoachEngine();
       const output = await coachEngine.getAnalysis({
         question: messageText,
-        chapters: state.chapters.filter((c: any) => c.status !== 'Unstarted' || c.completion > 0).map((c: any) => ({
+        chapters: chapters.filter((c: any) => c.status !== 'Unstarted' || c.completion > 0).map((c: any) => ({
           name: c.name,
           progress: c.completion,
           status: c.status
         })) as any,
-        weakTopics: state.mistakes.map((m: any) => ({
+        weakTopics: mistakes.map((m: any) => ({
           topic: m.topicName,
           errorType: m.errorType,
           status: m.revisionStatus
         })) as any,
-        mission: state.todayMissions.map((m: any) => ({ title: m.title, subject: m.subject, completed: m.completed })) as any,
-        revisionQueue: state.chapters.filter((c: any) => c.status === 'Learning' || c.status === 'Theory Complete' || c.status === 'DPP Pending' || c.status === 'PYQ Pending').map((c: any) => c.name) as any,
+        mission: todayMissions.map((m: any) => ({ title: m.title, subject: m.subject, completed: m.completed })) as any,
+        revisionQueue: chapters.filter((c: any) => c.status === 'Learning' || c.status === 'Theory Complete' || c.status === 'DPP Pending' || c.status === 'PYQ Pending').map((c: any) => c.name) as any,
         // BUGFIX: PlannerOutput has no `.phases` field, so this was always `[]` and, because
         // an empty array is truthy in JS, it silently discarded the real scheduled tasks.
         // The real field is `todaysMission`.
-        plannerDecisions: state.plannerOutput?.todaysMission || [],
+        plannerDecisions: plannerOutput?.todaysMission || [],
         plannerOutput: undefined, // Stripping massive output; frontend uses it, but AI just needs plannerDecisions and analytics
         // BUGFIX: targetYear/targetCollege must come from the student's actual settings,
         // not from PlannerOutput (which never had these fields — they were always undefined,
         // silently defaulting to hardcoded '2026' / 'IIT Bombay').
-        targetYear: state.mentorProfile?.targetYear || state.settings.targetYear,
-        targetCollege: state.mentorProfile?.targetCollege || state.settings.dreamIit,
-        coachingType: state.mentorProfile?.coachingType,
-        analyticsSummary: state.analyticsSummary || {
+        targetYear: mentorProfile?.targetYear || settings.targetYear,
+        targetCollege: mentorProfile?.targetCollege || settings.dreamIit,
+        coachingType: mentorProfile?.coachingType,
+        analyticsSummary: analyticsSummary || {
           totalStudyHours: 0,
           studyHoursPastWeek: [0,0,0,0,0,0,0],
           studyVelocity: 0,
@@ -242,7 +251,7 @@ export function AiCoachPage({ isActive }: { isActive?: boolean }) {
             maths: { studyHours: 0, completionPercentage: 0 }
           },
           overallLectureCompletion: 0,
-          questionAccuracy: state.analytics.accuracy || 85,
+          questionAccuracy: analytics.accuracy || 85,
           revisionHealth: 0,
           mockPerformance: { averageScore: 0, recentTrend: 0 },
           predictedCompletionDate: null
@@ -288,7 +297,7 @@ export function AiCoachPage({ isActive }: { isActive?: boolean }) {
           {/* Goal Badge */}
           <div className="flex items-center gap-2 bg-indigo-950/40 border border-indigo-900/60 text-indigo-300 text-xs font-mono px-3.5 py-2 rounded-2xl shrink-0">
             <Icon name="Target" className="w-4 h-4 text-indigo-400 animate-pulse" />
-            <span>{state.settings.dreamIit} • {state.settings.targetBranch}</span>
+            <span>{settings.dreamIit} • {settings.targetBranch}</span>
           </div>
           <div className="flex items-center gap-2">
             <button 
@@ -348,7 +357,7 @@ export function AiCoachPage({ isActive }: { isActive?: boolean }) {
             {/* Coach Message Summary */}
             <div className="p-3.5 rounded-xl bg-indigo-950/20 border border-indigo-900/30 text-xs text-indigo-200 leading-relaxed font-sans space-y-2">
               <p className="font-semibold text-indigo-300">📢 Today's Strategy Overview:</p>
-              <p className="text-zinc-300 text-xs">{state.coachMessage || 'Focus on completing your allocated daily missions and resolving active backlog chapters.'}</p>
+              <p className="text-zinc-300 text-xs">{coachMessage || 'Focus on completing your allocated daily missions and resolving active backlog chapters.'}</p>
             </div>
 
             {/* Tactical Telemetry Metrics */}

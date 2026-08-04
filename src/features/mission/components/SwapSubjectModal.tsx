@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, ArrowRightLeft, BookOpen, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { SubjectId, Chapter, TodayMission } from '@/types';
-import { useStudyBrain } from '@/context/StudyBrainContext';
+import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { ModalPortal } from '@/components/ui/ModalPortal';
 import { HoldNotificationModal } from '@/components/shared/HoldNotificationModal';
 
@@ -16,7 +16,8 @@ export const SwapSubjectModal: React.FC<SwapSubjectModalProps> = ({
   onClose,
   mission,
 }) => {
-  const { state, actions } = useStudyBrain();
+  const actions = useStudyBrainStore(state => state.actions);
+  const chapters = useStudyBrainStore(state => state.chapters);
   const [selectedSubject, setSelectedSubject] = useState<SubjectId>(mission?.subject || 'physics');
   const [selectedChapterId, setSelectedChapterId] = useState<string>('');
   
@@ -26,7 +27,7 @@ export const SwapSubjectModal: React.FC<SwapSubjectModalProps> = ({
 
   if (!isOpen || !mission) return null;
 
-  const subjectChapters = state.chapters.filter(c => c.subject === selectedSubject);
+  const subjectChapters = chapters.filter(c => c.subject === selectedSubject);
 
   const handleApplySwap = (targetChapter: Chapter) => {
     // Check if target chapter or task type is on hold

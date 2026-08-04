@@ -3,15 +3,17 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Icon } from '@/components/ui/Icon';
-import { useStudyBrain } from '@/context/StudyBrainContext';
-import { RevisionCardItem } from '@/engines/revision';
+import { useStudyBrainStore } from '@/store/useStudyBrainStore';
+import { RevisionCardItem } from '@jee-os/engines';
 import { ChapterRevisionInspectorModal } from '@/components/mentor/ChapterRevisionInspectorModal';
 import { AiPracticeModal } from '@/components/mentor/AiPracticeModal';
 import { ActiveRecallArena } from './components/ActiveRecallArena';
-import { Flame, Brain } from 'lucide-react';
+import { Flame, Brain, Skull, Timer, CheckCircle2, Sparkles } from 'lucide-react';
 
 export function RevisionPage() {
-  const { state, actions } = useStudyBrain();
+  const chapters = useStudyBrainStore(s => s.chapters);
+  const runtime = useStudyBrainStore(s => s); // Need runtime for the engine call
+  const actions = useStudyBrainStore(s => s.actions);
 
   const [activeSubject, setActiveSubject] = useState<'all' | 'physics' | 'chemistry' | 'maths'>('all');
   const [filterScope, setFilterScope] = useState<'urgent' | 'overdue' | 'all'>('urgent');
@@ -19,12 +21,14 @@ export function RevisionPage() {
   const [flippedCards, setFlippedCards] = useState<Record<string, boolean>>({});
   const [recalledToast, setRecalledToast] = useState<string | null>(null);
 
+  const revisionTelemetry = useStudyBrainStore(s => s.revisionTelemetry);
+  
   // Inspector modal state
   const [inspectorChapterId, setInspectorChapterId] = useState<string | null>(null);
   const [aiPracticeConfig, setAiPracticeConfig] = useState<{ chapterId: string; subject: string } | null>(null);
 
   // Consume central RevisionEngine output
-  const revisionData = state.revisionTelemetry;
+  const revisionData = revisionTelemetry;
 
   // Chapter summaries from RevisionEngine
   const overdueChapters = revisionData?.overdueChapters || [];
@@ -426,23 +430,29 @@ export function RevisionPage() {
 
                   {isFlipped && (
                     <div className="flex gap-1.5">
-                      <button
+                      <button 
                         onClick={() => markCardRecall(card, 'Low')}
-                        className="text-[10px] font-mono font-bold py-1 px-2.5 rounded-lg cursor-pointer bg-red-950/60 hover:bg-red-900 text-red-300 border border-red-800/60 transition-colors"
+                        className="text-[10px] font-mono font-bold py-1 px-2 rounded-lg border border-red-900/50 bg-red-950/60 text-red-400 hover:bg-red-900/80 transition-colors flex items-center gap-1 cursor-pointer"
                       >
-                        Hard (1d)
+                        <Skull className="w-3 h-3" /> Blackout
                       </button>
-                      <button
+                      <button 
                         onClick={() => markCardRecall(card, 'Medium')}
-                        className="text-[10px] font-mono font-bold py-1 px-2.5 rounded-lg cursor-pointer bg-amber-950/60 hover:bg-amber-900 text-amber-300 border border-amber-800/60 transition-colors"
+                        className="text-[10px] font-mono font-bold py-1 px-2 rounded-lg border border-orange-900/50 bg-orange-950/60 text-orange-400 hover:bg-orange-900/80 transition-colors flex items-center gap-1 cursor-pointer"
                       >
-                        Medium (3d)
+                        <Timer className="w-3 h-3" /> Hard
                       </button>
-                      <button
+                      <button 
                         onClick={() => markCardRecall(card, 'High')}
-                        className="text-[10px] font-mono font-bold py-1 px-2.5 rounded-lg cursor-pointer bg-emerald-950/60 hover:bg-emerald-900 text-emerald-300 border border-emerald-800/60 transition-colors"
+                        className="text-[10px] font-mono font-bold py-1 px-2 rounded-lg border border-emerald-900/50 bg-emerald-950/60 text-emerald-400 hover:bg-emerald-900/80 transition-colors flex items-center gap-1 cursor-pointer"
                       >
-                        Easy (7d+)
+                        <CheckCircle2 className="w-3 h-3" /> Good
+                      </button>
+                      <button 
+                        onClick={() => markCardRecall(card, 'High')}
+                        className="text-[10px] font-mono font-bold py-1 px-2 rounded-lg border border-blue-900/50 bg-blue-950/60 text-blue-400 hover:bg-blue-900/80 transition-colors flex items-center gap-1 shadow-[0_0_10px_rgba(59,130,246,0.15)] cursor-pointer"
+                      >
+                        <Sparkles className="w-3 h-3" /> Perfect
                       </button>
                     </div>
                   )}

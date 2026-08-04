@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Icon } from '@/components/ui/Icon';
-import { useStudyBrain } from '@/context/StudyBrainContext';
-import { RevisionCardItem } from '@/engines/revision';
+import { useStudyBrainStore } from '@/store/useStudyBrainStore';
+import { RevisionCardItem } from '@jee-os/engines';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { MissionMode } from '@/features/mission/MissionMode';
@@ -17,7 +17,7 @@ export const FormulaSpeedDrillModal: React.FC<FormulaSpeedDrillModalProps> = ({
   cards,
   onClose
 }) => {
-  const { actions } = useStudyBrain();
+  const actions = useStudyBrainStore(state => state.actions);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [timeLeft, setTimeLeft] = useState(30);

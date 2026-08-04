@@ -18,9 +18,13 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "@/engines/*": [
+        "./packages/engines/src/*"
       ]
     },
     "allowImportingTsExtensions": true,
     "noEmit": true
-  }
+  },
+  "exclude": ["packages"]
 }

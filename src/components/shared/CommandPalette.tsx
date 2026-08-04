@@ -57,6 +57,16 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
     setSelectedIndex(0);
   }, [searchQuery]);
 
+  // Auto-scroll list to keep selected item in view
+  useEffect(() => {
+    if (listRef.current && isOpen) {
+      const selectedItem = listRef.current.children[selectedIndex] as HTMLElement;
+      if (selectedItem) {
+        selectedItem.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    }
+  }, [selectedIndex, isOpen]);
+
   if (!isOpen) return null;
 
   return (
@@ -74,8 +84,8 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
         onClick={e => e.stopPropagation()}
       >
         {/* Search header */}
-        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-zinc-900 bg-zinc-950">
-          <Icon name="Search" aria-hidden="true" className="w-4 h-4 text-zinc-500 shrink-0" />
+        <div className="flex items-center gap-3 px-4 py-4 border-b border-zinc-800/50 bg-zinc-950">
+          <Icon name="Search" aria-hidden="true" className="w-5 h-5 text-indigo-400 shrink-0" />
           <input
             ref={inputRef}
             type="text"
@@ -83,10 +93,10 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
             onChange={e => setSearchQuery(e.target.value)}
             placeholder="Search commands, subjects, planners, or settings..."
             aria-label="Search commands, subjects, planners, or settings"
-            className="flex-grow bg-transparent text-sm text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 placeholder-zinc-600 font-sans"
+            className="flex-grow bg-transparent text-sm text-white outline-none border-none ring-0 focus:outline-none focus:ring-0 placeholder-zinc-500 font-sans"
           />
           <div className="flex items-center gap-1">
-            <span className="text-[10px] bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded text-zinc-500 font-mono">
+            <span className="text-[10px] bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded text-zinc-400 font-mono">
               ESC
             </span>
           </div>

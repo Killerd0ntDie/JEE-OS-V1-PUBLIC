@@ -5,7 +5,7 @@ import { Icon } from '@/components/ui/Icon';
 import { useAuth } from '@/features/auth';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { JeeOsLogo } from '@/components/shared/JeeOsLogo';
-import { ChapterTelemetry } from '@/engines/chapterInfo';
+import { ChapterTelemetry } from '@jee-os/engines';
 import { useToast } from '@/components/ui/ToastProvider';
 import { ThemeToggle } from '@/components/shared/ThemeToggle';
 

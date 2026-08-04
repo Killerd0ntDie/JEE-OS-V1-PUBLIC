@@ -4,7 +4,7 @@ export class CoachEngine {
   public static cachedWorkingModel: string | null = null;
 
   private async getAuthToken(): Promise<string> {
-    const { auth } = await import('../../firebase');
+    const { auth } = await import('@/firebase');
     const user = auth.currentUser;
     if (!user) throw new Error("User must be logged in to analyze performance.");
     return await user.getIdToken();

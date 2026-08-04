@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ModalPortal } from '@/components/ui/ModalPortal';
 import { X, Plus, Clock, Sparkles } from 'lucide-react';
-import { useStudyBrain } from '@/context/StudyBrainContext';
+import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { SubjectId, TodayMission } from '@/types/index';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 
@@ -12,7 +12,8 @@ interface CustomMissionModalProps {
 }
 
 export const CustomMissionModal: React.FC<CustomMissionModalProps> = ({ isOpen, onClose, missionToEdit }) => {
-  const { actions, state } = useStudyBrain();
+  const actions = useStudyBrainStore(state => state.actions);
+  const chapters = useStudyBrainStore(state => state.chapters);
   const [taskName, setTaskName] = useState('');
   const [subject, setSubject] = useState<SubjectId>('physics');
   const [chapter, setChapter] = useState('');
@@ -163,7 +164,7 @@ export const CustomMissionModal: React.FC<CustomMissionModalProps> = ({ isOpen, 
               className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white font-mono text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500 transition-colors"
             >
               <option value="">General / None</option>
-              {state.chapters.filter(c => c.subject === subject).map(c => (
+              {chapters.filter(c => c.subject === subject).map(c => (
                 <option key={c.id} value={c.name}>{c.name}</option>
               ))}
             </select>

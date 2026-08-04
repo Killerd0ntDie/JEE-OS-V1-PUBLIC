@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { Target, Clock, AlertTriangle, TrendingUp, ChevronDown, ChevronUp, ShieldAlert, PauseCircle, LayoutDashboard } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
-import { ChapterTelemetry } from '@/engines/chapterInfo';
+import { ChapterTelemetry } from '@jee-os/engines';
 import { Chapter } from '@/types';
 import { MonthlyCampaignBanner } from '@/features/mission/components/MonthlyCampaignBanner';
 

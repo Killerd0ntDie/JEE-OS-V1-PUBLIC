@@ -341,14 +341,3 @@ export const StudyBrainProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   // We no longer provide a context value, children just render and use Zustand
   return <>{children}</>;
 };
-
-export const useStudyBrain = () => {
-  const store = useStudyBrainStore(); // Subscribe to everything (legacy behavior)
-  
-  if (!store || !store.actions) {
-    throw new Error('useStudyBrain must be used within a StudyBrainProvider initialized state');
-  }
-  
-  // Return the entire store as `state` so legacy destructuring `const { state, actions } = useStudyBrain()` still works
-  return { state: store, actions: store.actions, runtime: StudyBrainRuntime.getInstance() };
-};

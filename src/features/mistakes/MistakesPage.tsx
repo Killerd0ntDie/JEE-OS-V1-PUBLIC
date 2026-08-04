@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useStudyBrain } from '@/context/StudyBrainContext';
+import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { SubjectId, Mistake } from '@/types/index';
 import { Icon } from '@/components/ui/Icon';
 import { MistakeFilterToolbar } from './components/MistakeFilterToolbar';
@@ -28,7 +28,8 @@ export const MISTAKE_CATEGORIES = [
 ];
 
 export function MistakesPage() {
-  const { state, actions } = useStudyBrain();
+  const actions = useStudyBrainStore(state => state.actions);
+  const mistakes = useStudyBrainStore(state => state.mistakes) || [];
 
   // Filters & State
   const [activeSubject, setActiveSubject] = useState<SubjectId | 'all'>('all');
@@ -62,8 +63,6 @@ export function MistakesPage() {
       default: return { label: status, style: 'default' };
     }
   };
-
-  const mistakes = state.mistakes || [];
 
   // Filtered Mistakes
   const filteredMistakes = useMemo(() => {

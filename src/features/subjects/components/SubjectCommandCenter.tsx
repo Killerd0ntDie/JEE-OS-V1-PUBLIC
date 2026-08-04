@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { SubjectId } from '@/types/index';
-import { useStudyBrain } from '@/context/StudyBrainContext';
-import { ChapterTelemetry } from '@/engines/chapterInfo';
+import { useStudyBrainStore } from '@/store/useStudyBrainStore';
+import { ChapterTelemetry } from '@jee-os/engines';
 import { ChapterCommandCard } from './ChapterCommandCard';
 import { Icon } from '@/components/ui/Icon';
 import { Search, Sparkles, Play, Filter, CheckCircle2 } from 'lucide-react';
@@ -29,7 +29,9 @@ export function SubjectCommandCenter({
   unitCategories = ['All']
 }: SubjectCommandCenterProps) {
   const navigate = useNavigate();
-  const { state, actions } = useStudyBrain();
+  const actions = useStudyBrainStore(state => state.actions);
+  const chapters = useStudyBrainStore(state => state.chapters);
+  const chapterTelemetryMap = useStudyBrainStore(state => state.chapterTelemetryMap);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterType>('All');
@@ -46,8 +48,8 @@ export function SubjectCommandCenter({
 
   // Subject specific chapters
   const subjectChapters = useMemo(() => {
-    return state.chapters.filter(c => c.subject === subjectId);
-  }, [state.chapters, subjectId]);
+    return chapters.filter(c => c.subject === subjectId);
+  }, [chapters, subjectId]);
 
   // Sort chapters by serial number if available, otherwise by ID numerical value
   const sortedSubjectChapters = useMemo(() => {
@@ -106,8 +108,8 @@ export function SubjectCommandCenter({
 
   // Subject Stats Computation via state.chapterTelemetryMap
   const subjectTelemetryList = useMemo(() => {
-    return (Object.values(state.chapterTelemetryMap || {}) as ChapterTelemetry[]).filter(t => t && t.subject === subjectId);
-  }, [state.chapterTelemetryMap, subjectId]);
+    return (Object.values(chapterTelemetryMap || {}) as ChapterTelemetry[]).filter(t => t && t.subject === subjectId);
+  }, [chapterTelemetryMap, subjectId]);
 
   const totalCount = subjectTelemetryList.length || subjectChapters.length;
   const masteredCount = subjectTelemetryList.filter(t => t.syllabusStage === 'Mastered').length;

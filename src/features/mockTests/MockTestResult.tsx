@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useMemo, useState } from 'react';
 import { Target, Clock, Award, X, AlertTriangle, ArrowRight, CheckCircle2, XCircle, MinusCircle, ChevronDown, ChevronUp, BookOpen } from 'lucide-react';
-import { useStudyBrain } from '../../context/StudyBrainContext';
+import { useStudyBrainStore } from '../../store/useStudyBrainStore';
 import { MockTest, MockTestAttempt, MockQuestion, MockTestAttemptQuestion } from '../../types/mockTest';
 import { SubjectId } from '../../types/index';
 import { InlineMath, BlockMath } from 'react-katex';
@@ -107,7 +107,7 @@ const calculateRank = (score: number, maxMarks: number) => {
 };
 
 export function MockTestResult({ test, attempt, onClose, onNavigate }: MockTestResultProps) {
-  const { actions } = useStudyBrain();
+  const actions = useStudyBrainStore(state => state.actions);
   const hasLoggedMistakes = useRef(false);
 
   const analysis = useMemo(() => {

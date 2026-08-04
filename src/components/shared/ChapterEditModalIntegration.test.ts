@@ -81,8 +81,8 @@ describe('App-Wide UI Integration & Modal Cleanup empirical verification', () =>
     });
 
     it('Domain 5: Analytics Engine / Analytics Page connects to global ChapterEditModal via App frame', () => {
-      const analyticsPath = path.join(rootSrcDir, 'features', 'analytics', 'AnalyticsPage.tsx');
-      const enginePath = path.join(rootSrcDir, 'engines', 'analytics', 'AnalyticsEngine.ts');
+      const analyticsPath = path.join(process.cwd(), 'src', 'features', 'analytics', 'AnalyticsPage.tsx');
+      const enginePath = path.join(process.cwd(), 'packages', 'engines', 'src', 'analytics', 'AnalyticsEngine.ts');
       
       expect(fs.existsSync(analyticsPath)).toBe(true);
       expect(fs.existsSync(enginePath)).toBe(true);

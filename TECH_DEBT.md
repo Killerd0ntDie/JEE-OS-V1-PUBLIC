@@ -8,17 +8,12 @@
 - [x] **Type Strictness**: Enforced strict `boolean` types across `StudyBrainActions` to eliminate build failures on `undefined`.
 
 ## Remaining Structural Debt
-1. **God Context (`StudyBrainContext.tsx`)**
-   - **Issue:** Multi-purpose state and synchronization handling.
-   - **Impact:** Triggers full app re-renders on state mutations.
-   - **Effort to Fix:** High. Recommend splitting into modular domain contexts or lightweight store patterns.
-
-2. **Large Component Files**
-   - **Issue:** `MistakesPage.tsx` (~1560 lines), `MissionMode.tsx` (~1150 lines), `DashboardPage.tsx` (~970 lines).
+1. **Large Component Files**
+   - **Issue:** `MistakesPage.tsx` (~1560 lines), `DashboardPage.tsx` (~970 lines).
    - **Impact:** Hard to read, navigate, and maintain.
-   - **Effort to Fix:** Medium. Extract modular sub-components and custom hooks.
+   - **Effort to Fix:** Medium. Extract modular sub-components and custom hooks. (Note: `MissionMode.tsx` was successfully refactored).
 
-4. **Codebase Size and Monolith**
-   - **Issue:** All engines and UI exist in a single repository without clear boundary separations.
-   - **Impact:** Hard to deploy engines as microservices later.
-   - **Effort to Fix:** Medium/High. Requires nx or turborepo migration.
+2. **Test Coverage Gaps**
+   - **Issue:** While engines are well-tested, some UI components lack unit and integration tests.
+   - **Impact:** Higher risk of regressions during UI refactors.
+   - **Effort to Fix:** Medium. Gradually add tests using React Testing Library.

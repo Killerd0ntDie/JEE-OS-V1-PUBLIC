@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useStudyBrain } from '@/context/StudyBrainContext';
+import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { MonthlyObjective } from '@/types/index';
 import { Target, Sparkles, X, Check } from 'lucide-react';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
@@ -12,7 +12,8 @@ interface Props {
 }
 
 export const MonthlyObjectiveModal: React.FC<Props> = ({ isOpen, onClose }) => {
-  const { state, actions } = useStudyBrain();
+  const actions = useStudyBrainStore(state => state.actions);
+  const mentorProfile = useStudyBrainStore(state => state.mentorProfile);
 
   const categories = [
     { title: 'Finish Mechanics', cat: 'Finish Mechanics', desc: 'Clear backlogs and master Kinematics, Newton Laws, Work Energy, and Rotation.' },
@@ -24,10 +25,10 @@ export const MonthlyObjectiveModal: React.FC<Props> = ({ isOpen, onClose }) => {
   ] as const;
 
   const [selectedCat, setSelectedCat] = useState<any>(
-    state.mentorProfile?.monthlyObjective?.category || 'Finish Mechanics'
+    mentorProfile?.monthlyObjective?.category || 'Finish Mechanics'
   );
   const [customDescription, setCustomDescription] = useState<string>(
-    state.mentorProfile?.monthlyObjective?.description || ''
+    mentorProfile?.monthlyObjective?.description || ''
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
 

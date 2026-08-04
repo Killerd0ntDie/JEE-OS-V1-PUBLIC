@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Icon } from '@/components/ui/Icon';
-import { useStudyBrain } from '@/context/StudyBrainContext';
-import { RevisionCardItem } from '@/engines/revision';
+import { useStudyBrainStore } from '@/store/useStudyBrainStore';
+import { RevisionCardItem } from '@jee-os/engines';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { MissionMode } from '@/features/mission/MissionMode';
@@ -17,7 +17,7 @@ export const FeynmanSandboxModal: React.FC<FeynmanSandboxModalProps> = ({
   cards,
   onClose
 }) => {
-  const { actions } = useStudyBrain();
+  const actions = useStudyBrainStore(state => state.actions);
 
   const [selectedCardId, setSelectedCardId] = useState<string>(cards[0]?.id || '');
   const [explanationText, setExplanationText] = useState('');

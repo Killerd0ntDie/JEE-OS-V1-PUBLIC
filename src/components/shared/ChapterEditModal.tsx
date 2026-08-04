@@ -5,8 +5,8 @@ import {
   AlertCircle, SlidersHorizontal, Calendar, FileText, Target, Activity, Check
 } from 'lucide-react';
 import { Chapter, SubjectId, SyllabusDiagnosisStage } from '@/types/index';
-import { useStudyBrain } from '@/context/StudyBrainContext';
-import { ChapterTelemetry } from '@/engines/chapterInfo';
+import { useStudyBrainStore } from '@/store/useStudyBrainStore';
+import { ChapterTelemetry } from '@jee-os/engines';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
@@ -25,14 +25,17 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
   chapterId,
   defaultTab = 'progress'
 }) => {
-  const { state, actions } = useStudyBrain();
+  const actions = useStudyBrainStore(state => state.actions);
+  const activeEditChapterId = useStudyBrainStore(state => state.activeEditChapterId);
+  const chapterTelemetryMap = useStudyBrainStore(state => state.chapterTelemetryMap);
+  const chapters = useStudyBrainStore(state => state.chapters);
 
-  const effectiveIsOpen = isOpen !== undefined ? isOpen : !!state.activeEditChapterId;
-  const effectiveChapterId = chapterId !== undefined ? chapterId : state.activeEditChapterId;
+  const effectiveIsOpen = isOpen !== undefined ? isOpen : !!activeEditChapterId;
+  const effectiveChapterId = chapterId !== undefined ? chapterId : activeEditChapterId;
   const handleClose = onClose || (() => actions.closeChapterEditModal());
 
-  const chapter: Chapter | undefined = state.chapters.find(c => c.id === effectiveChapterId || c.name === effectiveChapterId);
-  const telemetry: ChapterTelemetry | undefined = effectiveChapterId && state.chapterTelemetryMap ? state.chapterTelemetryMap[effectiveChapterId] : undefined;
+  const chapter: Chapter | undefined = chapters.find(c => c.id === effectiveChapterId || c.name === effectiveChapterId);
+  const telemetry: ChapterTelemetry | undefined = effectiveChapterId && chapterTelemetryMap ? chapterTelemetryMap[effectiveChapterId] : undefined;
 
   const modalRef = useRef<HTMLDivElement>(null);
   useLockBodyScroll(effectiveIsOpen);
@@ -127,7 +130,7 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
     // Check for duplicate serial number within the same subject only
     if (serialNumber) {
       const newSerialNumber = `CH${serialNumber}`;
-      const duplicateChapter = state.chapters.find(
+      const duplicateChapter = chapters.find(
         c => c.serialNumber === newSerialNumber && c.id !== chapter.id && c.subject === chapter.subject
       );
       if (duplicateChapter) {
@@ -136,7 +139,7 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
       }
 
       // Check if serial number exceeds max allowed (highest in subject + 1)
-      const subjectChapters = state.chapters.filter(c => c.subject === chapter.subject);
+      const subjectChapters = chapters.filter(c => c.subject === chapter.subject);
       let maxNum = 0;
       subjectChapters.forEach(ch => {
         if (ch.serialNumber && ch.serialNumber.startsWith('CH')) {

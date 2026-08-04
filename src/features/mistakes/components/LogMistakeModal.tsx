@@ -5,7 +5,7 @@ import { SubjectId, Mistake } from '@/types/index';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { ModalPortal } from '@/components/ui/ModalPortal';
-import { useStudyBrain } from '@/context/StudyBrainContext';
+import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 
 export interface LogMistakeModalProps {
   isOpen: boolean;
@@ -18,7 +18,7 @@ export const LogMistakeModal: React.FC<LogMistakeModalProps> = ({
   onClose,
   categories,
 }) => {
-  const { actions } = useStudyBrain();
+  const actions = useStudyBrainStore(state => state.actions);
   useEscapeKey(onClose, isOpen);
   const [formSubject, setFormSubject] = React.useState<SubjectId>('physics');
   const [formChapter, setFormChapter] = React.useState('');

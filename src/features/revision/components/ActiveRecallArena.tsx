@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Brain, Flame, Skull, CheckCircle2, XCircle, ArrowRight, Timer, Sparkles, Trophy, Zap, TrendingUp } from 'lucide-react';
-import { RevisionCardItem } from '@/engines/revision';
-import { useStudyBrain } from '@/context/StudyBrainContext';
+import { RevisionCardItem } from '@jee-os/engines';
+import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { BlockMath, InlineMath } from 'react-katex';
 
 interface ActiveRecallArenaProps {
@@ -11,7 +11,7 @@ interface ActiveRecallArenaProps {
 }
 
 export function ActiveRecallArena({ cards, onExit }: ActiveRecallArenaProps) {
-  const { actions } = useStudyBrain();
+  const actions = useStudyBrainStore(state => state.actions);
   
   const [currentIndex, setCurrentIndex] = useState(0);
   const [timeLeft, setTimeLeft] = useState(15);
@@ -94,26 +94,26 @@ export function ActiveRecallArena({ cards, onExit }: ActiveRecallArenaProps) {
   const handleTimeUp = () => {
     setIsRevealed(true);
     if (currentCard) {
-      actions.completeRevision(currentCard.chapterId, 'Low');
+      actions.completeRevision(currentCard.chapterId, 'Low'); // Fallback for telemetry
       setSessionResults(prev => [...prev, { id: currentCard.id, success: false }]);
-      showFeedback('wrong', 50);
+      showFeedback('wrong', 0);
     }
   };
 
-  const handleSuccess = () => {
+  const handleFeedback = (quality: number, label: string) => {
     if (!currentCard || isRevealed) return;
     setIsRevealed(true);
-    actions.completeRevision(currentCard.chapterId, 'High');
-    setSessionResults(prev => [...prev, { id: currentCard.id, success: true }]);
-    showFeedback('correct', 150);
-  };
-
-  const handleFailure = () => {
-    if (!currentCard || isRevealed) return;
-    setIsRevealed(true);
-    actions.completeRevision(currentCard.chapterId, 'Low');
-    setSessionResults(prev => [...prev, { id: currentCard.id, success: false }]);
-    showFeedback('wrong', 50);
+    
+    // Map quality to legacy chapter confidence for the store
+    const confidence = quality >= 4 ? 'High' : quality >= 2 ? 'Medium' : 'Low';
+    actions.completeRevision(currentCard.chapterId, confidence);
+    
+    const isSuccess = quality >= 3;
+    setSessionResults(prev => [...prev, { id: currentCard.id, success: isSuccess }]);
+    
+    // Calculate XP based on quality
+    const xp = quality * 30;
+    showFeedback(isSuccess ? 'correct' : 'wrong', xp);
   };
 
   const nextCard = () => {
@@ -357,18 +357,30 @@ export function ActiveRecallArena({ cards, onExit }: ActiveRecallArenaProps) {
                 </button>
               </div>
             ) : (
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <div className="grid grid-cols-2 sm:flex sm:flex-row items-center justify-center gap-3">
                 <button 
-                  onClick={handleFailure}
-                  className="w-full sm:w-48 px-6 py-4 rounded-xl border border-red-900/50 bg-red-950/30 text-red-400 font-mono text-sm font-bold uppercase tracking-wider hover:bg-red-900/50 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  onClick={() => handleFeedback(0, 'Blackout')}
+                  className="w-full sm:w-32 px-4 py-4 rounded-xl border border-red-900/50 bg-red-950/30 text-red-400 font-mono text-xs font-bold uppercase tracking-wider hover:bg-red-900/50 transition-all flex flex-col items-center justify-center gap-1.5 cursor-pointer"
                 >
-                  <Skull className="w-4 h-4" /> Forgot It
+                  <Skull className="w-4 h-4" /> Blackout
                 </button>
                 <button 
-                  onClick={handleSuccess}
-                  className="w-full sm:w-48 px-6 py-4 rounded-xl border border-emerald-900/50 bg-emerald-950/30 text-emerald-400 font-mono text-sm font-bold uppercase tracking-wider hover:bg-emerald-900/50 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(16,185,129,0.2)] cursor-pointer"
+                  onClick={() => handleFeedback(2, 'Hard')}
+                  className="w-full sm:w-32 px-4 py-4 rounded-xl border border-orange-900/50 bg-orange-950/30 text-orange-400 font-mono text-xs font-bold uppercase tracking-wider hover:bg-orange-900/50 transition-all flex flex-col items-center justify-center gap-1.5 cursor-pointer"
                 >
-                  <CheckCircle2 className="w-4 h-4" /> Recalled
+                  <Timer className="w-4 h-4" /> Hard
+                </button>
+                <button 
+                  onClick={() => handleFeedback(4, 'Good')}
+                  className="w-full sm:w-32 px-4 py-4 rounded-xl border border-emerald-900/50 bg-emerald-950/30 text-emerald-400 font-mono text-xs font-bold uppercase tracking-wider hover:bg-emerald-900/50 transition-all flex flex-col items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <CheckCircle2 className="w-4 h-4" /> Good
+                </button>
+                <button 
+                  onClick={() => handleFeedback(5, 'Perfect')}
+                  className="w-full sm:w-32 px-4 py-4 rounded-xl border border-blue-900/50 bg-blue-950/30 text-blue-400 font-mono text-xs font-bold uppercase tracking-wider hover:bg-blue-900/50 transition-all flex flex-col items-center justify-center gap-1.5 shadow-[0_0_20px_rgba(59,130,246,0.2)] cursor-pointer"
+                >
+                  <Sparkles className="w-4 h-4" /> Perfect
                 </button>
               </div>
             )}

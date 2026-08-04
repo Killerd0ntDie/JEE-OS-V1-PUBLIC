@@ -1,5 +1,6 @@
 import { RevisionEngineInput, RevisionEngineOutput, RevisionCardItem, ChapterRevisionSummary } from './types';
 import { FORMULA_BANK } from '@/constants/formulaBank';
+import { SpacedRepetitionEngine } from './SpacedRepetitionEngine';
 
 export class RevisionEngine {
   private cacheHash: string = '';
@@ -27,7 +28,7 @@ export class RevisionEngine {
       const telemetry = (chapterTelemetryMap || {})[chap.id];
       const isStartedOrMastered = telemetry 
         ? (telemetry.syllabusStage === 'In Progress' || telemetry.syllabusStage === 'Mastered')
-        : (chap.completion > 0 || (chap.currentLecture && chap.currentLecture > 0) || chap.theoryComplete || chap.status === 'Mastered');
+        : (chap.completion > 0 || (chap.currentLecture && chap.currentLecture > 0) || chap.theoryComplete || chap.dppComplete || chap.pyqsComplete || chap.status === 'Mastered');
 
       // BUGFIX: chapters that haven't been started have no memory to have decayed —
       // labeling them 'High'/95% retention is actively misleading (it previously made
@@ -77,12 +78,19 @@ export class RevisionEngine {
         return;
       }
 
+      const smEngine = new SpacedRepetitionEngine();
+
       // Generate card items with spaced repetition metadata
       formulas.forEach((f, idx) => {
+        // Fallback for legacy items without a dedicated DB SM2 state
+        const sm2State = smEngine.legacyConfidenceToState(retentionConfidence as 'High' | 'Medium' | 'Low');
+        
+        // Dynamic Urgency Rank: Instead of hardcoded values, we weight it by the ratio of interval days vs current decay
+        // Wait, for simplicity we'll keep the base rank logic but inject real interval days
         const urgencyRank = retentionConfidence === 'Low' ? 100 - (retentionScore ?? 90) : retentionConfidence === 'Medium' ? 60 - (retentionScore ?? 90) : 20 - (retentionScore ?? 90);
         
-        const intervalStage = retentionConfidence === 'Low' ? '1d' : retentionConfidence === 'Medium' ? '3d' : '7d';
-        const nextReviewDays = retentionConfidence === 'Low' ? 1 : retentionConfidence === 'Medium' ? 3 : 7;
+        const intervalStage = `${sm2State.interval}d`;
+        const nextReviewDays = sm2State.interval;
 
         allCards.push({
           id: `${chap.id}-f${idx}`,
@@ -98,7 +106,8 @@ export class RevisionEngine {
           nextReviewDays,
           intervalStage,
           recalledCount: chap.completion >= 100 ? 5 : chap.completion > 0 ? 2 : 0,
-          urgencyRank
+          urgencyRank,
+          sm2State
         });
       });
     });

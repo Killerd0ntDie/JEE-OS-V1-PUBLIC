@@ -5,7 +5,7 @@ import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { QuestionViewerWidget } from '@/features/mission/components/QuestionViewerWidget';
 import { CheckCircle2, Skull, ArrowRight } from 'lucide-react';
 import { Mistake } from '@/types/index';
-import { useStudyBrain } from '@/context/StudyBrainContext';
+import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { audioEngine } from '@/utils/audioEngine';
 
 interface AiInterrogationModalProps {
@@ -19,7 +19,7 @@ export const AiInterrogationModal: React.FC<AiInterrogationModalProps> = ({
   onClose,
   mistake
 }) => {
-  const { actions } = useStudyBrain();
+  const actions = useStudyBrainStore(state => state.actions);
   const [exorcised, setExorcised] = useState(false);
 
   useEscapeKey(onClose, isOpen);

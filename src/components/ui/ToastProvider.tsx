@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useStudyBrain } from '@/context/StudyBrainContext';
+import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { audioEngine } from '@/utils/audioEngine';
 import { Icon } from './Icon';
 
@@ -21,7 +21,7 @@ const ToastContext = createContext<ToastContextType>({ toast: () => {} });
 export const useToast = () => useContext(ToastContext);
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
-  const { state } = useStudyBrain();
+  const settings = useStudyBrainStore(state => state.settings);
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const toast = useCallback((options: Omit<Toast, 'id'>) => {
@@ -31,12 +31,12 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     setToasts((prev) => [...prev, newToast]);
 
     // 1. Play Sound
-    if (state.settings.soundEffects) {
-      audioEngine.playAlertPop(state.settings.volume / 100);
+    if (settings.soundEffects) {
+      audioEngine.playAlertPop(settings.volume / 100);
     }
 
     // 2. Dispatch Desktop Push Notification
-    if (state.settings.desktopNotifications && 'Notification' in window && Notification.permission === 'granted') {
+    if (settings.desktopNotifications && 'Notification' in window && Notification.permission === 'granted') {
       try {
         new Notification(options.title, {
           body: options.message,
@@ -52,7 +52,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
     }, duration);
-  }, [state.settings]);
+  }, [settings]);
 
   const removeToast = (id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));

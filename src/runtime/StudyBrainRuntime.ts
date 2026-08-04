@@ -3,13 +3,13 @@ import {
   Mistake, XPState, SessionAnalytics, SubjectId, RevisionSettings, UserProfile, MentorProfile
 } from '../types/index';
 import { MockTest } from '@/types/mockTest';
-import { KnowledgeEngine, SyllabusNode } from '@/engines/knowledge';
-import { PlannerEngine, PlannerInput, PlannerOutput } from '@/engines/planner';
-import { OptimizationEngine, OptimizationInput, OptimizationResult } from '@/engines/optimization';
-import { AnalyticsEngine, AnalyticsInput, AnalyticsOutput } from '@/engines/analytics';
-import { CoachEngine, CoachInput, CoachOutput } from '@/engines/coach';
-import { ChapterInfoEngine, ChapterTelemetry } from '@/engines/chapterInfo';
-import { RevisionEngine, RevisionEngineOutput } from '@/engines/revision';
+import { KnowledgeEngine, SyllabusNode } from '@jee-os/engines';
+import { PlannerEngine, PlannerInput, PlannerOutput } from '@jee-os/engines';
+import { OptimizationEngine, OptimizationInput, OptimizationResult } from '@jee-os/engines';
+import { AnalyticsEngine, AnalyticsInput, AnalyticsOutput } from '@jee-os/engines';
+import { CoachEngine, CoachInput, CoachOutput } from '@jee-os/engines';
+import { ChapterInfoEngine, ChapterTelemetry } from '@jee-os/engines';
+import { RevisionEngine, RevisionEngineOutput } from '@jee-os/engines';
 import { StudyBrainService, createSyllabusGraph } from '@/services/studyBrainService';
 import { RevisionCard } from '@/services/revisionEngineService';
 

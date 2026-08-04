@@ -1,16 +1,17 @@
 import React, { useMemo } from 'react';
 import { Target, Skull, Ghost, Zap, Crosshair } from 'lucide-react';
-import { useStudyBrain } from '@/context/StudyBrainContext';
+import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 
 export function MonthlyCampaignBanner() {
-  const { state } = useStudyBrain();
-  const mentorProfile = state.mentorProfile;
+  const mentorProfile = useStudyBrainStore(state => state.mentorProfile);
+  const chapters = useStudyBrainStore(state => state.chapters);
+  const xp = useStudyBrainStore(state => state.xp);
 
   // Derive "Boss" info dynamically from lowest confidence chapters if objective is empty
   const boss = useMemo(() => {
-    let targetChap = state.chapters.reduce((lowest, c) => 
+    let targetChap = chapters.reduce((lowest, c) => 
       (c.retentionScore || 100) < (lowest.retentionScore || 100) ? c : lowest
-    , state.chapters[0]);
+    , chapters[0]);
 
     const title = mentorProfile?.monthlyObjective?.category 
       || (targetChap ? `The ${targetChap.name} Titan` : 'The Mechanics Beast');
@@ -20,11 +21,11 @@ export function MonthlyCampaignBanner() {
 
     // Calculate boss health (inverse of user's overall progress this month)
     const baseHealth = 1000;
-    const currentHealth = Math.max(0, baseHealth - ((state.xp?.total || 0) % 1000));
+    const currentHealth = Math.max(0, baseHealth - ((xp?.total || 0) % 1000));
     const healthPercent = (currentHealth / baseHealth) * 100;
 
     return { title, desc, healthPercent, currentHealth, baseHealth };
-  }, [state.chapters, mentorProfile?.monthlyObjective, state.xp]);
+  }, [chapters, mentorProfile?.monthlyObjective, xp]);
 
   // Derive "Ghost Racer" pace
   const ghost = useMemo(() => {
@@ -32,7 +33,7 @@ export function MonthlyCampaignBanner() {
     const daysPassed = today.getDate();
     // Ghost targets 120 XP per day
     const ghostXp = daysPassed * 120;
-    const userXp = state.xp?.total || 0;
+    const userXp = xp?.total || 0;
     
     // Monthly total cap for visualization (e.g., 3000 XP)
     const monthlyMax = 3000;
@@ -43,7 +44,7 @@ export function MonthlyCampaignBanner() {
     const isAhead = userPercent >= ghostPercent;
 
     return { ghostXp, userXp, ghostPercent, userPercent, monthlyMax, isAhead };
-  }, [state.xp]);
+  }, [xp]);
 
   return (
     <div className="px-4 py-3 rounded-xl border border-red-900/40 bg-red-950/10 flex flex-col md:flex-row gap-4 relative overflow-hidden items-center shadow-sm">
@@ -57,7 +58,7 @@ export function MonthlyCampaignBanner() {
       <div className="w-full md:w-1/3 space-y-1 z-10">
         <div className="flex items-center gap-1.5 text-red-400 font-mono text-[10px] font-bold uppercase tracking-wider">
           <Target className="w-3.5 h-3.5" />
-          <span>Campaign Boss: Lv. {state.xp?.level || 1}</span>
+          <span>Campaign Boss: Lv. {xp?.level || 1}</span>
         </div>
         <h3 className="text-sm font-display font-bold text-white truncate" title={boss.desc}>
           {boss.title}

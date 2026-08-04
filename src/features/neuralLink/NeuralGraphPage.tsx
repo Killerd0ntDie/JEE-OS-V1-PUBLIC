@@ -10,8 +10,8 @@ import {
   BackgroundVariant
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { useStudyBrain } from '@/context/StudyBrainContext';
-import { NeuralGraphEngine } from '@/engines/graph/NeuralGraphEngine';
+import { useStudyBrainStore } from '@/store/useStudyBrainStore';
+import { NeuralGraphEngine } from '@jee-os/engines';
 import { TopicNode } from './components/TopicNode';
 import { AnimatedEnergyEdge } from './components/AnimatedEnergyEdge';
 import { BrainCircuit, Info } from 'lucide-react';
@@ -26,22 +26,23 @@ const edgeTypes = {
 };
 
 export const NeuralGraphPage = () => {
-  const { state } = useStudyBrain();
+  const chapters = useStudyBrainStore(s => s.chapters);
+  const chapterTelemetryMap = useStudyBrainStore(s => s.chapterTelemetryMap);
   const [activeSubject, setActiveSubject] = React.useState<'physics' | 'chemistry' | 'maths'>('physics');
 
   const { nodes: initialNodes, edges: initialEdges } = useMemo(() => {
-    return NeuralGraphEngine.generateGraph(state.chapters, activeSubject, state.chapterTelemetryMap);
-  }, [state.chapters, activeSubject, state.chapterTelemetryMap]);
+    return NeuralGraphEngine.generateGraph(chapters, activeSubject, chapterTelemetryMap);
+  }, [chapters, activeSubject, chapterTelemetryMap]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
   // Update nodes if chapters change (e.g. from completion)
   React.useEffect(() => {
-    const { nodes: newNodes, edges: newEdges } = NeuralGraphEngine.generateGraph(state.chapters, activeSubject, state.chapterTelemetryMap);
+    const { nodes: newNodes, edges: newEdges } = NeuralGraphEngine.generateGraph(chapters, activeSubject, chapterTelemetryMap);
     setNodes(newNodes);
     setEdges(newEdges);
-  }, [state.chapters, activeSubject, state.chapterTelemetryMap, setNodes, setEdges]);
+  }, [chapters, activeSubject, chapterTelemetryMap, setNodes, setEdges]);
 
   return (
     <motion.div 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useStudyBrain } from '@/context/StudyBrainContext';
+import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { Icon } from '@/components/ui/Icon';
 import { Badge } from '@/components/ui/Badge';
 import { FORMULA_BANK } from '@/constants/formulaBank';
@@ -18,7 +18,11 @@ export const ChapterRevisionInspectorModal: React.FC<ChapterRevisionInspectorMod
   onClose,
   onPracticeWithAI
 }) => {
-  const { state, actions } = useStudyBrain();
+  const actions = useStudyBrainStore(state => state.actions);
+  const chapterTelemetryMap = useStudyBrainStore(state => state.chapterTelemetryMap);
+  const chapters = useStudyBrainStore(state => state.chapters);
+  const mistakes = useStudyBrainStore(state => state.mistakes);
+  const studySessions = useStudyBrainStore(state => state.studySessions);
   const [activeTab, setActiveTab] = useState<'overview' | 'formulas' | 'history'>('overview');
   const [flippedCards, setFlippedCards] = useState<Record<string, boolean>>({});
 
@@ -26,8 +30,8 @@ export const ChapterRevisionInspectorModal: React.FC<ChapterRevisionInspectorMod
 
   if (!chapterId) return null;
 
-  const chapter = state.chapters.find(c => c.id === chapterId);
-  const telemetry = state.chapterTelemetryMap ? state.chapterTelemetryMap[chapterId] : null;
+  const chapter = chapters.find(c => c.id === chapterId);
+  const telemetry = chapterTelemetryMap ? chapterTelemetryMap[chapterId] : null;
 
   if (!chapter) return null;
 
@@ -46,10 +50,10 @@ export const ChapterRevisionInspectorModal: React.FC<ChapterRevisionInspectorMod
     : undefined;
   const bankEntry = FORMULA_BANK.find(fb => fb.chapterId === chapterId || fb.chapterName.toLowerCase() === chapter.name.toLowerCase());
   const formulas = bankEntry?.formulas || [];
-  const mistakes = state.mistakes.filter(m => m.chapter === chapter.name);
+  const chapterMistakes = mistakes.filter(m => m.chapter === chapter.name);
 
   // Past revision history mock / logged sessions
-  const chapSessions = state.studySessions.filter(s => s.subjectId === chapter.subject && s.type === 'Revision');
+  const chapSessions = studySessions.filter(s => s.subjectId === chapter.subject && s.type === 'Revision');
 
   const toggleFlip = (idx: number) => {
     setFlippedCards(prev => ({ ...prev, [idx]: !prev[idx] }));
@@ -146,7 +150,7 @@ export const ChapterRevisionInspectorModal: React.FC<ChapterRevisionInspectorMod
                 </div>
                 <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 text-center space-y-0.5">
                   <span className="text-[9px] text-zinc-500 uppercase block">Open Errors</span>
-                  <span className="text-base font-bold text-red-400">{mistakes.length} Errors</span>
+                  <span className="text-base font-bold text-red-400">{chapterMistakes.length} Errors</span>
                 </div>
               </div>
 

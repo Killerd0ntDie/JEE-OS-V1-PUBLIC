@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Play, Pause, Square, Headphones, RefreshCw, Volume2, VolumeX, CheckCircle2 } from 'lucide-react';
-import { useStudyBrain } from '@/context/StudyBrainContext';
+import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { useAuth } from '@/features/auth';
 
 const DEFAULT_MINUTES = 50;
 
 export function FocusVaultPage() {
-  const { actions } = useStudyBrain();
+  const actions = useStudyBrainStore(state => state.actions);
   const { user } = useAuth();
   
   const [inputMinutes, setInputMinutes] = useState(DEFAULT_MINUTES);

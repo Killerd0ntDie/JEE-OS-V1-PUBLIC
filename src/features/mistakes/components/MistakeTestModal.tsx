@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, ChevronRight, CheckCircle2, XCircle, RefreshCw, AlertCircle, Eye } from 'lucide-react';
 import { Mistake } from '@/types';
-import { useStudyBrain } from '@/context/StudyBrainContext';
+import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { soundSystem } from '@/utils/audioEffects';
 import { BlockMath, InlineMath } from 'react-katex';
 import { ModalPortal } from '@/components/ui/ModalPortal';
@@ -17,7 +17,8 @@ interface MistakeTestModalProps {
 export function MistakeTestModal({ isOpen, onClose, mistakes }: MistakeTestModalProps) {
   useLockBodyScroll(isOpen || false);
 
-  const { actions, state } = useStudyBrain();
+  const actions = useStudyBrainStore(state => state.actions);
+  const settings = useStudyBrainStore(state => state.settings);
   
   // Filter only mistakes that are not Mastered and have question text
   const [testQueue, setTestQueue] = useState<Mistake[]>([]);
@@ -45,8 +46,8 @@ export function MistakeTestModal({ isOpen, onClose, mistakes }: MistakeTestModal
 
   const handleReveal = () => {
     setIsRevealed(true);
-    if (state.settings.soundEffects) {
-      soundSystem.playSuccess(true, state.settings.volume);
+    if (settings.soundEffects) {
+      soundSystem.playSuccess(true, settings.volume);
     }
   };
 

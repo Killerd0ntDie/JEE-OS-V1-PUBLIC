@@ -1,11 +1,12 @@
 import React, { useMemo, useState } from 'react';
-import { useStudyBrain } from '@/context/StudyBrainContext';
+import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { Card } from '@/components/ui/Card';
 import { Flame, Brain, Info, CheckCircle2 } from 'lucide-react';
 
 export function MonthlyCalendarWidget() {
-  const { state } = useStudyBrain();
-  const { studySessions, chapters, settings } = state;
+  const studySessions = useStudyBrainStore(state => state.studySessions);
+  const chapters = useStudyBrainStore(state => state.chapters);
+  const settings = useStudyBrainStore(state => state.settings);
   const dailyQuota = settings.dailyQuota || 4;
 
   const today = new Date();

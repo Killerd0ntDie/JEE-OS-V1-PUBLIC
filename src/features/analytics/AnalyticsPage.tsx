@@ -1,19 +1,24 @@
 import { useState, useMemo } from 'react';
-import { useStudyBrain } from '@/context/StudyBrainContext';
+import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { Icon } from '@/components/ui/Icon';
 import { Badge } from '@/components/ui/Badge';
 import { calculateLevelFromXP, getTitleAndColor } from '@/utils/levelingCalculations';
-import { ChapterTelemetry } from '@/engines/chapterInfo';
+import { ChapterTelemetry } from '@jee-os/engines';
 
 export function AnalyticsPage() {
-  const { state, actions } = useStudyBrain();
+  const actions = useStudyBrainStore(state => state.actions);
+  const analyticsSummary = useStudyBrainStore(state => state.analyticsSummary);
+  const chapterTelemetryMap = useStudyBrainStore(state => state.chapterTelemetryMap);
+  const studySessions = useStudyBrainStore(state => state.studySessions) || [];
+  const xp = useStudyBrainStore(state => state.xp);
+  const analytics = useStudyBrainStore(state => state.analytics);
+  const chapters = useStudyBrainStore(state => state.chapters);
+
   const [activeSubject, setActiveSubject] = useState<'all' | 'physics' | 'chemistry' | 'maths'>('all');
   const [velocityView, setVelocityView] = useState<'time' | 'accuracy' | 'missions'>('time');
 
   // Compute live analytics metrics from StudyBrainState
-  const analyticsSummary = state.analyticsSummary;
-  const chapterTelemetryList = (Object.values(state.chapterTelemetryMap || {}) as ChapterTelemetry[]);
-  const studySessions = state.studySessions || [];
+  const chapterTelemetryList = (Object.values(chapterTelemetryMap || {}) as ChapterTelemetry[]);
 
   // Filter chapters by active subject
   const filteredTelemetry = useMemo(() => {
@@ -44,21 +49,21 @@ export function AnalyticsPage() {
   }, [chapterTelemetryList]);
 
   // Level & XP Title
-  const totalXP = state.xp?.total || 0;
+  const totalXP = xp?.total || 0;
   const { level, progressPercent } = calculateLevelFromXP(totalXP);
   const { title } = getTitleAndColor(level);
 
   // Overall Accuracy & Questions
-  const totalQuestions = state.analytics.questionsSolved || 0;
-  const studyHours = (state.analytics.studyTime / 60).toFixed(1);
+  const totalQuestions = analytics.questionsSolved || 0;
+  const studyHours = (analytics.studyTime / 60).toFixed(1);
 
   // True Accuracy Computation
   const trueAccuracy = useMemo(() => {
     const sessionsWithAccuracy = studySessions.filter(s => s.accuracy !== undefined);
-    if (sessionsWithAccuracy.length === 0) return state.analytics.accuracy || 85;
+    if (sessionsWithAccuracy.length === 0) return analytics.accuracy || 85;
     const sum = sessionsWithAccuracy.reduce((acc, s) => acc + (s.accuracy || 0), 0);
     return Math.round(sum / sessionsWithAccuracy.length);
-  }, [studySessions, state.analytics.accuracy]);
+  }, [studySessions, analytics.accuracy]);
   const accuracyPct = trueAccuracy;
 
   // Time Distribution by Subject
@@ -170,7 +175,7 @@ export function AnalyticsPage() {
         <div className="glass-card p-4 rounded-2xl border border-amber-500/20 bg-amber-950/20 backdrop-blur-xl space-y-1 shadow-lg">
           <span className="text-[10px] text-amber-300 uppercase font-semibold block tracking-wider">Active Daily Streak</span>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-black text-amber-400 font-display">{state.xp?.streak || 0} Days</span>
+            <span className="text-2xl font-black text-amber-400 font-display">{xp?.streak || 0} Days</span>
             <span className="text-[10px] text-zinc-400">⚡ Streak</span>
           </div>
         </div>
@@ -190,12 +195,12 @@ export function AnalyticsPage() {
           <span className="text-[10px] text-zinc-400 uppercase font-bold tracking-wider">Deep Focus Ratio</span>
           <div className="flex justify-between items-end">
             <span className="text-2xl font-black text-indigo-400 font-display">
-              {state.analytics.studyTime > 0 ? Math.round((state.analytics.focusTime / state.analytics.studyTime) * 100) : 0}%
+              {analytics.studyTime > 0 ? Math.round((analytics.focusTime / analytics.studyTime) * 100) : 0}%
             </span>
-            <span className="text-[10px] text-zinc-500">{state.analytics.focusTime}m pure focus</span>
+            <span className="text-[10px] text-zinc-500">{analytics.focusTime}m pure focus</span>
           </div>
           <div className="h-1.5 w-full bg-zinc-900 rounded-full overflow-hidden">
-            <div className="h-full bg-indigo-500" style={{ width: `${state.analytics.studyTime > 0 ? (state.analytics.focusTime / state.analytics.studyTime) * 100 : 0}%` }} />
+            <div className="h-full bg-indigo-500" style={{ width: `${analytics.studyTime > 0 ? (analytics.focusTime / analytics.studyTime) * 100 : 0}%` }} />
           </div>
         </div>
 
@@ -203,7 +208,7 @@ export function AnalyticsPage() {
           <span className="text-[10px] text-zinc-400 uppercase font-bold tracking-wider">Total Interruptions & Idle</span>
           <div className="flex justify-between items-end">
             <span className="text-2xl font-black text-amber-400 font-display">
-              {state.analytics.idleTime}m
+              {analytics.idleTime}m
             </span>
             <span className="text-[10px] text-zinc-500">Wasted time</span>
           </div>
@@ -213,7 +218,7 @@ export function AnalyticsPage() {
           <span className="text-[10px] text-zinc-400 uppercase font-bold tracking-wider">Recovery & Break Time</span>
           <div className="flex justify-between items-end">
             <span className="text-2xl font-black text-emerald-400 font-display">
-              {state.analytics.breakTime}m
+              {analytics.breakTime}m
             </span>
             <span className="text-[10px] text-zinc-500">Total breaks taken</span>
           </div>
@@ -475,7 +480,7 @@ export function AnalyticsPage() {
             />
 
             {/* Real Chapter Data Points */}
-            {state.chapters
+            {chapters
               .filter(c => c.lastRevisionDaysAgo > 0)
               .map(c => {
                 const x = Math.min(100, (c.lastRevisionDaysAgo / 30) * 100);

@@ -1,18 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CheckCircle2, Zap, Target, Sliders, ArrowRight } from 'lucide-react';
-import { useStudyBrain } from '@/context/StudyBrainContext';
+import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { DailyCheckin } from '@/types';
 
 export function DailyCheckinCard() {
-  const { state, actions } = useStudyBrain();
+  const actions = useStudyBrainStore(state => state.actions);
+  const mentorProfile = useStudyBrainStore(state => state.mentorProfile);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [showCustomizer, setShowCustomizer] = useState(false);
 
   const todayStr = new Date().toISOString().split('T')[0];
 
   // Retrieve yesterday's checkin or fallback defaults
-  const previousCheckin = state.mentorProfile?.dailyCheckins?.[state.mentorProfile.dailyCheckins.length - 1];
+  const previousCheckin = mentorProfile?.dailyCheckins?.[mentorProfile.dailyCheckins.length - 1];
   
   const defaultHours = previousCheckin?.actualHoursAvailable || 3.0;
   const defaultPyqs = 25; // Not yet a tracked field on DailyCheckin — see note below.

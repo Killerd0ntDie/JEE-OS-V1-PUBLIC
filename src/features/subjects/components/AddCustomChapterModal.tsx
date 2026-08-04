@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Plus } from 'lucide-react';
 import { SubjectId } from '@/types/index';
-import { useStudyBrain } from '@/context/StudyBrainContext';
+import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { ModalPortal } from '@/components/ui/ModalPortal';
@@ -14,7 +14,8 @@ interface AddCustomChapterModalProps {
 }
 
 export function AddCustomChapterModal({ isOpen, onClose, defaultSubject, defaultUnit }: AddCustomChapterModalProps) {
-  const { actions, state } = useStudyBrain();
+  const actions = useStudyBrainStore(state => state.actions);
+  const chapters = useStudyBrainStore(state => state.chapters);
 
   const [name, setName] = useState('');
   const [subject, setSubject] = useState<SubjectId>(defaultSubject);
@@ -40,7 +41,7 @@ export function AddCustomChapterModal({ isOpen, onClose, defaultSubject, default
     // Check for duplicate serial number
     const newSerialNumber = serialNumber.trim().padStart(2, '0');
     const fullSerialNumber = `CH${newSerialNumber}`;
-    const duplicateChapter = state.chapters.find(
+    const duplicateChapter = chapters.find(
       c => c.serialNumber === fullSerialNumber && c.subject === subject
     );
     if (duplicateChapter) {
@@ -49,7 +50,7 @@ export function AddCustomChapterModal({ isOpen, onClose, defaultSubject, default
     }
 
     // Check if serial number exceeds max allowed (highest in subject + 1)
-    const subjectChapters = state.chapters.filter(c => c.subject === subject);
+    const subjectChapters = chapters.filter(c => c.subject === subject);
     let maxNum = 0;
     subjectChapters.forEach(ch => {
       if (ch.serialNumber && ch.serialNumber.startsWith('CH')) {

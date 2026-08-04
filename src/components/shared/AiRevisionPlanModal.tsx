@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { Sparkles, Calendar, Clock, Check, Loader2, X, ArrowRight, Zap, Target } from 'lucide-react';
-import { useStudyBrain } from '@/context/StudyBrainContext';
-import { ChapterTelemetry } from '@/engines/chapterInfo';
+import { useStudyBrainStore } from '@/store/useStudyBrainStore';
+import { ChapterTelemetry } from '@jee-os/engines';
 import { ModalPortal } from '@/components/ui/ModalPortal';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 
@@ -14,7 +14,10 @@ interface AiRevisionPlanModalProps {
 export function AiRevisionPlanModal({ isOpen, onClose }: AiRevisionPlanModalProps) {
   useLockBodyScroll(isOpen || false);
 
-  const { state, actions } = useStudyBrain();
+  const actions = useStudyBrainStore(state => state.actions);
+  const chapterTelemetryMap = useStudyBrainStore(state => state.chapterTelemetryMap);
+  const mentorProfile = useStudyBrainStore(state => state.mentorProfile);
+  const settings = useStudyBrainStore(state => state.settings);
   const [selectedDays, setSelectedDays] = useState<3 | 7>(3);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedPlan, setGeneratedPlan] = useState<any | null>(null);
@@ -23,10 +26,10 @@ export function AiRevisionPlanModal({ isOpen, onClose }: AiRevisionPlanModalProp
 
   if (!isOpen) return null;
 
-  const telemetryList = (Object.values(state.chapterTelemetryMap || {}) as ChapterTelemetry[]);
+  const telemetryList = (Object.values(chapterTelemetryMap || {}) as ChapterTelemetry[]);
   const bottlenecks = telemetryList.filter(t => t.isBottleneck).map(t => t.chapterName);
   const lowRetention = telemetryList.filter(t => t.retentionConfidence === 'Low').map(t => t.chapterName);
-  const dailyHours = state.mentorProfile?.dailyAvailableHours || 6.5;
+  const dailyHours = mentorProfile?.dailyAvailableHours || 6.5;
 
   const handleGeneratePlan = async () => {
     setIsGenerating(true);
@@ -49,8 +52,8 @@ export function AiRevisionPlanModal({ isOpen, onClose }: AiRevisionPlanModalProp
           dailyAvailableHours: dailyHours,
           bottlenecks,
           lowRetentionChapters: lowRetention,
-          targetCollege: state.settings.dreamIit,
-          targetYear: state.settings.targetYear
+          targetCollege: settings.dreamIit,
+          targetYear: settings.targetYear
         })
       });
 
@@ -128,7 +131,7 @@ export function AiRevisionPlanModal({ isOpen, onClose }: AiRevisionPlanModalProp
                   Target Objective
                 </span>
                 <p className="text-sm text-zinc-200 font-sans leading-relaxed">
-                  Generates an aggressive, balanced multi-day revision schedule targeting <strong className="text-white">{state.settings.dreamIit}</strong> ({state.settings.targetYear}).
+                  Generates an aggressive, balanced multi-day revision schedule targeting <strong className="text-white">{settings.dreamIit}</strong> ({settings.targetYear}).
                 </p>
               </div>
 
