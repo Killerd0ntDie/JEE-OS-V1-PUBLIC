@@ -181,13 +181,6 @@ export function PlannerCalendarTab({ state }: { state: any }) {
       {/* 2. REFINED WEEKLY MATRIX VIEW MODE */}
       {viewMode === 'weekly' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between p-3 rounded-xl border border-zinc-850 bg-zinc-900/40 text-xs font-mono flex-wrap gap-2">
-            <span className="text-zinc-400 font-semibold">7-Day Weekly Matrix View</span>
-            <span className="text-[10px] font-mono font-bold text-purple-300 bg-purple-950/60 border border-purple-800/60 px-2.5 py-0.5 rounded-full uppercase">
-              Strategy: {mentorProfile?.subjectSplitStrategy === '1_a_day_alternating' ? '1 Subject Focus' : mentorProfile?.subjectSplitStrategy === '2_a_day_alternating' ? '2 Subjects Alternating' : '3 Subjects Daily'}
-            </span>
-          </div>
-
           <div className="grid grid-cols-1 md:grid-cols-7 gap-3 text-left">
             {daysOfWeek.map((dayName: string, dayIndex: number) => {
               const isToday = dayIndex === currentDayIndex;
@@ -198,8 +191,8 @@ export function PlannerCalendarTab({ state }: { state: any }) {
                   key={dayName}
                   className={`rounded-2xl border p-3 space-y-3 transition-all ${
                     isToday 
-                      ? 'border-indigo-500/60 bg-indigo-950/20 shadow-lg shadow-indigo-500/10' 
-                      : 'border-zinc-850 bg-zinc-900/30 hover:border-zinc-700'
+                      ? 'border-indigo-500/60 bg-indigo-950/10 ring-1 ring-indigo-500/30' 
+                      : 'border-zinc-850 bg-zinc-950/60'
                   }`}
                 >
                   <div 
@@ -227,7 +220,7 @@ export function PlannerCalendarTab({ state }: { state: any }) {
                       </span>
                     </div>
                     <div>
-                      <span className="text-[8px] font-mono font-bold px-1.5 py-0.5 rounded bg-purple-950/60 border border-purple-800/60 text-purple-300 uppercase tracking-wider">
+                      <span className="text-[8px] font-mono font-bold px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-300 uppercase tracking-wider">
                         {getDayFocusPill(dayIndex, mentorProfile?.subjectSplitStrategy || '3_a_day', mentorProfile?.twoDaySplitConfig)}
                       </span>
                     </div>

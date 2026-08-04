@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { getSubjectTheme } from '@/constants/subjectTheme';
 import { X, ArrowRightLeft, BookOpen, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { SubjectId, Chapter, TodayMission } from '@/types';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
@@ -137,14 +138,10 @@ export const SwapSubjectModal: React.FC<SwapSubjectModalProps> = ({
                     setSelectedSubject(subj);
                     setSelectedChapterId('');
                   }}
-                  className={`py-2 px-3 rounded-xl font-bold uppercase transition-all cursor-pointer border ${
+                  className={`py-2 px-3 rounded-xl font-bold uppercase transition-all cursor-pointer ${
                     selectedSubject === subj
-                      ? subj === 'physics'
-                        ? 'bg-sky-950/80 border-sky-600 text-sky-300'
-                        : subj === 'chemistry'
-                        ? 'bg-emerald-950/80 border-emerald-600 text-emerald-300'
-                        : 'bg-purple-950/80 border-purple-600 text-purple-300'
-                      : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200'
+                      ? getSubjectTheme(subj).badge
+                      : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200'
                   }`}
                 >
                   {subj}

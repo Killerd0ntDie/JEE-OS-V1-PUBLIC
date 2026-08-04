@@ -159,7 +159,7 @@ export function MistakeTestModal({ isOpen, onClose, mistakes }: MistakeTestModal
                 Return to Mistake Log
               </button>
             </div>
-          ) : (
+          ) : currentMistake ? (
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentMistake.id}
@@ -171,10 +171,10 @@ export function MistakeTestModal({ isOpen, onClose, mistakes }: MistakeTestModal
                 {/* Meta Row */}
                 <div className="flex items-center gap-3">
                   <span className="px-3 py-1 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-xs font-mono font-bold">
-                    {currentMistake.chapter}
+                    {currentMistake?.chapter || 'General'}
                   </span>
                   <span className="px-3 py-1 rounded-lg bg-zinc-800 text-zinc-300 text-xs font-mono">
-                    {currentMistake.topic}
+                    {currentMistake?.topic || ''}
                   </span>
                 </div>
 
@@ -233,7 +233,7 @@ export function MistakeTestModal({ isOpen, onClose, mistakes }: MistakeTestModal
                 )}
               </motion.div>
             </AnimatePresence>
-          )}
+          ) : null}
         </div>
 </div>
 </Modal>

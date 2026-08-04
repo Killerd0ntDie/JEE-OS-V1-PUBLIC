@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { getSubjectTheme } from '@/constants/subjectTheme';
 import {
   X, Save, CheckCircle2, Clock, BookOpen, Layers, Flame, Award,
   AlertCircle, SlidersHorizontal, Calendar, FileText, Target, Activity, Check
@@ -211,11 +212,8 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
     }, 500);
   };
 
-  const subjectColorClass = chapter.subject === 'physics' 
-    ? 'text-sky-400 bg-sky-950/40 border-sky-800/80' 
-    : chapter.subject === 'chemistry' 
-    ? 'text-emerald-400 bg-emerald-950/40 border-emerald-800/80' 
-    : 'text-purple-400 bg-purple-950/40 border-purple-800/80';
+  const theme = getSubjectTheme(chapter.subject);
+  const subjectColorClass = theme.badge;
 
   return (
     <>

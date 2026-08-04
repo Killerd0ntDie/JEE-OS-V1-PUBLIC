@@ -9,6 +9,7 @@ import { UploadPDFModal } from './components/UploadPDFModal';
 import { Modal } from '@/components/ui/Modal';
 import { v4 as uuidv4 } from 'uuid';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
+import { getSubjectTheme } from '@/constants/subjectTheme';
 import { MockResult } from '../../types/index';
 import { InlineMath } from 'react-katex';
 
@@ -462,7 +463,7 @@ export function MockTestsPage({ onNavigate }: MockTestsPageProps) {
             <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2 scrollbar">
               {['physics', 'chemistry', 'maths'].map(sub => (
                 <div key={sub} className="space-y-2">
-                  <h4 className="text-xs font-mono font-bold uppercase text-zinc-500 tracking-wider sticky top-0 bg-zinc-950 py-1">{sub}</h4>
+                  <h4 className={`text-xs font-mono font-bold uppercase tracking-wider sticky top-0 bg-zinc-950 py-1 ${getSubjectTheme(sub).text}`}>{sub}</h4>
                   {chapters.filter(c => c.subject === sub).map(chapter => (
                     <button
                       key={chapter.id}

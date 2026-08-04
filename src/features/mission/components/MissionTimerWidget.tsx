@@ -57,17 +57,17 @@ export function MissionTimerWidget({
           {formatTime(seconds)}
         </span>
 
-        {/* Subtext: Focus Score & Lecture Speed Indicator */}
-        <div className="pt-2 flex items-center justify-center gap-3">
-          <div className="bg-indigo-950/40 border border-indigo-900/40 text-indigo-400 px-2 py-0.5 rounded text-[10px] font-mono font-medium flex items-center gap-1">
-            <Zap className="w-3 h-3 animate-pulse" />
-            <span>FOCUS {focusScore}%</span>
-          </div>
-          
-          <div className="bg-zinc-900/60 border border-zinc-800 text-zinc-400 px-2 py-0.5 rounded text-[10px] font-mono font-medium flex items-center gap-1">
-            <Volume2 className="w-3 h-3" />
-            <span>{lectureSpeed}X SPEED</span>
-          </div>
+        {/* Demoted Muted Focus Score & Lecture Speed Indicator */}
+        <div className="pt-1 flex items-center justify-center gap-3 text-[9px] font-mono text-zinc-500 font-medium">
+          <span className="flex items-center gap-1">
+            <Zap className="w-2.5 h-2.5 text-indigo-400/70" />
+            <span>Focus {focusScore}%</span>
+          </span>
+          <span>•</span>
+          <span className="flex items-center gap-1">
+            <Volume2 className="w-2.5 h-2.5 text-zinc-500" />
+            <span>{lectureSpeed}x Speed</span>
+          </span>
         </div>
       </div>
     </div>

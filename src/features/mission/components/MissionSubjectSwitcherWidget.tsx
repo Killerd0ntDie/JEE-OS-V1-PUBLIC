@@ -23,45 +23,32 @@ export function MissionSubjectSwitcherWidget({
   onChangeSubject
 }: MissionSubjectSwitcherWidgetProps) {
   return (
-    <div className="w-full max-w-md text-center space-y-3">
-      <div className="space-y-1.5">
-        {/* Active Subject Switcher Row */}
-        <div className="flex justify-center gap-2 mb-2">
-          {(['physics', 'chemistry', 'maths'] as const).map(subj => (
-            <button
-              key={subj}
-              onClick={() => onChangeSubject(subj)}
-              className={`text-[9px] font-mono px-3 py-1 rounded-full border tracking-wider transition-all uppercase ${
-                activeSubject === subj
-                  ? 'bg-indigo-950/40 border-indigo-500/40 text-indigo-400 font-bold'
-                  : 'bg-transparent border-zinc-900 text-zinc-500 hover:text-zinc-400 hover:border-zinc-800'
-              }`}
-            >
-              {subjectsDetails[subj].name}
-            </button>
-          ))}
-        </div>
+    <div className="w-full max-w-md text-center space-y-2 py-2">
+      {/* Compact Muted Subject Switcher Row */}
+      <div className="flex justify-center items-center gap-1.5 opacity-70 hover:opacity-100 transition-opacity">
+        {(['physics', 'chemistry', 'maths'] as const).map(subj => (
+          <button
+            key={subj}
+            onClick={() => onChangeSubject(subj)}
+            className={`text-[9px] font-mono px-2.5 py-0.5 rounded-full border tracking-wider transition-all uppercase cursor-pointer ${
+              activeSubject === subj
+                ? 'bg-indigo-950/60 border-indigo-500/40 text-indigo-300 font-bold'
+                : 'bg-zinc-900/40 border-zinc-850 text-zinc-500 hover:text-zinc-300'
+            }`}
+          >
+            {subjectsDetails[subj].name}
+          </button>
+        ))}
+      </div>
 
-        <div className="flex items-center justify-center gap-2">
-          <span className={`w-2 h-2 rounded-full bg-indigo-500 animate-pulse`} />
-          <span className="text-3xs font-mono font-bold tracking-[0.2em] text-indigo-400 uppercase">
-            {activeDetails.name} // CHAPTER FOCUS
-          </span>
-        </div>
-        <h1 className="text-xl md:text-2xl font-black font-display text-white tracking-tight leading-tight mt-1">
+      {/* Prominent Chapter Title & Compact Meta Subtext */}
+      <div className="space-y-1">
+        <h1 className="text-xl md:text-2xl font-display font-extrabold text-white tracking-tight leading-tight">
           {activeDetails.chapter}
         </h1>
-        <p className="text-xs text-zinc-400 tracking-wide font-mono opacity-80">
-          {activeDetails.lecture}
+        <p className="text-xs text-zinc-400 font-mono">
+          {activeDetails.lecture} <span className="text-zinc-600">•</span> Est: {activeDetails.duration}
         </p>
-        <div className="flex justify-center items-center gap-4 text-[10px] font-mono text-zinc-500 pt-0.5">
-          <span className="flex items-center gap-1">
-            <Clock className="w-3 h-3" />
-            Est: {activeDetails.duration}
-          </span>
-          <span>•</span>
-          <span>Target Weight: Tier 1 ROI</span>
-        </div>
       </div>
     </div>
   );

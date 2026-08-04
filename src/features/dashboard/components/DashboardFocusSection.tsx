@@ -1,4 +1,5 @@
 import React from 'react';
+import { Icon } from '@/components/ui/Icon';
 import { SmartRevisionQueueWidget } from './SmartRevisionQueueWidget';
 import { ExamReadinessWidget } from './ExamReadinessWidget';
 import { DailyStudyTrackerWidget } from './DailyStudyTrackerWidget';
@@ -45,25 +46,27 @@ export function DashboardFocusSection({
           <button
             type="button"
             onClick={() => setActiveTab('focus')}
-            className={`px-4 py-2 rounded-xl font-bold transition-all cursor-pointer border ${
+            className={`px-4 py-2 rounded-xl font-bold transition-all cursor-pointer border flex items-center gap-2 ${
               activeTab === 'focus'
                 ? 'bg-indigo-600/20 text-indigo-300 border-indigo-500/40 shadow-sm'
                 : 'bg-zinc-900/60 text-zinc-400 border-zinc-800 hover:text-white'
             }`}
           >
-            🎯 Today's Focus & Revision Queue
+            <Icon name="Target" className="w-4 h-4 text-indigo-400" />
+            <span>Today's Focus & Revision Queue</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('analytics')}
-            className={`px-4 py-2 rounded-xl font-bold transition-all cursor-pointer border ${
+            className={`px-4 py-2 rounded-xl font-bold transition-all cursor-pointer border flex items-center gap-2 ${
               activeTab === 'analytics'
                 ? 'bg-indigo-600/20 text-indigo-300 border-indigo-500/40 shadow-sm'
                 : 'bg-zinc-900/60 text-zinc-400 border-zinc-800 hover:text-white'
             }`}
           >
-            📊 Analytics, Heatmap & Trajectory
+            <Icon name="BarChart2" className="w-4 h-4 text-indigo-400" />
+            <span>Analytics, Heatmap & Trajectory</span>
           </button>
         </div>
 

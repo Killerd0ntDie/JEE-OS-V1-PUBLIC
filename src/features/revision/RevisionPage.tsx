@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { getSubjectTheme } from '@/constants/subjectTheme';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -17,6 +18,7 @@ export function RevisionPage() {
 
   const [activeSubject, setActiveSubject] = useState<'all' | 'physics' | 'chemistry' | 'maths'>('all');
   const [filterScope, setFilterScope] = useState<'urgent' | 'overdue' | 'all'>('urgent');
+  const [revisionTab, setRevisionTab] = useState<'vault' | 'matrix'>('vault');
   const [isArenaActive, setIsArenaActive] = useState(false);
   const [flippedCards, setFlippedCards] = useState<Record<string, boolean>>({});
   const [recalledToast, setRecalledToast] = useState<string | null>(null);
@@ -122,33 +124,53 @@ export function RevisionPage() {
         </div>
       )}
 
-      {/* HEADER SECTION */}
-      {!isArenaActive && (
-        <div className="p-6 rounded-2xl border border-red-900/40 bg-red-950/10 backdrop-blur-xl flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden mb-8">
-          
-          <div className="absolute top-0 right-0 p-8 opacity-5">
-            <Flame className="w-32 h-32 text-red-500" />
-          </div>
-
-          <div className="relative z-10 space-y-2">
-            <div className="flex items-center gap-2 text-red-400 font-mono text-xs font-bold uppercase tracking-wider">
-              <Brain className="w-4 h-4" />
-              Decay Heatmap Linked
+      {/* HEADER SECTION - Arena Banner */}
+      {!isArenaActive && (() => {
+        const isUrgent = stats.totalOverdue > 0;
+        return (
+          <div className={`p-5 md:p-6 rounded-2xl border backdrop-blur-xl flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden mb-8 transition-all duration-300 ${
+            isUrgent
+              ? 'border-red-900/40 bg-red-950/10'
+              : 'border-emerald-900/40 bg-emerald-950/10'
+          }`}>
+            
+            <div className="absolute top-0 right-0 p-8 opacity-5">
+              {isUrgent ? (
+                <Flame className="w-32 h-32 text-red-500" />
+              ) : (
+                <CheckCircle2 className="w-32 h-32 text-emerald-500" />
+              )}
             </div>
-            <h2 className="text-2xl font-display font-bold text-white">The High-Stakes Arena</h2>
-            <p className="text-xs text-zinc-400 max-w-lg">
-              {stats.totalOverdue} chapters are actively decaying in your memory. Enter the timed arena to force active recall and reset their retention scores.
-            </p>
-          </div>
 
-          <button
-            onClick={() => setIsArenaActive(true)}
-            className="relative z-10 px-6 py-4 bg-red-600 hover:bg-red-500 text-white rounded-xl font-mono text-sm font-bold uppercase tracking-wider transition-all shadow-[0_0_20px_rgba(220,38,38,0.3)] hover:scale-105 flex items-center gap-3 shrink-0 cursor-pointer"
-          >
-            <Flame className="w-5 h-5" /> Enter the Arena
-          </button>
-        </div>
-      )}
+            <div className="relative z-10 space-y-1.5 text-left">
+              <div className={`flex items-center gap-2 font-mono text-xs font-bold uppercase tracking-wider ${
+                isUrgent ? 'text-red-400' : 'text-emerald-400'
+              }`}>
+                {isUrgent ? <Brain className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
+                <span>{isUrgent ? 'Decay Heatmap Linked' : 'Memory Vault Secure • 0 Decaying'}</span>
+              </div>
+              <h2 className="text-xl md:text-2xl font-display font-bold text-white tracking-tight">The High-Stakes Arena</h2>
+              <p className="text-xs text-zinc-400 max-w-lg">
+                {isUrgent
+                  ? `${stats.totalOverdue} chapter${stats.totalOverdue > 1 ? 's are' : ' is'} actively decaying in your memory. Enter the timed arena to force active recall and reset their retention scores.`
+                  : '0 chapters are actively decaying in your memory. All spaced repetition intervals are fully optimized across your syllabus.'}
+              </p>
+            </div>
+
+            <button
+              onClick={() => setIsArenaActive(true)}
+              className={`relative z-10 px-5 py-3 rounded-xl font-mono text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2.5 shrink-0 cursor-pointer ${
+                isUrgent
+                  ? 'bg-red-600 hover:bg-red-500 text-white shadow-[0_0_20px_rgba(220,38,38,0.3)] hover:scale-105'
+                  : 'bg-zinc-900 hover:bg-zinc-850 text-zinc-200 border border-zinc-800 hover:border-zinc-700'
+              }`}
+            >
+              {isUrgent ? <Flame className="w-4 h-4" /> : <Sparkles className="w-4 h-4 text-emerald-400" />}
+              <span>{isUrgent ? 'Enter the Arena' : 'Practice Anyway'}</span>
+            </button>
+          </div>
+        );
+      })()}
 
       {isArenaActive ? (
         <ActiveRecallArena 
@@ -157,220 +179,248 @@ export function RevisionPage() {
         />
       ) : (
         <>
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-850/80 pb-5">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2 text-indigo-400 font-mono text-[10px] uppercase font-bold tracking-widest">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-zinc-850/80 pb-5 text-left">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-indigo-400 font-mono text-xs font-bold uppercase tracking-wider">
                 <Icon name="Bookmark" className="w-3.5 h-3.5" />
                 <span>Spaced Repetition & Retention Engine</span>
               </div>
-              <h1 className="text-2xl md:text-3xl font-display font-black text-white tracking-tight">
+              <h1 className="text-xl md:text-2xl font-display font-bold text-white tracking-tight">
                 Chapter Retention & Formula Vault
               </h1>
-              <p className="text-xs text-zinc-400 max-w-2xl leading-relaxed">
-                Revision schedules are calculated exclusively for started and completed chapters by <strong className="text-zinc-200">RevisionEngine</strong> across all 70 NTA/NCERT JEE chapters.
-              </p>
+
+              {/* Revision Mode Tab Switcher */}
+              <div className="p-1 rounded-xl bg-zinc-900/90 border border-zinc-800 inline-flex items-center gap-1 font-mono text-xs">
+                <button
+                  type="button"
+                  onClick={() => setRevisionTab('vault')}
+                  className={`px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 transition-all cursor-pointer ${
+                    revisionTab === 'vault'
+                      ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/30'
+                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
+                  }`}
+                >
+                  <Sparkles className="w-3.5 h-3.5 shrink-0 text-emerald-400" />
+                  Active Recall Vault
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRevisionTab('matrix')}
+                  className={`px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 transition-all cursor-pointer ${
+                    revisionTab === 'matrix'
+                      ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/30'
+                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
+                  }`}
+                >
+                  <Icon name="LayoutGrid" className="w-3.5 h-3.5 shrink-0" />
+                  Syllabus Retention Matrix (70)
+                </button>
+              </div>
             </div>
 
             {/* Global Retention Stats Cards */}
-        <div className="flex flex-wrap gap-2.5 shrink-0 font-mono">
-          <div className="bg-zinc-900/60 border border-zinc-800/80 px-3.5 py-2 rounded-xl text-center min-w-[95px] shadow-sm">
-            <span className="text-[9px] text-zinc-500 block uppercase font-semibold">Overdue</span>
-            <span className="text-lg font-bold text-red-400">{stats.totalOverdue}</span>
-          </div>
-          <div className="bg-zinc-900/60 border border-zinc-800/80 px-3.5 py-2 rounded-xl text-center min-w-[95px] shadow-sm">
-            <span className="text-[9px] text-zinc-500 block uppercase font-semibold">Review Soon</span>
-            <span className="text-lg font-bold text-amber-400">{stats.totalUpcoming}</span>
-          </div>
-          <div className="bg-zinc-900/60 border border-zinc-800/80 px-3.5 py-2 rounded-xl text-center min-w-[95px] shadow-sm">
-            <span className="text-[9px] text-zinc-500 block uppercase font-semibold">Safe</span>
-            <span className="text-lg font-bold text-emerald-400">{stats.totalMastered}</span>
-          </div>
-          <div className="bg-zinc-900/60 border border-zinc-800/80 px-3.5 py-2 rounded-xl text-center min-w-[95px] shadow-sm">
-            <span className="text-[9px] text-zinc-500 block uppercase font-semibold">Not Started</span>
-            <span className="text-lg font-bold text-zinc-500">{stats.totalNotStarted}</span>
-          </div>
-          <div className="bg-zinc-900/60 border border-zinc-800/80 px-3.5 py-2 rounded-xl text-center min-w-[95px] shadow-sm">
-            <span className="text-[9px] text-zinc-500 block uppercase font-semibold">Avg Score</span>
-            <span className="text-lg font-bold text-indigo-400">{stats.avgRetentionScore}%</span>
-          </div>
-        </div>
-      </div>
-
-      {/* SECTION 1: CHAPTER RETENTION OVERVIEW MATRIX */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-mono font-bold uppercase tracking-wider text-white">
-              Syllabus Retention Matrix (70 Chapters)
-            </span>
-            <span className="text-[10px] font-mono text-zinc-500">
-              • Click any chapter to inspect revision history & stats
-            </span>
-          </div>
-          <div className="flex items-center gap-3 text-[10px] font-mono">
-            <span className="flex items-center gap-1 text-emerald-400">
-              <span className="w-2 h-2 rounded-full bg-emerald-500" /> High (90%)
-            </span>
-            <span className="flex items-center gap-1 text-amber-400">
-              <span className="w-2 h-2 rounded-full bg-amber-500" /> Medium (70%)
-            </span>
-            <span className="flex items-center gap-1 text-red-400">
-              <span className="w-2 h-2 rounded-full bg-red-500" /> Low (40%)
-            </span>
-            <span className="flex items-center gap-1 text-zinc-500">
-              <span className="w-2 h-2 rounded-full bg-zinc-600" /> Not Started
-            </span>
-          </div>
-        </div>
-
-        {/* 3-Column Subject Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {(['physics', 'chemistry', 'maths'] as const).map(sub => {
-            const list = chaptersBySubject[sub];
-            const subTitle = sub.toUpperCase();
-            const subColor = sub === 'physics' ? 'text-sky-400 border-sky-900/50 bg-sky-950/20' : sub === 'chemistry' ? 'text-emerald-400 border-emerald-900/50 bg-emerald-950/20' : 'text-indigo-400 border-indigo-900/50 bg-indigo-950/20';
-
-            return (
-              <div key={sub} className="bg-zinc-950/60 border border-zinc-850/80 rounded-2xl p-3.5 space-y-3">
-                <div className="flex items-center justify-between border-b border-zinc-900 pb-2">
-                  <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${subColor}`}>
-                    {subTitle} ({list.length})
-                  </span>
-                  <span className="text-[10px] font-mono text-zinc-500">
-                    {list.filter(t => t.retentionConfidence === 'Low').length} Overdue
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 gap-1.5 max-h-72 overflow-y-auto scrollbar pr-1">
-                  {list.map(t => (
-                    <div
-                      key={t.chapterId}
-                      onClick={() => setInspectorChapterId(t.chapterId)}
-                      className={`p-2 rounded-xl border text-left cursor-pointer transition-all duration-150 flex items-center justify-between gap-2 group hover:scale-[1.01] ${
-                        t.retentionConfidence === 'Low'
-                          ? 'bg-red-950/20 border-red-900/40 hover:border-red-500/50'
-                          : t.retentionConfidence === 'Medium'
-                          ? 'bg-amber-950/15 border-amber-900/30 hover:border-amber-500/50'
-                          : t.retentionConfidence === 'Not Started'
-                          ? 'bg-zinc-950/40 border-zinc-900 opacity-70 hover:opacity-100 hover:border-zinc-700'
-                          : 'bg-zinc-900/40 border-zinc-850 hover:border-zinc-700'
-                      }`}
-                      title={t.retentionConfidence === 'Not Started' ? 'Not yet started — no revision needed' : 'Click to inspect revision history & stats'}
-                    >
-                      <div className="min-w-0 flex-1">
-                        <span className="text-xs font-semibold text-white group-hover:text-indigo-300 truncate block">
-                          {t.chapterName}
-                        </span>
-                        {t.retentionConfidence === 'Not Started' ? (
-                          <span className="text-[9px] font-mono text-zinc-600 mt-1 block">
-                            Not started yet — no retention data
-                          </span>
-                        ) : (
-                          <div className="flex items-center gap-2 mt-1">
-                            <div className="h-1 flex-1 bg-zinc-800 rounded-full overflow-hidden">
-                              <div 
-                                className={`h-full rounded-full ${
-                                  t.retentionConfidence === 'Low' ? 'bg-red-500' : t.retentionConfidence === 'Medium' ? 'bg-amber-500' : 'bg-emerald-500'
-                                }`}
-                                style={{ width: `${t.retentionScore}%` }}
-                              />
-                            </div>
-                            <span className="text-[9px] font-mono text-zinc-500 shrink-0">
-                              {t.retentionScore}%
-                            </span>
-                          </div>
-                        )}
-                      </div>
-
-                      <Badge variant="secondary" className={`text-[9px] font-mono px-1.5 py-0.2 shrink-0 border ${getConfidenceBadge(t.retentionConfidence)}`}>
-                        {t.retentionConfidence}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
+            <div className="flex flex-wrap gap-2 shrink-0 font-mono self-start lg:self-auto">
+              <div className="bg-zinc-900/60 border border-zinc-800/80 px-3 py-1.5 rounded-xl text-center min-w-[90px] shadow-sm">
+                <span className="text-[9px] text-zinc-500 block uppercase font-semibold">Overdue</span>
+                <span className="text-base font-bold text-red-400">{stats.totalOverdue}</span>
               </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* SECTION 2: TUCKED-AWAY ACTIVE RECALL VAULT */}
-      <div className="space-y-4 pt-2">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-zinc-900 pb-3">
-          <div className="space-y-0.5">
-            <h3 className="text-base font-display font-bold text-white tracking-tight flex items-center gap-2">
-              <span>Active Recall Vault</span>
-              <span className="text-[10px] font-mono font-normal text-zinc-500">
-                (Showing {cardsToDisplay.length} Cards)
-              </span>
-            </h3>
-            <p className="text-xs text-zinc-400">
-              Targeted formula recall. Cards are tucked away cleanly to keep your workspace fast and focused.
-            </p>
+              <div className="bg-zinc-900/60 border border-zinc-800/80 px-3 py-1.5 rounded-xl text-center min-w-[90px] shadow-sm">
+                <span className="text-[9px] text-zinc-500 block uppercase font-semibold">Review Soon</span>
+                <span className="text-base font-bold text-amber-400">{stats.totalUpcoming}</span>
+              </div>
+              <div className="bg-zinc-900/60 border border-zinc-800/80 px-3 py-1.5 rounded-xl text-center min-w-[90px] shadow-sm">
+                <span className="text-[9px] text-zinc-500 block uppercase font-semibold">Safe</span>
+                <span className="text-base font-bold text-emerald-400">{stats.totalMastered}</span>
+              </div>
+              <div className="bg-zinc-900/60 border border-zinc-800/80 px-3 py-1.5 rounded-xl text-center min-w-[90px] shadow-sm">
+                <span className="text-[9px] text-zinc-500 block uppercase font-semibold">Not Started</span>
+                <span className="text-base font-bold text-zinc-500">{stats.totalNotStarted}</span>
+              </div>
+              <div className="bg-zinc-900/60 border border-zinc-800/80 px-3 py-1.5 rounded-xl text-center min-w-[90px] shadow-sm">
+                <span className="text-[9px] text-zinc-500 block uppercase font-semibold">Avg Score</span>
+                <span className="text-base font-bold text-indigo-400">{stats.avgRetentionScore}%</span>
+              </div>
+            </div>
           </div>
 
-          {/* Scope & Subject Filter Pills */}
-          <div className="flex flex-wrap items-center gap-2 font-mono text-[10px]">
-            {/* Scope Filter */}
-            <div className="flex gap-1 bg-zinc-950/80 border border-zinc-850 p-1 rounded-xl">
-              <button
-                onClick={() => setFilterScope('urgent')}
-                className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                  filterScope === 'urgent' ? 'bg-indigo-600 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
-                }`}
-              >
-                Urgent (6)
-              </button>
-              <button
-                onClick={() => setFilterScope('overdue')}
-                className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                  filterScope === 'overdue' ? 'bg-indigo-600 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
-                }`}
-              >
-                Overdue Only
-              </button>
-              <button
-                onClick={() => setFilterScope('all')}
-                className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                  filterScope === 'all' ? 'bg-indigo-600 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
-                }`}
-              >
-                All Cards
-              </button>
+      {/* SECTION 1: CHAPTER RETENTION OVERVIEW MATRIX (TAB: MATRIX) */}
+      {revisionTab === 'matrix' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono font-bold uppercase tracking-wider text-white">
+                Syllabus Retention Matrix (70 Chapters)
+              </span>
+              <span className="text-[10px] font-mono text-zinc-500">
+                • Click any chapter to inspect revision history & stats
+              </span>
+            </div>
+            <div className="flex items-center gap-3 text-[10px] font-mono">
+              <span className="flex items-center gap-1 text-emerald-400">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" /> High (90%)
+              </span>
+              <span className="flex items-center gap-1 text-amber-400">
+                <span className="w-2 h-2 rounded-full bg-amber-500" /> Medium (70%)
+              </span>
+              <span className="flex items-center gap-1 text-red-400">
+                <span className="w-2 h-2 rounded-full bg-red-500" /> Low (40%)
+              </span>
+              <span className="flex items-center gap-1 text-zinc-500">
+                <span className="w-2 h-2 rounded-full bg-zinc-600" /> Not Started
+              </span>
+            </div>
+          </div>
+
+          {/* 3-Column Subject Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {(['physics', 'chemistry', 'maths'] as const).map(sub => {
+              const list = chaptersBySubject[sub];
+              const subTitle = sub.toUpperCase();
+              const subColor = getSubjectTheme(sub).badge;
+
+              return (
+                <div key={sub} className="bg-zinc-950/60 border border-zinc-850/80 rounded-2xl p-3.5 space-y-3">
+                  <div className="flex items-center justify-between border-b border-zinc-900 pb-2">
+                    <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${subColor}`}>
+                      {subTitle} ({list.length})
+                    </span>
+                    <span className="text-[10px] font-mono text-zinc-500">
+                      {list.filter(t => t.retentionConfidence === 'Low').length} Overdue
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-1.5 max-h-72 overflow-y-auto scrollbar pr-1">
+                    {list.map(t => (
+                      <div
+                        key={t.chapterId}
+                        onClick={() => setInspectorChapterId(t.chapterId)}
+                        className={`p-2 rounded-xl border text-left cursor-pointer transition-all duration-150 flex items-center justify-between gap-2 group hover:scale-[1.01] ${
+                          t.retentionConfidence === 'Low'
+                            ? 'bg-red-950/20 border-red-900/40 hover:border-red-500/50'
+                            : t.retentionConfidence === 'Medium'
+                            ? 'bg-amber-950/15 border-amber-900/30 hover:border-amber-500/50'
+                            : t.retentionConfidence === 'Not Started'
+                            ? 'bg-zinc-950/40 border-zinc-900 opacity-70 hover:opacity-100 hover:border-zinc-700'
+                            : 'bg-zinc-900/40 border-zinc-850 hover:border-zinc-700'
+                        }`}
+                        title={t.retentionConfidence === 'Not Started' ? 'Not yet started — no revision needed' : 'Click to inspect revision history & stats'}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <span className="text-xs font-semibold text-white group-hover:text-indigo-300 truncate block">
+                            {t.chapterName}
+                          </span>
+                          {t.retentionConfidence === 'Not Started' ? (
+                            <span className="text-[9px] font-mono text-zinc-600 mt-1 block">
+                              Not started yet — no retention data
+                            </span>
+                          ) : (
+                            <div className="flex items-center gap-2 mt-1">
+                              <div className="h-1 flex-1 bg-zinc-800 rounded-full overflow-hidden">
+                                <div 
+                                  className={`h-full rounded-full ${
+                                    t.retentionConfidence === 'Low' ? 'bg-red-500' : t.retentionConfidence === 'Medium' ? 'bg-amber-500' : 'bg-emerald-500'
+                                  }`}
+                                  style={{ width: `${t.retentionScore}%` }}
+                                />
+                              </div>
+                              <span className="text-[9px] font-mono text-zinc-500 shrink-0">
+                                {t.retentionScore}%
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        <Badge variant="secondary" className={`text-[9px] font-mono px-1.5 py-0.2 shrink-0 border ${getConfidenceBadge(t.retentionConfidence)}`}>
+                          {t.retentionConfidence}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* SECTION 2: ACTIVE RECALL VAULT (TAB: VAULT - DEFAULT) */}
+      {revisionTab === 'vault' && (
+        <div className="space-y-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-zinc-900 pb-3 text-left">
+            <div className="space-y-0.5">
+              <h3 className="text-base font-display font-bold text-white tracking-tight flex items-center gap-2">
+                <span>Active Recall Vault</span>
+                <span className="text-[10px] font-mono font-normal text-zinc-500">
+                  (Showing {cardsToDisplay.length} Cards)
+                </span>
+              </h3>
+              <p className="text-xs text-zinc-400">
+                Targeted formula recall. Formula cards generate automatically as you start new chapters ({stats.totalOverdue + stats.totalUpcoming + stats.totalMastered} active started chapters).
+              </p>
             </div>
 
-            {/* Subject Filter */}
-            <div className="flex gap-1 bg-zinc-950/80 border border-zinc-850 p-1 rounded-xl">
-              {(['all', 'physics', 'chemistry', 'maths'] as const).map(sub => (
+            {/* Scope & Subject Filter Pills */}
+            <div className="flex flex-wrap items-center gap-2 font-mono text-[10px]">
+              {/* Scope Filter */}
+              <div className="flex gap-1 bg-zinc-950/80 border border-zinc-850 p-1 rounded-xl">
                 <button
-                  key={sub}
-                  onClick={() => {
-                    setActiveSubject(sub);
-                    setFlippedCards({});
-                  }}
-                  className={`px-2.5 py-1 rounded-lg font-bold uppercase transition-all cursor-pointer ${
-                    activeSubject === sub ? 'bg-zinc-800 text-white' : 'text-zinc-500 hover:text-zinc-300'
+                  onClick={() => setFilterScope('urgent')}
+                  className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                    filterScope === 'urgent' ? 'bg-indigo-600 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
                   }`}
                 >
-                  {sub}
+                  Urgent (6)
                 </button>
-              ))}
-            </div>
-          </div>
-        </div>
+                <button
+                  onClick={() => setFilterScope('overdue')}
+                  className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                    filterScope === 'overdue' ? 'bg-indigo-600 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
+                  }`}
+                >
+                  Overdue Only
+                </button>
+                <button
+                  onClick={() => setFilterScope('all')}
+                  className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                    filterScope === 'all' ? 'bg-indigo-600 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
+                  }`}
+                >
+                  All Cards
+                </button>
+              </div>
 
-        {/* Compact 2-Column Grid for Cards */}
-        {cardsToDisplay.length === 0 ? (
-          <div className="col-span-full p-12 text-center bg-zinc-950/60 border border-emerald-900/30 rounded-2xl space-y-3">
-            <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto mb-2">
-              <Check className="w-6 h-6" />
+              {/* Subject Filter */}
+              <div className="flex gap-1 bg-zinc-950/80 border border-zinc-850 p-1 rounded-xl">
+                {(['all', 'physics', 'chemistry', 'maths'] as const).map(sub => (
+                  <button
+                    key={sub}
+                    onClick={() => {
+                      setActiveSubject(sub);
+                      setFlippedCards({});
+                    }}
+                    className={`px-2.5 py-1 rounded-lg font-bold uppercase transition-all cursor-pointer ${
+                      activeSubject === sub ? 'bg-zinc-800 text-white' : 'text-zinc-500 hover:text-zinc-300'
+                    }`}
+                  >
+                    {sub}
+                  </button>
+                ))}
+              </div>
             </div>
-            <h4 className="text-sm font-display font-bold text-white">All Systems Optimal!</h4>
-            <p className="text-xs text-zinc-400 max-w-sm mx-auto font-mono">
-              No chapters currently require spaced-repetition revision under this filter. Outstanding work maintaining your retention memory!
-            </p>
           </div>
-        ) : (
+
+          {/* Compact 2-Column Grid for Cards */}
+          {cardsToDisplay.length === 0 ? (
+            <div className="p-8 text-center bg-zinc-950/60 border border-zinc-800/80 rounded-2xl space-y-2 font-mono text-left sm:text-center">
+              <div className="w-10 h-10 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center mx-auto mb-2">
+                <Sparkles className="w-5 h-5" />
+              </div>
+              <h4 className="text-xs font-display font-bold text-white uppercase tracking-wider">No Active Formula Cards</h4>
+              <p className="text-xs text-zinc-400 max-w-md mx-auto leading-relaxed">
+                Formula cards appear here automatically as you start new chapters. Active recall cards will generate as you begin studying chapters in {activeSubject === 'all' ? 'your syllabus' : activeSubject}.
+              </p>
+            </div>
+          ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {cardsToDisplay.map(card => {
             const isFlipped = !!flippedCards[card.id];
@@ -487,6 +537,7 @@ export function RevisionPage() {
           </div>
         )}
       </div>
+      )}
         </>
       )}
 

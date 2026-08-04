@@ -23,10 +23,12 @@ export const AiInterrogationModal: React.FC<AiInterrogationModalProps> = ({
 
   useEscapeKey(onClose, isOpen);
 
+  if (!mistake) return null;
+
   const handleCorrectAnswer = () => {
     setExorcised(true);
     audioEngine.playSuccessChime();
-    actions.updateMistakeStatus(mistake?.id || '', 'Mastered');
+    actions.updateMistakeStatus(mistake.id, 'Mastered');
   };
 
   const handleClose = () => {
@@ -45,7 +47,7 @@ export const AiInterrogationModal: React.FC<AiInterrogationModalProps> = ({
                   The Interrogation Room
                 </h3>
                 <p className="text-[10px] font-mono text-red-500/70">
-                  Target: {mistake.chapter} • {mistake.topic}
+                  Target: {mistake?.chapter || 'Unknown'} • {mistake?.topic || 'General'}
                 </p>
               </div>
             </div>
@@ -69,7 +71,7 @@ export const AiInterrogationModal: React.FC<AiInterrogationModalProps> = ({
                 <div className="text-center space-y-2">
                   <h2 className="text-3xl font-display font-bold text-white tracking-tight">Mistake Exorcised</h2>
                   <p className="text-sm text-zinc-400 font-mono">
-                    "{mistake.topic}" has been permanently marked as Mastered.
+                    "{mistake?.topic || mistake?.chapter}" has been permanently marked as Mastered.
                   </p>
                 </div>
                 <button 
@@ -81,8 +83,8 @@ export const AiInterrogationModal: React.FC<AiInterrogationModalProps> = ({
               </div>
             ) : (
               <QuestionViewerWidget
-                chapterId={mistake.chapter} // Assuming chapter name acts as chapterId for the generator
-                subject={mistake.subject}
+                chapterId={mistake?.chapter || ''}
+                subject={mistake?.subject || 'physics'}
                 onExitPractice={handleClose}
                 onCorrectAnswer={handleCorrectAnswer}
               />

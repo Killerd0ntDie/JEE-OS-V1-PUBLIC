@@ -11,13 +11,13 @@ export const TopicNode = ({ data }: { data: any }) => {
   const subjectColors: Record<string, string> = {
     physics: 'from-sky-500/20 to-sky-900/40 border-sky-500/50 text-sky-400',
     chemistry: 'from-emerald-500/20 to-emerald-900/40 border-emerald-500/50 text-emerald-400',
-    maths: 'from-violet-500/20 to-violet-900/40 border-violet-500/50 text-violet-400',
+    maths: 'from-indigo-500/20 to-indigo-900/40 border-indigo-500/50 text-indigo-400',
   };
 
   const subjectGlows: Record<string, string> = {
     physics: 'shadow-[0_0_30px_rgba(56,189,248,0.3)]',
     chemistry: 'shadow-[0_0_30px_rgba(16,185,129,0.3)]',
-    maths: 'shadow-[0_0_30px_rgba(139,92,246,0.3)]',
+    maths: 'shadow-[0_0_30px_rgba(99,102,241,0.3)]',
   };
 
   const colorClass = subjectColors[data.subject] || 'from-zinc-800 to-zinc-900 border-zinc-700 text-zinc-400';

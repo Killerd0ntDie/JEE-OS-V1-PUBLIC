@@ -1,5 +1,6 @@
 import React from 'react';
-import { Sparkles, RefreshCw, PenTool, SlidersHorizontal, ChevronDown, Calendar, UserCheck, Check } from 'lucide-react';
+import { Sparkles, RefreshCw, PenTool, SlidersHorizontal, ChevronDown, Calendar, UserCheck, Check, CalendarDays, LayoutGrid, BarChart2 } from 'lucide-react';
+import { OnHoldReminderBanner } from '@/features/dashboard/components/OnHoldReminderBanner';
 
 export function PlannerHeader({ state }: { state: any }) {
   const {
@@ -15,33 +16,101 @@ export function PlannerHeader({ state }: { state: any }) {
     setIsAuditDropdownOpen,
     setIsWeeklyCheckinModalOpen,
     setIsInterviewModalOpen,
+    viewMode,
+    setViewMode,
+    chapters,
+    actions,
   } = state;
 
   return (
-    <div className="relative z-20 p-6 rounded-2xl border border-zinc-800/80 bg-zinc-950/40 backdrop-blur-xl space-y-4">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="relative z-20 p-5 md:p-6 rounded-2xl border border-zinc-800/80 bg-zinc-950/40 backdrop-blur-xl space-y-4 text-left">
+      {/* Row 1: Header Title + Status Pills + On Hold Pill */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div className="space-y-1">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="flex items-center gap-1.5 text-indigo-400 font-mono text-xs font-bold uppercase tracking-wider">
               <Sparkles className="w-4 h-4 animate-pulse" />
-              IIT AI Mentor Engine • Strategy Cockpit
+              Academic Schedule & Strategy Engine
             </span>
-            <span className="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+            <span className="text-[10px] font-mono font-medium text-zinc-400 bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded-full flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              Synced to Dashboard Hub
+              Synced to Dashboard
             </span>
+            <OnHoldReminderBanner chapters={chapters} onOpenChapter={(id: string) => actions.openChapterEditModal(id)} />
           </div>
-          <h1 className="text-2xl font-display font-bold text-white tracking-tight">
+          <h1 className="text-xl md:text-2xl font-display font-bold text-white tracking-tight">
             Adaptive Master Schedule
           </h1>
         </div>
 
-        <div className="flex items-center gap-2.5 flex-wrap shrink-0">
+        {/* Capacity & Strategy Summary Info Pills */}
+        <div className="flex flex-wrap items-center gap-2 text-xs font-mono text-zinc-400">
+          <span className="px-2.5 py-1 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300">
+            Capacity: <strong className="text-zinc-200 font-semibold">{dailyCapHours}h/day</strong>
+          </span>
+          <span className="px-2.5 py-1 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300">
+            Split: <strong className="text-zinc-200 font-semibold">
+              {mentorProfile?.subjectSplitStrategy === '1_a_day_alternating' ? '1 Subj Focus' : mentorProfile?.subjectSplitStrategy === '2_a_day_alternating' ? '2 Subjs Alt' : '3 Subjs Daily'}
+            </strong>
+          </span>
+          <span className="px-2.5 py-1 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300">
+            Mode: <strong className="text-zinc-200 font-semibold uppercase">{energyLevel || 'Medium'} Energy</strong>
+          </span>
+        </div>
+      </div>
+
+      {/* Row 2: Visually Separated View Switcher Segment & Action Toolbar */}
+      <div className="pt-4 border-t border-zinc-900/80 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+        {/* GROUP A: View Mode Segmented Control */}
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider font-bold shrink-0">VIEW:</span>
+          <div className="p-1 rounded-xl bg-zinc-900/90 border border-zinc-800 flex items-center gap-1 font-mono text-xs shrink-0">
+            <button
+              type="button"
+              onClick={() => setViewMode('daily')}
+              className={`px-3 py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
+                viewMode === 'daily'
+                  ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/30'
+                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
+              }`}
+            >
+              <CalendarDays className="w-3.5 h-3.5 shrink-0" />
+              Daily Focus
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('weekly')}
+              className={`px-3 py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
+                viewMode === 'weekly'
+                  ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/30'
+                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
+              }`}
+            >
+              <LayoutGrid className="w-3.5 h-3.5 shrink-0" />
+              Weekly Matrix
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('monthly')}
+              className={`px-3 py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
+                viewMode === 'monthly'
+                  ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/30'
+                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
+              }`}
+            >
+              <BarChart2 className="w-3.5 h-3.5 shrink-0" />
+              Monthly Strategy
+            </button>
+          </div>
+        </div>
+
+        {/* GROUP B: Action Toolbar (Separated visually) */}
+        <div className="flex items-center gap-2 flex-wrap xl:border-l xl:border-zinc-800/80 xl:pl-4">
           <button
             type="button"
             onClick={handleAutoBalance}
             disabled={isAutoBalancing}
-            className={`px-4 py-2.5 rounded-xl font-mono text-xs font-bold uppercase tracking-wider flex items-center gap-2 shadow-lg transition-all cursor-pointer disabled:opacity-50 ${
+            className={`px-3.5 py-2 rounded-xl font-mono text-xs font-bold uppercase tracking-wider flex items-center gap-2 shadow-lg transition-all cursor-pointer disabled:opacity-50 ${
               balanceToast
                 ? 'bg-emerald-600 border border-emerald-500 text-white shadow-emerald-600/25'
                 : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/25'
@@ -54,24 +123,24 @@ export function PlannerHeader({ state }: { state: any }) {
             ) : (
               <RefreshCw className="w-3.5 h-3.5" />
             )}
-            {isAutoBalancing ? 'Auto-Balancing...' : balanceToast ? 'Plan Auto-Balanced!' : 'Auto-Balance Weekly Plan'}
+            {isAutoBalancing ? 'Auto-Balancing...' : balanceToast ? 'Plan Balanced!' : 'Auto-Balance Weekly Plan'}
           </button>
 
           <button
             type="button"
             onClick={() => setIsAiRevisionModalOpen(true)}
-            className="px-4 py-2.5 rounded-xl font-mono text-xs font-bold uppercase tracking-wider flex items-center gap-2 shadow-lg transition-all cursor-pointer bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40"
+            className="px-3 py-2 rounded-xl font-mono text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer bg-zinc-900 hover:bg-zinc-850 text-emerald-400 border border-zinc-800 hover:border-emerald-500/40"
           >
-            <Sparkles className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+            <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
             AI Revision Sprint
           </button>
 
           <button
             type="button"
             onClick={() => setIsCustomMissionModalOpen(true)}
-            className="px-4 py-2.5 rounded-xl font-mono text-xs font-bold uppercase tracking-wider flex items-center gap-2 shadow-lg transition-all cursor-pointer bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700"
+            className="px-3 py-2 rounded-xl font-mono text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer bg-zinc-900 hover:bg-zinc-850 text-zinc-200 border border-zinc-800"
           >
-            <PenTool className="w-3.5 h-3.5" />
+            <PenTool className="w-3.5 h-3.5 text-zinc-400" />
             Add Mission
           </button>
 
@@ -79,7 +148,7 @@ export function PlannerHeader({ state }: { state: any }) {
             <button
               type="button"
               onClick={() => setIsAuditDropdownOpen(!isAuditDropdownOpen)}
-              className="px-3.5 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-300 font-mono text-xs font-bold flex items-center gap-2 transition-all cursor-pointer"
+              className="px-3 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-300 font-mono text-xs font-bold flex items-center gap-2 transition-all cursor-pointer"
             >
               <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-400" />
               AI Audits & Sync
@@ -114,29 +183,6 @@ export function PlannerHeader({ state }: { state: any }) {
               </div>
             )}
           </div>
-        </div>
-      </div>
-
-      <div className="pt-2 border-t border-zinc-900/60 flex flex-wrap items-center gap-4 text-xs font-mono text-zinc-500">
-        <div className="flex items-center gap-1.5">
-          <span>Capacity Budget:</span>
-          <span className="px-2 py-0.5 rounded bg-indigo-950/40 border border-indigo-900/40 text-indigo-300 font-semibold">
-            {dailyCapHours} hrs/day
-          </span>
-        </div>
-
-        <div className="flex items-center gap-1.5">
-          <span>Subject Split:</span>
-          <span className="px-2 py-0.5 rounded bg-purple-950/40 border border-purple-900/40 text-purple-300 font-semibold">
-            {mentorProfile?.subjectSplitStrategy === '1_a_day_alternating' ? '1 Subject Focus' : mentorProfile?.subjectSplitStrategy === '2_a_day_alternating' ? '2 Subjects Alternating' : '3 Subjects Daily'}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-1.5">
-          <span>Strategy Mode:</span>
-          <span className="px-2 py-0.5 rounded bg-emerald-950/40 border border-emerald-900/40 text-emerald-400 font-semibold uppercase">
-            {energyLevel || 'Medium'} Energy • Adaptive
-          </span>
         </div>
       </div>
     </div>

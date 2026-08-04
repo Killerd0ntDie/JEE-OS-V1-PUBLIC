@@ -53,67 +53,10 @@ export function PlannerPage() {
 
   return (
     <div className="space-y-6 pb-12 text-left relative">
-      <OnHoldReminderBanner chapters={chapters} onOpenChapter={(id: string) => actions.openChapterEditModal(id)} />
-      
       <PlannerHeader state={state} />
 
-      <div className="p-5 md:p-6 rounded-2xl border border-zinc-800/80 bg-zinc-950/60 backdrop-blur-xl space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-900 pb-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-indigo-400" />
-              <h2 className="text-base font-display font-bold text-white tracking-tight">
-                Academic Schedule & Strategy Engine
-              </h2>
-            </div>
-            <p className="text-xs text-zinc-400">
-              Toggle between Daily Detailed Focus, Weekly 7-Day Matrix, and Monthly Strategy Roadmap.
-            </p>
-          </div>
-
-          <div className="p-1 rounded-xl bg-zinc-900/90 border border-zinc-800 flex items-center gap-1 self-start md:self-auto font-mono text-xs">
-            <button
-              type="button"
-              onClick={() => setViewMode('daily')}
-              className={`px-3 py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
-                viewMode === 'daily'
-                  ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/30'
-                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
-              }`}
-            >
-              <CalendarDays className="w-3.5 h-3.5 shrink-0" />
-              Daily Focus
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('weekly')}
-              className={`px-3 py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
-                viewMode === 'weekly'
-                  ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/30'
-                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
-              }`}
-            >
-              <LayoutGrid className="w-3.5 h-3.5 shrink-0" />
-              Weekly Matrix
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('monthly')}
-              className={`px-3 py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
-                viewMode === 'monthly'
-                  ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/30'
-                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
-              }`}
-            >
-              <BarChart2 className="w-3.5 h-3.5 shrink-0" />
-              Monthly Strategy
-            </button>
-          </div>
-        </div>
-
-        {(viewMode === 'daily' || viewMode === 'weekly') && <PlannerCalendarTab state={state} />}
-        {viewMode === 'monthly' && <PlannerRoadmapTab state={state} />}
-      </div>
+      {(viewMode === 'daily' || viewMode === 'weekly') && <PlannerCalendarTab state={state} />}
+      {viewMode === 'monthly' && <PlannerRoadmapTab state={state} />}
 
       <Modal
         isOpen={!!selectedBlock}

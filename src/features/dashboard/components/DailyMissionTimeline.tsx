@@ -232,10 +232,10 @@ export function DailyMissionTimeline({
 
                   const weightageMarks = (chap?.weightage || 4) * 3;
                   const priorityTier = chap?.priority === 1
-                    ? { icon: '🔥', label: 'Tier 1' }
+                    ? { iconName: 'Flame', label: 'Tier 1', color: 'text-amber-400' }
                     : chap?.priority === 2
-                    ? { icon: '⚡', label: 'Tier 2' }
-                    : { icon: '⭐', label: 'Tier 3' };
+                    ? { iconName: 'Zap', label: 'Tier 2', color: 'text-sky-400' }
+                    : { iconName: 'Star', label: 'Tier 3', color: 'text-indigo-400' };
                   
                   const unitName = chap?.unit || 'Core Module';
 
@@ -251,17 +251,19 @@ export function DailyMissionTimeline({
                           actions.setRadarFocusedChapter(chap.id);
                         }
                       }}
-                    className={`group rounded-xl border p-4 transition-all duration-200 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 active:scale-[0.99] ${
-                        isDismissed
-                          ? 'bg-zinc-950/10 border-red-900/20 opacity-40 cursor-default'
+                    className={`group transition-all duration-200 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 active:scale-[0.99] relative overflow-hidden ${
+                        isNextUp
+                          ? 'p-6 md:p-7 rounded-2xl border border-indigo-500/40 bg-zinc-900/80 shadow-md mb-4'
+                          : isDismissed
+                          ? 'premium-card p-3.5 rounded-xl border-red-900/20 opacity-40 cursor-default'
                           : mission.completed
-                          ? 'bg-zinc-950/20 border-zinc-900/40 opacity-60'
+                          ? 'premium-card p-3.5 rounded-xl border-zinc-900/40 opacity-60'
                           : isSelected
-                          ? 'bg-indigo-950/[0.25] border-indigo-500/50 shadow-[0_4px_25px_rgba(99,102,241,0.08)]'
-                          : 'bg-zinc-900/30 border-zinc-850/80 hover:border-zinc-800 hover:bg-zinc-900/50 hover:shadow-lg hover:shadow-zinc-900/20'
+                          ? 'glass-card p-4 rounded-xl border-indigo-500/40 shadow-lg'
+                          : 'premium-card p-3.5 rounded-xl hover:border-zinc-750'
                       }`}
                     >
-                      <div className="flex items-center justify-between gap-4">
+                      <div className="flex items-start justify-between gap-4 relative z-10">
                         
                         {/* Circular Checkbox — hidden for dismissed missions */}
                         {!isDismissed && (
@@ -271,14 +273,16 @@ export function DailyMissionTimeline({
                             e.stopPropagation();
                             actions.completeTask(mission.id);
                           }}
-                          className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-all duration-100 cursor-pointer ${
+                          className={`rounded-full border flex items-center justify-center shrink-0 transition-all duration-100 cursor-pointer ${
+                            isNextUp ? 'w-6 h-6 mt-0.5' : 'w-5 h-5'
+                          } ${
                             mission.completed
                               ? 'bg-emerald-500 border-emerald-400 text-white shadow-[0_0_10px_rgba(16,185,129,0.3)]'
                               : 'border-zinc-700 hover:border-indigo-400 bg-transparent text-transparent hover:text-indigo-400/60'
                           }`}
                           title={mission.completed ? "Mark incomplete" : "Mark complete"}
                         >
-                          <Icon name="Check" className="w-3 h-3 stroke-[3]" />
+                          <Icon name="Check" className={`${isNextUp ? 'w-3.5 h-3.5' : 'w-3 h-3'} stroke-[3]`} />
                         </button>
                         )}
                         {isDismissed && (
@@ -288,7 +292,7 @@ export function DailyMissionTimeline({
                         )}
 
                         {/* Content Area */}
-                        <div className="space-y-1 min-w-0 flex-1">
+                        <div className="space-y-2 min-w-0 flex-1">
                           {/* Badges */}
                           <div className="flex items-center gap-2 flex-wrap text-[9px] font-mono">
                             {isDismissed && (
@@ -303,24 +307,28 @@ export function DailyMissionTimeline({
                               {mission.type}
                             </span>
                             <span className="bg-amber-950/30 border border-amber-900/40 text-amber-300 font-semibold px-2 py-0.5 rounded flex items-center gap-1">
-                              {priorityTier.icon} {priorityTier.label} • +{weightageMarks} M
+                              <Icon name={priorityTier.iconName as any} className={`w-3 h-3 ${priorityTier.color}`} /> {priorityTier.label} • +{weightageMarks} M
                             </span>
                             {isNextUp && (
-                              <span className="text-indigo-400 font-bold flex items-center gap-1 animate-pulse">
-                                ● NEXT
+                              <span className="bg-indigo-600 text-white font-extrabold px-2.5 py-0.5 rounded-md uppercase tracking-wider shadow-md flex items-center gap-1.5 animate-pulse">
+                                <span className="w-2 h-2 rounded-full bg-white" /> HERO MISSION
                               </span>
                             )}
                           </div>
 
                           {/* Title */}
-                          <p className={`text-xs md:text-sm font-semibold tracking-tight transition-colors ${
-                              isDismissed ? 'text-zinc-600 line-through' : mission.completed ? 'text-zinc-500 line-through' : 'text-zinc-100 group-hover:text-indigo-300'
+                          <p className={`tracking-tight transition-colors ${
+                              isNextUp 
+                                ? 'text-base md:text-lg font-extrabold text-white group-hover:text-indigo-200' 
+                                : isDismissed ? 'text-xs md:text-sm text-zinc-600 line-through' 
+                                : mission.completed ? 'text-xs md:text-sm text-zinc-500 line-through' 
+                                : 'text-xs md:text-sm font-semibold text-zinc-100 group-hover:text-indigo-300'
                             }`}>
                             {mission.taskName}
                           </p>
 
                           {/* Sub-line */}
-                          <div className="flex items-center gap-2 text-[11px] text-zinc-400">
+                          <div className="flex items-center gap-2 text-[11px] text-zinc-400 flex-wrap">
                             <span>
                               Unit: <strong className="text-zinc-300 font-medium">{unitName}</strong>
                             </span>
@@ -338,38 +346,59 @@ export function DailyMissionTimeline({
                                     />
                                   </div>
                                   <span className="text-indigo-400 font-bold">{lecPercent}%</span>
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      actions.openChapterEditModal(chap.id);
-                                    }}
-                                    className="ml-2 text-[9px] bg-indigo-950/40 hover:bg-indigo-600/90 text-indigo-300 hover:text-white px-2 py-0.5 rounded-md cursor-pointer transition-all border border-indigo-500/30 hover:border-indigo-400 flex items-center gap-1 shadow-sm"
-                                    title="Chapter Info / Telemetry"
-                                  >
-                                    <Settings className="w-2.5 h-2.5" /> Chap
-                                  </button>
                                 </>
                               )}
+                            </div>
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="pt-2 flex items-center gap-2 flex-wrap">
+                            {isNextUp && (
                               <button
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  onEditMission?.(mission);
+                                  handleStartSession();
                                 }}
-                                className="ml-1 text-[9px] bg-emerald-950/40 hover:bg-emerald-600/90 text-emerald-300 hover:text-white px-2 py-0.5 rounded-md cursor-pointer transition-all border border-emerald-500/30 hover:border-emerald-400 flex items-center gap-1 shadow-sm"
-                                title="Edit Mission Details"
+                                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-mono text-xs font-bold rounded-xl shadow-lg shadow-indigo-600/30 flex items-center gap-2 cursor-pointer transition-all active:scale-95"
                               >
-                                Edit Mission
+                                <Icon name="Play" className="w-4 h-4 fill-white text-white" />
+                                <span>START HERO MISSION</span>
                               </button>
-                            </div>
+                            )}
+
+                            {chap && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  actions.openChapterEditModal(chap.id);
+                                }}
+                                className="text-[10px] bg-indigo-950/40 hover:bg-indigo-600/90 text-indigo-300 hover:text-white px-2.5 py-1 rounded-lg cursor-pointer transition-all border border-indigo-500/30 flex items-center gap-1 shadow-sm font-mono"
+                                title="Chapter Info"
+                              >
+                                <Icon name="Settings" className="w-3 h-3" /> Chap Config
+                              </button>
+                            )}
+
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onEditMission?.(mission);
+                              }}
+                              className="text-[10px] bg-zinc-900/60 hover:bg-zinc-800 text-zinc-300 hover:text-white px-2.5 py-1 rounded-lg cursor-pointer transition-all border border-zinc-800 flex items-center gap-1 shadow-sm font-mono"
+                              title="Edit Mission Details"
+                            >
+                              Edit Mission
+                            </button>
                           </div>
                         </div>
 
                         {/* Duration & Chevron */}
                         <div className="flex items-center gap-2 shrink-0">
-                          <span className="text-xs font-mono text-zinc-300 bg-zinc-900/90 border border-zinc-800 px-2.5 py-1 rounded-lg">
-                            ⏱️ {mission.duration}m
+                          <span className="text-xs font-mono text-zinc-300 bg-zinc-900/90 border border-zinc-800 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
+                            <Icon name="Clock" className="w-3 h-3 text-indigo-400" /> {mission.duration}m
                           </span>
 
                           {/* Delete button — hidden for dismissed missions (already dismissed) */}
@@ -506,7 +535,7 @@ export function DailyMissionTimeline({
                   onClick={() => actions.openChapterEditModal(activeChap.id)}
                   className="text-[10px] font-mono text-indigo-400 hover:text-indigo-300 bg-indigo-950/40 border border-indigo-900/60 px-2 py-0.5 rounded cursor-pointer transition-colors"
                 >
-                  ⚙️ Configure Chapter
+                  <Icon name="Settings" className="w-3.5 h-3.5 text-zinc-400 inline mr-1" /> Configure Chapter
                 </button>
               )}
             </div>
@@ -537,7 +566,7 @@ export function DailyMissionTimeline({
                   <div className="space-y-1">
                     {strategyRadar.formulas.map((formula, fIdx) => (
                       <div key={fIdx} className="p-2 rounded-lg bg-zinc-900/60 border border-zinc-850/80 text-xs font-mono text-indigo-300 flex items-center gap-2">
-                        <span className="text-indigo-500 font-bold">⚡</span>
+                        <Icon name="Zap" className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
                         <span className="truncate">{formula}</span>
                       </div>
                     ))}
@@ -547,7 +576,7 @@ export function DailyMissionTimeline({
                 {/* Common Pitfall Warning */}
                 <div className="p-3 rounded-xl border border-amber-900/30 bg-amber-950/10 space-y-1 text-xs text-amber-200/90 leading-relaxed">
                   <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-amber-400 uppercase tracking-widest">
-                    <span aria-hidden="true">⚠️</span>
+                    <Icon name="AlertTriangle" className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                     <span>Common Exam Pitfall</span>
                   </div>
                   <p className="text-xs text-zinc-300">

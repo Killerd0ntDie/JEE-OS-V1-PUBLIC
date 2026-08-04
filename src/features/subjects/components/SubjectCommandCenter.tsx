@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { getSubjectTheme } from '@/constants/subjectTheme';
 import { SubjectId } from '@/types/index';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { ChapterTelemetry } from '@jee-os/engines';
@@ -135,6 +136,8 @@ export function SubjectCommandCenter({
     }
   };
 
+  const theme = getSubjectTheme(subjectId);
+
   return (
     <div className="space-y-6 pb-12">
       {/* STREAMLINED HEADER & SEARCH BAR CONTAINER */}
@@ -144,15 +147,15 @@ export function SubjectCommandCenter({
           {/* Title & Stats Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-indigo-950/50 border border-indigo-500/30 flex items-center justify-center shrink-0">
-                <Icon name={subjectIcon as any} className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-400" />
+              <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl border flex items-center justify-center shrink-0 ${theme.bg} ${theme.border}`}>
+                <Icon name={subjectIcon as any} className={`w-5 h-5 sm:w-6 sm:h-6 ${theme.text}`} />
               </div>
               <div className="space-y-0.5 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h1 className="text-lg sm:text-xl md:text-2xl font-display font-bold text-white tracking-tight">
                     {subjectTitle}
                   </h1>
-                  <span className="text-[9px] sm:text-[10px] font-mono font-bold text-indigo-400 bg-indigo-950/60 border border-indigo-800/60 px-2 py-0.5 rounded-full">
+                  <span className={`text-[9px] sm:text-[10px] font-mono font-bold px-2 py-0.5 rounded-full ${theme.badge}`}>
                     {masteredCount}/{totalCount} Mastered ({subjectProgressPercent}%)
                   </span>
                 </div>

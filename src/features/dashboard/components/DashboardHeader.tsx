@@ -1,4 +1,5 @@
 import React from 'react';
+import { Icon } from '@/components/ui/Icon';
 import { CommandOverviewBanner } from './CommandOverviewBanner';
 import { MonthlyCampaignBanner } from '@/features/mission/components/MonthlyCampaignBanner';
 import { Chapter } from '@/types/index';
@@ -67,7 +68,16 @@ export function DashboardHeader({
                     : 'text-zinc-500 hover:text-zinc-300'
                 }`}
               >
-                {level === 'Low' ? '🔋' : level === 'Medium' ? '⚖️' : '⚡'} <span className="hidden sm:inline">{level.toUpperCase()}</span>
+                <span className="flex items-center gap-1">
+                  {level === 'Low' ? (
+                    <Icon name="Battery" className="w-3 h-3 text-amber-400" />
+                  ) : level === 'Medium' ? (
+                    <Icon name="Activity" className="w-3 h-3 text-indigo-400" />
+                  ) : (
+                    <Icon name="Zap" className="w-3 h-3 text-emerald-400" />
+                  )}
+                  <span className="hidden sm:inline">{level.toUpperCase()}</span>
+                </span>
               </button>
             ))}
           </div>

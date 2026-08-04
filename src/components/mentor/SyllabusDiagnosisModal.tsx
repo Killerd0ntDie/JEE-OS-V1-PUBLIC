@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
+import { getSubjectTheme } from '@/constants/subjectTheme';
 import { SubjectId, Chapter, SyllabusDiagnosisStage } from '@/types/index';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
@@ -195,8 +196,8 @@ export const SyllabusDiagnosisModal: React.FC<Props> = ({ isOpen, onClose }) => 
                 onClick={() => { setActiveSubject(subj); setSelectedChapterId(null); }}
                 className={`px-4 py-2 rounded-lg text-xs font-mono uppercase font-bold tracking-wider transition-all cursor-pointer ${
                   activeSubject === subj
-                    ? 'bg-indigo-600 text-white shadow-md'
-                    : 'bg-zinc-900/60 text-zinc-400 hover:text-zinc-200'
+                    ? getSubjectTheme(subj).badge
+                    : 'bg-zinc-900/60 text-zinc-400 hover:text-zinc-200 border border-transparent'
                 }`}
               >
                 {subj}

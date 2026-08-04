@@ -266,9 +266,8 @@ export function Topbar({
         </button>
 
         {/* Quick Stat Pill: Streak */}
-        {/* Quick Stat Pill: Streak */}
         <div className="hidden md:flex group relative items-center gap-1 bg-zinc-900/60 hover:bg-zinc-850 border border-zinc-800 hover:border-zinc-700 px-2.5 py-1 rounded-full text-xs font-mono text-zinc-300 transition-all cursor-default">
-          <span aria-hidden="true">⚡</span>
+          <Icon name="Zap" className="w-3 h-3 text-amber-400" />
           <span className="font-bold text-amber-400">{xp?.streak || 0}d</span>
           
           <div className="absolute top-full right-0 mt-2 p-4 bg-[#0e0e11]/95 border border-zinc-800 rounded-2xl shadow-2xl opacity-0 invisible scale-95 -translate-y-2 group-hover:scale-100 group-hover:translate-y-0 group-hover:opacity-100 group-hover:visible transition-all duration-150 ease-out transform-gpu will-change-transform origin-top-right z-50 pointer-events-none group-hover:pointer-events-auto">
@@ -343,7 +342,7 @@ export function Topbar({
 
         {/* Quick Stat Pill: Study Time */}
         <div className="hidden md:flex group relative items-center gap-1 bg-zinc-900/60 hover:bg-zinc-850 border border-zinc-800 hover:border-zinc-700 px-2.5 py-1 rounded-full text-xs font-mono text-zinc-300 transition-all cursor-default">
-          <span aria-hidden="true">⏱️</span>
+          <Icon name="Clock" className="w-3 h-3 text-indigo-400" />
           <span className="font-bold text-indigo-400">{(analytics?.studyTime / 60 || 0).toFixed(1)}h</span>
           
           <div className="absolute top-full right-0 mt-2 p-4 bg-[#0e0e11]/95 border border-zinc-800 rounded-2xl shadow-2xl opacity-0 invisible scale-95 -translate-y-2 group-hover:scale-100 group-hover:translate-y-0 group-hover:opacity-100 group-hover:visible transition-all duration-150 ease-out transform-gpu will-change-transform origin-top-right z-50 pointer-events-none group-hover:pointer-events-auto">

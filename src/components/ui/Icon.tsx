@@ -53,6 +53,12 @@ import {
   Monitor,
   Keyboard,
   PanelLeftClose,
+  Battery,
+  Settings,
+  AlertTriangle,
+  BarChart2,
+  BarChart,
+  Star,
   LucideProps
 } from 'lucide-react';
 
@@ -109,7 +115,13 @@ export const iconMap = {
   Moon,
   Monitor,
   Keyboard,
-  PanelLeftClose
+  PanelLeftClose,
+  Battery,
+  Settings,
+  AlertTriangle,
+  BarChart2,
+  BarChart,
+  Star
 };
 
 export type IconName = keyof typeof iconMap;

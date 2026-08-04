@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getSubjectTheme } from '@/constants/subjectTheme';
 import { ModalPortal } from '@/components/ui/ModalPortal';
 import { X, Plus, Clock, Sparkles } from 'lucide-react';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
@@ -143,9 +144,9 @@ export const CustomMissionModal: React.FC<CustomMissionModalProps> = ({ isOpen, 
                   key={opt.id}
                   type="button"
                   onClick={() => setSubject(opt.id as SubjectId)}
-                  className={`py-2 px-3 rounded-xl text-xs font-mono font-bold transition-all ${
+                  className={`py-2 px-3 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
                     subject === opt.id 
-                      ? `${opt.color} ring-1 ring-white/20 shadow-md` 
+                      ? `${getSubjectTheme(opt.id).badge} shadow-md` 
                       : 'bg-zinc-900 text-zinc-500 hover:text-zinc-300 border border-zinc-800'
                   }`}
                 >
