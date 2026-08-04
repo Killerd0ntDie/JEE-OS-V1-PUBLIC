@@ -1,10 +1,9 @@
 import React from 'react';
-import { motion } from 'motion/react';
 import { Plus } from 'lucide-react';
 import { SubjectId, Mistake } from '@/types/index';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
-import { ModalPortal } from '@/components/ui/ModalPortal';
+import { Modal } from '@/components/ui/Modal';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 
 export interface LogMistakeModalProps {
@@ -84,19 +83,8 @@ export const LogMistakeModal: React.FC<LogMistakeModalProps> = ({
   };
   useLockBodyScroll(isOpen);
 
-  if (!isOpen) return null;
-
-  return (
-    <ModalPortal>
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-      <motion.div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="log-mistake-modal-title"
-        initial={{ opacity: 0, scale: 0.95, y: 10 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        className="w-full max-w-2xl bg-zinc-950 border border-zinc-850 rounded-2xl shadow-2xl overflow-hidden my-8 text-left"
-      >
+    return (
+    <Modal isOpen={isOpen} onClose={onClose} className="w-full max-w-2xl bg-zinc-950 border border-zinc-850 rounded-2xl shadow-2xl overflow-hidden my-8 text-left">
         {/* Modal Header */}
           <div className="p-5 border-b border-zinc-900 flex justify-between items-center bg-zinc-900/20">
             <div className="space-y-1">
@@ -404,8 +392,6 @@ export const LogMistakeModal: React.FC<LogMistakeModalProps> = ({
             </button>
           </div>
         </form>
-      </motion.div>
-    </div>
-    </ModalPortal>
+    </Modal>
   );
 };

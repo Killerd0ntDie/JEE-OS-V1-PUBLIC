@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { X, ArrowRightLeft, BookOpen, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { SubjectId, Chapter, TodayMission } from '@/types';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
-import { ModalPortal } from '@/components/ui/ModalPortal';
+import { Modal } from '@/components/ui/Modal';
 import { HoldNotificationModal } from '@/components/shared/HoldNotificationModal';
 
 interface SwapSubjectModalProps {
@@ -25,7 +25,7 @@ export const SwapSubjectModal: React.FC<SwapSubjectModalProps> = ({
   const [blockedChapter, setBlockedChapter] = useState<Chapter | null>(null);
   const [blockedHoldType, setBlockedHoldType] = useState<'chapter' | 'dpp' | 'pyq'>('chapter');
 
-  if (!isOpen || !mission) return null;
+  if (!mission) return null;
 
   const subjectChapters = chapters.filter(c => c.subject === selectedSubject);
 
@@ -91,13 +91,8 @@ export const SwapSubjectModal: React.FC<SwapSubjectModalProps> = ({
   };
 
   return (
-    <ModalPortal>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-        <div 
-          role="dialog"
-          aria-modal="true"
-          className="relative bg-[#09090b] border border-zinc-800 rounded-3xl max-w-lg w-full p-6 shadow-2xl z-50 text-left space-y-5"
-        >
+    <>
+    <Modal isOpen={isOpen} onClose={onClose} className="relative bg-[#09090b] border border-zinc-800 rounded-3xl max-w-lg w-full p-6 shadow-2xl z-50 text-left space-y-5">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
             <div>
@@ -196,8 +191,7 @@ export const SwapSubjectModal: React.FC<SwapSubjectModalProps> = ({
               })}
             </div>
           </div>
-        </div>
-      </div>
+      </Modal>
 
       {/* Hold Notification Guard Modal */}
       {blockedChapter && (
@@ -209,6 +203,6 @@ export const SwapSubjectModal: React.FC<SwapSubjectModalProps> = ({
           onRemoveHoldAndProceed={handleRemoveHoldAndProceed}
         />
       )}
-    </ModalPortal>
+    </>
   );
 };

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Trophy, Star, Zap } from 'lucide-react';
-import { ModalPortal } from './ModalPortal';
+import { Modal } from '@/components/ui/Modal';
 import { getTitleAndColor } from '@/utils/levelingCalculations';
 
 interface LevelUpCelebrationProps {
@@ -30,31 +30,14 @@ export function LevelUpCelebration({ isOpen, oldLevel, newLevel, onClose }: Leve
   const { title: newTitle, color: titleColor } = getTitleAndColor(newLevel);
   const { title: oldTitle } = getTitleAndColor(oldLevel);
 
-  if (!isOpen) return null;
-
   return (
-    <ModalPortal>
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm"
-            onClick={onClose}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              transition={{ 
-                type: "spring", 
-                damping: 20, 
-                stiffness: 300 
-              }}
-              className="glass-card border border-indigo-500/30 rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl shadow-indigo-500/10"
-              onClick={(e) => e.stopPropagation()}
-            >
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      zIndex={200}
+      backdropClassName="bg-black/60 backdrop-blur-sm"
+      className="glass-card border border-indigo-500/30 rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl shadow-indigo-500/10"
+    >
               {/* Confetti particles */}
               {confettiActive && (
                 <>
@@ -159,10 +142,6 @@ export function LevelUpCelebration({ isOpen, oldLevel, newLevel, onClose }: Leve
                   ))}
                 </motion.div>
               </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </ModalPortal>
+    </Modal>
   );
 }

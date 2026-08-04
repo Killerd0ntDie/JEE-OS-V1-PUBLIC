@@ -1,5 +1,5 @@
 import React from 'react';
-import { ModalPortal } from '@/components/ui/ModalPortal';
+import { Modal } from '@/components/ui/Modal';
 
 import { MissionTimerWidget } from './components/MissionTimerWidget';
 import { MissionSubjectSwitcherWidget } from './components/MissionSubjectSwitcherWidget';
@@ -24,8 +24,12 @@ export function MissionMode(props: MissionModeProps) {
   const { state, setters, handlers, refs } = useMissionState(props);
 
   return (
-    <ModalPortal>
-      <div className="fixed inset-0 z-[9999] bg-[#070708] text-zinc-100 flex flex-col font-sans overflow-hidden select-none">
+    <Modal
+      isOpen={true}
+      onClose={handlers.handleExit}
+      zIndex={9999}
+      className="bg-[#070708] text-zinc-100 flex flex-col font-sans overflow-hidden select-none w-full h-full"
+    >
         
         <CasinoSetupOverlay 
           isSettingUp={state.isSettingUp} 
@@ -238,7 +242,6 @@ export function MissionMode(props: MissionModeProps) {
           }}
         />
 
-      </div>
-    </ModalPortal>
+    </Modal>
   );
 }

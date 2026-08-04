@@ -3,16 +3,18 @@ import { UploadCloud, FileText, X, CheckCircle, AlertTriangle, Loader2, Sparkles
 import * as pdfjsLib from 'pdfjs-dist';
 import { MockTestParsingEngine } from '@jee-os/engines';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
+import { Modal } from '@/components/ui/Modal';
 
 // Initialize PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 interface UploadPDFModalProps {
+  isOpen: boolean;
   onSuccess: () => void;
   onCancel: () => void;
 }
 
-export function UploadPDFModal({ onSuccess, onCancel }: UploadPDFModalProps) {
+export function UploadPDFModal({ isOpen, onSuccess, onCancel }: UploadPDFModalProps) {
   const actions = useStudyBrainStore(state => state.actions);
   const [dragActive, setDragActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -154,8 +156,7 @@ export function UploadPDFModal({ onSuccess, onCancel }: UploadPDFModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-md animate-fade-in p-4">
-      <div className="bg-[#121318] border border-zinc-800 rounded-2xl p-6 w-full max-w-md shadow-2xl relative">
+    <Modal isOpen={isOpen} onClose={onCancel} zIndex={200} backdropClassName="bg-black/80 backdrop-blur-md p-4" className="bg-[#121318] border border-zinc-800 rounded-2xl p-6 w-full max-w-md shadow-2xl relative">
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
@@ -239,7 +240,6 @@ export function UploadPDFModal({ onSuccess, onCancel }: UploadPDFModalProps) {
             <p className="text-xs text-red-400 font-medium">{error}</p>
           </div>
         )}
-      </div>
-    </div>
+    </Modal>
   );
 }

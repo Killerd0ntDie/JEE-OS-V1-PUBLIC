@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ModalPortal } from '@/components/ui/ModalPortal';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Modal } from '@/components/ui/Modal';
 import { Clock, Plus, CheckCircle2, ShieldAlert, Target } from 'lucide-react';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
@@ -60,21 +59,7 @@ export function MissionTimeUpModal({
   const canSubmitProof = summary.length >= 50;
 
   return (
-    <ModalPortal>
-    <AnimatePresence>
-      {isOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[10000] bg-[#060607]/80 backdrop-blur-md flex flex-col justify-center items-center p-6"
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="mission-time-up-modal-title"
-            className="max-w-md w-full bg-zinc-950 border border-zinc-800 rounded-3xl p-8 shadow-2xl relative z-10 space-y-6 text-left"
-          >
+    <Modal isOpen={isOpen} onClose={onComplete} className="max-w-md w-full bg-zinc-950 border border-zinc-800 rounded-3xl p-8 shadow-2xl relative z-10 space-y-6 text-left">
             
             {isCasinoActive ? (
               // CASINO PROOF OF WORK UI
@@ -166,11 +151,6 @@ export function MissionTimeUpModal({
                 </div>
               </div>
             )}
-
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-    </ModalPortal>
+    </Modal>
   );
 }

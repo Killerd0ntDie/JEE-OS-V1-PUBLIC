@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { ModalPortal } from '@/components/ui/ModalPortal';
+import { Modal } from '@/components/ui/Modal';
 import { Sparkles } from 'lucide-react';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 
@@ -61,12 +61,8 @@ export function MissionCalibrationModal({
     };
   }, [isCalibrating, activeChap]);
 
-  if (!isCalibrating || !activeChap) return null;
-
-  return (
-    <ModalPortal>
-    <div className="fixed inset-0 z-[110] bg-black/90 backdrop-blur-2xl flex items-center justify-center p-4 animate-fade-in">
-      <div className="relative w-full max-w-md bg-[#090a0f] border border-indigo-500/30 rounded-3xl p-6 sm:p-8 space-y-6 shadow-[0_0_80px_rgba(79,70,229,0.25)] text-left max-h-[90dvh] overflow-y-auto">
+    return (
+    <Modal isOpen={isCalibrating && !!activeChap} onClose={() => {}} className="relative w-full max-w-md bg-[#090a0f] border border-indigo-500/30 rounded-3xl p-6 sm:p-8 space-y-6 shadow-[0_0_80px_rgba(79,70,229,0.25)] text-left max-h-[90dvh] overflow-y-auto">
         
         {/* Header */}
         <div className="space-y-2">
@@ -301,8 +297,6 @@ export function MissionCalibrationModal({
             Confirm & Engage Cockpit
           </button>
         </div>
-      </div>
-    </div>
-    </ModalPortal>
+    </Modal>
   );
 }

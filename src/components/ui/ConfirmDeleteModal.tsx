@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Trash2, X } from 'lucide-react';
-import { ModalPortal } from './ModalPortal';
+import { Modal } from '@/components/ui/Modal';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
@@ -31,35 +31,9 @@ export function ConfirmDeleteModal({
   useEscapeKey(onClose, isOpen);
   useFocusTrap(modalRef, isOpen || false);
 
-  if (!isOpen) return null;
-
   return (
-    <ModalPortal>
-      <AnimatePresence>
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-          {/* Dark Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            role="presentation"
-            className="absolute inset-0 bg-black/80 backdrop-blur-md"
-          />
 
-          {/* Modal Card */}
-          <motion.div
-            ref={modalRef}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="confirm-modal-title"
-            tabIndex={-1}
-            initial={{ opacity: 0, scale: 0.95, y: 10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 10 }}
-            transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
-            className="relative w-full max-w-md bg-zinc-950 border border-zinc-800 rounded-2xl p-6 shadow-2xl space-y-5 overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
-          >
+        <Modal isOpen={isOpen} onClose={onClose} zIndex={9999} backdropClassName="p-4" className="relative w-full max-w-md bg-zinc-950 border border-zinc-800 rounded-2xl p-6 shadow-2xl space-y-5 overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50">
             {/* Top Close Button */}
             <button
               type="button"
@@ -111,9 +85,7 @@ export function ConfirmDeleteModal({
                 {confirmLabel}
               </button>
             </div>
-          </motion.div>
-        </div>
-      </AnimatePresence>
-    </ModalPortal>
+          </Modal>
+
   );
 }

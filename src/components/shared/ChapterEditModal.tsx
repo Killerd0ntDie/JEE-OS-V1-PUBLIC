@@ -10,7 +10,8 @@ import { ChapterTelemetry } from '@jee-os/engines';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
-import { ModalPortal } from '@/components/ui/ModalPortal';
+import { Modal } from '@/components/ui/Modal';
+import { ConfirmDeleteModal } from '@/components/ui/ConfirmDeleteModal';
 
 export interface ChapterEditModalProps {
   isOpen?: boolean;
@@ -93,10 +94,15 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
       setTeacher(chapter.lectureProgress?.teacher || '');
       setAvgLectureDuration(chapter.lectureProgress?.avgLectureDurationMinutes || 0);
 
-      setCompletedDpp(chapter.practiceProgress?.dppPercent ? Math.round((chapter.practiceProgress.dppPercent / 100) * (totalDpp || 10)) : (chapter.dppComplete ? (totalDpp || 10) : 0));
-      setTotalDpp(0);
-      setCompletedPyq(chapter.practiceProgress?.pyqPercent ? Math.round((chapter.practiceProgress.pyqPercent / 100) * (totalPyq || 30)) : (chapter.pyqsComplete ? (totalPyq || 30) : 0));
-      setTotalPyq(0);
+      const initialDppTotal = 10;
+      const initialPyqTotal = 30;
+
+      setTotalDpp(initialDppTotal);
+      setCompletedDpp(chapter.practiceProgress?.dppPercent ? Math.round((chapter.practiceProgress.dppPercent / 100) * initialDppTotal) : (chapter.dppComplete ? initialDppTotal : 0));
+      
+      setTotalPyq(initialPyqTotal);
+      setCompletedPyq(chapter.practiceProgress?.pyqPercent ? Math.round((chapter.practiceProgress.pyqPercent / 100) * initialPyqTotal) : (chapter.pyqsComplete ? initialPyqTotal : 0));
+      
       setConfidence(chapter.confidence || 70);
 
       setDifficulty(chapter.difficulty || 'Medium');
@@ -114,7 +120,7 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
 
   useLockBodyScroll(effectiveIsOpen);
 
-  if (!effectiveIsOpen || !chapter) return null;
+  if (!chapter) return null;
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -212,16 +218,9 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
     : 'text-purple-400 bg-purple-950/40 border-purple-800/80';
 
   return (
-    <ModalPortal>
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto" aria-label="Chapter Edit Modal">
-      <div 
-        ref={modalRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="chapter-modal-title"
-        tabIndex={-1}
-        className="relative bg-[#09090b] border border-zinc-800 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl z-50 text-left my-4 flex flex-col focus:outline-none"
-      >
+    <>
+    
+    <Modal isOpen={effectiveIsOpen} onClose={handleClose} zIndex={50} backdropClassName="p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto" className="relative bg-[#09090b] border border-zinc-800 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl z-50 text-left my-4 flex flex-col focus:outline-none">
         
         {/* Toast */}
         {showSuccessToast && (
@@ -683,57 +682,26 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
           </div>
 
         </form>
-      </div>
-    </div>
+    </Modal>
 
-    {/* Delete Confirmation Modal */}
-    <AnimatePresence>
-      {showDeleteConfirm && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[300] flex items-center justify-center bg-black/70 backdrop-blur-sm"
-          onClick={() => setShowDeleteConfirm(false)}
-        >
-          <motion.div
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.95, opacity: 0 }}
-            transition={{ duration: 0.15 }}
-            className="glass-card border border-red-900/30 rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 className="text-lg font-bold text-white mb-2">Delete Chapter</h3>
-            <p className="text-sm text-zinc-400 mb-6">
-              Are you sure you want to delete "{chapter.name}"? This action cannot be undone.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowDeleteConfirm(false)}
-                className="flex-1 px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-300 font-mono text-xs font-bold cursor-pointer transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={async () => {
-                  setShowDeleteConfirm(false);
-                  try {
-                    await actions.deleteChapter(chapter.id);
-                    handleClose();
-                  } catch (err) {
-                    alert('Failed to delete chapter: ' + (err as Error).message);
-                  }
-                }}
-                className="flex-1 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-mono text-xs font-bold cursor-pointer transition-colors"
-              >
-                Delete
-              </button>
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-    </ModalPortal>
+    <ConfirmDeleteModal
+      isOpen={showDeleteConfirm}
+      title="Delete Chapter"
+      message={`Are you sure you want to delete "${chapter?.name}"? This action cannot be undone.`}
+      confirmLabel="Yes, Delete Chapter"
+      onConfirm={async () => {
+        if (chapter) {
+          if ('deleteChapter' in actions && typeof (actions as any).deleteChapter === 'function') {
+            await (actions as any).deleteChapter(chapter.id);
+          } else {
+            await actions.updateChapter(chapter.id, { chapterOnHold: true });
+          }
+          setShowDeleteConfirm(false);
+          handleClose();
+        }
+      }}
+      onClose={() => setShowDeleteConfirm(false)}
+    />
+    </>
   );
 };

@@ -101,62 +101,57 @@ export function DailyMissionTimeline({
         
         <div className="space-y-4">
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-zinc-900/80 pb-3 px-1">
-            <div className="space-y-0.5">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-[10px] font-mono font-bold tracking-widest text-indigo-400 uppercase">
-                  TODAY'S MISSION CHECKLIST
-                </span>
-                <span className="text-[9px] font-mono text-zinc-500 bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded-full">
-                  {completedCount}/{totalCount} Done ({progressPercent}%)
-                </span>
-                <span className="text-[9px] font-mono font-bold text-indigo-300 bg-indigo-950/60 border border-indigo-800/60 px-2 py-0.5 rounded-full flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse"></span>
-                  Derived from Weekly Master Plan
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-4">
-                <h2 className="text-lg font-display font-bold text-white tracking-tight">
-                  Execution Queue
-                </h2>
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setIsHistoryModalOpen(true)}
-                    className="text-xs font-mono text-zinc-400 hover:text-indigo-300 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 px-2.5 py-1 rounded-lg flex items-center gap-1.5 cursor-pointer transition-colors"
-                  >
-                    <History className="w-3.5 h-3.5" />
-                    History
-                  </button>
-                  <button
-                    type="button"
-                    onClick={onOpenCustomMission}
-                    className="text-xs font-mono text-zinc-400 hover:text-zinc-200 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 px-2.5 py-1 rounded-lg flex items-center gap-1 cursor-pointer transition-colors"
-                  >
-                    + Add Mission
-                  </button>
-                  <a
-                    href="#planner"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      window.dispatchEvent(new CustomEvent('navigate-page', { detail: 'planner' }));
-                    }}
-                    className="text-xs font-mono text-indigo-400 hover:text-indigo-300 font-semibold hover:underline flex items-center gap-1 cursor-pointer"
-                  >
-                    Manage in Planner →
-                  </a>
+          {/* Header */}
+          <div className="flex flex-col gap-3 border-b border-zinc-900/80 pb-4 px-1">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-mono font-bold tracking-widest text-indigo-400 uppercase shrink-0">
+                TODAY'S MISSION CHECKLIST
+              </span>
+              <span className="text-[9px] font-mono font-normal tracking-normal text-zinc-400 bg-zinc-900 border border-zinc-800 px-2.5 py-1 rounded-full flex items-center gap-2 shrink-0 whitespace-nowrap shadow-sm">
+                <span>{completedCount}/{totalCount} Done</span>
+                <div className="w-16 bg-zinc-800 rounded-full h-1.5 overflow-hidden shrink-0">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${progressPercent}%` }}
+                    transition={{ duration: 0.5, ease: "easeOut" }}
+                    className="bg-indigo-400 h-full rounded-full"
+                  />
                 </div>
-              </div>
+              </span>
             </div>
 
-            <div className="flex items-center gap-2">
-              <div className="w-24 bg-zinc-900/80 rounded-full h-1.5 overflow-hidden border border-zinc-800">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${progressPercent}%` }}
-                  transition={{ duration: 0.5, ease: "easeOut" }}
-                  className="bg-indigo-500 h-full rounded-full"
-                />
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <h2 className="text-xl font-display font-bold text-white tracking-tight flex items-center gap-3 flex-wrap sm:flex-nowrap">
+                <span className="whitespace-nowrap shrink-0">Execution Queue</span>
+              </h2>
+
+              <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap justify-end">
+                <button
+                  type="button"
+                  onClick={() => setIsHistoryModalOpen(true)}
+                  className="text-xs font-mono text-zinc-400 hover:text-indigo-300 bg-zinc-900/50 border border-zinc-800 hover:bg-zinc-800 px-3 py-1.5 rounded-lg flex items-center gap-1.5 cursor-pointer transition-colors shadow-sm whitespace-nowrap shrink-0"
+                >
+                  <History className="w-3.5 h-3.5" />
+                  History
+                </button>
+                <button
+                  type="button"
+                  onClick={onOpenCustomMission}
+                  className="text-xs font-mono text-indigo-300 hover:text-indigo-200 bg-indigo-950/40 border border-indigo-900/50 hover:bg-indigo-900/60 px-3 py-1.5 rounded-lg flex items-center gap-1.5 cursor-pointer transition-colors shadow-sm whitespace-nowrap shrink-0"
+                >
+                  <Icon name="Plus" className="w-3.5 h-3.5" />
+                  Add Mission
+                </button>
+                <a
+                  href="#planner"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    window.dispatchEvent(new CustomEvent('navigate-page', { detail: 'planner' }));
+                  }}
+                  className="text-xs font-mono text-indigo-400 hover:text-indigo-300 font-semibold hover:bg-indigo-950/30 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 cursor-pointer whitespace-nowrap shrink-0"
+                >
+                  Manage in Planner →
+                </a>
               </div>
             </div>
           </div>
@@ -407,50 +402,53 @@ export function DailyMissionTimeline({
                       </div>
 
                       {/* Expandable Details Drawer */}
-                      <AnimatePresence>
+                      <AnimatePresence initial={false}>
                         {isExpanded && (
                           <motion.div
                             initial={{ height: 0, opacity: 0 }}
                             animate={{ height: "auto", opacity: 1 }}
                             exit={{ height: 0, opacity: 0 }}
-                            className="overflow-hidden border-t border-zinc-900/60 px-3 py-2.5 mt-2.5 bg-zinc-950/40 text-xs text-zinc-400 space-y-2"
+                            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                            className="overflow-hidden border-t border-zinc-900/60"
                           >
-                            <div className="flex items-center justify-between text-zinc-300 font-mono text-[10px]">
-                              <span>Estimated Time: <strong className="text-white">{mission.duration} mins</strong></span>
-                              <span>XP Award: <strong className="text-indigo-400">+{mission.xp} XP</strong></span>
-                            </div>
+                            <div className="px-3 py-2.5 mt-2.5 bg-zinc-950/40 text-xs text-zinc-400 space-y-2 rounded-xl">
+                              <div className="flex items-center justify-between text-zinc-300 font-mono text-[10px]">
+                                <span>Estimated Time: <strong className="text-white">{mission.duration} mins</strong></span>
+                                <span>XP Award: <strong className="text-indigo-400">+{mission.xp} XP</strong></span>
+                              </div>
 
-                            <div className="pt-2 flex gap-2">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  actions.completeTask(mission.id);
-                                  if (!mission.completed) {
-                                    audioEngine.playSuccessChime();
-                                    setExpandedMission(null);
-                                  } else {
+                              <div className="pt-2 flex gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    actions.completeTask(mission.id);
+                                    if (!mission.completed) {
+                                      audioEngine.playSuccessChime();
+                                      setExpandedMission(null);
+                                    } else {
+                                      audioEngine.playAlertPop();
+                                    }
+                                  }}
+                                  className={`text-[10px] font-bold py-1.5 px-3 rounded-md transition-all cursor-pointer border active:scale-[0.98] hover:scale-[1.02] ${
+                                    mission.completed 
+                                      ? 'bg-emerald-950/40 text-emerald-400 border-emerald-900/60 hover:bg-emerald-950/60 hover:text-emerald-300' 
+                                      : 'bg-zinc-800 hover:bg-emerald-600/90 text-zinc-300 hover:text-white border-zinc-700 hover:border-emerald-500 shadow-sm'
+                                  }`}
+                                >
+                                  {mission.completed ? 'Mark Incomplete' : 'Complete Module'}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
                                     audioEngine.playAlertPop();
-                                  }
-                                }}
-                                className={`text-[10px] font-bold py-1.5 px-3 rounded-md transition-all cursor-pointer border active:scale-[0.98] hover:scale-[1.02] ${
-                                  mission.completed 
-                                    ? 'bg-emerald-950/40 text-emerald-400 border-emerald-900/60 hover:bg-emerald-950/60 hover:text-emerald-300' 
-                                    : 'bg-zinc-800 hover:bg-emerald-600/90 text-zinc-300 hover:text-white border-zinc-700 hover:border-emerald-500 shadow-sm'
-                                }`}
-                              >
-                                {mission.completed ? 'Mark Incomplete' : 'Complete Module'}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  audioEngine.playAlertPop();
-                                  actions.deleteMission(mission.id);
-                                  setExpandedMission(null);
-                                }}
-                                className="bg-transparent hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300 text-[10px] py-1.5 px-3 rounded-md transition-all active:scale-[0.98] hover:scale-[1.02] cursor-pointer border border-zinc-800"
-                              >
-                                Skip
-                              </button>
+                                    actions.deleteMission(mission.id);
+                                    setExpandedMission(null);
+                                  }}
+                                  className="bg-transparent hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300 text-[10px] py-1.5 px-3 rounded-md transition-all active:scale-[0.98] hover:scale-[1.02] cursor-pointer border border-zinc-800"
+                                >
+                                  Skip
+                                </button>
+                              </div>
                             </div>
                           </motion.div>
                         )}

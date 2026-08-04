@@ -4,7 +4,7 @@ import { SubjectId } from '@/types/index';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
-import { ModalPortal } from '@/components/ui/ModalPortal';
+import { Modal } from '@/components/ui/Modal';
 
 interface AddCustomChapterModalProps {
   isOpen: boolean;
@@ -28,8 +28,6 @@ export function AddCustomChapterModal({ isOpen, onClose, defaultSubject, default
 
   useLockBodyScroll(isOpen);
   useEscapeKey(onClose, isOpen);
-
-  if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,9 +90,7 @@ export function AddCustomChapterModal({ isOpen, onClose, defaultSubject, default
   };
 
   return (
-    <ModalPortal>
-      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto">
-        <div className="w-full max-w-md bg-[#0d0e12] border border-zinc-800 rounded-2xl p-4 sm:p-5 shadow-2xl font-sans text-left my-4">
+    <Modal isOpen={isOpen} onClose={onClose} zIndex={100} backdropClassName="bg-black/70 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto" className="w-full max-w-md bg-[#0d0e12] border border-zinc-800 rounded-2xl p-4 sm:p-5 shadow-2xl font-sans text-left my-4">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
               <Plus className="w-4 h-4 text-indigo-400" /> Add Custom Chapter
@@ -209,8 +205,6 @@ export function AddCustomChapterModal({ isOpen, onClose, defaultSubject, default
               </button>
             </div>
           </form>
-        </div>
-      </div>
-    </ModalPortal>
+    </Modal>
   );
 }

@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Clock, User, X, Check, Bookmark, Target, AlertCircle } from 'lucide-react';
 import { SubjectId } from '../../types';
+import { Modal } from '@/components/ui/Modal';
+import { ConfirmDeleteModal } from '@/components/ui/ConfirmDeleteModal';
 import { MockTest, MockTestAttempt, MockTestAttemptQuestion, QuestionStatus } from '../../types/mockTest';
 import { MissionMode } from '../mission/MissionMode';
 import { InlineMath, BlockMath } from 'react-katex';
@@ -16,6 +18,7 @@ export function MockTestArena({ test, onComplete, onExit }: MockTestArenaProps) 
   const [currentQIdx, setCurrentQIdx] = useState(0);
   const [timeLeft, setTimeLeft] = useState(test.durationMinutes * 60);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isConfirmSubmitOpen, setIsConfirmSubmitOpen] = useState(false);
   
   // Initialize attempt state
   const [attempt, setAttempt] = useState<MockTestAttempt>(() => {
@@ -195,8 +198,7 @@ export function MockTestArena({ test, onComplete, onExit }: MockTestArenaProps) 
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#020202] text-zinc-300 font-sans flex overflow-hidden">
-      <div className="flex-1 flex overflow-hidden p-4 md:p-6 gap-6 max-w-[1600px] mx-auto w-full">
+    <Modal isOpen={true} onClose={onExit} zIndex={50} backdropClassName="bg-[#020202] text-zinc-300 font-sans flex overflow-hidden" className="flex-1 flex overflow-hidden p-4 md:p-6 gap-6 max-w-[1600px] mx-auto w-full">
         {/* Left Panel: Question Area */}
         <div className="flex-1 flex flex-col bg-[#070708] rounded-[22px] border border-zinc-800/50 shadow-2xl overflow-hidden">
           {/* Subject Tabs */}
@@ -385,8 +387,8 @@ export function MockTestArena({ test, onComplete, onExit }: MockTestArenaProps) 
             {/* Added Submit Test Button for MissionMode layout */}
             <div className="mt-8 pt-4 border-t border-zinc-800/50">
               <button 
-                onClick={handleSubmitTest}
-                className="w-full py-3 bg-emerald-600/20 border border-emerald-500/30 hover:bg-emerald-500/20 text-emerald-400 text-xs font-bold font-mono tracking-widest uppercase rounded-xl transition-all shadow-[0_0_15px_rgba(16,185,129,0.1)] flex items-center justify-center gap-2"
+                onClick={() => setIsConfirmSubmitOpen(true)}
+                className="w-full py-3 bg-emerald-600/20 border border-emerald-500/30 hover:bg-emerald-500/20 text-emerald-400 text-xs font-bold font-mono tracking-widest uppercase rounded-xl transition-all shadow-[0_0_15px_rgba(16,185,129,0.1)] flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Check className="w-4 h-4" />
                 Submit Exam Early
@@ -394,8 +396,18 @@ export function MockTestArena({ test, onComplete, onExit }: MockTestArenaProps) 
             </div>
           </div>
         </div>
-      </div>
-      
+
+      <ConfirmDeleteModal
+        isOpen={isConfirmSubmitOpen}
+        title="Submit Exam Early?"
+        message="Are you sure you want to finish and submit your exam now? All answered questions will be scored and recorded."
+        confirmLabel="Yes, Submit Exam"
+        onConfirm={() => {
+          setIsConfirmSubmitOpen(false);
+          handleSubmitTest();
+        }}
+        onClose={() => setIsConfirmSubmitOpen(false)}
+      />
       {isSubmitting && (
         <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center rounded-[22px]">
           <div className="flex flex-col items-center gap-4">
@@ -404,6 +416,6 @@ export function MockTestArena({ test, onComplete, onExit }: MockTestArenaProps) 
           </div>
         </div>
       )}
-    </div>
+    </Modal>
   );
 }

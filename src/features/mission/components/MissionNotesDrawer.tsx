@@ -1,6 +1,5 @@
 import React from 'react';
-import { ModalPortal } from '@/components/ui/ModalPortal';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Drawer } from '@/components/ui/Drawer';
 import { Terminal, X, Clock, Send } from 'lucide-react';
 
 export interface MissionNote {
@@ -38,25 +37,7 @@ export function MissionNotesDrawer({
   handleQuickPresetNote
 }: MissionNotesDrawerProps) {
   return (
-    <ModalPortal>
-    <AnimatePresence>
-      {isNotesOpen && (
-        <>
-          {/* Backdrop overlay */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setIsNotesOpen(false)}
-            className="fixed inset-0 bg-black/60 backdrop-blur-xs z-[110]"
-          />
-          <motion.div
-            initial={{ x: '100%' }}
-            animate={{ x: 0 }}
-            exit={{ x: '100%' }}
-            transition={{ type: 'spring', stiffness: 350, damping: 30 }}
-            className="fixed right-0 top-0 bottom-0 z-[110] w-80 md:w-96 border-l border-zinc-800 bg-[#09090b] shadow-2xl flex flex-col justify-between"
-          >
+    <Drawer position="right" isOpen={isNotesOpen} onClose={() => setIsNotesOpen(false)} className="w-80 md:w-96 border-l border-zinc-800 bg-[#09090b] shadow-2xl flex flex-col justify-between">
             <div className="p-5 border-b border-zinc-900/60 flex justify-between items-center shrink-0">
               <div className="flex items-center gap-2 text-left">
                 <Terminal className="w-4 h-4 text-indigo-400" />
@@ -161,10 +142,6 @@ export function MissionNotesDrawer({
                 </button>
               </form>
             </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
-    </ModalPortal>
+    </Drawer>
   );
 }

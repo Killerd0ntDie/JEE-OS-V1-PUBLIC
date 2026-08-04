@@ -67,11 +67,11 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
     }
   }, [selectedIndex, isOpen]);
 
-  if (!isOpen) return null;
-
   return (
     <div
-      className="fixed inset-0 bg-black/75 backdrop-blur-md z-50 flex items-start justify-center p-4 pt-[12vh]"
+      className={`fixed inset-0 z-50 flex items-start justify-center p-4 pt-[12vh] transition-all duration-200 ${
+        isOpen ? 'bg-black/75 backdrop-blur-md visible pointer-events-auto' : 'bg-transparent backdrop-blur-none invisible pointer-events-none'
+      }`}
       onClick={onClose}
       aria-label="Command Palette Overlay"
     >
@@ -80,7 +80,9 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
         role="dialog"
         aria-modal="true"
         aria-label="Command Palette"
-        className="w-full max-w-xl bg-zinc-950/95 border border-zinc-800/80 rounded-2xl shadow-2xl overflow-hidden flex flex-col relative"
+        className={`w-full max-w-xl bg-zinc-950/95 border border-zinc-800/80 rounded-2xl shadow-2xl overflow-hidden flex flex-col relative transition-all duration-200 ${
+          isOpen ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 -translate-y-4'
+        }`}
         onClick={e => e.stopPropagation()}
       >
         {/* Search header */}

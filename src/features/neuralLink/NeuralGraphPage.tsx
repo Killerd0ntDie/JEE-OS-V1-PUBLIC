@@ -1,9 +1,8 @@
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo } from 'react';
 import { 
   ReactFlow, 
   Background, 
   Controls,
-  MiniMap,
   useNodesState, 
   useEdgesState,
   Panel,
@@ -14,7 +13,6 @@ import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { NeuralGraphEngine } from '@jee-os/engines';
 import { TopicNode } from './components/TopicNode';
 import { AnimatedEnergyEdge } from './components/AnimatedEnergyEdge';
-import { BrainCircuit, Info } from 'lucide-react';
 import { motion } from 'motion/react';
 
 const nodeTypes = {

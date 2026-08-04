@@ -1,7 +1,7 @@
 import React from 'react';
 import { PauseCircle, CheckCircle, X } from 'lucide-react';
 import { Chapter } from '@/types';
-import { ModalPortal } from '@/components/ui/ModalPortal';
+import { Modal } from '@/components/ui/Modal';
 
 interface HoldNotificationModalProps {
   isOpen: boolean;
@@ -18,7 +18,7 @@ export const HoldNotificationModal: React.FC<HoldNotificationModalProps> = ({
   holdType,
   onRemoveHoldAndProceed,
 }) => {
-  if (!isOpen || !chapter) return null;
+  if (!chapter) return null;
 
   const holdTitle =
     holdType === 'chapter'
@@ -35,13 +35,8 @@ export const HoldNotificationModal: React.FC<HoldNotificationModalProps> = ({
       : `PYQ drills for "${chapter.name}" are currently on hold and cannot be scheduled.`;
 
   return (
-    <ModalPortal>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-        <div 
-          role="dialog"
-          aria-modal="true"
-          className="relative bg-[#09090b] border border-amber-500/40 rounded-3xl max-w-md w-full p-6 shadow-2xl z-50 text-left space-y-5"
-        >
+    
+      <Modal isOpen={isOpen} onClose={onClose} zIndex={50} backdropClassName="p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200" className="relative bg-[#09090b] border border-amber-500/40 rounded-3xl max-w-md w-full p-6 shadow-2xl z-50 text-left space-y-5">
           {/* Header */}
           <div className="flex items-start justify-between gap-3 border-b border-zinc-800 pb-4">
             <div className="flex items-center gap-3">
@@ -93,8 +88,7 @@ export const HoldNotificationModal: React.FC<HoldNotificationModalProps> = ({
               Remove Hold & Schedule
             </button>
           </div>
-        </div>
-      </div>
-    </ModalPortal>
+        </Modal>
+    
   );
 };

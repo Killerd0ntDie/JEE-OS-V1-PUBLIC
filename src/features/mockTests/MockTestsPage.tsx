@@ -6,7 +6,7 @@ import { MockTestArena } from './MockTestArena';
 import { MockTestResult } from './MockTestResult';
 import { MockTestUploader } from './MockTestUploader';
 import { UploadPDFModal } from './components/UploadPDFModal';
-import { ModalPortal } from '../../components/ui/ModalPortal';
+import { Modal } from '@/components/ui/Modal';
 import { v4 as uuidv4 } from 'uuid';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { MockResult } from '../../types/index';
@@ -239,15 +239,11 @@ export function MockTestsPage({ onNavigate }: MockTestsPageProps) {
             exit={{ opacity: 0, scale: 0.95 }}
             className="flex-1 overflow-y-auto p-6 lg:p-8 relative"
           >
-            {isGeneratingAiTest && (
-              <ModalPortal>
-                <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex flex-col items-center justify-center">
-                  <Loader2 className="w-12 h-12 text-indigo-500 animate-spin mb-6" />
-                  <h3 className="text-2xl font-bold text-white mb-3">Synthesizing AI Mock Test</h3>
-                  <p className="text-zinc-400 font-mono text-base">Generating highly realistic PYQs via AI Backend...</p>
-                </div>
-              </ModalPortal>
-            )}
+            <Modal isOpen={isGeneratingAiTest} onClose={() => setIsGeneratingAiTest(false)} zIndex={100} backdropClassName="bg-black/80 backdrop-blur-md flex flex-col items-center justify-center" className="flex flex-col items-center justify-center">
+              <Loader2 className="w-12 h-12 text-indigo-500 animate-spin mb-6" />
+              <h3 className="text-2xl font-bold text-white mb-3">Synthesizing AI Mock Test</h3>
+              <p className="text-zinc-400 font-mono text-base">Generating highly realistic PYQs via AI Backend...</p>
+            </Modal>
             
             <div className="max-w-5xl mx-auto space-y-8">
               {/* Header */}
@@ -368,41 +364,29 @@ export function MockTestsPage({ onNavigate }: MockTestsPageProps) {
               )}
             </div>
             
-            {showUploader && (
-              <MockTestUploader 
-                onUpload={(test) => {
-                  actions.addCustomMockTest(test);
-                  setShowUploader(false);
-                }} 
-                onCancel={() => setShowUploader(false)} 
-              />
-            )}
+            <MockTestUploader 
+              isOpen={showUploader}
+              onUpload={(test) => {
+                actions.addCustomMockTest(test);
+                setShowUploader(false);
+              }} 
+              onCancel={() => setShowUploader(false)} 
+            />
 
-            {showPdfUploader && (
-              <UploadPDFModal
-                onSuccess={() => setShowPdfUploader(false)}
-                onCancel={() => setShowPdfUploader(false)}
-              />
-            )}
+            <UploadPDFModal
+              isOpen={showPdfUploader}
+              onSuccess={() => setShowPdfUploader(false)}
+              onCancel={() => setShowPdfUploader(false)}
+            />
           </motion.div>
         )}
 
         {engineState === 'ARENA' && selectedTest && (
-          <ModalPortal>
-            <motion.div
-              key="arena"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[100] bg-[#090a0f] flex flex-col"
-            >
-              <MockTestArena 
-                test={selectedTest} 
-                onComplete={handleTestComplete}
-                onExit={handleReturnToDashboard}
-              />
-            </motion.div>
-          </ModalPortal>
+          <MockTestArena 
+            test={selectedTest} 
+            onComplete={handleTestComplete}
+            onExit={handleReturnToDashboard}
+          />
         )}
 
         {engineState === 'RESULT' && selectedTest && currentAttempt && (
@@ -461,9 +445,7 @@ export function MockTestsPage({ onNavigate }: MockTestsPageProps) {
       </AnimatePresence>
 
       {/* AI Chapter Selector Modal */}
-      {showAiSelector && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="w-full max-w-md bg-zinc-950 border border-zinc-800 rounded-2xl p-6 shadow-2xl relative">
+      <Modal isOpen={showAiSelector} onClose={() => setShowAiSelector(false)} zIndex={60} backdropClassName="bg-black/80 backdrop-blur-sm p-4" className="w-full max-w-md bg-zinc-950 border border-zinc-800 rounded-2xl p-6 shadow-2xl relative">
             <button 
               onClick={() => setShowAiSelector(false)}
               className="absolute top-4 right-4 p-1.5 rounded-lg text-zinc-500 hover:text-white hover:bg-zinc-900 transition-colors"
@@ -495,9 +477,7 @@ export function MockTestsPage({ onNavigate }: MockTestsPageProps) {
                 </div>
               ))}
             </div>
-          </div>
-        </div>
-      )}
+      </Modal>
     </div>
   );
 }

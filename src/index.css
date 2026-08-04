@@ -83,84 +83,45 @@ body {
 }
 
 .premium-card {
-  background: rgba(12, 12, 14, 0.4);
-  backdrop-filter: blur(16px);
+  background: rgba(12, 12, 14, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border: 1px solid #27272a;
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.01);
+  transform: translateZ(0);
 }
 
 .premium-card:hover {
   border-color: #3f3f46;
-  background: rgba(12, 12, 14, 0.6);
+  background: rgba(16, 16, 20, 0.92);
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.02);
-}
-
-
-/* Subtle glow effect for headers */
-.glow-accent {
-  position: relative;
-}
-.glow-accent::after {
-  content: '';
-  position: absolute;
-  top: -10%;
-  left: 10%;
-  right: 10%;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.2), transparent);
-  filter: blur(1px);
-}
-
-/* Remove default spinner arrows from number inputs globally */
-input[type="number"]::-webkit-outer-spin-button,
-input[type="number"]::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-input[type="number"] {
-  -moz-appearance: textfield;
-  appearance: textfield;
-}
-
-/* Input validation shake animation */
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-4px); }
-  50% { transform: translateX(4px); }
-  75% { transform: translateX(-2px); }
-}
-
-.animate-shake {
-  animation: shake 0.3s ease-in-out;
-}
-
-/* Skeleton shimmer animation */
-@keyframes shimmer {
-  100% { transform: translateX(100%); }
 }
 
 /* Glassmorphism Design Tokens & Utilities */
 .glass-card {
-  background: rgba(18, 19, 24, 0.65);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: rgba(18, 19, 24, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 .glass-card-hover:hover {
-  background: rgba(24, 25, 32, 0.8);
+  background: rgba(24, 25, 32, 0.92);
   border-color: rgba(99, 102, 241, 0.35);
   box-shadow: 0 12px 40px 0 rgba(99, 102, 241, 0.15);
-  transform: translateY(-2px);
+  transform: translateY(-2px) translateZ(0);
 }
 
 .glass-panel {
-  background: rgba(12, 12, 16, 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: rgba(12, 12, 16, 0.92);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.06);
+  transform: translateZ(0);
 }
 
 .text-gradient-indigo {

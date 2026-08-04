@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { X, ChevronRight, CheckCircle2, XCircle, RefreshCw, AlertCircle, Eye } from 'lucide-react';
 import { Mistake } from '@/types';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { soundSystem } from '@/utils/audioEffects';
 import { BlockMath, InlineMath } from 'react-katex';
-import { ModalPortal } from '@/components/ui/ModalPortal';
+import { Modal } from '@/components/ui/Modal';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 
 interface MistakeTestModalProps {
@@ -40,9 +40,7 @@ export function MistakeTestModal({ isOpen, onClose, mistakes }: MistakeTestModal
     }
   }, [isOpen, mistakes]);
 
-  if (!isOpen) return null;
-
-  const currentMistake = testQueue[currentIndex];
+    const currentMistake = testQueue[currentIndex];
 
   const handleReveal = () => {
     setIsRevealed(true);
@@ -89,11 +87,8 @@ export function MistakeTestModal({ isOpen, onClose, mistakes }: MistakeTestModal
   };
 
   return (
-    <ModalPortal>
-      <div className="fixed inset-0 z-[9999] bg-[#09090b] flex flex-col font-sans animate-in fade-in duration-300 overflow-hidden">
-        <div
-          className="w-full h-full flex flex-col"
-        >
+    <Modal isOpen={isOpen} onClose={onClose} className="w-full h-[90vh] bg-[#09090b] flex flex-col font-sans overflow-hidden">
+<div className="w-full h-full flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-zinc-800/80 bg-zinc-900/50">
           <div className="flex items-center gap-3">
@@ -240,8 +235,7 @@ export function MistakeTestModal({ isOpen, onClose, mistakes }: MistakeTestModal
             </AnimatePresence>
           )}
         </div>
-      </div>
-    </div>
-    </ModalPortal>
+</div>
+</Modal>
   );
 }

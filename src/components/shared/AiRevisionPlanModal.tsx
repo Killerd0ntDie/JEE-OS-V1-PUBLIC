@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 import { Sparkles, Calendar, Clock, Check, Loader2, X, ArrowRight, Zap, Target } from 'lucide-react';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { ChapterTelemetry } from '@jee-os/engines';
-import { ModalPortal } from '@/components/ui/ModalPortal';
+import { Modal } from '@/components/ui/Modal';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 
 interface AiRevisionPlanModalProps {
@@ -23,9 +23,6 @@ export function AiRevisionPlanModal({ isOpen, onClose }: AiRevisionPlanModalProp
   const [generatedPlan, setGeneratedPlan] = useState<any | null>(null);
   const [importedTaskIds, setImportedTaskIds] = useState<string[]>([]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-  if (!isOpen) return null;
-
   const telemetryList = (Object.values(chapterTelemetryMap || {}) as ChapterTelemetry[]);
   const bottlenecks = telemetryList.filter(t => t.isBottleneck).map(t => t.chapterName);
   const lowRetention = telemetryList.filter(t => t.retentionConfidence === 'Low').map(t => t.chapterName);
@@ -95,14 +92,8 @@ export function AiRevisionPlanModal({ isOpen, onClose }: AiRevisionPlanModalProp
   };
 
   return (
-    <ModalPortal>
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95, y: 10 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          className="w-full max-w-3xl glass-panel border border-zinc-800 rounded-3xl p-6 md:p-8 shadow-2xl relative overflow-hidden flex flex-col max-h-[85vh]"
-        >
+    
+      <Modal isOpen={isOpen} onClose={onClose} zIndex={100} backdropClassName="p-4 bg-black/80 backdrop-blur-md animate-fade-in" className="w-full max-w-3xl glass-panel border border-zinc-800 rounded-3xl p-6 md:p-8 shadow-2xl relative overflow-hidden flex flex-col max-h-[85vh]">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-zinc-800/80 pb-4 mb-6">
             <div className="flex items-center gap-3">
@@ -288,8 +279,7 @@ export function AiRevisionPlanModal({ isOpen, onClose }: AiRevisionPlanModalProp
               </div>
             </div>
           )}
-        </motion.div>
-      </div>
-    </ModalPortal>
+        </Modal>
+
   );
 }

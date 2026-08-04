@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Sidebar } from './components/layout/Sidebar';
@@ -10,26 +10,27 @@ import { AuthPage } from './features/auth/AuthPage';
 import { PageSkeleton } from './components/shared/PageSkeleton';
 import { OfflineBanner } from './components/shared/OfflineBanner';
 
-// Pages
-import { DashboardPage } from './features/dashboard/DashboardPage';
-import { PhysicsPage } from './features/subjects/PhysicsPage';
-import { ChemistryPage } from './features/subjects/ChemistryPage';
-import { MathsPage } from './features/subjects/MathsPage';
-import { PlannerPage } from './features/mission/PlannerPage';
-import { RevisionPage } from './features/revision/RevisionPage';
-import { MistakesPage } from './features/mistakes/MistakesPage';
-import { AnalyticsPage } from './features/analytics/AnalyticsPage';
-import { FocusVaultPage } from './features/focus/FocusVaultPage';
-import { AiCoachPage } from './features/coach/AiCoachPage';
-import { CoachHistoryPage } from './features/coach/CoachHistoryPage';
-import { SettingsPage } from './features/dashboard/SettingsPage';
+// Lazy-loaded Pages for Code-Splitting
+const DashboardPage = lazy(() => import('./features/dashboard/DashboardPage').then(m => ({ default: m.DashboardPage })));
+const PhysicsPage = lazy(() => import('./features/subjects/PhysicsPage').then(m => ({ default: m.PhysicsPage })));
+const ChemistryPage = lazy(() => import('./features/subjects/ChemistryPage').then(m => ({ default: m.ChemistryPage })));
+const MathsPage = lazy(() => import('./features/subjects/MathsPage').then(m => ({ default: m.MathsPage })));
+const PlannerPage = lazy(() => import('./features/mission/PlannerPage').then(m => ({ default: m.PlannerPage })));
+const RevisionPage = lazy(() => import('./features/revision/RevisionPage').then(m => ({ default: m.RevisionPage })));
+const MistakesPage = lazy(() => import('./features/mistakes/MistakesPage').then(m => ({ default: m.MistakesPage })));
+const AnalyticsPage = lazy(() => import('./features/analytics/AnalyticsPage').then(m => ({ default: m.AnalyticsPage })));
+const FocusVaultPage = lazy(() => import('./features/focus/FocusVaultPage').then(m => ({ default: m.FocusVaultPage })));
+const AiCoachPage = lazy(() => import('./features/coach/AiCoachPage').then(m => ({ default: m.AiCoachPage })));
+const CoachHistoryPage = lazy(() => import('./features/coach/CoachHistoryPage').then(m => ({ default: m.CoachHistoryPage })));
+const SettingsPage = lazy(() => import('./features/dashboard/SettingsPage').then(m => ({ default: m.SettingsPage })));
+const MockTestsPage = lazy(() => import('./features/mockTests/MockTestsPage').then(m => ({ default: m.MockTestsPage })));
+const NeuralGraphPage = lazy(() => import('./features/neuralLink/NeuralGraphPage').then(m => ({ default: m.NeuralGraphPage })));
+
 import { MentorInterviewModal } from './components/mentor/MentorInterviewModal';
 import { ChapterEditModal } from './components/shared/ChapterEditModal';
 import { ShortcutGuideModal } from './components/ui/ShortcutGuideModal';
 import { LevelUpCelebration } from './components/ui/LevelUpCelebration';
 import { ConfirmDeleteModal } from './components/ui/ConfirmDeleteModal';
-import { MockTestsPage } from './features/mockTests/MockTestsPage';
-import { NeuralGraphPage } from './features/neuralLink/NeuralGraphPage';
 import { ErrorBoundary } from './components/shared/ErrorBoundary';
 
 import { ProtectedRoute } from '@/features/auth/components/ProtectedRoute';
@@ -184,7 +185,7 @@ function AppLayout() {
 
   // God Mode & Rot Mode Logic (Based on Streak)
   const isGodMode = (xp?.streak || 0) >= 7 && (settings?.enableGodMode !== false);
-  const isRotMode = (xp?.streak || 0) < 3 && (settings?.enableGodMode !== false);
+  const isRotMode = (xp?.streak || 0) > 0 && (xp?.streak || 0) < 3 && settings?.enableGodMode === true;
   const themeClass = isGodMode ? 'theme-god-mode' : isRotMode ? 'theme-rot-mode' : '';
 
   return (
@@ -231,28 +232,30 @@ function AppLayout() {
               {!isAiCoach && (
                 <motion.div
                   key={location.pathname}
-                  initial={{ opacity: 0, y: 8, filter: 'blur(4px)' }}
-                  animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                  exit={{ opacity: 0, y: -8, filter: 'blur(4px)' }}
-                  transition={{ duration: 0.12, ease: [0.16, 1, 0.3, 1] }}
-                  className="flex-1 flex flex-col min-h-0"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.1, ease: "linear" }}
+                  className="flex-1 flex flex-col min-h-0 transform-gpu will-change-transform"
                 >
-                  <Routes location={location} key={location.pathname}>
-                    <Route path="/dashboard" element={<DashboardPage />} />
-                    <Route path="/physics" element={<PhysicsPage />} />
-                    <Route path="/chemistry" element={<ChemistryPage />} />
-                    <Route path="/mathematics" element={<MathsPage />} />
-                    <Route path="/planner" element={<PlannerPage />} />
-                    <Route path="/focus-vault" element={<FocusVaultPage />} />
-                    <Route path="/revision" element={<RevisionPage />} />
-                    <Route path="/mistakes" element={<MistakesPage />} />
-                    <Route path="/analytics" element={<AnalyticsPage />} />
-                    <Route path="/coach-history" element={<CoachHistoryPage />} />
-                    <Route path="/mock-tests" element={<MockTestsPage />} />
-                    <Route path="/neural-link" element={<NeuralGraphPage />} />
-                    <Route path="/settings" element={<SettingsPage />} />
-                    <Route path="*" element={<Navigate to="/dashboard" replace />} />
-                  </Routes>
+                  <Suspense fallback={<PageSkeleton />}>
+                    <Routes location={location} key={location.pathname}>
+                      <Route path="/dashboard" element={<DashboardPage />} />
+                      <Route path="/physics" element={<PhysicsPage />} />
+                      <Route path="/chemistry" element={<ChemistryPage />} />
+                      <Route path="/mathematics" element={<MathsPage />} />
+                      <Route path="/planner" element={<PlannerPage />} />
+                      <Route path="/focus-vault" element={<FocusVaultPage />} />
+                      <Route path="/revision" element={<RevisionPage />} />
+                      <Route path="/mistakes" element={<MistakesPage />} />
+                      <Route path="/analytics" element={<AnalyticsPage />} />
+                      <Route path="/coach-history" element={<CoachHistoryPage />} />
+                      <Route path="/mock-tests" element={<MockTestsPage />} />
+                      <Route path="/neural-link" element={<NeuralGraphPage />} />
+                      <Route path="/settings" element={<SettingsPage />} />
+                      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                    </Routes>
+                  </Suspense>
                 </motion.div>
               )}
             </AnimatePresence>

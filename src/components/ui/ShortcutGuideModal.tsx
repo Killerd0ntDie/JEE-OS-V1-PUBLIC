@@ -2,7 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Command, Keyboard } from 'lucide-react';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
-import { ModalPortal } from './ModalPortal';
+import { Modal } from '@/components/ui/Modal';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 
 interface ShortcutGuideModalProps {
@@ -30,30 +30,13 @@ export function ShortcutGuideModal({ isOpen, onClose }: ShortcutGuideModalProps)
   useEscapeKey(onClose, isOpen);
 
   return (
-    <ModalPortal>
-      <AnimatePresence>
-        {isOpen && (
-          <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 sm:p-6 font-sans">
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={onClose}
-              className="absolute inset-0 bg-[#070708]/80 backdrop-blur-md"
-            />
-            
-            {/* Modal Content */}
-            <motion.div
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="shortcut-guide-modal-title"
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
-              className="relative w-full max-w-lg bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]"
-            >
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      zIndex={999}
+      backdropClassName="bg-[#070708]/80 backdrop-blur-md"
+      className="relative w-full max-w-lg bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]"
+    >
               {/* Header */}
               <div className="flex items-center justify-between p-5 border-b border-zinc-900 bg-zinc-900/20">
                 <div className="flex items-center gap-3">
@@ -101,10 +84,6 @@ export function ShortcutGuideModal({ isOpen, onClose }: ShortcutGuideModalProps)
                   You can also click anywhere outside this dialog to close it.
                 </p>
               </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-    </ModalPortal>
+    </Modal>
   );
 }

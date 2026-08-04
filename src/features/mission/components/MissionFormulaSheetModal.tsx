@@ -1,6 +1,5 @@
 import React from 'react';
-import { ModalPortal } from '@/components/ui/ModalPortal';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Modal } from '@/components/ui/Modal';
 import { BookOpen, X, Search } from 'lucide-react';
 import { SubjectDetail } from './MissionSubjectSwitcherWidget';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
@@ -36,21 +35,7 @@ export function MissionFormulaSheetModal({
   useEscapeKey(() => setIsFormulaOpen(false), isFormulaOpen);
 
   return (
-    <ModalPortal>
-    <AnimatePresence>
-      {isFormulaOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[110] bg-[#070708]/90 backdrop-blur-md flex items-center justify-center p-6"
-        >
-          <motion.div
-            initial={{ scale: 0.95, y: 15 }}
-            animate={{ scale: 1, y: 0 }}
-            exit={{ scale: 0.95, y: 15 }}
-            className="w-full max-w-xl border border-zinc-800 bg-[#09090b] p-6 rounded-2xl shadow-2xl flex flex-col max-h-[80vh] overflow-hidden"
-          >
+    <Modal isOpen={isFormulaOpen} onClose={() => setIsFormulaOpen(false)} className="w-full max-w-xl border border-zinc-800 bg-[#09090b] p-6 rounded-2xl shadow-2xl flex flex-col max-h-[80vh] overflow-hidden">
             <div className="flex justify-between items-center border-b border-zinc-900 pb-3 shrink-0">
               <div className="flex items-center gap-2 text-left">
                 <BookOpen className="w-4 h-4 text-emerald-400" />
@@ -123,10 +108,6 @@ export function MissionFormulaSheetModal({
               <span>Subject: {activeDetails.name}</span>
               <span>Active Track: Complete formula set</span>
             </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-    </ModalPortal>
+    </Modal>
   );
 }

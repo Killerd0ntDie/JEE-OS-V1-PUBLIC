@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
+import { Modal } from '@/components/ui/Modal';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { useAuth } from '@/features/auth';
 import { Icon } from '@/components/ui/Icon';
@@ -11,6 +11,9 @@ import {
 } from 'lucide-react';
 
 import { normalizeTwoDaySplitConfig } from '@jee-os/engines';
+import { AcademicSettingsSection } from './components/AcademicSettingsSection';
+import { AudioSettingsSection } from './components/AudioSettingsSection';
+import { DangerZoneSection } from './components/DangerZoneSection';
 
 export function SettingsPage() {
   const actions = useStudyBrainStore(state => state.actions);
@@ -757,9 +760,13 @@ export function SettingsPage() {
         </div>
 
         {/* XP Reset Confirmation Modal */}
-        {showXpResetConfirm && createPortal(
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-            <div className="bg-zinc-950 border border-amber-900/50 p-6 rounded-2xl max-w-md w-full space-y-4 text-left shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+        <Modal
+          isOpen={showXpResetConfirm}
+          onClose={() => setShowXpResetConfirm(false)}
+          zIndex={9999}
+          backdropClassName="bg-black/80 backdrop-blur-md"
+          className="bg-zinc-950 border border-amber-900/50 p-6 rounded-2xl max-w-md w-full space-y-4 text-left shadow-2xl animate-in fade-in zoom-in-95 duration-200"
+        >
               <div className="flex items-center gap-3 text-amber-400">
                 <AlertTriangle className="w-6 h-6 shrink-0" />
                 <h4 className="text-base font-display font-bold text-white">Reset XP &amp; Level?</h4>
@@ -783,15 +790,16 @@ export function SettingsPage() {
                   Yes, Reset XP
                 </button>
               </div>
-            </div>
-          </div>,
-          document.body
-        )}
+        </Modal>
 
         {/* Hidden Missions Confirmation Modal */}
-        {showHiddenMissionsConfirm && createPortal(
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-            <div className="bg-zinc-950 border border-amber-900/50 p-6 rounded-2xl max-w-md w-full space-y-4 text-left shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+        <Modal
+          isOpen={showHiddenMissionsConfirm}
+          onClose={() => setShowHiddenMissionsConfirm(false)}
+          zIndex={9999}
+          backdropClassName="bg-black/80 backdrop-blur-md"
+          className="bg-zinc-950 border border-amber-900/50 p-6 rounded-2xl max-w-md w-full space-y-4 text-left shadow-2xl animate-in fade-in zoom-in-95 duration-200"
+        >
               <div className="flex items-center gap-3 text-amber-400">
                 <AlertTriangle className="w-6 h-6 shrink-0" />
                 <h4 className="text-base font-display font-bold text-white">Reset Hidden Missions?</h4>
@@ -820,15 +828,16 @@ export function SettingsPage() {
                   Yes, Reset Hidden
                 </button>
               </div>
-            </div>
-          </div>,
-          document.body
-        )}
+        </Modal>
 
         {/* Universal Confirmation Modal */}
-        {showResetConfirm && createPortal(
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-            <div className="bg-zinc-950 border border-red-900/50 p-6 rounded-2xl max-w-md w-full space-y-4 text-left shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+        <Modal
+          isOpen={showResetConfirm}
+          onClose={() => setShowResetConfirm(false)}
+          zIndex={9999}
+          backdropClassName="bg-black/80 backdrop-blur-md"
+          className="bg-zinc-950 border border-red-900/50 p-6 rounded-2xl max-w-md w-full space-y-4 text-left shadow-2xl animate-in fade-in zoom-in-95 duration-200"
+        >
               <div className="flex items-center gap-3 text-red-400">
                 <AlertTriangle className="w-6 h-6 shrink-0" />
                 <h4 className="text-base font-display font-bold text-white">Reset Entire Workspace?</h4>
@@ -852,10 +861,7 @@ export function SettingsPage() {
                   Yes, Reset Everything
                 </button>
               </div>
-            </div>
-          </div>,
-          document.body
-        )}
+        </Modal>
 
         {showResetSuccess && (
           <div className="text-xs font-mono text-emerald-400 bg-emerald-950/40 p-3 rounded-xl border border-emerald-900/40 text-center">

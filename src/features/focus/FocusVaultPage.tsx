@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Play, Pause, Square, Headphones, RefreshCw, Volume2, VolumeX, CheckCircle2 } from 'lucide-react';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { useAuth } from '@/features/auth';
+import { SubjectId } from '@/types/index';
 
 const DEFAULT_MINUTES = 50;
 
@@ -10,6 +11,7 @@ export function FocusVaultPage() {
   const actions = useStudyBrainStore(state => state.actions);
   const { user } = useAuth();
   
+  const [selectedSubject, setSelectedSubject] = useState<SubjectId>('physics');
   const [inputMinutes, setInputMinutes] = useState(DEFAULT_MINUTES);
   const [timeLeft, setTimeLeft] = useState(DEFAULT_MINUTES * 60);
   const [isActive, setIsActive] = useState(false);
@@ -48,21 +50,28 @@ export function FocusVaultPage() {
 
   // Timer tick logic
   useEffect(() => {
-    if (isActive && timeLeft > 0) {
+    if (isActive) {
       timerRef.current = setInterval(() => {
-        setTimeLeft((prev) => prev - 1);
-        setSessionDuration((prev) => prev + 1);
+        setTimeLeft(prev => {
+          if (prev <= 1) {
+            clearInterval(timerRef.current!);
+            handleComplete();
+            return 0;
+          }
+          return prev - 1;
+        });
+        setSessionDuration(prev => prev + 1);
       }, 1000);
-    } else if (timeLeft === 0 && isActive) {
-      handleComplete();
+    } else if (timerRef.current) {
+      clearInterval(timerRef.current);
     }
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [isActive, timeLeft]);
+  }, [isActive]);
 
-  const toggleTimer = () => {
+  const handleStartPause = () => {
     setIsActive(!isActive);
   };
 
@@ -85,7 +94,7 @@ export function FocusVaultPage() {
       questions: 0,
       correct: 0,
       type: 'Practice', // or treat as generic focus
-      subjectId: 'physics', // fallback since focus vault is subject-agnostic
+      subjectId: selectedSubject, // fallback since focus vault is subject-agnostic
       idleTime: 0,
       focusInterruptions: 0,
       focusScore: 100
@@ -125,8 +134,32 @@ export function FocusVaultPage() {
             <span className="font-mono text-xs font-bold tracking-[0.3em] uppercase">Focus Vault</span>
           </div>
           <h1 className="text-zinc-500 text-sm max-w-md mx-auto leading-relaxed">
-            A minimalist deep-work zone. Keep this tab active to keep the music playing.
+            A minimalist deep-work zone. Select target subject and focus duration.
           </h1>
+
+          {/* Subject Selector */}
+          {!isActive && (
+            <div className="flex items-center justify-center gap-2 pt-2">
+              {(['physics', 'chemistry', 'maths'] as SubjectId[]).map((subj) => (
+                <button
+                  key={subj}
+                  type="button"
+                  onClick={() => setSelectedSubject(subj)}
+                  className={`px-3 py-1 rounded-full text-xs font-mono font-bold uppercase transition-all cursor-pointer ${
+                    selectedSubject === subj
+                      ? subj === 'physics'
+                        ? 'bg-sky-950/80 border border-sky-500/50 text-sky-300 shadow-[0_0_12px_rgba(56,189,248,0.3)]'
+                        : subj === 'chemistry'
+                        ? 'bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 shadow-[0_0_12px_rgba(52,211,153,0.3)]'
+                        : 'bg-purple-950/80 border border-purple-500/50 text-purple-300 shadow-[0_0_12px_rgba(192,132,252,0.3)]'
+                      : 'bg-zinc-900/60 border border-zinc-800 text-zinc-500 hover:text-zinc-300'
+                  }`}
+                >
+                  {subj}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Central Timer Display */}
@@ -195,7 +228,7 @@ export function FocusVaultPage() {
             </button>
             
             <button
-              onClick={toggleTimer}
+              onClick={handleStartPause}
               className={`w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300 shadow-2xl ${
                 isActive 
                   ? 'bg-zinc-800/80 text-white border border-zinc-700 hover:bg-zinc-700' 

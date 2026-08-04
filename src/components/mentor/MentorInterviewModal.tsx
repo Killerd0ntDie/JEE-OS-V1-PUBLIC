@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
-import { ModalPortal } from '@/components/ui/ModalPortal';
+import { Modal } from '@/components/ui/Modal';
 import { Sparkles, X, Check } from 'lucide-react';
 
 import { useMentorInterviewForm } from './hooks/useMentorInterviewForm';
@@ -44,30 +44,9 @@ export const MentorInterviewModal: React.FC<Props> = ({ isOpen, onClose, isManda
     'Roadmap Lock'
   ];
 
-  if (!isOpen) return null;
-
   return (
-    <ModalPortal>
-      <AnimatePresence>
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/85 backdrop-blur-xl"
-          />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 10 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            ref={modalRef}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="mentor-interview-modal-title"
-            tabIndex={-1}
-            className="relative w-full max-w-3xl bg-[#090a0f]/95 border border-indigo-500/25 rounded-3xl shadow-[0_0_80px_rgba(79,70,229,0.2)] overflow-hidden my-6 text-left flex flex-col max-h-[90vh] focus:outline-none"
-          >
+
+        <Modal isOpen={isOpen} onClose={handleClose} zIndex={50} backdropClassName="p-4 overflow-y-auto" className="relative w-full max-w-3xl bg-[#090a0f]/95 border border-indigo-500/25 rounded-3xl shadow-[0_0_80px_rgba(79,70,229,0.2)] overflow-hidden my-6 text-left flex flex-col max-h-[90vh] focus:outline-none">
             {/* Modern Glowing Header */}
             <div className="px-6 py-4 bg-gradient-to-r from-indigo-950/40 via-purple-950/20 to-zinc-950/40 border-b border-white/10 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3.5">
@@ -209,9 +188,7 @@ export const MentorInterviewModal: React.FC<Props> = ({ isOpen, onClose, isManda
                 />
               )}
             </div>
-          </motion.div>
-        </div>
-      </AnimatePresence>
-    </ModalPortal>
+          </Modal>
+
   );
 };

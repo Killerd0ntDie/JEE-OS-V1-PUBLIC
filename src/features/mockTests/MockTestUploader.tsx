@@ -1,13 +1,15 @@
 import React, { useState, useRef } from 'react';
 import { UploadCloud, FileJson, X, CheckCircle, AlertTriangle } from 'lucide-react';
 import { MockTest } from '../../types/mockTest';
+import { Modal } from '@/components/ui/Modal';
 
 interface MockTestUploaderProps {
+  isOpen: boolean;
   onUpload: (test: MockTest) => void;
   onCancel: () => void;
 }
 
-export function MockTestUploader({ onUpload, onCancel }: MockTestUploaderProps) {
+export function MockTestUploader({ isOpen, onUpload, onCancel }: MockTestUploaderProps) {
   const [dragActive, setDragActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
@@ -72,8 +74,7 @@ export function MockTestUploader({ onUpload, onCancel }: MockTestUploaderProps) 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in p-4">
-      <div className="bg-[#121318] border border-zinc-800 rounded-2xl p-6 w-full max-w-md shadow-2xl relative">
+    <Modal isOpen={isOpen} onClose={onCancel} zIndex={50} backdropClassName="bg-black/60 backdrop-blur-sm p-4" className="bg-[#121318] border border-zinc-800 rounded-2xl p-6 w-full max-w-md shadow-2xl relative">
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
@@ -131,7 +132,6 @@ export function MockTestUploader({ onUpload, onCancel }: MockTestUploaderProps) 
             <p className="text-xs text-emerald-400 font-medium font-mono truncate">{fileName}</p>
           </div>
         )}
-      </div>
-    </div>
+    </Modal>
   );
 }

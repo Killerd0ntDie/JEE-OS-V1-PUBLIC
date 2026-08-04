@@ -4,7 +4,7 @@ import { MonthlyObjective } from '@/types/index';
 import { Target, Sparkles, X, Check } from 'lucide-react';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
-import { ModalPortal } from '@/components/ui/ModalPortal';
+import { Modal } from '@/components/ui/Modal';
 
 interface Props {
   isOpen: boolean;
@@ -35,8 +35,6 @@ export const MonthlyObjectiveModal: React.FC<Props> = ({ isOpen, onClose }) => {
   useLockBodyScroll(isOpen);
   useEscapeKey(onClose, isOpen);
 
-  if (!isOpen) return null;
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -60,14 +58,8 @@ export const MonthlyObjectiveModal: React.FC<Props> = ({ isOpen, onClose }) => {
   };
 
   return (
-    <ModalPortal>
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in overflow-y-auto text-left">
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="monthly-objective-modal-title"
-        className="relative w-full max-w-xl bg-[#0a0b0e] border border-indigo-900/50 rounded-2xl shadow-2xl overflow-hidden my-6"
-      >
+    
+    <Modal isOpen={isOpen} onClose={onClose} zIndex={50} backdropClassName="p-4 bg-black/80 backdrop-blur-md animate-fade-in overflow-y-auto text-left" className="relative w-full max-w-xl bg-[#0a0b0e] border border-indigo-900/50 rounded-2xl shadow-2xl overflow-hidden my-6">
         
         {/* Header */}
         <div className="px-6 py-4 bg-indigo-950/30 border-b border-indigo-900/40 flex items-center justify-between">
@@ -154,8 +146,7 @@ export const MonthlyObjectiveModal: React.FC<Props> = ({ isOpen, onClose }) => {
           </div>
 
         </form>
-      </div>
-    </div>
-    </ModalPortal>
+      </Modal>
+    
   );
 };

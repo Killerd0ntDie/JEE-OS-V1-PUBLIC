@@ -4,7 +4,7 @@ import { Icon } from '@/components/ui/Icon';
 import { Badge } from '@/components/ui/Badge';
 import { FORMULA_BANK } from '@/constants/formulaBank';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
-import { ModalPortal } from '@/components/ui/ModalPortal';
+import { Modal } from '@/components/ui/Modal';
 import { Sparkles } from 'lucide-react';
 
 interface ChapterRevisionInspectorModalProps {
@@ -64,9 +64,8 @@ export const ChapterRevisionInspectorModal: React.FC<ChapterRevisionInspectorMod
   };
 
   return (
-    <ModalPortal>
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in font-sans text-left overflow-y-auto">
-      <div className="relative w-full max-w-2xl bg-[#0e0e11] border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] my-6">
+    
+    <Modal isOpen={!!chapterId} onClose={onClose} zIndex={50} backdropClassName="p-4 bg-black/80 backdrop-blur-md animate-fade-in font-sans text-left overflow-y-auto" className="relative w-full max-w-2xl bg-[#0e0e11] border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] my-6">
         
         {/* Header */}
         <div className="p-5 border-b border-zinc-850 flex items-start justify-between bg-zinc-950/60">
@@ -307,8 +306,7 @@ export const ChapterRevisionInspectorModal: React.FC<ChapterRevisionInspectorMod
 
         </div>
 
-      </div>
-    </div>
-    </ModalPortal>
+      </Modal>
+    
   );
 };

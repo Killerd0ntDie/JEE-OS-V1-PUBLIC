@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { ModalPortal } from '@/components/ui/ModalPortal';
+import { Modal } from '@/components/ui/Modal';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { QuestionViewerWidget } from '@/features/mission/components/QuestionViewerWidget';
 import { CheckCircle2, Skull, ArrowRight } from 'lucide-react';
@@ -36,24 +35,7 @@ export const AiInterrogationModal: React.FC<AiInterrogationModalProps> = ({
   };
 
   return (
-    <ModalPortal>
-      <AnimatePresence>
-        {isOpen && mistake && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-xl p-2 sm:p-6 text-left"
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              role="dialog"
-              aria-modal="true"
-              className="w-full h-full max-w-5xl rounded-3xl overflow-hidden shadow-[0_0_80px_rgba(220,38,38,0.15)] flex flex-col bg-[#09090b] border border-red-900/50"
-            >
+    <Modal isOpen={isOpen && !!mistake} onClose={handleClose} className="w-full h-[90vh] max-w-5xl rounded-3xl overflow-hidden shadow-[0_0_80px_rgba(220,38,38,0.15)] flex flex-col bg-[#09090b] border border-red-900/50">
           {/* Header */}
           <div className="px-6 py-4 border-b border-red-950/50 bg-red-950/20 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-3">
@@ -106,10 +88,6 @@ export const AiInterrogationModal: React.FC<AiInterrogationModalProps> = ({
               />
             )}
           </div>
-          </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </ModalPortal>
+    </Modal>
   );
 };

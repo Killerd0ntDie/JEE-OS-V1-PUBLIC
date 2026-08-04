@@ -46,6 +46,13 @@ import {
   AlertCircle,
   BarChart3,
   SearchX,
+  Headphones,
+  BrainCircuit,
+  Sun,
+  Moon,
+  Monitor,
+  Keyboard,
+  PanelLeftClose,
   LucideProps
 } from 'lucide-react';
 
@@ -95,7 +102,14 @@ export const iconMap = {
   Trash2,
   AlertCircle,
   BarChart3,
-  SearchX
+  SearchX,
+  Headphones,
+  BrainCircuit,
+  Sun,
+  Moon,
+  Monitor,
+  Keyboard,
+  PanelLeftClose
 };
 
 export type IconName = keyof typeof iconMap;

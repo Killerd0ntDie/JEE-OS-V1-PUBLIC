@@ -1,6 +1,6 @@
 import React from 'react';
-import { ModalPortal } from '@/components/ui/ModalPortal';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
+import { Modal } from '@/components/ui/Modal';
 import { Pause } from 'lucide-react';
 
 export interface MissionPauseOverlayProps {
@@ -21,16 +21,7 @@ export function MissionPauseOverlay({
   onExit
 }: MissionPauseOverlayProps) {
   return (
-    <ModalPortal>
-    <AnimatePresence>
-      {isPaused && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[10000] bg-[#070708]/85 backdrop-blur-xl flex flex-col justify-center items-center text-center p-6"
-        >
-          <div className="max-w-md space-y-6">
+    <Modal isOpen={isPaused} onClose={() => setIsPaused(false)} className="max-w-md space-y-6 text-center w-full bg-transparent border-none shadow-none">
             
             <div className="relative flex justify-center mb-4">
               <motion.div
@@ -81,11 +72,6 @@ export function MissionPauseOverlay({
                 End Session
               </button>
             </div>
-
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-    </ModalPortal>
+    </Modal>
   );
 }

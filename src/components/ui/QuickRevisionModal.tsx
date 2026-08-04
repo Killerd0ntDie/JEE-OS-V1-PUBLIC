@@ -7,7 +7,7 @@ import { RevisionCard } from '@/services/revisionEngineService';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
-import { ModalPortal } from './ModalPortal';
+import { Modal } from '@/components/ui/Modal';
 
 interface QuickRevisionModalProps {
   revision: RevisionCard;
@@ -40,7 +40,7 @@ export function QuickRevisionModal({ revision, isOpen, onClose, onAction }: Quic
   useEscapeKey(onClose, isOpen);
   useFocusTrap(modalRef, isOpen);
 
-  if (!isOpen) return null;
+
 
   const currentStageIndex = LIFECYCLE_STAGES.indexOf(revision.currentStage as any);
 
@@ -67,32 +67,13 @@ export function QuickRevisionModal({ revision, isOpen, onClose, onAction }: Quic
   };
 
   return (
-    <ModalPortal>
-    <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
-        {/* Backdrop */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={onClose}
-          role="presentation"
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm"
-        />
-
-        {/* Modal Window */}
-        <motion.div
-          ref={modalRef}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="quick-revision-modal-title"
-          tabIndex={-1}
-          initial={{ opacity: 0, scale: 0.95, y: 15 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 15 }}
-          transition={{ type: 'spring', duration: 0.4 }}
-          className="relative w-full max-w-2xl bg-zinc-950 border border-zinc-850 rounded-2xl shadow-2xl shadow-indigo-500/5 overflow-hidden flex flex-col z-10 my-6 focus:outline-none"
-        >
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      zIndex={50}
+      backdropClassName="bg-black/80 backdrop-blur-sm"
+      className="relative w-full max-w-2xl bg-zinc-950 border border-zinc-850 rounded-2xl shadow-2xl shadow-indigo-500/5 overflow-hidden flex flex-col z-10 my-6 focus:outline-none"
+    >
           {/* Header */}
           <div className="p-5 border-b border-zinc-900 flex items-center justify-between bg-zinc-900/10">
             <div className="space-y-1 text-left">
@@ -306,9 +287,6 @@ export function QuickRevisionModal({ revision, isOpen, onClose, onAction }: Quic
               SUBMIT DECISION
             </Button>
           </div>
-        </motion.div>
-      </div>
-    </AnimatePresence>
-    </ModalPortal>
+    </Modal>
   );
 }

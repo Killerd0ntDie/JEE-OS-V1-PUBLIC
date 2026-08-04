@@ -442,64 +442,74 @@ export function AnalyticsPage() {
         </div>
 
         <div className="h-48 w-full relative pt-4 pr-4 border-l border-b border-zinc-800">
-          <svg className="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 100 100">
-            {/* Grid lines */}
-            {[25, 50, 75].map(y => (
-              <line key={y} x1="0" y1={y} x2="100" y2={y} stroke="rgba(255,255,255,0.05)" strokeWidth="0.5" />
-            ))}
-            {/* Decay curve */}
-            <path 
-              d="M0,0 Q20,60 100,85" 
-              fill="none" 
-              stroke="#10b981" 
-              strokeWidth="2" 
-              className="drop-shadow-[0_0_5px_rgba(16,185,129,0.5)]" 
-            />
-            {/* Area under curve */}
-            <path 
-              d="M0,0 Q20,60 100,85 L100,100 L0,100 Z" 
-              fill="url(#decayGradient)" 
-              opacity="0.3" 
-            />
+          {(() => {
+            const avgRetention = (analytics as any)?.retentionScore || analytics?.accuracy || 75;
+            const dropSeverity = Math.min(85, Math.max(15, 100 - avgRetention));
+            const decayPath = `M0,5 Q25,${dropSeverity} 100,${Math.min(90, dropSeverity + 20)}`;
+            const areaPath = `${decayPath} L100,100 L0,100 Z`;
+            const theoreticalPath = `M0,5 Q20,40 100,75`;
             
-            <defs>
-              <linearGradient id="decayGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#10b981" />
-                <stop offset="100%" stopColor="transparent" />
-              </linearGradient>
-            </defs>
+            return (
+              <svg className="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 100 100">
+                {/* Grid lines */}
+                {[25, 50, 75].map(y => (
+                  <line key={y} x1="0" y1={y} x2="100" y2={y} stroke="rgba(255,255,255,0.05)" strokeWidth="0.5" />
+                ))}
+                {/* Dynamic Decay curve */}
+                <path 
+                  d={decayPath} 
+                  fill="none" 
+                  stroke="#10b981" 
+                  strokeWidth="2" 
+                  className="drop-shadow-[0_0_5px_rgba(16,185,129,0.5)]" 
+                />
+                {/* Area under curve */}
+                <path 
+                  d={areaPath} 
+                  fill="url(#decayGradient)" 
+                  opacity="0.3" 
+                />
+                
+                <defs>
+                  <linearGradient id="decayGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#10b981" />
+                    <stop offset="100%" stopColor="transparent" />
+                  </linearGradient>
+                </defs>
 
-            {/* Theoretical Baseline Curve (Faint) */}
-            <path 
-              d="M0,0 Q20,60 100,85" 
-              fill="none" 
-              stroke="#10b981" 
-              strokeWidth="1" 
-              opacity="0.3"
-              strokeDasharray="4 4"
-            />
+                {/* Theoretical Baseline Curve (Faint) */}
+                <path 
+                  d={theoreticalPath} 
+                  fill="none" 
+                  stroke="#10b981" 
+                  strokeWidth="1" 
+                  opacity="0.3"
+                  strokeDasharray="4 4"
+                />
 
-            {/* Real Chapter Data Points */}
-            {chapters
-              .filter(c => c.lastRevisionDaysAgo > 0)
-              .map(c => {
-                const x = Math.min(100, (c.lastRevisionDaysAgo / 30) * 100);
-                const y = 100 - c.confidence;
-                return (
-                  <circle 
-                    key={c.id} 
-                    cx={x} 
-                    cy={y} 
-                    r="1.5" 
-                    fill="#34d399" 
-                    className="hover:fill-white hover:r-2 transition-all cursor-pointer"
-                  >
-                    <title>{c.name}: {c.confidence}% retention ({c.lastRevisionDaysAgo} days ago)</title>
-                  </circle>
-                );
-              })
-            }
-          </svg>
+                {/* Real Chapter Data Points */}
+                {chapters
+                  .filter(c => c.lastRevisionDaysAgo > 0)
+                  .map(c => {
+                    const x = Math.min(100, (c.lastRevisionDaysAgo / 30) * 100);
+                    const y = 100 - c.confidence;
+                    return (
+                      <circle 
+                        key={c.id} 
+                        cx={x} 
+                        cy={y} 
+                        r="1.5" 
+                        fill="#34d399" 
+                        className="hover:fill-white hover:r-2 transition-all cursor-pointer"
+                      >
+                        <title>{c.name}: {c.confidence}% retention ({c.lastRevisionDaysAgo} days ago)</title>
+                      </circle>
+                    );
+                  })
+                }
+              </svg>
+            );
+          })()}
           
           {/* Axis Labels */}
           <div className="absolute top-0 -left-6 text-[9px] font-mono text-zinc-500 h-full flex flex-col justify-between pb-6">

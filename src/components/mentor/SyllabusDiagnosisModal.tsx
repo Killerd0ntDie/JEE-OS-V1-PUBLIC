@@ -3,7 +3,7 @@ import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { SubjectId, Chapter, SyllabusDiagnosisStage } from '@/types/index';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
-import { ModalPortal } from '@/components/ui/ModalPortal';
+import { Modal } from '@/components/ui/Modal';
 import { 
   BookOpen, Video, FileCheck2, RotateCcw, Sparkles, X, Check, Search, AlertCircle, SlidersHorizontal
 } from 'lucide-react';
@@ -22,8 +22,6 @@ export const SyllabusDiagnosisModal: React.FC<Props> = ({ isOpen, onClose }) => 
 
   useLockBodyScroll(isOpen);
   useEscapeKey(onClose, isOpen);
-
-  if (!isOpen) return null;
 
   const subjectChapters = chapters.filter(c => 
     c.subject === activeSubject && 
@@ -160,14 +158,8 @@ export const SyllabusDiagnosisModal: React.FC<Props> = ({ isOpen, onClose }) => 
   };
 
   return (
-    <ModalPortal>
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in overflow-y-auto">
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="syllabus-diagnosis-modal-title"
-        className="relative w-full max-w-5xl bg-[#0a0b0e] border border-indigo-900/50 rounded-2xl shadow-2xl overflow-hidden my-6 text-left"
-      >
+    
+    <Modal isOpen={isOpen} onClose={onClose} zIndex={50} backdropClassName="p-4 bg-black/80 backdrop-blur-md animate-fade-in overflow-y-auto" className="relative w-full max-w-5xl bg-[#0a0b0e] border border-indigo-900/50 rounded-2xl shadow-2xl overflow-hidden my-6 text-left">
         
         {/* Header */}
         <div className="px-6 py-4 bg-indigo-950/30 border-b border-indigo-900/40 flex items-center justify-between">
@@ -483,8 +475,7 @@ export const SyllabusDiagnosisModal: React.FC<Props> = ({ isOpen, onClose }) => 
           </button>
         </div>
 
-      </div>
-    </div>
-    </ModalPortal>
+      </Modal>
+    
   );
 };

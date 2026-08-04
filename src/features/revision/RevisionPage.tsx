@@ -8,7 +8,7 @@ import { RevisionCardItem } from '@jee-os/engines';
 import { ChapterRevisionInspectorModal } from '@/components/mentor/ChapterRevisionInspectorModal';
 import { AiPracticeModal } from '@/components/mentor/AiPracticeModal';
 import { ActiveRecallArena } from './components/ActiveRecallArena';
-import { Flame, Brain, Skull, Timer, CheckCircle2, Sparkles } from 'lucide-react';
+import { Flame, Brain, Skull, Timer, CheckCircle2, Sparkles, Check } from 'lucide-react';
 
 export function RevisionPage() {
   const chapters = useStudyBrainStore(s => s.chapters);
@@ -360,8 +360,19 @@ export function RevisionPage() {
         </div>
 
         {/* Compact 2-Column Grid for Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {cardsToDisplay.map(card => {
+        {cardsToDisplay.length === 0 ? (
+          <div className="col-span-full p-12 text-center bg-zinc-950/60 border border-emerald-900/30 rounded-2xl space-y-3">
+            <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto mb-2">
+              <Check className="w-6 h-6" />
+            </div>
+            <h4 className="text-sm font-display font-bold text-white">All Systems Optimal!</h4>
+            <p className="text-xs text-zinc-400 max-w-sm mx-auto font-mono">
+              No chapters currently require spaced-repetition revision under this filter. Outstanding work maintaining your retention memory!
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {cardsToDisplay.map(card => {
             const isFlipped = !!flippedCards[card.id];
 
             return (
@@ -461,6 +472,7 @@ export function RevisionPage() {
             );
           })}
         </div>
+        )}
 
         {/* Footer controls when viewing urgent mode */}
         {filterScope === 'urgent' && revisionData && revisionData.cards.length > 6 && (

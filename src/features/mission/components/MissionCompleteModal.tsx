@@ -1,6 +1,6 @@
 import React from 'react';
-import { ModalPortal } from '@/components/ui/ModalPortal';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
+import { Modal } from '@/components/ui/Modal';
 import { Award, Flame } from 'lucide-react';
 import { SubjectDetail } from './MissionSubjectSwitcherWidget';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
@@ -31,15 +31,7 @@ export function MissionCompleteModal({
   useEscapeKey(onNextSubject, isCompleted);
 
   return (
-    <ModalPortal>
-    <AnimatePresence>
-      {isCompleted && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[10000] bg-[#060607]/95 backdrop-blur-xl flex flex-col justify-center items-center text-center p-6"
-        >
+    <Modal isOpen={isCompleted} onClose={onNextSubject} className="max-w-lg space-y-8 relative z-10 w-full bg-transparent border-none shadow-none text-center">
           
           {/* SPARKLES PARTICLES GRAPHIC DECORATIONS */}
           <div className="absolute inset-0 pointer-events-none overflow-hidden flex items-center justify-center">
@@ -55,7 +47,7 @@ export function MissionCompleteModal({
             />
           </div>
 
-          <div className="max-w-lg space-y-8 relative z-10">
+          <div>
             
             <div className="space-y-3">
               <div className="inline-flex items-center gap-1.5 bg-emerald-950/20 border border-emerald-500/30 text-emerald-400 text-3xs font-mono px-3 py-1 rounded-full uppercase tracking-[0.2em] font-bold shadow-md shadow-emerald-500/5">
@@ -147,10 +139,6 @@ export function MissionCompleteModal({
             </div>
 
           </div>
-
-        </motion.div>
-      )}
-    </AnimatePresence>
-    </ModalPortal>
+    </Modal>
   );
 }

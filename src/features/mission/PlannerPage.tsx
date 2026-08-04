@@ -1,5 +1,5 @@
 import React from 'react';
-import { createPortal } from 'react-dom';
+import { Modal } from '@/components/ui/Modal';
 import { CalendarDays, LayoutGrid, BarChart2, Calendar, X, Sparkles, SlidersHorizontal } from 'lucide-react';
 import { usePlannerState } from './hooks/usePlannerState';
 import { PlannerHeader } from './components/PlannerHeader';
@@ -75,37 +75,37 @@ export function PlannerPage() {
             <button
               type="button"
               onClick={() => setViewMode('daily')}
-              className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
                 viewMode === 'daily'
                   ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/30'
                   : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
               }`}
             >
-              <CalendarDays className="w-3.5 h-3.5" />
+              <CalendarDays className="w-3.5 h-3.5 shrink-0" />
               Daily Focus
             </button>
             <button
               type="button"
               onClick={() => setViewMode('weekly')}
-              className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
                 viewMode === 'weekly'
                   ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/30'
                   : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
               }`}
             >
-              <LayoutGrid className="w-3.5 h-3.5" />
+              <LayoutGrid className="w-3.5 h-3.5 shrink-0" />
               Weekly Matrix
             </button>
             <button
               type="button"
               onClick={() => setViewMode('monthly')}
-              className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
                 viewMode === 'monthly'
                   ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/30'
                   : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
               }`}
             >
-              <BarChart2 className="w-3.5 h-3.5" />
+              <BarChart2 className="w-3.5 h-3.5 shrink-0" />
               Monthly Strategy
             </button>
           </div>
@@ -115,9 +115,15 @@ export function PlannerPage() {
         {viewMode === 'monthly' && <PlannerRoadmapTab state={state} />}
       </div>
 
-      {selectedBlock && createPortal(
-        <div className="fixed inset-0 z-[100] bg-[#09090b] flex flex-col font-sans animate-in fade-in duration-300 overflow-y-auto h-screen w-screen">
-          <div className="w-full max-w-4xl mx-auto flex flex-col flex-1 relative py-12 px-6">
+      <Modal
+        isOpen={!!selectedBlock}
+        onClose={() => setSelectedBlock(null)}
+        zIndex={100}
+        backdropClassName="bg-[#09090b] font-sans animate-in fade-in duration-300"
+        className="w-full max-w-4xl mx-auto flex flex-col flex-1 relative py-12 px-6 overflow-y-auto"
+      >
+        {selectedBlock && (
+          <>
             <button
               onClick={() => setSelectedBlock(null)}
               className="absolute top-6 right-6 p-2.5 rounded-xl border border-zinc-800 bg-zinc-900/50 hover:bg-zinc-800 text-zinc-400 hover:text-white cursor-pointer z-10 transition-colors"
@@ -247,10 +253,9 @@ export function PlannerPage() {
                 </button>
               </div>
             </div>
-          </div>
-        </div>,
-        document.body
-      )}
+          </>
+        )}
+      </Modal>
 
       <MentorInterviewModal
         isOpen={isInterviewModalOpen}

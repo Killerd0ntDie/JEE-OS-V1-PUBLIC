@@ -69,7 +69,7 @@ export function Sidebar({
               to={toPath}
               onClick={onCloseMobile}
               title={collapsed ? item.label : undefined}
-              className={({ isActive }) => `w-full h-10 rounded-xl text-xs font-semibold flex items-center transition-all border ${
+              className={({ isActive }) => `w-full h-10 rounded-xl text-xs font-semibold flex items-center transition-[background-color,border-color,color] duration-150 ease-out border focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus-visible:shadow-[0_0_15px_rgba(99,102,241,0.25)] focus-visible:bg-indigo-900/20 ${
                 isActive
                   ? 'bg-indigo-600/15 border-indigo-500/30 text-white font-bold shadow-sm'
                   : 'bg-transparent border-transparent text-zinc-400 hover:bg-zinc-850/60 hover:text-zinc-200'
@@ -111,25 +111,27 @@ export function Sidebar({
 
   const renderSidebarContent = (collapsed: boolean) => (
     <div
-      className={`h-full bg-zinc-950/95 backdrop-blur-xl flex flex-col justify-between border-r border-zinc-850/80 select-none transition-all duration-300 ease-in-out ${
+      className={`h-full bg-zinc-950/98 backdrop-blur-md transform-gpu flex flex-col justify-between border-r border-zinc-850/80 select-none transition-[width] duration-250 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-[width] ${
         collapsed ? 'w-16 group-hover:w-64 shadow-2xl z-50' : 'w-64'
       }`}
     >
       {/* Sidebar Header / Brand */}
       <div
-        className="h-14 border-b border-zinc-850/80 px-4 flex items-center justify-between shrink-0 bg-zinc-950 transition-colors group/brand"
+        className={`h-14 border-b border-zinc-850/80 flex items-center justify-between shrink-0 bg-zinc-950 transition-colors group/brand overflow-hidden px-2`}
       >
         <button 
           onClick={() => {
             navigate('/dashboard');
             onCloseMobile();
           }}
-          className="flex items-center gap-3 min-w-0 cursor-pointer text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 rounded-lg p-1 -ml-1"
+          className="flex items-center h-10 w-full min-w-0 cursor-pointer text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 rounded-xl"
           title="Click to go to Dashboard"
           aria-label="Go to Dashboard"
         >
-          <JeeOsLogo size="md" />
-          <div className={`text-left leading-none min-w-0 whitespace-nowrap ${getTextFadeClass(collapsed)}`}>
+          <div className="w-12 h-full flex items-center justify-center shrink-0">
+            <JeeOsLogo size="md" />
+          </div>
+          <div className={`text-left leading-none whitespace-nowrap transition-opacity duration-250 ease-out overflow-hidden ${collapsed ? 'w-0 opacity-0 group-hover:w-auto group-hover:opacity-100' : 'flex-1 opacity-100'}`}>
             <h1 className="text-sm font-display font-black text-white tracking-tight truncate group-hover/brand:text-indigo-300 transition-colors flex items-center gap-1.5">
               <span>JEE OS</span>
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
@@ -145,7 +147,7 @@ export function Sidebar({
               onToggleCollapse();
             }}
             aria-label={collapsed ? "Pin Sidebar Navigation" : "Unpin Sidebar Navigation"}
-            className={`p-1.5 -mr-1.5 rounded-lg text-zinc-500 hover:text-white hover:bg-zinc-800 transition-all duration-200 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:ring-2 focus:ring-zinc-500/50 ${getTextFadeClass(collapsed)}`}
+            className={`rounded-lg text-zinc-500 hover:text-white hover:bg-zinc-800 transition-all duration-300 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:ring-2 focus:ring-zinc-500/50 flex items-center justify-center ${collapsed ? 'opacity-0 w-0 p-0 overflow-hidden pointer-events-none group-hover:opacity-100 group-hover:w-8 group-hover:p-1.5 group-hover:pointer-events-auto group-hover:ml-1' : 'opacity-100 w-8 p-1.5 ml-1'}`}
             title={collapsed ? "Pin Sidebar" : "Unpin Sidebar (Auto-collapse)"}
           >
             <Icon name={collapsed ? "Menu" : "PanelLeftClose"} aria-hidden="true" className="w-4 h-4" />
@@ -154,7 +156,7 @@ export function Sidebar({
       </div>
 
       {/* Navigation Body */}
-      <nav aria-label="Main Navigation" className="flex-1 overflow-y-auto scrollbar-none px-0 py-1 flex flex-col justify-between bg-zinc-950">
+      <nav aria-label="Main Navigation" className="flex-1 overflow-y-auto overflow-x-hidden [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden px-0 py-1 flex flex-col justify-between bg-zinc-950">
         {categories.core.length > 0 && renderNavGroup('Core Console', categories.core, collapsed)}
         {categories.subjects.length > 0 && renderNavGroup('Subject Trackers', categories.subjects, collapsed)}
         {categories.utilities.length > 0 && renderNavGroup('Practice Vault', categories.utilities, collapsed)}
@@ -162,38 +164,40 @@ export function Sidebar({
         {categories.system.length > 0 && renderNavGroup('System', categories.system, collapsed)}
       </nav>
 
-      {/* Footer / Leveling & User Profile — Avatar center locked at 32px */}
-      <div className={`shrink-0 border-t border-zinc-850/80 bg-zinc-950 ${collapsed ? 'px-2 py-2' : 'px-4 py-2.5'} space-y-1.5`}>
+      {/* Footer / Leveling & User Profile */}
+      <div className={`shrink-0 border-t border-zinc-850/80 bg-zinc-950 px-2 py-2 space-y-1.5`}>
         {/* Level Progress Bar */}
-        <div className={getTextFadeClass(collapsed)}>
+        <div className={`transition-all duration-300 overflow-hidden ${collapsed ? 'h-0 opacity-0 group-hover:h-auto group-hover:opacity-100 group-hover:mb-1.5' : 'h-auto opacity-100 mb-1.5'}`}>
           <LevelProgress totalXP={xp?.total || 0} />
         </div>
 
-        {/* User Profile Bar — Center locked at 32px */}
+        {/* User Profile Bar */}
         <button
           onClick={() => navigate('/settings')}
           aria-label="Go to Settings"
-          className={`w-full flex items-center py-1 hover:bg-zinc-850/60 rounded-xl transition-all cursor-pointer group/profile whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 ${collapsed ? 'justify-center' : 'gap-3'}`}
+          className="w-full flex items-center h-12 hover:bg-zinc-850/60 rounded-xl transition-all cursor-pointer group/profile whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
         >
-          {/* 32px-centered Avatar slot */}
-          <div className="w-8 h-8 rounded-full border border-indigo-500/30 shrink-0 overflow-hidden flex items-center justify-center bg-indigo-600/20">
-            {user?.photoURL ? (
-              <img
-                src={user.photoURL}
-                alt={displayName}
-                referrerPolicy="no-referrer"
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <span className="text-indigo-400 font-bold text-xs">{userInitial}</span>
-            )}
+          {/* Avatar slot mathematically centered in w-12 matching icons */}
+          <div className="w-12 h-full flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-full border border-indigo-500/30 overflow-hidden flex items-center justify-center bg-indigo-600/20">
+              {user?.photoURL ? (
+                <img
+                  src={user.photoURL}
+                  alt={displayName}
+                  referrerPolicy="no-referrer"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="text-indigo-400 font-bold text-sm">{userInitial}</span>
+              )}
+            </div>
           </div>
 
-          <div className={`flex-1 overflow-hidden text-left leading-tight ${getTextFadeClass(collapsed)}`}>
-            <p className="text-xs text-zinc-200 font-semibold truncate pl-1">{displayName}</p>
-            <p className="text-xs font-mono text-zinc-500 truncate pl-1">JEE {settings?.targetYear || '2025'} Aspirant</p>
+          <div className={`flex-1 overflow-hidden text-left leading-tight transition-all duration-300 ${collapsed ? 'max-w-0 opacity-0 group-hover:max-w-xs group-hover:opacity-100' : 'max-w-xs opacity-100'}`}>
+            <p className="text-xs text-zinc-200 font-semibold truncate">{displayName}</p>
+            <p className="text-xs font-mono text-zinc-500 truncate">JEE {settings?.targetYear || '2025'} Aspirant</p>
           </div>
-          <Icon name="ChevronUp" aria-hidden="true" className={`w-3.5 h-3.5 text-zinc-600 shrink-0 group-hover/profile:text-zinc-300 transition-colors ${getTextFadeClass(collapsed)}`} />
+          <Icon name="ChevronUp" aria-hidden="true" className={`mr-2 w-3.5 h-3.5 text-zinc-600 shrink-0 group-hover/profile:text-zinc-300 transition-colors ${collapsed ? 'opacity-0 w-0 group-hover:opacity-100 group-hover:w-auto' : 'opacity-100 w-auto'}`} />
         </button>
       </div>
     </div>
