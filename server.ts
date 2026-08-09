@@ -209,7 +209,18 @@ Valid Action examples (as payload):
                   type: Type.OBJECT,
                   properties: {
                     type: { type: Type.STRING },
-                    payload: { type: Type.OBJECT }
+                    payload: { 
+                      type: Type.OBJECT,
+                      properties: {
+                        subject: { type: Type.STRING, description: "Required for ADD_MISSION. E.g. physics, chemistry, maths" },
+                        title: { type: Type.STRING, description: "Required for ADD_MISSION. Task title" },
+                        duration: { type: Type.NUMBER, description: "Required for ADD_MISSION. Duration in minutes" },
+                        chapterId: { type: Type.STRING, description: "Required for UPDATE_CHAPTER" },
+                        status: { type: Type.STRING, description: "Required for UPDATE_CHAPTER" },
+                        targetYear: { type: Type.NUMBER, description: "Required for UPDATE_TARGET" },
+                        targetCollege: { type: Type.STRING, description: "Required for UPDATE_TARGET" }
+                      }
+                    }
                   },
                   required: ["type", "payload"]
                 }

@@ -323,10 +323,16 @@ export class StudyBrainActions {
 
       let updatedCustomMissions = this.state.customMissions;
       const isCustom = this.state.customMissions.some(cm => cm.id === taskId);
+      const updatedCustomMission = updatedMissions[missionIndex];
+      
+      // Always save to CustomMissionRepository to ensure persistence even for standard missions that were checked off
+      savePromises.push(CustomMissionRepository.saveMission(this.userId, updatedCustomMission));
+      
       if (isCustom) {
-        const updatedCustomMission = updatedMissions[missionIndex];
-        savePromises.push(CustomMissionRepository.saveMission(this.userId, updatedCustomMission));
-        updatedCustomMissions = this.state.customMissions.map(cm => updatedMissions.find(um => um.id === cm.id) || cm);
+        updatedCustomMissions = this.state.customMissions.map(cm => cm.id === taskId ? updatedCustomMission : cm);
+      } else {
+        // If it wasn't custom before, we make it custom so its completed state persists across reloads
+        updatedCustomMissions = [...this.state.customMissions, updatedCustomMission];
       }
 
       // Trigger level-up event if applicable

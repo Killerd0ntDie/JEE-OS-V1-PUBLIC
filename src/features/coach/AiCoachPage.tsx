@@ -407,7 +407,11 @@ export function AiCoachPage({ isActive }: { isActive?: boolean }) {
                       <span className="text-[10px] font-mono text-indigo-300 font-bold uppercase tracking-widest block mb-1">
                         Suggested Actions
                       </span>
-                      {msg.actions.map((act, aIdx) => {
+                      {msg.actions.filter(act => {
+                          if (act.type === 'ADD_MISSION' && (!act.payload?.title || !act.payload?.subject)) return false;
+                          if (act.type === 'UPDATE_CHAPTER' && !act.payload?.chapterId) return false;
+                          return true;
+                      }).map((act, aIdx) => {
                         const isApplied = msg.appliedActionIndices?.includes(aIdx);
                         return (
                           <div key={aIdx} className={`bg-zinc-950/50 border ${isApplied ? 'border-emerald-800/40 opacity-70' : 'border-zinc-800/80'} rounded-xl p-3`}>
