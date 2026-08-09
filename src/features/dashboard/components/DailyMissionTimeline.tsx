@@ -19,7 +19,7 @@ interface DailyMissionTimelineProps {
   secondsElapsed: number;
   expandedMission: string | null;
   setExpandedMission: (id: string | null) => void;
-  handleStartSession: () => void;
+  handleStartSession: (missionId?: string) => void;
   handleResetSession: (e?: React.MouseEvent) => void;
   formatTimer: (totalSecs: number) => string;
   onOpenCustomMission?: () => void;
@@ -345,7 +345,7 @@ export function DailyMissionTimeline({
                   
                   const unitName = chap?.unit || 'Core Module';
 
-                  const isBreak = mission.subject === 'break' || mission.type === 'BREAK' || mission.taskName?.toLowerCase().includes('break');
+                  const isBreak = (mission.subject as string) === 'break' || (mission.type as string) === 'BREAK' || mission.taskName?.toLowerCase().includes('break');
 
                   if (isBreak) {
                     return (

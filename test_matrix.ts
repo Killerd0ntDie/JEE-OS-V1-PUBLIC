@@ -9,5 +9,5 @@ const todayMissions = [
   { id: '2', chapter: 'Chemical Bonding', completed: false, timeSlot: undefined, duration: 60, isManualOverride: false }
 ];
 
-const blocks = generateWeeklyMatrix('3_a_day', chapters, todayMissions, [], 0, null, [], [], '07:00', '22:30');
+const blocks = generateWeeklyMatrix('3_a_day', chapters as any, todayMissions as any, [], 0, null, [], {} as any, '07:00', '22:30');
 console.log(blocks);

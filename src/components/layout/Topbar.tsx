@@ -51,6 +51,7 @@ export function Topbar({
 
   const minStreakMins = Math.round((settings?.minStreakHours ?? 0.5) * 60);
   const computedStreak = useMemo(() => calculateCurrentStreak(studySessions, minStreakMins), [studySessions, minStreakMins]);
+  const effectiveStreak = Math.max(computedStreak, xp?.streak || 0);
   const todayStudyMins = useMemo(() => getTodayStudyMinutes(studySessions), [studySessions]);
   
   const formatStudyTime = (hours: number): string => {
@@ -303,7 +304,7 @@ export function Topbar({
         {/* Quick Stat Pill: Streak */}
         <button aria-haspopup="true" className="hidden md:flex group relative items-center gap-1 bg-zinc-900/60 hover:bg-zinc-850 border border-zinc-800 hover:border-zinc-700 px-2.5 py-1 rounded-full text-xs font-mono text-zinc-300 transition-all cursor-default focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50">
           <Icon name="Zap" className="w-3 h-3 text-amber-400" />
-          <span className="font-bold text-amber-400">{computedStreak}d</span>
+          <span className="font-bold text-amber-400">{effectiveStreak}d</span>
           
           <div className="absolute top-full right-0 mt-2 p-4 bg-[#0e0e11]/95 border border-zinc-800 rounded-2xl shadow-2xl opacity-0 invisible scale-95 -translate-y-2 group-hover:scale-100 group-hover:translate-y-0 group-hover:opacity-100 group-hover:visible group-focus-within:scale-100 group-focus-within:translate-y-0 group-focus-within:opacity-100 group-focus-within:visible transition-all duration-150 ease-out transform-gpu will-change-transform origin-top-right z-50 pointer-events-none group-hover:pointer-events-auto group-focus-within:pointer-events-auto">
             {(() => {
@@ -318,6 +319,8 @@ export function Topbar({
 
               // Aggregate real session data
               const monthlyHours = new Array(daysInMonth).fill(0);
+              const activeDaysSet = new Set<number>();
+
               studySessions.forEach((s: any) => {
                 const d = new Date(s.startTime);
                 if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
@@ -326,11 +329,32 @@ export function Topbar({
                 }
               });
 
+              // Include daily analytics activity
+              ((analytics as any)?.dailyAnalytics || []).forEach((da: any) => {
+                if (!da.date) return;
+                const d = new Date(da.date);
+                if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
+                  if ((da.studyTime || 0) >= minStreakMins || (da.xpEarned || 0) > 0) {
+                    activeDaysSet.add(d.getDate() - 1);
+                  }
+                }
+              });
+
+              // Ensure current active streak days are highlighted in the current month
+              if (effectiveStreak > 0) {
+                for (let k = 0; k < effectiveStreak; k++) {
+                  const dayIdx = todayDate - 1 - k;
+                  if (dayIdx >= 0 && dayIdx < daysInMonth) {
+                    activeDaysSet.add(dayIdx);
+                  }
+                }
+              }
+
               return (
                 <div className="w-[190px]">
                   <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-3 flex items-center justify-between">
                     <span>{currentMonthStr} Streak</span>
-                    <span className="text-amber-400">{computedStreak} Day Fire</span>
+                    <span className="text-amber-400">{effectiveStreak} Day Fire</span>
                   </div>
                   <div className="grid grid-cols-7 gap-1.5 mb-1.5 text-center">
                     {weekDays.map((d, i) => <span key={i} className="text-[11px] font-bold text-zinc-600">{d}</span>)}
@@ -344,7 +368,7 @@ export function Topbar({
                       const isFuture = day > todayDate;
                       const hours = monthlyHours[i] || 0;
                       const minStreakHours = settings?.minStreakHours ?? 0.5;
-                      const active = hours >= minStreakHours;
+                      const active = (hours >= minStreakHours || activeDaysSet.has(i)) && !isFuture;
                       const isToday = day === todayDate;
                       
                       return (
@@ -355,7 +379,7 @@ export function Topbar({
                             active ? 'bg-amber-950/40 border border-amber-900/50 text-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.15)]' : 
                             'bg-red-950/20 border border-red-900/30 text-red-900/60' // Break days in subtle red
                           } ${isToday ? 'ring-1 ring-white/30 ring-offset-1 ring-offset-zinc-950' : ''}`}
-                          title={isFuture ? `${currentMonthStr} ${day}` : `${currentMonthStr} ${day} - ${hours > 0 ? formatStudyTime(hours) : 'Missed'}`}
+                          title={isFuture ? `${currentMonthStr} ${day}` : `${currentMonthStr} ${day} - ${hours > 0 ? formatStudyTime(hours) : (active ? 'Active' : 'Missed')}`}
                         >
                           {active ? '⚡' : (!isFuture ? '·' : '')}
                         </div>

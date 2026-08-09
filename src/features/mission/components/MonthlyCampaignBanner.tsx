@@ -7,11 +7,16 @@ export function MonthlyCampaignBanner() {
   const chapters = useStudyBrainStore(state => state.chapters);
   const xp = useStudyBrainStore(state => state.xp);
 
-  // Derive "Boss" info dynamically from lowest confidence chapters if objective is empty
+  // Derive "Boss" info dynamically from active or lowest confidence chapters if objective is empty
   const boss = useMemo(() => {
-    let targetChap = chapters.reduce((lowest, c) => 
+    // Exclude fully completed/mastered chapters from candidate pool if there are active/uncompleted ones
+    const uncompleted = chapters.filter(c => c.completion < 100 && c.status !== 'Mastered' && c.status !== 'Theory Complete');
+    const revisionDue = chapters.filter(c => c.status === 'Revision Due' || (c.retentionScore && c.retentionScore < 70));
+    const candidatePool = uncompleted.length > 0 ? uncompleted : (revisionDue.length > 0 ? revisionDue : chapters);
+
+    let targetChap = candidatePool.reduce((lowest, c) => 
       (c.retentionScore || 100) < (lowest.retentionScore || 100) ? c : lowest
-    , chapters[0]);
+    , candidatePool[0]);
 
     const title = mentorProfile?.monthlyObjective?.category 
       || (targetChap ? `The ${targetChap.name} Titan` : 'The Mechanics Beast');

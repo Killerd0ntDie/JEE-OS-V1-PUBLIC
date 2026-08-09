@@ -128,7 +128,7 @@ export function useDashboardState() {
     }
     
     const targetMission = todayMissions.find(m => m.id === targetMissionId);
-    const isBreak = targetMission && (targetMission.subject === 'break' || targetMission.type === 'BREAK' || targetMission.taskName?.toLowerCase().includes('break'));
+    const isBreak = targetMission && ((targetMission.subject as string) === 'break' || (targetMission.type as string) === 'BREAK' || targetMission.taskName?.toLowerCase().includes('break'));
     
     if (isBreak) {
       setActiveBreakMissionId(targetMissionId);
