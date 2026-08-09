@@ -75,7 +75,18 @@ export class StudyBrainActions {
       if (getISOWeek(lastActive) !== getISOWeek(today)) {
         xp.weekly = 0;
       }
+      
+      // New month → reset monthly
+      if (lastActive.substring(0, 7) !== today.substring(0, 7)) {
+        xp.monthly = 0;
+      }
     }
+    
+    // Ensure monthly is initialized if it's undefined
+    if (xp.monthly === undefined) {
+      xp.monthly = 0;
+    }
+    
     return xp;
   }
 
@@ -188,6 +199,7 @@ export class StudyBrainActions {
       ...baseXpState,
       daily: Math.max(0, baseXpState.daily + deltaXp),
       weekly: Math.max(0, baseXpState.weekly + deltaXp),
+      monthly: Math.max(0, (baseXpState.monthly || 0) + deltaXp),
       total: Math.max(0, baseXpState.total + deltaXp)
     };
 
@@ -731,7 +743,8 @@ export class StudyBrainActions {
         ...baseXpState,
         total: baseXpState.total + (session.xpEarned || 0),
         daily: baseXpState.daily + (session.xpEarned || 0),
-        weekly: baseXpState.weekly + (session.xpEarned || 0)
+        weekly: baseXpState.weekly + (session.xpEarned || 0),
+        monthly: (baseXpState.monthly || 0) + (session.xpEarned || 0)
       };
       
       // Calculate new level
@@ -766,7 +779,8 @@ export class StudyBrainActions {
         ...baseXpState,
         total: baseXpState.total + revisionXP,
         daily: baseXpState.daily + revisionXP,
-        weekly: baseXpState.weekly + revisionXP
+        weekly: baseXpState.weekly + revisionXP,
+        monthly: (baseXpState.monthly || 0) + revisionXP
       };
 
       // Calculate new level
@@ -883,7 +897,8 @@ export class StudyBrainActions {
       ...baseXpState,
       total: baseXpState.total + mockXP,
       daily: baseXpState.daily + mockXP,
-      weekly: baseXpState.weekly + mockXP
+      weekly: baseXpState.weekly + mockXP,
+      monthly: (baseXpState.monthly || 0) + mockXP
     };
 
     // Calculate new level

@@ -283,6 +283,7 @@ export interface TodayMission {
   expectedMarksGain?: number;
   expectedLearningGain?: number;
   dependencyValue?: number;
+  targetPYQs?: number;
   revisionContribution?: number;
   selectionReason?: string;
 
@@ -345,6 +346,7 @@ export interface SessionAnalytics {
 export interface XPState {
   daily: number;
   weekly: number;
+  monthly?: number;
   total: number;
   level: number;
   streak: number;

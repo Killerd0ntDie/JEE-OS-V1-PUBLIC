@@ -20,6 +20,7 @@ export const CustomMissionModal: React.FC<CustomMissionModalProps> = ({ isOpen, 
   const [chapter, setChapter] = useState('');
   const [type, setType] = useState<TodayMission['type']>('Solve DPP');
   const [duration, setDuration] = useState(60);
+  const [targetPYQs, setTargetPYQs] = useState<number | ''>('');
 
   const todayStr = new Date().toISOString().split('T')[0];
   const [scheduledDate, setScheduledDate] = useState(todayStr);
@@ -31,6 +32,11 @@ export const CustomMissionModal: React.FC<CustomMissionModalProps> = ({ isOpen, 
       setChapter(missionToEdit.chapter || '');
       setType(missionToEdit.type || 'Solve DPP');
       setDuration(missionToEdit.duration || 60);
+      if (missionToEdit.targetPYQs !== undefined) {
+        setTargetPYQs(missionToEdit.targetPYQs);
+      } else {
+        setTargetPYQs('');
+      }
       if ((missionToEdit as any).date) {
         setScheduledDate((missionToEdit as any).date);
       }
@@ -40,6 +46,7 @@ export const CustomMissionModal: React.FC<CustomMissionModalProps> = ({ isOpen, 
       setChapter('');
       setType('Solve DPP');
       setDuration(60);
+      setTargetPYQs('');
       setScheduledDate(todayStr);
     }
   }, [missionToEdit, isOpen]);
@@ -70,6 +77,7 @@ export const CustomMissionModal: React.FC<CustomMissionModalProps> = ({ isOpen, 
         chapter: chapter || 'General',
         type,
         duration,
+        targetPYQs: targetPYQs === '' ? undefined : targetPYQs,
       });
     } else {
       actions.addCustomMission({
@@ -78,7 +86,8 @@ export const CustomMissionModal: React.FC<CustomMissionModalProps> = ({ isOpen, 
         chapter: chapter || 'General',
         type,
         duration,
-        xp: duration * 1.5,
+        xp: targetPYQs !== '' ? Math.round(targetPYQs * 2) : duration * 1.5,
+        targetPYQs: targetPYQs === '' ? undefined : targetPYQs,
         date: scheduledDate,
       });
     }
@@ -87,6 +96,7 @@ export const CustomMissionModal: React.FC<CustomMissionModalProps> = ({ isOpen, 
     setTaskName('');
     setChapter('');
     setDuration(60);
+    setTargetPYQs('');
     onClose();
   };
 
@@ -192,6 +202,20 @@ export const CustomMissionModal: React.FC<CustomMissionModalProps> = ({ isOpen, 
               <option value="Revise Formulas">Revise Formulas</option>
               <option value="Review Mistakes">Review Mistakes</option>
             </select>
+          </div>
+
+          {/* Target PYQs Optional Manual Override */}
+          <div className="space-y-2">
+            <label className="text-xs font-mono uppercase tracking-wider text-zinc-400 font-semibold flex justify-between">
+              <span>Target PYQs <span className="text-zinc-500 lowercase normal-case text-[10px]">(Optional)</span></span>
+            </label>
+            <input 
+              type="number"
+              placeholder="Leave empty for auto-calculate"
+              value={targetPYQs}
+              onChange={e => setTargetPYQs(e.target.value ? parseInt(e.target.value) : '')}
+              className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white font-mono text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500 transition-colors"
+            />
           </div>
 
           {/* Scheduled Date */}

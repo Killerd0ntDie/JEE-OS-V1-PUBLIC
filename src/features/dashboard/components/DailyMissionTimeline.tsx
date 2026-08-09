@@ -105,10 +105,26 @@ export function DailyMissionTimeline({
       'Formula Speed Memory Recall'
     ],
     pitfalls: rawRadar?.pitfalls || 'Verify calculations carefully to avoid silly sign and unit mistakes!',
-    recommendedPYQs: rawRadar?.recommendedPYQs || 25,
+    recommendedPYQs: rawRadar?.recommendedPYQs || undefined, // handled dynamically below
     weightageGain: rawRadar?.weightageGain || rawRadar?.examWeightagePercent || (activeMission?.subject === 'chemistry' ? 18 : activeMission?.subject === 'physics' ? 16 : 14),
     conceptTags: rawRadar?.conceptTags || ['Formula Recall', 'PYQ Solving', 'Concept Application']
   };
+
+  // Resolve Target PYQs
+  let targetPYQs: number | null = null;
+  if (activeMission?.targetPYQs !== undefined) {
+    targetPYQs = activeMission.targetPYQs;
+  } else if (strategyRadar.recommendedPYQs !== undefined) {
+    targetPYQs = strategyRadar.recommendedPYQs;
+  } else if (activeMission?.type === 'Solve PYQs' || activeMission?.type === 'Solve DPP' || activeMission?.taskName.toLowerCase().includes('pyq')) {
+    targetPYQs = Math.max(1, Math.round((activeMission?.duration || 60) / 3)); // 3 mins per question
+  }
+
+  // Resolve XP Award
+  let displayXp = activeMission?.xp || 0;
+  if (displayXp === 0) {
+    displayXp = targetPYQs ? Math.round(targetPYQs * 2) : Math.round((activeMission?.duration || 60) * 1.5);
+  }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 text-left items-start">
@@ -802,18 +818,20 @@ export function DailyMissionTimeline({
                 )}
 
                 {/* Target PYQ Quota & Metrics */}
-                <div className="grid grid-cols-3 gap-2 text-center font-mono">
+                <div className={`grid ${targetPYQs !== null ? 'grid-cols-3' : 'grid-cols-2'} gap-2 text-center font-mono`}>
                   <div className="p-2.5 rounded-xl border border-zinc-900 bg-zinc-900/40 space-y-0.5">
                     <span className="text-xs text-zinc-400 uppercase block">Est. Time</span>
                     <span className="text-xs font-bold text-white">{activeMission.duration}m</span>
                   </div>
-                  <div className="p-2.5 rounded-xl border border-zinc-900 bg-zinc-900/40 space-y-0.5">
-                    <span className="text-xs text-zinc-400 uppercase block">Target PYQs</span>
-                    <span className="text-xs font-bold text-indigo-400">{strategyRadar.recommendedPYQs} Qs</span>
-                  </div>
+                  {targetPYQs !== null && (
+                    <div className="p-2.5 rounded-xl border border-zinc-900 bg-zinc-900/40 space-y-0.5">
+                      <span className="text-xs text-zinc-400 uppercase block">Target PYQs</span>
+                      <span className="text-xs font-bold text-indigo-400">{targetPYQs} Qs</span>
+                    </div>
+                  )}
                   <div className="p-2.5 rounded-xl border border-zinc-900 bg-zinc-900/40 space-y-0.5">
                     <span className="text-xs text-zinc-400 uppercase block">XP Award</span>
-                    <span className="text-xs font-bold text-emerald-400">+{activeMission.xp}</span>
+                    <span className="text-xs font-bold text-emerald-400">+{displayXp}</span>
                   </div>
                 </div>
 

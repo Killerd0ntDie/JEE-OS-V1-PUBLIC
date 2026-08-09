@@ -17,23 +17,23 @@ export function MonthlyCampaignBanner() {
       || (targetChap ? `The ${targetChap.name} Titan` : 'The Mechanics Beast');
       
     const desc = mentorProfile?.monthlyObjective?.description 
-      || `Defeat the boss by restoring retention above 85% in weak subjects.`;
+      || `Defeat the boss by earning 3000 XP this month to secure your mastery.`;
 
-    // Calculate boss health (inverse of user's overall progress this month)
-    const baseHealth = 1000;
-    const currentHealth = Math.max(0, baseHealth - ((xp?.total || 0) % 1000));
+    // Calculate boss health (based on true Monthly XP, not an arbitrary modulo)
+    const baseHealth = 3000;
+    const currentHealth = Math.max(0, baseHealth - (xp?.monthly || 0));
     const healthPercent = (currentHealth / baseHealth) * 100;
 
     return { title, desc, healthPercent, currentHealth, baseHealth };
-  }, [chapters, mentorProfile?.monthlyObjective, xp]);
+  }, [chapters, mentorProfile?.monthlyObjective, xp?.monthly]);
 
   // Derive "Ghost Racer" pace
   const ghost = useMemo(() => {
     const today = new Date();
     const daysPassed = today.getDate();
-    // Ghost targets 120 XP per day
-    const ghostXp = daysPassed * 120;
-    const userXp = xp?.total || 0;
+    // Ghost targets 100 XP per day for a realistic 3000/month goal
+    const ghostXp = daysPassed * 100;
+    const userXp = xp?.monthly || 0;
     
     // Monthly total cap for visualization (e.g., 3000 XP)
     const monthlyMax = 3000;
@@ -44,7 +44,7 @@ export function MonthlyCampaignBanner() {
     const isAhead = userPercent >= ghostPercent;
 
     return { ghostXp, userXp, ghostPercent, userPercent, monthlyMax, isAhead };
-  }, [xp]);
+  }, [xp?.monthly]);
 
   return (
     <div className="px-4 py-3 rounded-xl border border-red-900/40 bg-red-950/10 flex flex-col md:flex-row gap-4 relative overflow-hidden items-center shadow-sm">
@@ -68,7 +68,7 @@ export function MonthlyCampaignBanner() {
       {/* Middle: Boss HP */}
       <div className="w-full md:w-1/3 space-y-1.5 z-10">
         <div className="flex justify-between text-[11px] font-mono font-bold uppercase tracking-wider">
-          <span className="text-red-400 flex items-center gap-1"><Skull className="w-3 h-3" /> Boss HP</span>
+          <span className="text-red-400 flex items-center gap-1"><Skull className="w-3 h-3" /> BOSS HP</span>
           <span className="text-zinc-400">{boss.currentHealth} / {boss.baseHealth} ({Math.round(boss.healthPercent)}%)</span>
         </div>
         <div className="h-1.5 rounded-full bg-red-950/50 border border-red-900/50 overflow-hidden flex justify-end">
