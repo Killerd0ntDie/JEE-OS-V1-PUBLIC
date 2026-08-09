@@ -500,8 +500,24 @@ export class PlannerEngine {
       }
     }
 
-    // Sort all candidates by priority score descending
-    candidates.sort((a, b) => b.priorityScore - a.priorityScore);
+    // Sort all candidates by priority score descending, with a tie-breaker for chronological lecture order
+    candidates.sort((a, b) => {
+      if (b.priorityScore !== a.priorityScore) {
+        return b.priorityScore - a.priorityScore;
+      }
+      
+      // Tie-breaker: keep lectures for the same chapter in sequential order
+      const getLecNum = (name: string) => {
+        const match = name.match(/Lecture (\d+)/i);
+        return match ? parseInt(match[1]) : 0;
+      };
+      
+      return getLecNum(a.taskName) - getLecNum(b.taskName);
+    });
+
+    console.log('==== DEBUG PLANNER SORTING ====');
+    candidates.forEach(c => console.log(`CANDIDATE: ${c.id} | ${c.taskName} | PRIO: ${c.priorityScore} | DUR: ${c.duration}`));
+    console.log('===============================');
 
     // Filter candidates for today's mission based on active day rotation & subjectSplitStrategy
     const todayDate = input.currentDate ? new Date(input.currentDate) : new Date();

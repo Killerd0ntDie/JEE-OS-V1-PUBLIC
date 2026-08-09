@@ -23,15 +23,34 @@ export function MissionCompleteModal({
   activeDetails,
   seconds,
   streak,
+  idleTime,
+  focusInterruptions,
+  focusScore,
   onComplete,
   onNextSubject
 }: MissionCompleteModalProps) {
   useLockBodyScroll(true);
 
-  useEscapeKey(onNextSubject, isCompleted);
+  useEscapeKey(() => {
+    onComplete({
+      duration: seconds,
+      questions: 0,
+      xp: Math.floor(seconds / 60) * 5,
+      streak: streak,
+      idleTime: idleTime,
+      focusInterruptions: focusInterruptions,
+      focusScore: focusScore
+    });
+  }, isCompleted);
 
   return (
-    <Modal isOpen={isCompleted} onClose={onNextSubject} className="max-w-lg space-y-8 relative z-10 w-full bg-transparent border-none shadow-none text-center">
+    <Modal 
+      isOpen={isCompleted} 
+      onClose={onNextSubject} 
+      zIndex={10001} 
+      backdropClassName="bg-[#09090b]/95 backdrop-blur-3xl"
+      className="max-w-lg space-y-8 relative z-10 w-full bg-[#09090b] border border-zinc-800/80 rounded-3xl p-8 shadow-[0_0_80px_rgba(16,185,129,0.1)] text-center"
+    >
           
           {/* SPARKLES PARTICLES GRAPHIC DECORATIONS */}
           <div className="absolute inset-0 pointer-events-none overflow-hidden flex items-center justify-center">

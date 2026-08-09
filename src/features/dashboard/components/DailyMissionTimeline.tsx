@@ -329,6 +329,104 @@ export function DailyMissionTimeline({
                   
                   const unitName = chap?.unit || 'Core Module';
 
+                  const isBreak = mission.subject === 'break' || mission.type === 'BREAK' || mission.taskName?.toLowerCase().includes('break');
+
+                  if (isBreak) {
+                    return (
+                      <div
+                        key={mission.id}
+                        onClick={() => {
+                          if (sessionState !== 'idle' && selectedMissionId !== mission.id) {
+                            handleResetSession();
+                          }
+                          setSelectedMissionId?.(mission.id);
+                        }}
+                        className={`group transition-all duration-200 cursor-pointer focus:outline-none flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 px-4 py-2.5 rounded-xl border relative mb-2 ${
+                          isLive 
+                            ? 'border-emerald-500/40 bg-emerald-950/20 shadow-[0_0_10px_rgba(16,185,129,0.05)]' 
+                            : isDismissed
+                            ? 'border-zinc-900/40 bg-zinc-950/30 opacity-40 grayscale cursor-default'
+                            : mission.completed
+                            ? 'border-zinc-800/40 bg-zinc-900/40 opacity-60'
+                            : isSelected
+                            ? 'border-indigo-500/30 bg-[#0d0e12]'
+                            : 'border-zinc-800/60 bg-zinc-900/30 hover:bg-zinc-900/60 hover:border-zinc-700/60'
+                        }`}
+                      >
+                         <div className="flex items-center gap-3">
+                           {!isDismissed && (
+                           <button
+                             type="button"
+                             onClick={(e) => {
+                               e.stopPropagation();
+                               actions.completeTask(mission.id);
+                             }}
+                             className={`rounded-full border flex items-center justify-center transition-all cursor-pointer ${
+                               mission.completed
+                                 ? 'w-5 h-5 bg-emerald-500 border-emerald-400 text-white'
+                                 : 'w-5 h-5 border-zinc-700 bg-zinc-950/50 text-transparent hover:border-emerald-500 hover:text-emerald-500/60'
+                             }`}
+                           >
+                             <Icon name="Check" className="w-3 h-3 stroke-[3]" />
+                           </button>
+                           )}
+                           {isDismissed && (
+                             <div className="w-5 h-5 rounded-full border border-red-900/40 bg-red-950/30 flex items-center justify-center shrink-0">
+                               <Icon name="X" className="w-3 h-3 text-red-500/60" />
+                             </div>
+                           )}
+                           
+                           <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${isLive ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : mission.completed ? 'bg-emerald-900/30 text-emerald-600' : 'bg-zinc-800/50 text-zinc-500 border border-zinc-800'}`}>
+                             <Icon name="Coffee" className="w-3.5 h-3.5" />
+                           </div>
+                           <div className="flex flex-col">
+                             <p className={`text-xs font-medium tracking-tight ${isLive ? 'text-emerald-300 font-bold' : mission.completed ? 'text-zinc-500 line-through' : 'text-zinc-300'}`}>
+                               {mission.taskName}
+                             </p>
+                             <div className="flex items-center gap-2 text-[10px] font-mono text-zinc-500 mt-0.5">
+                               {isLive && <span className="text-emerald-400 font-bold tracking-wider animate-pulse">LIVE NOW</span>}
+                               {pushedSlotsMap.has(mission.id) && (
+                                 <span className="text-emerald-500/70">
+                                   <Icon name="Clock" className="w-3 h-3 inline pb-0.5" /> {pushedSlotsMap.get(mission.id)?.slot}
+                                 </span>
+                               )}
+                             </div>
+                           </div>
+                         </div>
+                         <div className="flex items-center gap-2.5 ml-auto">
+                           <span className="text-[11px] font-mono text-zinc-500 bg-zinc-950/60 border border-zinc-800/80 px-2 py-0.5 rounded">
+                             {mission.duration}m
+                           </span>
+                           {!isDismissed && (
+                             <button
+                               type="button"
+                               onClick={(e) => {
+                                 e.stopPropagation();
+                                 setMissionToDelete(mission.id);
+                               }}
+                               className="w-6 h-6 rounded border border-zinc-800 bg-zinc-900/40 hover:bg-red-500/20 hover:border-red-500/40 text-zinc-500 hover:text-red-400 flex items-center justify-center transition-colors cursor-pointer"
+                               title="Delete break"
+                             >
+                               <Trash2 className="w-3 h-3" />
+                             </button>
+                           )}
+                           {isLive && (
+                             <button
+                               type="button"
+                               onClick={(e) => {
+                                 e.stopPropagation();
+                                 handleStartSession(mission.id);
+                               }}
+                               className="px-3 py-1 bg-emerald-500 hover:bg-emerald-400 text-white shadow-[0_0_10px_rgba(16,185,129,0.3)] text-[10px] font-mono font-bold rounded flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                             >
+                               <Icon name="Play" className="w-3 h-3 fill-white" /> START
+                             </button>
+                           )}
+                         </div>
+                      </div>
+                    );
+                  }
+
                   return (
                     <div
                       key={mission.id}
@@ -460,7 +558,7 @@ export function DailyMissionTimeline({
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleStartSession();
+                                  handleStartSession(mission.id);
                                 }}
                                 className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-white font-mono text-xs font-bold rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.4)] flex items-center gap-2 cursor-pointer transition-all active:scale-95"
                               >
@@ -739,7 +837,7 @@ export function DailyMissionTimeline({
                     actions.setRadarFocusedChapter(activeChap.id);
                     actions.setActiveSubject(activeChap.subject);
                   }
-                  handleStartSession();
+                  handleStartSession(activeMission?.id);
                 }
               }}
               className={`w-full py-3.5 font-mono text-xs font-bold uppercase tracking-wider rounded-xl transition-all cursor-pointer shadow-lg ${

@@ -110,7 +110,7 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
     const timeStr = `${hoursStr}:${minsStr}`;
 
     if (offsetMins < 0 || offsetMins > 24 * 60) return { nowLineTop: null, nowTimeStr: timeStr };
-    return { nowLineTop: (offsetMins / 60) * 96, nowTimeStr: timeStr }; // 96px per hour
+    return { nowLineTop: (offsetMins / 60) * 120, nowTimeStr: timeStr }; // 120px per hour
   }, [nowDate]);
 
   // Auto-scroll to the LIVE time line when the view opens or changes
@@ -215,9 +215,9 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
     const totalStartMins = startHour * 60 + startMin;
     const offsetMins = Math.max(0, totalStartMins - 0);
 
-    const topPx = (offsetMins / 60) * 96;
+    const topPx = (offsetMins / 60) * 120;
     const duration = getBlockDuration(block);
-    const heightPx = Math.max(30, (duration / 60) * 96 - 4);
+    const heightPx = Math.max(30, (duration / 60) * 120 - 4);
 
     return { topPx, heightPx };
   };
@@ -284,7 +284,7 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
           {HOURS.map((hour) => (
             <div
               key={hour}
-              className="h-[96px] flex items-start justify-end pr-3 pt-1.5 font-space-mono text-[10px] font-medium text-zinc-400 select-none border-b border-zinc-800/40"
+              className="h-[120px] flex items-start justify-end pr-3 pt-1.5 font-space-mono text-[10px] font-medium text-zinc-400 select-none border-b border-zinc-800/40"
             >
               {hour}
             </div>
@@ -313,8 +313,8 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
                 const rect = colEl.getBoundingClientRect();
                 const offsetY = Math.max(0, e.clientY - rect.top);
 
-                // 96px = 1 hour (60 mins). Column starts at 00:00 AM (0 mins)
-                const minsFrom6 = Math.max(0, Math.min(24 * 60, (offsetY / 96) * 60));
+                // 120px = 1 hour (60 mins). Column starts at 00:00 AM (0 mins)
+                const minsFrom6 = Math.max(0, Math.min(24 * 60, (offsetY / 120) * 60));
 
                 // SNAP TO 5 MINUTES!
                 const snappedMinsFrom6 = Math.floor(minsFrom6 / 5) * 5;
@@ -330,8 +330,8 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
                 const endM = totalEndMins % 60;
                 const endStr = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
 
-                const topPx = (snappedMinsFrom6 / 60) * 96;
-                const heightPx = Math.max(30, (duration / 60) * 96 - 4);
+                const topPx = (snappedMinsFrom6 / 60) * 120;
+                const heightPx = Math.max(30, (duration / 60) * 120 - 4);
                 const timeSlotStr = `${startStr} - ${endStr}`;
 
                 if (!dragSnapPreview || dragSnapPreview.dayIndex !== dIndex || dragSnapPreview.topPx !== topPx) {
@@ -372,7 +372,7 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
               {HOURS.map((h) => (
                 <div
                   key={h}
-                  className="h-[96px] border-b border-zinc-800/40 relative transition-colors pointer-events-none"
+                  className="h-[120px] border-b border-zinc-800/40 relative transition-colors pointer-events-none"
                 />
               ))}
 
@@ -453,7 +453,7 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
                     if (startMins < runningPushMins) {
                       startMins = runningPushMins;
                       endMins = startMins + duration;
-                      topPx = (startMins / 60) * 96;
+                      topPx = (startMins / 60) * 120;
 
                       const sH = Math.floor((startMins % 1440) / 60).toString().padStart(2, '0');
                       const sM = (startMins % 60).toString().padStart(2, '0');

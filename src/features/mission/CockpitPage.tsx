@@ -30,12 +30,26 @@ export function CockpitPage() {
         activeMissionId={missionId || undefined}
         initialPaused={locationState?.paused ?? false}
         initialSeconds={locationState?.seconds ?? 0}
-        onExit={(currentSecs) => {
+        onExit={async (currentSecs) => {
+          if (currentSecs >= 60) {
+            const durationMinutes = Math.floor(currentSecs / 60);
+            await actions.completeStudySession({
+              duration: durationMinutes,
+              focusTime: durationMinutes,
+              questions: 0,
+              correct: 0,
+              type: 'Practice',
+              subjectId: activeSubject as any,
+              idleTime: 0,
+              focusInterruptions: 0,
+              focusScore: 100
+            });
+          }
           navigate('/dashboard');
         }}
-        onComplete={async (stats) => {
+        onComplete={(stats) => {
           const durationMinutes = Math.max(1, Math.ceil(stats.duration / 60));
-          await actions.completeStudySession({
+          actions.completeStudySession({
             duration: durationMinutes,
             focusTime: durationMinutes,
             questions: stats.questions,

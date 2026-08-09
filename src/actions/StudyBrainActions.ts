@@ -130,7 +130,7 @@ export class StudyBrainActions {
     }
   }
 
-  async completeTask(taskId: string) {
+  async completeTask(taskId: string, durationSecs?: number) {
     this.checkWriteBlock();
     const missionIndex = this.state.todayMissions.findIndex(m => m.id === taskId);
     if (missionIndex === -1) return;
@@ -139,11 +139,32 @@ export class StudyBrainActions {
     const isCompleting = !mission.completed;
 
     const updatedMissions = [...this.state.todayMissions];
-    updatedMissions[missionIndex] = {
+    const updatedMission = {
       ...mission,
       completed: isCompleting,
       unlocked: true
     };
+
+    // Adjust the scheduled time to match reality when completing
+    if (isCompleting) {
+      let durationMins = 0;
+      if (durationSecs !== undefined && durationSecs > 0) {
+        durationMins = Math.ceil(durationSecs / 60);
+      } else {
+        durationMins = mission.duration || 60; // fallback to expected duration
+      }
+      
+      const now = new Date();
+      const start = new Date(now.getTime() - durationMins * 60000);
+      
+      const startStr = start.toTimeString().substring(0, 5); // "HH:MM"
+      const endStr = now.toTimeString().substring(0, 5); // "HH:MM"
+      
+      updatedMission.scheduledTime = startStr;
+      updatedMission.timeSlot = `${startStr} - ${endStr}`;
+    }
+
+    updatedMissions[missionIndex] = updatedMission;
 
     if (isCompleting && missionIndex + 1 < updatedMissions.length) {
       updatedMissions[missionIndex + 1] = {
@@ -312,19 +333,21 @@ export class StudyBrainActions {
       const levelUpData = oldLevel !== newLevel && isCompleting ? { oldLevel, newLevel, xp: newXp } : null;
 
       // Optimistic update - refresh UI immediately before saving
+
+
+      // Fire and forget heavy IO tasks to unblock the main thread instantly
+      Promise.all(savePromises).catch(err => console.error('[completeTask] Failed to save DB', err));
+
+      // Fire and forget heavy matrix regeneration
       // Use INIT instead of SESSION_UPDATE to trigger generateWeeklyMatrix
-      // so that un-completing or completing a task re-packs the timeSlots
-      // and fixes any collisions in the calendar.
-      await this.runtime.refresh('INIT', {
+      this.runtime.refresh('INIT', {
         todayMissions: updatedMissions,
         customMissions: updatedCustomMissions,
         xp: newXp,
         chapters: updatedChapters,
         lastSyncError: null,
         levelUpData
-      });
-
-      await Promise.all(savePromises);
+      }).catch(err => console.error('[completeTask] Failed to refresh matrix', err));
 
       // Trigger success toast for task completion if we just completed it
       if (isCompleting) {

@@ -110,7 +110,7 @@ export const PAGES: PageDefinition[] = [
     icon: 'Sparkles',
     description: 'Converse with your dedicated JEE strategist for study planning and motivation.',
     category: 'intelligence',
-    badge: 'Gemini 1.5 Flash',
+    //badge: '1.5 Flash',
     badgeStyle: 'accent',
   },
   {

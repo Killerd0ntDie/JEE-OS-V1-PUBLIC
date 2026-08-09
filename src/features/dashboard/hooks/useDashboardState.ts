@@ -119,8 +119,8 @@ export function useDashboardState() {
   // Focus session timer is now strictly handled by MissionMode.tsx
   // Dashboard only holds the static paused value to prevent massive unneeded re-renders.
 
-  const handleStartSession = () => {
-    let targetMissionId = selectedMissionId;
+  const handleStartSession = (missionId?: string) => {
+    let targetMissionId = missionId || selectedMissionId;
     if (!targetMissionId) {
       const nextMission = todayMissions.find(m => !m.completed);
       targetMissionId = nextMission?.id || '';

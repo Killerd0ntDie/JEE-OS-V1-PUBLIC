@@ -382,11 +382,7 @@ export function useMissionState(props: MissionModeProps) {
           setActiveSubject(subjects[nextIdx]);
           setCoachTip(`Switched track to ${subjectsDetails[subjects[nextIdx]].name}. Checklist reset.`);
           break;
-        case 'escape':
-          e.preventDefault();
-          setIsPaused(false);
-          handleExit();
-          break;
+
         case 'n':
           if (e.ctrlKey || e.metaKey) {
             e.preventDefault();
@@ -499,7 +495,7 @@ export function useMissionState(props: MissionModeProps) {
 
   const handleNextSubject = async () => {
     if (activeSubjectMission?.id) {
-      await actions.completeTask(activeSubjectMission.id);
+      await actions.completeTask(activeSubjectMission.id, Math.max(60, seconds));
     } else {
       console.warn(`[MissionMode] "Next subject" pressed for ${activeSubject} but no matching mission was found — nothing was marked complete.`);
     }
@@ -509,9 +505,17 @@ export function useMissionState(props: MissionModeProps) {
     const nextMission = allIncompleteMissions[currentMissionIdx + 1] || allIncompleteMissions[0];
     
     if (nextMission && nextMission.subject) {
-      const nextSubj = nextMission.subject as 'physics' | 'chemistry' | 'maths';
-      setActiveSubject(nextSubj);
-      setCoachTip(`Commencing next mission: ${nextMission.taskName}. Focus locked.`);
+      let nextSubjRaw = nextMission.subject.toLowerCase();
+      if (nextSubjRaw === 'math') nextSubjRaw = 'maths';
+      
+      const validSubjects = ['physics', 'chemistry', 'maths'];
+      if (validSubjects.includes(nextSubjRaw)) {
+        setActiveSubject(nextSubjRaw as 'physics' | 'chemistry' | 'maths');
+        setCoachTip(`Commencing next mission: ${nextMission.taskName}. Focus locked.`);
+      } else {
+        setActiveSubject('physics');
+        setCoachTip('All missions completed for today! Starting fresh cycle.');
+      }
     } else {
       const subjects: ('physics' | 'chemistry' | 'maths')[] = ['physics', 'chemistry', 'maths'];
       setActiveSubject(subjects[0]);
@@ -539,7 +543,7 @@ export function useMissionState(props: MissionModeProps) {
 
   const handleMissionComplete = async (data?: any) => {
     if (activeSubjectMission?.id) {
-      await actions.completeTask(activeSubjectMission.id);
+      await actions.completeTask(activeSubjectMission.id, data?.duration ?? Math.max(60, seconds));
     } else {
       console.warn(`[MissionMode] Complete pressed for ${activeSubject} but no matching mission was found — nothing was marked complete in store.`);
     }
