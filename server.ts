@@ -71,6 +71,26 @@ async function startServer() {
     return prefix + '_v2_' + crypto.createHash('sha256').update(JSON.stringify(body)).digest('hex');
   };
 
+  const generateWithFallback = async (ai: any, prompt: string, config: any) => {
+    try {
+      return await ai.models.generateContent({
+        model: 'gemini-3.6-flash',
+        contents: prompt,
+        config
+      });
+    } catch (error: any) {
+      if (error.status === 503 || String(error.message).includes('high demand') || String(error.message).includes('UNAVAILABLE')) {
+        console.warn("[Gemini API] gemini-3.6-flash is overloaded (503). Falling back to gemini-3.1-pro...");
+        return await ai.models.generateContent({
+          model: 'gemini-3.1-pro',
+          contents: prompt,
+          config
+        });
+      }
+      throw error;
+    }
+  };
+
   const CoachSchema = z.object({
     mission: z.array(z.any()).optional(),
     weakTopics: z.array(z.any()).optional(),
@@ -176,10 +196,7 @@ Valid Action examples (as payload):
         return res.json({ analysis: parsed.analysis, cached: true, actions: parsed.actions });
       }
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.6-flash',
-        contents: prompt,
-        config: {
+      const response = await generateWithFallback(ai, prompt, {
           responseMimeType: "application/json",
           responseSchema: {
             type: Type.OBJECT,
@@ -200,8 +217,7 @@ Valid Action examples (as payload):
             },
             required: ["analysis", "actions"]
           }
-        }
-      });
+        });
 
       let cleanText = response.text || "{}";
       // Strip any residual thinking tags if they leak into the response (they shouldn't with Schema)
@@ -291,14 +307,10 @@ Valid Action examples (as payload):
         return res.json({ questions: JSON.parse(cachedResponse), cached: true });
       }
       
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.6-flash',
-        contents: prompt,
-        config: {
+      const response = await generateWithFallback(ai, prompt, {
             responseMimeType: "application/json",
             temperature: 0.7
-        }
-      });
+        });
 
 
       let text = (response.text || "[]").replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
@@ -387,14 +399,10 @@ Valid Action examples (as payload):
         return res.json({ questions: JSON.parse(cachedResponse), cached: true });
       }
       
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.6-flash',
-        contents: prompt,
-        config: {
+      const response = await generateWithFallback(ai, prompt, {
             responseMimeType: "application/json",
             temperature: 0.7
-        }
-      });
+        });
 
       let text = response.text || "[]";
       // Clean up any potential markdown if the model hallucinated it despite application/json
@@ -506,14 +514,10 @@ Valid Action examples (as payload):
         return res.json({ plan: JSON.parse(cachedResponse), cached: true });
       }
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.6-flash',
-        contents: prompt,
-        config: {
+      const response = await generateWithFallback(ai, prompt, {
           responseMimeType: "application/json",
           temperature: 0.7
-        }
-      });
+        });
 
       let text = (response.text || "{}").replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
       let jsonStr = "{}";
