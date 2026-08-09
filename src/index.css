@@ -38,11 +38,14 @@
 }
 
 .theme-rot-mode {
-  /* Extreme desaturation and red tint */
-  filter: grayscale(80%) sepia(20%) hue-rotate(-50deg);
-}
-.theme-rot-mode * {
-  /* Force cursor to show urgency */
+  --color-brand-accent: #71717a; 
+  --color-brand-accent-glow: rgba(113, 113, 122, 0.25);
+  --color-zinc-950: #0a0a0b;
+  --color-zinc-900: #121214;
+  --color-zinc-850: #18181b;
+  --color-zinc-800: #27272a;
+  --color-zinc-750: #3f3f46;
+  --color-zinc-700: #52525b;
 }
 
 /* Custom Scrollbar */
@@ -99,8 +102,6 @@ body {
 /* Glassmorphism Design Tokens & Utilities */
 .glass-card {
   background: rgba(18, 19, 26, 0.80);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.08);
   transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
@@ -114,8 +115,6 @@ body {
 
 .glass-panel {
   background: rgba(12, 12, 16, 0.92);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
@@ -159,3 +158,11 @@ body {
   100% { background-position: 100% 50%; opacity: 1; }
 }
 
+
+/* ==========================================================================
+   PERFORMANCE OVERRIDES
+   ========================================================================== */
+*, ::before, ::after {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
