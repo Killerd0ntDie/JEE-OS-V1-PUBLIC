@@ -233,7 +233,7 @@ Valid Action examples (as payload):
         return res.json({ analysis: parsed.analysis, cached: true, actions: parsed.actions });
       }
       const response = await ai.models.generateContent({
-        model: "gemini-3.6-flash",
+        model: "gemini-1.5-flash",
         contents: prompt,
         config: {
           responseMimeType: "application/json",
@@ -334,7 +334,7 @@ Valid Action examples (as payload):
         return res.json({ questions: JSON.parse(cachedResponse), cached: true });
       }
       const response = await ai.models.generateContent({
-        model: "gemini-3.6-flash",
+        model: "gemini-1.5-flash",
         contents: prompt,
         config: {
           responseMimeType: "application/json",
@@ -418,7 +418,7 @@ Valid Action examples (as payload):
         return res.json({ questions: JSON.parse(cachedResponse), cached: true });
       }
       const response = await ai.models.generateContent({
-        model: "gemini-3.6-flash",
+        model: "gemini-1.5-flash",
         contents: prompt,
         config: {
           responseMimeType: "application/json",
@@ -520,7 +520,7 @@ Valid Action examples (as payload):
         return res.json({ plan: JSON.parse(cachedResponse), cached: true });
       }
       const response = await ai.models.generateContent({
-        model: "gemini-3.6-flash",
+        model: "gemini-1.5-flash",
         contents: prompt,
         config: {
           responseMimeType: "application/json",

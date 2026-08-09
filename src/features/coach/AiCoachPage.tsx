@@ -438,7 +438,7 @@ export function AiCoachPage({ isActive }: { isActive?: boolean }) {
             {isLoading && (
               <div className="flex items-start">
                 <div className="bg-zinc-900/90 border border-zinc-800 p-3 rounded-2xl rounded-bl-none text-xs text-indigo-400 font-mono animate-pulse flex items-center gap-2">
-                  <Icon name="Bot" className="w-3.5 h-3.5 animate-spin" />
+                  <Icon name="Bot" className="w-3.5 h-3.5" />
                   <span>AI Coach is evaluating telemetry...</span>
                 </div>
               </div>

@@ -61,6 +61,13 @@ import {
   Star,
   Coffee,
   Utensils,
+  Bot,
+  Loader2,
+  CheckCircle2,
+  XCircle,
+  WifiOff,
+  Rocket,
+  PieChart,
   LucideProps
 } from 'lucide-react';
 
@@ -125,7 +132,14 @@ export const iconMap = {
   AlertTriangle,
   BarChart2,
   BarChart,
-  Star
+  Star,
+  Bot,
+  Loader2,
+  CheckCircle2,
+  XCircle,
+  WifiOff,
+  Rocket,
+  PieChart
 };
 
 export type IconName = keyof typeof iconMap;
