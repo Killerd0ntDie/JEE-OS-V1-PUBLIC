@@ -11,6 +11,7 @@ import { DashboardSkeleton } from '@/components/ui/Skeleton';
 import { DashboardHeader } from './components/DashboardHeader';
 import { RoutineBreakModal } from './components/RoutineBreakModal';
 import { DashboardFocusSection } from './components/DashboardFocusSection';
+import { BreakActiveModal } from './components/BreakActiveModal';
 import { useDashboardState } from './hooks/useDashboardState';
 
 export function DashboardPage() {
@@ -44,6 +45,12 @@ export function DashboardPage() {
       <RoutineBreakModal
         isOpen={isRoutineBreakModalOpen}
         onClose={() => setIsRoutineBreakModalOpen(false)}
+      />
+
+      <BreakActiveModal
+        isOpen={!!state.activeBreakMissionId}
+        onClose={() => handlers.setActiveBreakMissionId(null)}
+        breakMission={state.todayMissions.find(m => m.id === state.activeBreakMissionId) || null}
       />
 
       {/* EMBEDDED HERO DAILY CHECK-IN CARD */}

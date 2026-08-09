@@ -68,6 +68,7 @@ import {
   WifiOff,
   Rocket,
   PieChart,
+  Eye,
   LucideProps
 } from 'lucide-react';
 
@@ -139,7 +140,8 @@ export const iconMap = {
   XCircle,
   WifiOff,
   Rocket,
-  PieChart
+  PieChart,
+  Eye
 };
 
 export type IconName = keyof typeof iconMap;

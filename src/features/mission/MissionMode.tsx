@@ -62,7 +62,8 @@ export function MissionMode(props: MissionModeProps) {
       isOpen={!isClosing}
       onClose={handleSmoothExit}
       zIndex={9999}
-      className="bg-[#070708] text-zinc-100 flex flex-col font-sans overflow-hidden select-none w-full h-full"
+      fullScreen={true}
+      className="bg-[#070708] text-zinc-100 flex flex-col font-sans overflow-hidden select-none fixed inset-0 w-full h-full rounded-none border-none"
     >
         
         <CasinoSetupOverlay 
@@ -82,11 +83,7 @@ export function MissionMode(props: MissionModeProps) {
           onExit={handleSmoothExit} 
         />
 
-        {/* GLOWING AMBIENT FIELD BACKGROUND */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          <div className="absolute -top-[300px] left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-indigo-500/5 blur-[120px] rounded-full" />
-          <div className="absolute top-[20%] right-[10%] w-[400px] h-[400px] bg-emerald-500/3 blur-[120px] rounded-full" />
-        </div>
+
 
         <MissionHeader onExit={handleSmoothExit} />
 
@@ -150,7 +147,7 @@ export function MissionMode(props: MissionModeProps) {
           </div>
 
           {/* RIGHT COMPONENT COLUMN (PRACTICE OR CHECKLIST) */}
-          <div className="flex-1 w-full max-w-xl mx-auto flex flex-col h-full bg-zinc-950/60 rounded-3xl border border-zinc-800/80 overflow-hidden shadow-2xl relative">
+          <div className="flex-1 w-full max-w-xl mx-auto flex flex-col h-full bg-white/[0.03] backdrop-blur-xl rounded-3xl border border-white/[0.08] overflow-hidden shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] relative">
             <div className="flex-1 flex flex-col min-h-0 relative">
               {children ? (
                 children

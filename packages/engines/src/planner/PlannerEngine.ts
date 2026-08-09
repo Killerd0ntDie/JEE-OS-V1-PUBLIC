@@ -421,7 +421,7 @@ export class PlannerEngine {
       };
 
       if (!prog.theoryComplete) {
-        const remainingLectures = Math.min(5, Math.max(1, (prog.totalLectures || 12) - prog.currentLecture));
+        const remainingLectures = Math.max(1, (prog.totalLectures || 12) - prog.currentLecture);
         // Use exact telemetry duration, falling back to 75 if completely missing, capped at 120
         const lecDuration = Math.min(prog.avgLectureDuration || 75, 120);
 
@@ -986,7 +986,8 @@ export function generateWeeklyMatrix(
           timeSlot = `${startStr} - ${endStr}`;
           
           // Prepare 15 min break after if not overflowing
-          if (!pushToTomorrow) {
+          const hasExistingBreak = todayMissions.some(tm => tm.id === `break-${m.id}` || tm.id === `today-break-${m.id}`);
+          if (!pushToTomorrow && m.subject !== 'break' && !hasExistingBreak) {
             const breakStartStr = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
             currentMinute += 15;
             let tempHour = currentHour;
@@ -1033,10 +1034,12 @@ export function generateWeeklyMatrix(
             currentMinute = parseInt(match[2], 10);
             
             // Also add a 15-minute break offset logically, so the next un-timeslotted task starts after a break
-            currentMinute += 15;
-            while (currentMinute >= 60) {
-              currentHour += 1;
-              currentMinute -= 60;
+            if (m.subject !== 'break') {
+              currentMinute += 15;
+              while (currentMinute >= 60) {
+                currentHour += 1;
+                currentMinute -= 60;
+              }
             }
           }
         }

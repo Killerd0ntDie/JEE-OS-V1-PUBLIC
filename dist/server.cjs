@@ -135,6 +135,25 @@ async function startServer() {
   const generateCacheKey = (body, prefix) => {
     return prefix + "_v2_" + import_crypto.default.createHash("sha256").update(JSON.stringify(body)).digest("hex");
   };
+  const generateWithFallback = async (ai, prompt, config) => {
+    try {
+      return await ai.models.generateContent({
+        model: "gemini-3.6-flash",
+        contents: prompt,
+        config
+      });
+    } catch (error) {
+      if (error.status === 503 || String(error.message).includes("high demand") || String(error.message).includes("UNAVAILABLE")) {
+        console.warn("[Gemini API] gemini-3.6-flash is overloaded (503). Falling back to gemini-3.1-pro...");
+        return await ai.models.generateContent({
+          model: "gemini-3.1-pro",
+          contents: prompt,
+          config
+        });
+      }
+      throw error;
+    }
+  };
   const CoachSchema = import_zod.z.object({
     mission: import_zod.z.array(import_zod.z.any()).optional(),
     weakTopics: import_zod.z.array(import_zod.z.any()).optional(),
@@ -232,30 +251,37 @@ Valid Action examples (as payload):
         const parsed = JSON.parse(cachedResponse);
         return res.json({ analysis: parsed.analysis, cached: true, actions: parsed.actions });
       }
-      const response = await ai.models.generateContent({
-        model: "gemini-1.5-flash",
-        contents: prompt,
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: import_genai.Type.OBJECT,
-            properties: {
-              analysis: { type: import_genai.Type.STRING, description: "Highly specific, personalized text answer or summary. No markdown allowed." },
-              actions: {
-                type: import_genai.Type.ARRAY,
-                description: "Up to 2 actionable quick-actions for the UI to execute. Empty array if none.",
-                items: {
-                  type: import_genai.Type.OBJECT,
-                  properties: {
-                    type: { type: import_genai.Type.STRING },
-                    payload: { type: import_genai.Type.OBJECT }
-                  },
-                  required: ["type", "payload"]
-                }
+      const response = await generateWithFallback(ai, prompt, {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: import_genai.Type.OBJECT,
+          properties: {
+            analysis: { type: import_genai.Type.STRING, description: "Highly specific, personalized text answer or summary. No markdown allowed." },
+            actions: {
+              type: import_genai.Type.ARRAY,
+              description: "Up to 2 actionable quick-actions for the UI to execute. Empty array if none.",
+              items: {
+                type: import_genai.Type.OBJECT,
+                properties: {
+                  type: { type: import_genai.Type.STRING },
+                  payload: {
+                    type: import_genai.Type.OBJECT,
+                    properties: {
+                      subject: { type: import_genai.Type.STRING, description: "Required for ADD_MISSION. E.g. physics, chemistry, maths" },
+                      title: { type: import_genai.Type.STRING, description: "Required for ADD_MISSION. Task title" },
+                      duration: { type: import_genai.Type.NUMBER, description: "Required for ADD_MISSION. Duration in minutes" },
+                      chapterId: { type: import_genai.Type.STRING, description: "Required for UPDATE_CHAPTER" },
+                      status: { type: import_genai.Type.STRING, description: "Required for UPDATE_CHAPTER" },
+                      targetYear: { type: import_genai.Type.NUMBER, description: "Required for UPDATE_TARGET" },
+                      targetCollege: { type: import_genai.Type.STRING, description: "Required for UPDATE_TARGET" }
+                    }
+                  }
+                },
+                required: ["type", "payload"]
               }
-            },
-            required: ["analysis", "actions"]
-          }
+            }
+          },
+          required: ["analysis", "actions"]
         }
       });
       let cleanText = response.text || "{}";
@@ -272,7 +298,7 @@ Valid Action examples (as payload):
       res.json({ analysis, actions });
     } catch (error) {
       console.error("Coach API error:", error);
-      res.status(500).json({ error: "Internal server error during analysis." });
+      res.status(500).json({ error: "Internal server error during analysis: " + error.message });
     }
   });
   const PracticeSchema = import_zod.z.object({
@@ -333,13 +359,9 @@ Valid Action examples (as payload):
       if (cachedResponse) {
         return res.json({ questions: JSON.parse(cachedResponse), cached: true });
       }
-      const response = await ai.models.generateContent({
-        model: "gemini-1.5-flash",
-        contents: prompt,
-        config: {
-          responseMimeType: "application/json",
-          temperature: 0.7
-        }
+      const response = await generateWithFallback(ai, prompt, {
+        responseMimeType: "application/json",
+        temperature: 0.7
       });
       let text = (response.text || "[]").replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
       let jsonStr = "[]";
@@ -351,7 +373,7 @@ Valid Action examples (as payload):
       res.json({ questions: JSON.parse(jsonStr) });
     } catch (error) {
       console.error("Practice API error:", error);
-      res.status(500).json({ error: "Internal server error during practice generation." });
+      res.status(500).json({ error: "Internal server error during practice generation: " + error.message });
     }
   });
   const MocktestSchema = import_zod.z.object({
@@ -417,13 +439,9 @@ Valid Action examples (as payload):
       if (cachedResponse) {
         return res.json({ questions: JSON.parse(cachedResponse), cached: true });
       }
-      const response = await ai.models.generateContent({
-        model: "gemini-1.5-flash",
-        contents: prompt,
-        config: {
-          responseMimeType: "application/json",
-          temperature: 0.7
-        }
+      const response = await generateWithFallback(ai, prompt, {
+        responseMimeType: "application/json",
+        temperature: 0.7
       });
       let text = response.text || "[]";
       text = text.replace(/```json/gi, "").replace(/```/gi, "").trim();
@@ -444,7 +462,7 @@ Valid Action examples (as payload):
       res.json({ questions: parsed });
     } catch (error) {
       console.error("Mocktest API error:", error);
-      res.status(500).json({ error: "Internal server error during mock test generation." });
+      res.status(500).json({ error: "Internal server error during mock test generation: " + error.message });
     }
   });
   const RevisionPlanSchema = import_zod.z.object({
@@ -519,13 +537,9 @@ Valid Action examples (as payload):
       if (cachedResponse) {
         return res.json({ plan: JSON.parse(cachedResponse), cached: true });
       }
-      const response = await ai.models.generateContent({
-        model: "gemini-1.5-flash",
-        contents: prompt,
-        config: {
-          responseMimeType: "application/json",
-          temperature: 0.7
-        }
+      const response = await generateWithFallback(ai, prompt, {
+        responseMimeType: "application/json",
+        temperature: 0.7
       });
       let text = (response.text || "{}").replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
       let jsonStr = "{}";
@@ -537,7 +551,7 @@ Valid Action examples (as payload):
       res.json({ plan: JSON.parse(jsonStr) });
     } catch (error) {
       console.error("Revision Plan API error:", error);
-      res.status(500).json({ error: "Internal server error during revision plan generation." });
+      res.status(500).json({ error: "Internal server error during revision plan generation: " + error.message });
     }
   });
   const httpServer = import_http.default.createServer(app);

@@ -68,7 +68,7 @@ export function BreakActiveModal({ isOpen, onClose, breakMission }: BreakActiveM
   const activeTip = RELAXATION_TIPS[tipIndex];
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} zIndex={120} className="max-w-lg w-full p-8 rounded-3xl bg-[#090a10] border border-amber-500/30 text-white shadow-[0_0_50px_rgba(245,158,11,0.15)] text-center relative overflow-hidden">
+    <Modal isOpen={isOpen} zIndex={120} className="max-w-lg w-full p-8 rounded-3xl bg-[#090a10] border border-amber-500/30 text-white shadow-[0_0_50px_rgba(245,158,11,0.15)] text-center relative overflow-hidden">
       {/* Background Ambient Aura */}
       <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-72 h-72 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -85,13 +85,7 @@ export function BreakActiveModal({ isOpen, onClose, breakMission }: BreakActiveM
             <p className="text-xs text-amber-400/80 font-mono">Rest & Recovery Mode</p>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="text-zinc-400 hover:text-white p-1 rounded-lg hover:bg-zinc-800 transition-colors cursor-pointer"
-        >
-          <Icon name="X" className="w-5 h-5" />
-        </button>
+        {/* Close button removed intentionally to enforce break completion/pause */}
       </div>
 
       {/* Soothing Radial Timer */}

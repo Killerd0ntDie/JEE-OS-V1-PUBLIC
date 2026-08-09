@@ -40,6 +40,7 @@ export function useDashboardState() {
   const [selectedMissionId, setSelectedMissionIdState] = useState<string | null>(
     () => sessionStorage.getItem('jee_selected_mission_id')
   );
+  const [activeBreakMissionId, setActiveBreakMissionId] = useState<string | null>(null);
 
   const setSelectedMissionId = (id: string | null) => {
     setSelectedMissionIdState(id);
@@ -125,6 +126,15 @@ export function useDashboardState() {
       const nextMission = todayMissions.find(m => !m.completed);
       targetMissionId = nextMission?.id || '';
     }
+    
+    const targetMission = todayMissions.find(m => m.id === targetMissionId);
+    const isBreak = targetMission && (targetMission.subject === 'break' || targetMission.type === 'BREAK' || targetMission.taskName?.toLowerCase().includes('break'));
+    
+    if (isBreak) {
+      setActiveBreakMissionId(targetMissionId);
+      return;
+    }
+
     navigate(`/cockpit/${targetMissionId}`);
   };
 
@@ -185,6 +195,7 @@ export function useDashboardState() {
       nextTaskName,
       missionModeSubject,
       selectedMissionId,
+      activeBreakMissionId,
       // Store state
       mentorProfile,
       estimatedRemainingHours,
@@ -218,6 +229,7 @@ export function useDashboardState() {
       setSecondsElapsed,
       setSessionState,
       setSelectedMissionId,
+      setActiveBreakMissionId,
     },
     actions
   };

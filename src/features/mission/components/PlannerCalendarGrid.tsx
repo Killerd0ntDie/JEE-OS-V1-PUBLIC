@@ -35,7 +35,7 @@ const LiveTimeLine = () => {
     const timeStr = `${hoursStr}:${minsStr}`;
 
     if (offsetMins < 0 || offsetMins > 24 * 60) return { nowLineTop: null, nowTimeStr: timeStr };
-    return { nowLineTop: (offsetMins / 60) * 96, nowTimeStr: timeStr };
+    return { nowLineTop: (offsetMins / 60) * 120, nowTimeStr: timeStr };
   }, [nowDate]);
 
   if (nowLineTop === null) return null;
