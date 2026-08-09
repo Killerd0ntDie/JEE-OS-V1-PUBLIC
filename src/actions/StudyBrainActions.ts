@@ -51,6 +51,38 @@ export class StudyBrainActions {
     }
   }
 
+  /**
+   * Returns a copy of the current XP state with daily/weekly counters
+   * reset to 0 if the calendar day or ISO week has changed since lastActiveDate.
+   */
+  private getResetXpBase() {
+    const xp = { ...this.state.xp };
+    const today = new Date().toISOString().split('T')[0];
+    const lastActive = xp.lastActiveDate;
+
+    if (lastActive && lastActive !== today) {
+      // New day → reset daily
+      xp.daily = 0;
+
+      // New ISO week → reset weekly
+      const getISOWeek = (dateStr: string) => {
+        const d = new Date(dateStr);
+        d.setHours(0, 0, 0, 0);
+        d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7));
+        const jan4 = new Date(d.getFullYear(), 0, 4);
+        return Math.round(((d.getTime() - jan4.getTime()) / 86400000 + jan4.getDay() + 6) / 7);
+      };
+      if (getISOWeek(lastActive) !== getISOWeek(today)) {
+        xp.weekly = 0;
+      }
+    }
+    return xp;
+  }
+
+  private isGodModeActive(): boolean {
+    return (this.state.xp?.streak || 0) >= 7 && (this.state.settings?.enableGodMode !== false);
+  }
+
   async clearSyncError() {
     await this.runtime.refresh('SETTINGS_UPDATE', { lastSyncError: null });
   }
@@ -125,17 +157,17 @@ export class StudyBrainActions {
     const gainedXp = mission.xp || baseXp;
 
     // Apply God Mode XP Multiplier (1.5x) if active and enabled
-    const isGodModeActive = (this.state.xp?.streak || 0) >= 7 && (this.state.settings?.enableGodMode !== false);
-    const finalGainedXp = isGodModeActive ? Math.floor(gainedXp * 1.5) : gainedXp;
+    const finalGainedXp = this.isGodModeActive() ? Math.floor(gainedXp * 1.5) : gainedXp;
     
     const deltaXp = isCompleting ? finalGainedXp : -finalGainedXp;
     
     const oldLevel = this.state.xp.level;
+    const baseXpState = this.getResetXpBase();
     const newXp = {
-      ...this.state.xp,
-      daily: Math.max(0, this.state.xp.daily + deltaXp),
-      weekly: Math.max(0, this.state.xp.weekly + deltaXp),
-      total: Math.max(0, this.state.xp.total + deltaXp)
+      ...baseXpState,
+      daily: Math.max(0, baseXpState.daily + deltaXp),
+      weekly: Math.max(0, baseXpState.weekly + deltaXp),
+      total: Math.max(0, baseXpState.total + deltaXp)
     };
 
     // Calculate level using proper scaling formula from calculateLevelFromXP
@@ -640,8 +672,7 @@ export class StudyBrainActions {
     }
 
     // Apply God Mode XP Multiplier (1.5x) if active and enabled
-    const isGodModeActive = (this.state.xp?.streak || 0) >= 7 && (this.state.settings?.enableGodMode !== false);
-    if (isGodModeActive && session.xpEarned) {
+    if (this.isGodModeActive() && session.xpEarned) {
       session.xpEarned = Math.floor(session.xpEarned * 1.5);
     }
 
@@ -649,24 +680,29 @@ export class StudyBrainActions {
       await StudySessionRepository.saveStudySession(this.userId, session);
       const updatedSessions = [...this.state.studySessions, session];
       
-      // Update analytics with the new session data
+      // Update analytics with the new session data — weighted accuracy average
+      const oldTotal = this.state.analytics.questionsSolved;
+      const newTotal = oldTotal + questionsSolved;
       const updatedAnalytics = {
         ...this.state.analytics,
         studyTime: this.state.analytics.studyTime + duration,
         focusTime: this.state.analytics.focusTime + duration,
-        questionsSolved: this.state.analytics.questionsSolved + questionsSolved,
-        accuracy: questionsSolved > 0 ? Math.round((this.state.analytics.accuracy + accuracy) / 2) : this.state.analytics.accuracy,
+        questionsSolved: newTotal,
+        accuracy: newTotal > 0 && questionsSolved > 0
+          ? Math.round((this.state.analytics.accuracy * oldTotal + accuracy * questionsSolved) / newTotal)
+          : this.state.analytics.accuracy,
         tasksCompleted: this.state.analytics.tasksCompleted + 1,
         xpEarned: this.state.analytics.xpEarned + (session.xpEarned || 0)
       };
       
-      // Update XP from session
+      // Update XP from session (with daily/weekly reset)
       const oldLevel = this.state.xp.level;
+      const baseXpState = this.getResetXpBase();
       const newXp = {
-        ...this.state.xp,
-        total: this.state.xp.total + (session.xpEarned || 0),
-        daily: this.state.xp.daily + (session.xpEarned || 0),
-        weekly: this.state.xp.weekly + (session.xpEarned || 0)
+        ...baseXpState,
+        total: baseXpState.total + (session.xpEarned || 0),
+        daily: baseXpState.daily + (session.xpEarned || 0),
+        weekly: baseXpState.weekly + (session.xpEarned || 0)
       };
       
       // Calculate new level
@@ -693,13 +729,15 @@ export class StudyBrainActions {
       const confScore = confidence === 'High' ? 100 : confidence === 'Medium' ? 70 : 40;
 
       // Award XP for revision completion (reduced from higher values to match new system)
-      const revisionXP = confidence === 'High' ? 150 : confidence === 'Medium' ? 100 : 50;
+      const baseRevisionXP = confidence === 'High' ? 150 : confidence === 'Medium' ? 100 : 50;
+      const revisionXP = this.isGodModeActive() ? Math.floor(baseRevisionXP * 1.5) : baseRevisionXP;
       const oldLevel = this.state.xp.level;
+      const baseXpState = this.getResetXpBase();
       const newXp = {
-        ...this.state.xp,
-        total: this.state.xp.total + revisionXP,
-        daily: this.state.xp.daily + revisionXP,
-        weekly: this.state.xp.weekly + revisionXP
+        ...baseXpState,
+        total: baseXpState.total + revisionXP,
+        daily: baseXpState.daily + revisionXP,
+        weekly: baseXpState.weekly + revisionXP
       };
 
       // Calculate new level
@@ -807,14 +845,16 @@ export class StudyBrainActions {
 
     // Award XP for mock test completion based on score
     const scorePercent = (result.totalScore / (result.totalQuestions * 4)) * 100; // Assuming 4 marks per question
-    const mockXP = Math.round(200 + (scorePercent / 100) * 300); // Base 200 XP + up to 300 bonus for high scores
+    const baseMockXP = Math.round(200 + (scorePercent / 100) * 300); // Base 200 XP + up to 300 bonus for high scores
+    const mockXP = this.isGodModeActive() ? Math.floor(baseMockXP * 1.5) : baseMockXP;
 
     const oldLevel = this.state.xp.level;
+    const baseXpState = this.getResetXpBase();
     const newXp = {
-      ...this.state.xp,
-      total: this.state.xp.total + mockXP,
-      daily: this.state.xp.daily + mockXP,
-      weekly: this.state.xp.weekly + mockXP
+      ...baseXpState,
+      total: baseXpState.total + mockXP,
+      daily: baseXpState.daily + mockXP,
+      weekly: baseXpState.weekly + mockXP
     };
 
     // Calculate new level
@@ -1052,7 +1092,7 @@ export class StudyBrainActions {
       total: 0,
       level: 1,
       streak: 0,
-      nextLevelXP: 1000,
+      nextLevelXP: 500,
       lastActiveDate: ''
     };
     try {
