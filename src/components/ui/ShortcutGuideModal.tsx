@@ -45,7 +45,7 @@ export function ShortcutGuideModal({ isOpen, onClose }: ShortcutGuideModalProps)
                   </div>
                   <div>
                     <h2 id="shortcut-guide-modal-title" className="text-lg font-display font-bold text-white">Keyboard Shortcuts</h2>
-                    <p className="text-xs text-zinc-500 font-mono mt-0.5">SPEED AND EFFICIENCY</p>
+                    <p className="text-xs text-zinc-400 font-mono mt-0.5">SPEED AND EFFICIENCY</p>
                   </div>
                 </div>
                 <button
@@ -61,7 +61,7 @@ export function ShortcutGuideModal({ isOpen, onClose }: ShortcutGuideModalProps)
               <div className="p-5 space-y-6 overflow-y-auto">
                 {SHORTCUTS.map((group, idx) => (
                   <div key={idx} className="space-y-3">
-                    <h3 className="text-[10px] font-mono tracking-widest text-zinc-500 uppercase font-bold pl-1">
+                    <h3 className="text-[10px] font-mono tracking-widest text-zinc-400 uppercase font-bold pl-1">
                       {group.group}
                     </h3>
                     <div className="space-y-1.5">
@@ -80,7 +80,7 @@ export function ShortcutGuideModal({ isOpen, onClose }: ShortcutGuideModalProps)
 
               {/* Footer */}
               <div className="p-4 border-t border-zinc-900 bg-zinc-900/20 text-center">
-                <p className="text-xs text-zinc-500">
+                <p className="text-xs text-zinc-400">
                   You can also click anywhere outside this dialog to close it.
                 </p>
               </div>

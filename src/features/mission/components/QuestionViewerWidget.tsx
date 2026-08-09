@@ -7,16 +7,17 @@ import { Question, Difficulty } from '@/types/curriculum';
 import { audioEngine } from '@/utils/audioEngine';
 import { QuestionRepository } from '@/firebase/QuestionRepository';
 import { PyqGeneratorEngine } from '@/lib/PyqGeneratorEngine';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, BookOpen } from 'lucide-react';
 
 interface QuestionViewerWidgetProps {
   chapterId: string;
   subject: string;
   onExitPractice: () => void;
   onCorrectAnswer?: () => void;
+  onQuestionAttempted?: () => void;
 }
 
-export function QuestionViewerWidget({ chapterId, subject, onExitPractice, onCorrectAnswer }: QuestionViewerWidgetProps) {
+export function QuestionViewerWidget({ chapterId, subject, onExitPractice, onCorrectAnswer, onQuestionAttempted }: QuestionViewerWidgetProps) {
   const [chapterQuestions, setChapterQuestions] = useState<Question[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);

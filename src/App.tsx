@@ -8,7 +8,8 @@ import { useStudyBrainStore } from './store/useStudyBrainStore';
 import { useAuth } from '@/features/auth';
 import { AuthPage } from './features/auth/AuthPage';
 import { PageSkeleton } from './components/shared/PageSkeleton';
-import { OfflineBanner } from './components/shared/OfflineBanner';
+import { CockpitPage } from './features/mission/CockpitPage';
+
 
 // Lazy-loaded Pages for Code-Splitting
 const DashboardPage = lazy(() => import('./features/dashboard/DashboardPage').then(m => ({ default: m.DashboardPage })));
@@ -35,6 +36,9 @@ import { ErrorBoundary } from './components/shared/ErrorBoundary';
 
 import { ProtectedRoute } from '@/features/auth/components/ProtectedRoute';
 
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
+import { Icon } from '@/components/ui/Icon';
+
 function AppLayout() {
   const { user, loading: authLoading } = useAuth();
   const loading = useStudyBrainStore(s => s.loading);
@@ -45,6 +49,7 @@ function AppLayout() {
   const lastSyncError = useStudyBrainStore(s => s.lastSyncError);
   const xp = useStudyBrainStore(s => s.xp);
   const settings = useStudyBrainStore(s => s.settings);
+  const { isOnline } = useNetworkStatus();
   
   const location = useLocation();
   const navigate = useNavigate();
@@ -70,7 +75,8 @@ function AppLayout() {
 
   // Auto launch interview on first visit if profile is incomplete
   useEffect(() => {
-    if (!loading && !mentorProfile?.interviewCompleted) {
+    const hasDismissed = sessionStorage.getItem('onboarding_dismissed');
+    if (!loading && !mentorProfile?.interviewCompleted && !hasDismissed) {
       setIsMentorInterviewOpen(true);
     }
   }, [loading, mentorProfile?.interviewCompleted]);
@@ -87,7 +93,7 @@ function AppLayout() {
         toggleSidebarCollapse();
       }
       if (e.key === '?' && !e.ctrlKey && !e.altKey && !e.metaKey) {
-        if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+        if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || (e.target as HTMLElement).isContentEditable) return;
         setIsShortcutGuideOpen(prev => !prev);
       }
     };
@@ -113,7 +119,7 @@ function AppLayout() {
         <div className="space-y-4 text-center">
           <div className="text-[11px] font-mono uppercase tracking-[0.2em] text-indigo-400 font-bold mb-6">JEE COCKPIT</div>
           <h2 className="text-base font-display font-bold text-white tracking-wider uppercase mt-4">SYNCING WORKSPACE...</h2>
-          <p className="text-[15px] text-zinc-500 max-w-sm mx-auto leading-relaxed mt-4">
+          <p className="text-[15px] text-zinc-400 max-w-sm mx-auto leading-relaxed mt-4">
             Retrieving syllabus milestones, mistakes logs, and personal preparation notes...
           </p>
         </div>
@@ -144,8 +150,8 @@ function AppLayout() {
             {initializationError}
           </div>
 
-          <div className="bg-zinc-900/40 border border-zinc-800/50 rounded p-3 text-left text-[9px] text-zinc-500 space-y-1">
-            <span className="font-semibold text-zinc-400 block mb-1 uppercase tracking-wider text-[8px] font-mono">Safety Recovery Rules Active:</span>
+          <div className="bg-zinc-900/40 border border-zinc-800/50 rounded p-3 text-left text-[11px] text-zinc-400 space-y-1">
+            <span className="font-semibold text-zinc-400 block mb-1 uppercase tracking-wider text-[11px] font-mono">Safety Recovery Rules Active:</span>
             <p>• Database write protection enabled to prevent further corruption.</p>
             <p>• Offline-ready local sandbox is active with read-only status.</p>
           </div>
@@ -190,7 +196,6 @@ function AppLayout() {
 
   return (
     <div className={`flex min-h-screen bg-zinc-950 text-zinc-400 font-sans antialiased overflow-x-hidden selection:bg-indigo-500/30 selection:text-zinc-100 ${themeClass}`}>
-      <OfflineBanner />
       {/* Sidebar Navigation */}
       <Sidebar
         isOpenMobile={isSidebarMobileOpen}
@@ -200,18 +205,28 @@ function AppLayout() {
       />
 
       {/* Main Workspace Frame */}
-      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
-        {/* Topbar Nav */}
-        <Topbar
-          onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
-          onOpenShortcutGuide={() => setIsShortcutGuideOpen(true)}
-          onToggleSidebarMobile={() => setIsSidebarMobileOpen(true)}
-          isSidebarCollapsed={isSidebarCollapsed}
-          onToggleSidebarCollapse={toggleSidebarCollapse}
-        />
+      <div className="flex-1 flex flex-col min-w-0 h-[100dvh] overflow-hidden">
+        {/* Topbar Nav (Disabled for Planner and Cockpit pages) */}
+        {!location.pathname.startsWith('/planner') && !location.pathname.startsWith('/cockpit') && (
+          <Topbar
+            onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+            onOpenShortcutGuide={() => setIsShortcutGuideOpen(true)}
+            onToggleSidebarMobile={() => setIsSidebarMobileOpen(true)}
+            isSidebarCollapsed={isSidebarCollapsed}
+            onToggleSidebarCollapse={toggleSidebarCollapse}
+          />
+        )}
 
         {/* Central Router Stage with Smooth Framer Motion Transition */}
-        <main className="flex-1 flex flex-col overflow-y-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 md:py-6 pb-12 scrollbar relative">
+        <main id="main-content" className="flex-1 flex flex-col overflow-y-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 md:py-6 pb-12 scrollbar relative">
+          {!isOnline && (
+            <div className="bg-amber-500/10 border border-amber-500/30 text-amber-300 px-4 py-3 rounded-xl mb-4 flex items-center justify-center font-mono text-xs shadow-lg animate-fade-in shrink-0">
+              <div className="flex items-center gap-2">
+                <Icon name="WifiOff" className="w-4 h-4" />
+                <span>You are offline. Changes will be saved locally and synced when you reconnect.</span>
+              </div>
+            </div>
+          )}
           {lastSyncError && (
             <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-xl mb-4 flex items-center justify-between font-mono text-xs shadow-lg animate-fade-in shrink-0">
               <div className="flex items-center gap-2">
@@ -236,23 +251,24 @@ function AppLayout() {
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.1, ease: "linear" }}
-                  className="flex-1 flex flex-col min-h-0 transform-gpu will-change-transform"
+                  className="flex-1 flex flex-col min-h-0"
                 >
                   <Suspense fallback={<PageSkeleton />}>
                     <Routes location={location} key={location.pathname}>
-                      <Route path="/dashboard" element={<DashboardPage />} />
-                      <Route path="/physics" element={<PhysicsPage />} />
-                      <Route path="/chemistry" element={<ChemistryPage />} />
-                      <Route path="/mathematics" element={<MathsPage />} />
-                      <Route path="/planner" element={<PlannerPage />} />
-                      <Route path="/focus-vault" element={<FocusVaultPage />} />
-                      <Route path="/revision" element={<RevisionPage />} />
-                      <Route path="/mistakes" element={<MistakesPage />} />
-                      <Route path="/analytics" element={<AnalyticsPage />} />
-                      <Route path="/coach-history" element={<CoachHistoryPage />} />
-                      <Route path="/mock-tests" element={<MockTestsPage />} />
-                      <Route path="/neural-link" element={<NeuralGraphPage />} />
-                      <Route path="/settings" element={<SettingsPage />} />
+                      <Route path="/dashboard" element={<ErrorBoundary><DashboardPage /></ErrorBoundary>} />
+                      <Route path="/cockpit/:missionId?" element={<ErrorBoundary><CockpitPage /></ErrorBoundary>} />
+                      <Route path="/physics" element={<ErrorBoundary><PhysicsPage /></ErrorBoundary>} />
+                      <Route path="/chemistry" element={<ErrorBoundary><ChemistryPage /></ErrorBoundary>} />
+                      <Route path="/maths" element={<ErrorBoundary><MathsPage /></ErrorBoundary>} />
+                      <Route path="/planner" element={<ErrorBoundary><PlannerPage /></ErrorBoundary>} />
+                      <Route path="/focus-vault" element={<ErrorBoundary><FocusVaultPage /></ErrorBoundary>} />
+                      <Route path="/revision" element={<ErrorBoundary><RevisionPage /></ErrorBoundary>} />
+                      <Route path="/mistakes" element={<ErrorBoundary><MistakesPage /></ErrorBoundary>} />
+                      <Route path="/analytics" element={<ErrorBoundary><AnalyticsPage /></ErrorBoundary>} />
+                      <Route path="/coach-history" element={<ErrorBoundary><CoachHistoryPage /></ErrorBoundary>} />
+                      <Route path="/mock-tests" element={<ErrorBoundary><MockTestsPage /></ErrorBoundary>} />
+                      <Route path="/neural-link" element={<ErrorBoundary><NeuralGraphPage /></ErrorBoundary>} />
+                      <Route path="/settings" element={<ErrorBoundary><SettingsPage /></ErrorBoundary>} />
                       <Route path="*" element={<Navigate to="/dashboard" replace />} />
                     </Routes>
                   </Suspense>
@@ -277,8 +293,11 @@ function AppLayout() {
       {/* Global AI Mentor Onboarding & Reality Interview Modal */}
       <MentorInterviewModal
         isOpen={isMentorInterviewOpen}
-        onClose={() => setIsMentorInterviewOpen(false)}
-        isMandatory={!mentorProfile?.interviewCompleted}
+        onClose={() => {
+          setIsMentorInterviewOpen(false);
+          sessionStorage.setItem('onboarding_dismissed', 'true');
+        }}
+        isMandatory={false}
       />
 
       {/* Global Chapter Edit & Telemetry Modal */}

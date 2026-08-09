@@ -28,7 +28,7 @@ export function MistakeFilterToolbar({
             key={sub}
             onClick={() => setActiveSubject(sub)}
             className={`px-3 py-1 rounded-lg uppercase font-bold transition-all cursor-pointer ${
-              activeSubject === sub ? 'bg-indigo-600 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
+              activeSubject === sub ? 'bg-indigo-600 text-white shadow-sm' : 'text-zinc-400 hover:text-zinc-300'
             }`}
           >
             {sub}
@@ -43,7 +43,7 @@ export function MistakeFilterToolbar({
             key={st}
             onClick={() => setStatusFilter(st)}
             className={`px-3 py-1 rounded-lg uppercase font-bold transition-all cursor-pointer ${
-              statusFilter === st ? 'bg-zinc-800 text-white' : 'text-zinc-500 hover:text-zinc-300'
+              statusFilter === st ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:text-zinc-300'
             }`}
           >
             {st}
@@ -53,7 +53,7 @@ export function MistakeFilterToolbar({
 
       {/* Search Bar */}
       <div className="relative flex-1 max-w-xs">
-        <Icon name="Search" className="w-3.5 h-3.5 text-zinc-500 absolute left-3 top-2.5" />
+        <Icon name="Search" className="w-3.5 h-3.5 text-zinc-400 absolute left-3 top-2.5" />
         <input
           type="text"
           value={searchQuery}

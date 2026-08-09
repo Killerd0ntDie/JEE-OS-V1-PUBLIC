@@ -80,7 +80,7 @@ export const MonthlyObjectiveModal: React.FC<Props> = ({ isOpen, onClose }) => {
           <button
             onClick={onClose}
             aria-label="Close Monthly Goal Modal"
-            className="text-zinc-500 hover:text-zinc-300 p-1.5 rounded-lg hover:bg-zinc-900 cursor-pointer"
+            className="text-zinc-400 hover:text-zinc-300 p-1.5 rounded-lg hover:bg-zinc-900 cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -111,7 +111,7 @@ export const MonthlyObjectiveModal: React.FC<Props> = ({ isOpen, onClose }) => {
                     <span className={isSelected ? 'text-purple-300' : 'text-zinc-300'}>{c.title}</span>
                     {isSelected && <Check className="w-3.5 h-3.5 text-purple-400" />}
                   </div>
-                  <p className="text-[10px] text-zinc-500 leading-normal font-sans">{c.desc}</p>
+                  <p className="text-[10px] text-zinc-400 leading-normal font-sans">{c.desc}</p>
                 </button>
               );
             })}

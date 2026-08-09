@@ -7,6 +7,12 @@ import { SubjectId } from '@/types/index';
 
 const DEFAULT_MINUTES = 50;
 
+const LOFI_STATIONS = [
+  { id: '5qap5aO4i9A', title: 'Lofi Girl Radio', subtitle: 'beats to relax/study to' },
+  { id: '4xDzrJKXOOY', title: 'Synthwave Radio', subtitle: 'chill synthwave beats' },
+  { id: '7NOSDKb0HlU', title: 'Chillhop Radio', subtitle: 'jazzy & lofi hip hop' },
+];
+
 export function FocusVaultPage() {
   const actions = useStudyBrainStore(state => state.actions);
   const { user } = useAuth();
@@ -18,8 +24,10 @@ export function FocusVaultPage() {
   const [isCompleted, setIsCompleted] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [sessionDuration, setSessionDuration] = useState(0); // tracks total time spent this session
+  const [stationIndex, setStationIndex] = useState(0);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastTickTime = useRef<number>(Date.now());
   const youtubeRef = useRef<HTMLIFrameElement>(null);
 
   // Sync active state to session storage to block navigation in App.tsx
@@ -51,16 +59,25 @@ export function FocusVaultPage() {
   // Timer tick logic
   useEffect(() => {
     if (isActive) {
+      lastTickTime.current = Date.now();
       timerRef.current = setInterval(() => {
-        setTimeLeft(prev => {
-          if (prev <= 1) {
-            clearInterval(timerRef.current!);
-            handleComplete();
-            return 0;
-          }
-          return prev - 1;
-        });
-        setSessionDuration(prev => prev + 1);
+        const now = Date.now();
+        const deltaMs = now - lastTickTime.current;
+        const deltaSecs = Math.floor(deltaMs / 1000);
+        
+        if (deltaSecs > 0) {
+          lastTickTime.current += deltaSecs * 1000;
+          setTimeLeft(prev => {
+            const nextTime = prev - deltaSecs;
+            if (nextTime <= 0) {
+              clearInterval(timerRef.current!);
+              handleComplete();
+              return 0;
+            }
+            return nextTime;
+          });
+          setSessionDuration(prev => prev + deltaSecs);
+        }
       }, 1000);
     } else if (timerRef.current) {
       clearInterval(timerRef.current);
@@ -112,7 +129,7 @@ export function FocusVaultPage() {
   const breathingOpacity = isActive ? [0.4, 0.8, 0.4] : 0.5;
 
   return (
-    <div className="relative w-full h-full min-h-[calc(100vh-4rem)] lg:min-h-screen overflow-hidden flex flex-col items-center justify-center bg-[#050505] font-sans">
+    <div className="relative w-full h-full min-h-[calc(100dvh-4rem)] lg:min-h-[100dvh] overflow-hidden flex flex-col items-center justify-center bg-[#050505] font-sans">
       
       {/* Ambient Animated Background */}
       <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden vault-ambient-bg">
@@ -133,7 +150,7 @@ export function FocusVaultPage() {
             <Headphones className="w-5 h-5 animate-pulse" />
             <span className="font-mono text-xs font-bold tracking-[0.3em] uppercase">Focus Vault</span>
           </div>
-          <h1 className="text-zinc-500 text-sm max-w-md mx-auto leading-relaxed">
+          <h1 className="text-zinc-400 text-sm max-w-md mx-auto leading-relaxed">
             A minimalist deep-work zone. Select target subject and focus duration.
           </h1>
 
@@ -152,7 +169,7 @@ export function FocusVaultPage() {
                         : subj === 'chemistry'
                         ? 'bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 shadow-[0_0_12px_rgba(52,211,153,0.3)]'
                         : 'bg-purple-950/80 border border-purple-500/50 text-purple-300 shadow-[0_0_12px_rgba(192,132,252,0.3)]'
-                      : 'bg-zinc-900/60 border border-zinc-800 text-zinc-500 hover:text-zinc-300'
+                      : 'bg-zinc-900/60 border border-zinc-800 text-zinc-400 hover:text-zinc-300'
                   }`}
                 >
                   {subj}
@@ -183,9 +200,10 @@ export function FocusVaultPage() {
                         setInputMinutes(val);
                         setTimeLeft(val * 60);
                       }}
-                      className="bg-transparent outline-none w-[1.5em] text-center"
+                      className="bg-transparent outline-none w-[3ch] text-center"
+                      aria-label="Custom session duration in minutes"
                     />
-                    <span className="text-zinc-500">:00</span>
+                    <span className="text-zinc-400">:00</span>
                   </div>
                 ) : (
                   <div className="text-[6rem] md:text-[9rem] font-black tracking-tighter tabular-nums leading-none text-white drop-shadow-[0_0_30px_rgba(255,255,255,0.1)]" style={{ fontVariantNumeric: 'tabular-nums' }}>
@@ -194,7 +212,7 @@ export function FocusVaultPage() {
                 )}
                 
                 {!isActive && sessionDuration === 0 && (
-                  <div className="text-zinc-500 font-mono text-xs mt-4">Click the minutes to edit custom duration (max 300)</div>
+                  <div className="text-zinc-400 font-mono text-xs mt-4">Click the minutes to edit custom duration (max 300)</div>
                 )}
               </motion.div>
             ) : (
@@ -221,14 +239,16 @@ export function FocusVaultPage() {
           <div className="flex items-center gap-6">
             <button
               onClick={handleReset}
-              className="p-4 rounded-full bg-zinc-900/50 text-zinc-500 hover:text-white hover:bg-zinc-800 transition-colors border border-zinc-800"
+              className="p-4 rounded-full bg-zinc-900/50 text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors border border-zinc-800"
               title="Reset Timer"
+              aria-label="Reset Timer"
             >
               <RefreshCw className="w-5 h-5" />
             </button>
             
             <button
               onClick={handleStartPause}
+              aria-label={isActive ? "Pause Session" : "Start Session"}
               className={`w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300 shadow-2xl ${
                 isActive 
                   ? 'bg-zinc-800/80 text-white border border-zinc-700 hover:bg-zinc-700' 
@@ -241,8 +261,9 @@ export function FocusVaultPage() {
             <button
               onClick={handleComplete}
               disabled={sessionDuration < 60}
-              className="p-4 rounded-full bg-zinc-900/50 text-zinc-500 hover:text-emerald-400 hover:bg-emerald-950/30 transition-colors border border-zinc-800 disabled:opacity-30 disabled:hover:text-zinc-500 disabled:hover:bg-zinc-900/50"
+              className="p-4 rounded-full bg-zinc-900/50 text-zinc-400 hover:text-emerald-400 hover:bg-emerald-950/30 transition-colors border border-zinc-800 disabled:opacity-30 disabled:hover:text-zinc-400 disabled:hover:bg-zinc-900/50"
               title="End & Log Session Early (Requires 1 min)"
+              aria-label="End & Log Session Early"
             >
               <Square className="w-5 h-5 fill-current" />
             </button>
@@ -259,29 +280,40 @@ export function FocusVaultPage() {
       </div>
 
       {/* Floating Lo-Fi Player (YouTube Embed) */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 md:translate-x-0 md:left-auto md:right-8 w-[320px] h-[80px] bg-zinc-950/80 backdrop-blur-md rounded-2xl border border-zinc-800/80 overflow-hidden shadow-2xl flex items-center p-3 gap-4 group transition-all duration-300 hover:border-indigo-500/30 hover:bg-zinc-900">
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 md:translate-x-0 md:left-auto md:right-8 w-[350px] h-[80px] bg-zinc-950/80 backdrop-blur-md rounded-2xl border border-zinc-800/80 overflow-hidden shadow-2xl flex items-center p-3 gap-4 group transition-all duration-300 hover:border-indigo-500/30 hover:bg-zinc-900">
         <div className="w-14 h-14 rounded-xl overflow-hidden relative shrink-0 bg-black">
           {/* Lofi Girl YouTube Stream - Invisible click overlay to prevent navigating out */}
           <div className="absolute inset-0 z-10"></div>
           {/* Using highly stable Synthwave VOD instead of live stream */}
           <iframe 
             ref={youtubeRef}
-            src={`https://www.youtube.com/embed/5qap5aO4i9A?autoplay=1&mute=${isMuted ? 1 : 0}&controls=0&disablekb=1&fs=0&loop=1&playlist=5qap5aO4i9A&modestbranding=1&playsinline=1&iv_load_policy=3`} 
+            src={`https://www.youtube.com/embed/${LOFI_STATIONS[stationIndex].id}?autoplay=1&mute=${isMuted ? 1 : 0}&controls=0&disablekb=1&fs=0&loop=1&playlist=${LOFI_STATIONS[stationIndex].id}&modestbranding=1&playsinline=1&iv_load_policy=3`} 
             title="Lofi Stream" 
             className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300%] h-[300%] pointer-events-none opacity-80"
             allow="autoplay; encrypted-media"
           />
         </div>
         <div className="flex-1 min-w-0">
-          <h4 className="text-xs font-bold text-white truncate">Lofi Girl Radio</h4>
-          <p className="text-[10px] text-zinc-500 truncate font-mono">beats to relax/study to</p>
+          <h4 className="text-xs font-bold text-white truncate">{LOFI_STATIONS[stationIndex].title}</h4>
+          <p className="text-[10px] text-zinc-400 truncate font-mono">{LOFI_STATIONS[stationIndex].subtitle}</p>
         </div>
-        <button
-          onClick={() => setIsMuted(!isMuted)}
-          className="p-2.5 rounded-xl bg-zinc-800/50 text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors"
-        >
-          {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-        </button>
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            onClick={() => setStationIndex(prev => (prev + 1) % LOFI_STATIONS.length)}
+            className="p-2 rounded-xl bg-zinc-800/50 text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors"
+            title="Next Station"
+            aria-label="Next Station"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={() => setIsMuted(!isMuted)}
+            className="p-2 rounded-xl bg-zinc-800/50 text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors"
+            aria-label={isMuted ? "Unmute Lofi Audio" : "Mute Lofi Audio"}
+          >
+            {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+          </button>
+        </div>
       </div>
 
     </div>

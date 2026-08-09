@@ -59,6 +59,8 @@ import {
   BarChart2,
   BarChart,
   Star,
+  Coffee,
+  Utensils,
   LucideProps
 } from 'lucide-react';
 
@@ -118,6 +120,8 @@ export const iconMap = {
   PanelLeftClose,
   Battery,
   Settings,
+  Coffee,
+  Utensils,
   AlertTriangle,
   BarChart2,
   BarChart,

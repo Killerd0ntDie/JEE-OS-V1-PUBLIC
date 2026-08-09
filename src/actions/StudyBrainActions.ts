@@ -280,7 +280,10 @@ export class StudyBrainActions {
       const levelUpData = oldLevel !== newLevel && isCompleting ? { oldLevel, newLevel, xp: newXp } : null;
 
       // Optimistic update - refresh UI immediately before saving
-      await this.runtime.refresh('SESSION_UPDATE', {
+      // Use INIT instead of SESSION_UPDATE to trigger generateWeeklyMatrix
+      // so that un-completing or completing a task re-packs the timeSlots
+      // and fixes any collisions in the calendar.
+      await this.runtime.refresh('INIT', {
         todayMissions: updatedMissions,
         customMissions: updatedCustomMissions,
         xp: newXp,
@@ -1619,5 +1622,113 @@ export class StudyBrainActions {
     } catch (err) {
       await this.handleWriteError(err, 'updateChapterDetailedDiagnosis');
     }
+  }
+
+  async rebalancePlan() {
+    this.checkWriteBlock();
+
+    // 1. Wipe all schedule overrides to remove drag-and-drop glitches & overlaps
+    const emptyOverrides = {};
+
+    // 2. Determine dayStartTime and currentDayIndex
+    const now = new Date();
+    const currentDayIndex = (now.getDay() + 6) % 7;
+    const dayStartTime = this.state.settings?.dayStartTime || "07:00";
+
+    // 3. Sort missions so completed tasks stay at top, and uncompleted tasks are ordered sequentially (Lecture 1, Lecture 2, etc.)
+    const missions = [...(this.state.todayMissions || [])];
+    
+    const getSortKey = (m: any) => {
+      const match = (m.taskName || '').match(/(\d+)/);
+      const num = match ? parseInt(match[1], 10) : 999;
+      return (m.completed ? 0 : 1000) + num;
+    };
+
+    missions.sort((a, b) => getSortKey(a) - getSortKey(b));
+
+    // Wipe timeSlot on uncompleted missions so they are freshly calculated in order
+    const cleanedMissions = missions.map(m => {
+      if (!m.completed) {
+        return {
+          ...m,
+          timeSlot: undefined,
+          isManualOverride: false
+        };
+      }
+      return m;
+    });
+
+    // 4. Generate fresh non-overlapping weekly schedule
+    const { generateWeeklyMatrix } = await import('@jee-os/engines');
+    const updatedWeekly = (generateWeeklyMatrix as any)(
+      this.state.mentorProfile?.subjectSplitStrategy || '3_a_day',
+      this.state.chapters,
+      cleanedMissions,
+      null,
+      currentDayIndex,
+      this.state.mentorProfile?.twoDaySplitConfig,
+      this.state.deletedMissionIds || [],
+      emptyOverrides,
+      dayStartTime,
+      this.state.settings?.dayEndTime || "22:30"
+    );
+
+    // 5. Map back to todayMissions
+    const currentDayBlocks = updatedWeekly.filter((b: any) => b.dayIndex === currentDayIndex);
+    const updatedTodayMissions = currentDayBlocks.map((b: any) => {
+      const originalId = b.id.startsWith('today-') ? b.id.slice(6) : b.id;
+      const original = cleanedMissions.find(m => m.id === originalId);
+      return {
+        id: originalId,
+        subject: b.subject,
+        chapter: b.chapterName,
+        chapterId: b.chapterId,
+        type: b.taskType,
+        taskName: b.activity,
+        duration: b.durationMinutes,
+        timeSlot: b.timeSlot,
+        completed: original ? original.completed : b.completed,
+        xp: original ? original.xp : Math.round(b.priorityScore),
+        unlocked: true,
+        priorityScore: b.priorityScore,
+        reasoning: b.reasoning,
+        dismissed: original ? original.dismissed : false,
+        isManualOverride: false,
+        scheduledDate: (b as any).scheduledDate,
+        scheduledTime: (b as any).scheduledTime
+      };
+    });
+
+    await this.runtime.refresh('INIT', {
+      scheduleOverrides: emptyOverrides,
+      todayMissions: updatedTodayMissions,
+      weeklySchedule: updatedWeekly
+    });
+  }
+
+  async updateScheduleBlock(id: string, updates: { dayIndex?: number; timeSlot?: string; scheduledDate?: string; scheduledTime?: string }) {
+    this.checkWriteBlock();
+    
+    // Support saving overrides for planner grid
+    const overrides = { ...(this.state.scheduleOverrides || {}) };
+    const baseId = id.replace('today-', '').replace('plan-', '');
+    overrides[baseId] = {
+      ...(overrides[baseId] || {}),
+      ...updates
+    };
+
+    const updatedBlocks = (this.state.timeline || []).map(b => 
+      (b.id === id || b.id === `mission-${baseId}`) ? { ...b, time: updates.timeSlot || b.time } : b
+    );
+
+    await this.runtime.refresh('INIT', { 
+      scheduleOverrides: overrides,
+      timeline: updatedBlocks as any 
+    });
+  }
+
+  async resetCustomMissions() {
+    this.checkWriteBlock();
+    await this.runtime.refresh('INIT', { todayMissions: [] });
   }
 }

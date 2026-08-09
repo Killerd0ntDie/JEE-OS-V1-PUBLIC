@@ -11,6 +11,8 @@ interface AcademicSettingsSectionProps {
   coachingType: string;
   onUpdateMentor: (updates: Partial<MentorProfile>) => void;
   onUpdateSettings: (key: string, value: any) => void;
+  dayStartTime: string;
+  dayEndTime: string;
 }
 
 export const AcademicSettingsSection: React.FC<AcademicSettingsSectionProps> = ({
@@ -21,7 +23,9 @@ export const AcademicSettingsSection: React.FC<AcademicSettingsSectionProps> = (
   classLevel,
   coachingType,
   onUpdateMentor,
-  onUpdateSettings
+  onUpdateSettings,
+  dayStartTime,
+  dayEndTime
 }) => {
   return (
     <div className="bg-zinc-950/60 border border-zinc-800/80 rounded-2xl p-6 backdrop-blur-xl shadow-xl space-y-5">
@@ -85,6 +89,34 @@ export const AcademicSettingsSection: React.FC<AcademicSettingsSectionProps> = (
             <option value="12th">Class 12 (12th)</option>
             <option value="Dropper">Dropper</option>
           </select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+        <div>
+          <label className="block text-xs font-mono font-semibold text-zinc-300 mb-1.5 flex items-center gap-1.5">
+            <Calendar className="w-3.5 h-3.5 text-indigo-400" />
+            Day Start Time
+          </label>
+          <input
+            type="time"
+            value={dayStartTime}
+            onChange={(e) => onUpdateSettings('dayStartTime', e.target.value)}
+            className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500 transition-colors"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-mono font-semibold text-zinc-300 mb-1.5 flex items-center gap-1.5">
+            <Calendar className="w-3.5 h-3.5 text-indigo-400" />
+            Day End Time (Cutoff)
+          </label>
+          <input
+            type="time"
+            value={dayEndTime}
+            onChange={(e) => onUpdateSettings('dayEndTime', e.target.value)}
+            className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500 transition-colors"
+          />
         </div>
       </div>
 

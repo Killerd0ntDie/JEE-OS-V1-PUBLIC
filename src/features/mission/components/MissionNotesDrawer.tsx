@@ -47,7 +47,7 @@ export function MissionNotesDrawer({
               </div>
               <button 
                 onClick={() => setIsNotesOpen(false)}
-                className="text-zinc-500 hover:text-zinc-300 p-1"
+                className="text-zinc-400 hover:text-zinc-300 p-1"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -62,7 +62,7 @@ export function MissionNotesDrawer({
                   className={`flex-1 text-[10px] py-2 border-b-2 font-mono font-medium transition-all ${
                     activeNoteCategory === cat
                       ? 'border-indigo-500 text-indigo-400'
-                      : 'border-transparent text-zinc-500 hover:text-zinc-300'
+                      : 'border-transparent text-zinc-400 hover:text-zinc-300'
                   }`}
                 >
                   {cat.split(' ')[0]}
@@ -78,7 +78,7 @@ export function MissionNotesDrawer({
                     key={note.id} 
                     className="p-3 rounded-lg border border-zinc-900 bg-zinc-950/40 text-left space-y-1.5 group hover:border-zinc-800 transition-all"
                   >
-                    <div className="flex items-center justify-between text-[10px] font-mono text-zinc-500">
+                    <div className="flex items-center justify-between text-[10px] font-mono text-zinc-400">
                       <span className="flex items-center gap-1 bg-zinc-900 border border-zinc-850 px-1.5 py-0.5 rounded text-indigo-400 font-bold">
                         <Clock className="w-3 h-3" />
                         {note.timestamp}
@@ -118,7 +118,7 @@ export function MissionNotesDrawer({
                   <button
                     key={preset}
                     onClick={() => handleQuickPresetNote(preset)}
-                    className="text-[9px] font-mono px-2 py-1 rounded bg-[#0c0c0e] border border-zinc-850 text-zinc-400 hover:text-zinc-200 hover:border-zinc-700 transition-colors"
+                    className="text-[11px] font-mono px-2 py-1 rounded bg-[#0c0c0e] border border-zinc-850 text-zinc-400 hover:text-zinc-200 hover:border-zinc-700 transition-colors"
                   >
                     + {preset}
                   </button>

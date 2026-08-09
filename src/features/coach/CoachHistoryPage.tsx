@@ -20,22 +20,29 @@ export function CoachHistoryPage() {
     }
   }, []);
 
+  const [isClearAllModalOpen, setIsClearAllModalOpen] = useState(false);
+  const [chatToDelete, setChatToDelete] = useState<string | null>(null);
+
   const handleDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    setChatToDelete(id);
+  };
+  
+  const confirmDeleteSingle = () => {
+    if (!chatToDelete) return;
     const savedChatsStr = localStorage.getItem('jeeos_chats');
     if (savedChatsStr) {
       const savedChats: Record<string, ChatSession> = safelyParseJSON<Record<string, ChatSession>>(savedChatsStr, {});
-      delete savedChats[id];
+      delete savedChats[chatToDelete];
       localStorage.setItem('jeeos_chats', JSON.stringify(savedChats));
-      setSessions(prev => prev.filter(s => s.id !== id));
+      setSessions(prev => prev.filter(s => s.id !== chatToDelete));
       
-      if (localStorage.getItem('jeeos_active_chat_session') === id) {
+      if (localStorage.getItem('jeeos_active_chat_session') === chatToDelete) {
         localStorage.removeItem('jeeos_active_chat_session');
       }
     }
+    setChatToDelete(null);
   };
-
-  const [isClearAllModalOpen, setIsClearAllModalOpen] = useState(false);
 
   const handleClearAll = () => {
     localStorage.removeItem('jeeos_chats');
@@ -107,7 +114,7 @@ export function CoachHistoryPage() {
                 <h3 className="text-sm font-semibold text-white truncate group-hover:text-indigo-300 transition-colors">
                   {session.title}
                 </h3>
-                <div className="flex items-center gap-3 text-[10px] font-mono text-zinc-500">
+                <div className="flex items-center gap-3 text-[10px] font-mono text-zinc-400">
                   <span className="flex items-center gap-1">
                     <Icon name="Calendar" className="w-3 h-3" />
                     {new Date(session.updatedAt).toLocaleDateString()}
@@ -124,7 +131,7 @@ export function CoachHistoryPage() {
               </div>
               <button 
                 onClick={(e) => handleDelete(session.id, e)}
-                className="opacity-0 group-hover:opacity-100 p-2 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
+                className="opacity-0 group-hover:opacity-100 p-2 text-zinc-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
               >
                 <Icon name="Trash" className="w-4 h-4" />
               </button>
@@ -140,6 +147,15 @@ export function CoachHistoryPage() {
         confirmLabel="Delete History"
         onConfirm={handleClearAll}
         onClose={() => setIsClearAllModalOpen(false)}
+      />
+      {/* Delete Single Chat Modal */}
+      <ConfirmDeleteModal
+        isOpen={chatToDelete !== null}
+        title="Delete AI Chat Session?"
+        message="Are you sure you want to delete this conversation? This action cannot be undone."
+        confirmLabel="Delete Chat"
+        onConfirm={confirmDeleteSingle}
+        onClose={() => setChatToDelete(null)}
       />
     </div>
   );

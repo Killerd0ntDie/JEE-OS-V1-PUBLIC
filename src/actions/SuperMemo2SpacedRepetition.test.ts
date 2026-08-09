@@ -80,8 +80,8 @@ describe('SuperMemo-2 Spaced Repetition Integration Audit', () => {
       revisionQueue: [],
       todayMissions: [],
       customMissions: [],
-      dashboardSummary: {},
-      completionPrediction: {},
+      dashboardSummary: null,
+      completionPrediction: null,
       subjectPriorities: [],
       syllabusProgress: {
         physics: { total: 0, completed: 0, percentage: 0 },

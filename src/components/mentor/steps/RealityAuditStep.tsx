@@ -55,7 +55,7 @@ export const RealityAuditStep: React.FC<Props> = ({
             <span>{inProgressCount} In Progress</span>
           </div>
           <span className="text-zinc-800">•</span>
-          <div className="flex items-center gap-1.5 text-zinc-500">
+          <div className="flex items-center gap-1.5 text-zinc-400">
             <BookOpen className="w-4 h-4" />
             <span>{notStartedCount} Not Started</span>
           </div>
@@ -81,7 +81,7 @@ export const RealityAuditStep: React.FC<Props> = ({
 
       {/* Search & Filter Bar */}
       <div className="relative">
-        <Search className="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+        <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
         <input
           type="text"
           value={searchQuery}
@@ -92,7 +92,7 @@ export const RealityAuditStep: React.FC<Props> = ({
         {searchQuery && (
           <button
             onClick={() => setSearchQuery('')}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 text-xs font-mono"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-300 text-xs font-mono"
           >
             Clear
           </button>
@@ -102,7 +102,7 @@ export const RealityAuditStep: React.FC<Props> = ({
       {/* Grouped Chapter List */}
       <div className="space-y-4 max-h-72 overflow-y-auto pr-1 custom-scrollbar">
         {groupedByUnit.length === 0 ? (
-          <div className="text-center py-8 text-xs text-zinc-500 font-mono">
+          <div className="text-center py-8 text-xs text-zinc-400 font-mono">
             No chapters match your search query.
           </div>
         ) : (
@@ -130,10 +130,10 @@ export const RealityAuditStep: React.FC<Props> = ({
                     >
                       <div className="space-y-0.5 min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-mono text-zinc-500 font-bold">{chap.id.toUpperCase()}</span>
+                          <span className="text-xs font-mono text-zinc-400 font-bold">{chap.id.toUpperCase()}</span>
                           <span className="text-xs font-semibold text-white truncate block">{chap.name}</span>
                         </div>
-                        <span className="text-[10px] font-mono text-zinc-500 block">
+                        <span className="text-[10px] font-mono text-zinc-400 block">
                           Weightage: {chap.weightage}/10 • Priority {chap.priority}
                         </span>
                       </div>
@@ -151,7 +151,7 @@ export const RealityAuditStep: React.FC<Props> = ({
                                   : st === 'In Progress'
                                   ? 'bg-indigo-500/20 border border-indigo-500/60 text-indigo-300 font-bold'
                                   : 'bg-zinc-800 border border-zinc-700 text-zinc-200 font-bold'
-                                : 'bg-zinc-950/60 text-zinc-500 border border-transparent hover:text-zinc-300'
+                                : 'bg-zinc-950/60 text-zinc-400 border border-transparent hover:text-zinc-300'
                             }`}
                           >
                             {st}

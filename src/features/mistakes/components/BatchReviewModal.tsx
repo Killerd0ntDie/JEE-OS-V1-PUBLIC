@@ -6,10 +6,12 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Mistake, SubjectId } from '@/types/index';
+import { useStudyBrainStore } from '@/store/useStudyBrainStore';
+import { RichTextRenderer } from '@/components/MathRenderer';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { MissionMode } from '@/features/mission/MissionMode';
-import { BlockMath, InlineMath } from 'react-katex';
+import { BlockMath, InlineMath } from '@/components/MathRenderer';
 
 export interface BatchReviewModalProps {
   isOpen: boolean;
@@ -34,21 +36,6 @@ export const BatchReviewModal: React.FC<BatchReviewModalProps> = ({
   useLockBodyScroll(isOpen);
   useEscapeKey(onClose, isOpen);
 
-  const renderMathText = (text: string | undefined | null) => {
-    if (!text) return null;
-    const cleanText = text.replace(/\\\$/g, '$');
-    const parts = cleanText.split(/(\$\$.*?\$\$|\$.*?\$)/gs);
-    return parts.map((part, i) => {
-      if (part.startsWith('$$') && part.endsWith('$$')) {
-        const math = part.slice(2, -2);
-        return <BlockMath key={i} math={math} />;
-      } else if (part.startsWith('$') && part.endsWith('$')) {
-        const math = part.slice(1, -1);
-        return <InlineMath key={i} math={math} />;
-      }
-      return <span key={i}>{part}</span>;
-    });
-  };
 
   if (!isOpen) return null;
 
@@ -91,7 +78,7 @@ export const BatchReviewModal: React.FC<BatchReviewModalProps> = ({
             </div>
             <div>
               <h2 id="batch-review-modal-title" className="text-sm font-bold text-white font-display">Active Recall Review Session</h2>
-              <p className="text-xs text-zinc-500 font-mono">STEP THROUGH ACTIVE MISTAKES FOR SPACED RECALL</p>
+              <p className="text-xs text-zinc-400 font-mono">STEP THROUGH ACTIVE MISTAKES FOR SPACED RECALL</p>
             </div>
           </div>
 
@@ -104,7 +91,7 @@ export const BatchReviewModal: React.FC<BatchReviewModalProps> = ({
             <button
               onClick={onClose}
               aria-label="Close Review Session Modal"
-              className="text-zinc-500 hover:text-zinc-200 p-1 rounded-lg hover:bg-zinc-900 cursor-pointer"
+              className="text-zinc-400 hover:text-zinc-200 p-1 rounded-lg hover:bg-zinc-900 cursor-pointer"
             >
               ✕
             </button>
@@ -117,7 +104,7 @@ export const BatchReviewModal: React.FC<BatchReviewModalProps> = ({
             <div className="py-12 text-center space-y-3">
               <Award className="w-12 h-12 text-emerald-400 mx-auto opacity-80" />
               <h3 className="text-sm font-bold text-zinc-200">No Active Errors Pending Review!</h3>
-              <p className="text-xs text-zinc-500 max-w-sm mx-auto font-mono">
+              <p className="text-xs text-zinc-400 max-w-sm mx-auto font-mono">
                 All logged mistakes are either mastered or fully reviewed. Log new questions or reset status from the ledger.
               </p>
             </div>
@@ -126,11 +113,11 @@ export const BatchReviewModal: React.FC<BatchReviewModalProps> = ({
               {/* Question Banner */}
               <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-zinc-900">
                 <div className="flex items-center gap-2">
-                  <Badge variant="default" className={`text-[9px] ${getSubjectColor(currentItem.subject).badge}`}>
+                  <Badge variant="default" className={`text-[11px] ${getSubjectColor(currentItem.subject).badge}`}>
                     {currentItem.subject}
                   </Badge>
                   <span className="text-xs font-bold text-zinc-200">{currentItem.chapter}</span>
-                  <span className="text-2xs text-zinc-500 font-mono">/ {currentItem.topic}</span>
+                  <span className="text-2xs text-zinc-400 font-mono">/ {currentItem.topic}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-2xs font-mono text-amber-400 bg-amber-950/30 border border-amber-900/30 px-2 py-0.5 rounded">
@@ -144,11 +131,11 @@ export const BatchReviewModal: React.FC<BatchReviewModalProps> = ({
 
               {/* Question Box */}
               <div className="space-y-2">
-                <span className="text-[10px] font-mono uppercase text-zinc-500 tracking-wider">
+                <span className="text-[10px] font-mono uppercase text-zinc-400 tracking-wider">
                   Question (Source: {currentItem.source})
                 </span>
                 <div className="p-4 bg-zinc-950 border border-zinc-900 rounded-xl text-xs text-zinc-200 leading-relaxed whitespace-pre-line shadow-inner">
-                  {renderMathText(currentItem.questionText)}
+                  <RichTextRenderer content={currentItem.questionText} />
                 </div>
               </div>
 
@@ -175,7 +162,7 @@ export const BatchReviewModal: React.FC<BatchReviewModalProps> = ({
                           <AlertTriangle className="w-3.5 h-3.5" />
                           My Original Error
                         </span>
-                        <p className="text-xs text-zinc-300 font-sans">{renderMathText(currentItem.studentMethod)}</p>
+                        <p className="text-xs text-zinc-300 font-sans"><RichTextRenderer content={currentItem.studentMethod} /></p>
                       </div>
 
                       <div className="p-4 bg-emerald-950/10 border border-emerald-950/30 rounded-xl space-y-1.5">
@@ -183,18 +170,18 @@ export const BatchReviewModal: React.FC<BatchReviewModalProps> = ({
                           <CheckCircle className="w-3.5 h-3.5" />
                           Correct Approach
                         </span>
-                        <p className="text-xs text-zinc-300 font-sans">{renderMathText(currentItem.correctMethod)}</p>
+                        <p className="text-xs text-zinc-300 font-sans"><RichTextRenderer content={currentItem.correctMethod} /></p>
                       </div>
                     </div>
 
                     {/* Solution */}
                     <div className="space-y-1">
-                      <span className="text-[10px] font-mono uppercase text-zinc-500 tracking-wider flex items-center gap-1">
+                      <span className="text-[10px] font-mono uppercase text-zinc-400 tracking-wider flex items-center gap-1">
                         <BookOpen className="w-3.5 h-3.5" />
                         Complete Solution Steps
                       </span>
                       <div className="p-4 bg-zinc-950 border border-zinc-900 rounded-xl text-xs text-zinc-300 leading-relaxed whitespace-pre-line">
-                        {renderMathText(currentItem.correctSolution)}
+                        <RichTextRenderer content={currentItem.correctSolution} />
                       </div>
                     </div>
 
@@ -202,13 +189,13 @@ export const BatchReviewModal: React.FC<BatchReviewModalProps> = ({
                     {currentItem.aiAdvice && (
                       <div className="p-3.5 bg-amber-950/15 border border-amber-900/40 rounded-xl flex items-start gap-2.5">
                         <Sparkles className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                        <p className="text-xs text-zinc-300 font-sans">{renderMathText(currentItem.aiAdvice)}</p>
+                        <p className="text-xs text-zinc-300 font-sans"><RichTextRenderer content={currentItem.aiAdvice} /></p>
                       </div>
                     )}
 
                     {/* Rate Confidence / Update Status Controls */}
                     <div className="p-4 bg-zinc-900/20 border border-zinc-900 rounded-xl space-y-2">
-                      <span className="text-3xs font-mono uppercase text-zinc-500 tracking-wider">
+                      <span className="text-3xs font-mono uppercase text-zinc-400 tracking-wider">
                         Update Recovery Status for this item:
                       </span>
                       <div className="flex flex-wrap gap-2">
@@ -256,7 +243,7 @@ export const BatchReviewModal: React.FC<BatchReviewModalProps> = ({
 
                     <button
                       onClick={() => setShowAnswer(false)}
-                      className="text-3xs text-zinc-500 hover:text-zinc-300 font-mono flex items-center gap-1 mx-auto cursor-pointer"
+                      className="text-3xs text-zinc-400 hover:text-zinc-300 font-mono flex items-center gap-1 mx-auto cursor-pointer"
                     >
                       <EyeOff className="w-3 h-3" />
                       Hide Answer Pane
@@ -279,7 +266,7 @@ export const BatchReviewModal: React.FC<BatchReviewModalProps> = ({
             Previous
           </button>
 
-          <span className="text-3xs font-mono text-zinc-500 hidden sm:inline">
+          <span className="text-3xs font-mono text-zinc-400 hidden sm:inline">
             Press Next to review next question
           </span>
 

@@ -4,6 +4,7 @@ import { Icon } from '@/components/ui/Icon';
 import { Badge } from '@/components/ui/Badge';
 import { calculateLevelFromXP, getTitleAndColor } from '@/utils/levelingCalculations';
 import { ChapterTelemetry } from '@jee-os/engines';
+import { calculateCurrentStreak } from '@/utils/streakCalculations';
 
 export function AnalyticsPage() {
   const actions = useStudyBrainStore(state => state.actions);
@@ -13,6 +14,7 @@ export function AnalyticsPage() {
   const xp = useStudyBrainStore(state => state.xp);
   const analytics = useStudyBrainStore(state => state.analytics);
   const chapters = useStudyBrainStore(state => state.chapters);
+  const settings = useStudyBrainStore(state => state.settings);
 
   const [activeSubject, setActiveSubject] = useState<'all' | 'physics' | 'chemistry' | 'maths'>('all');
   const [velocityView, setVelocityView] = useState<'time' | 'accuracy' | 'missions'>('time');
@@ -175,7 +177,7 @@ export function AnalyticsPage() {
         <div className="glass-card p-4 rounded-2xl border border-amber-500/20 bg-amber-950/20 backdrop-blur-xl space-y-1 shadow-lg">
           <span className="text-[10px] text-amber-300 uppercase font-semibold block tracking-wider">Active Daily Streak</span>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-black text-amber-400 font-display">{xp?.streak || 0} Days</span>
+            <span className="text-2xl font-black text-amber-400 font-display">{calculateCurrentStreak(studySessions || [], Math.round((settings?.minStreakHours ?? 0.5) * 60))} Days</span>
             <span className="text-[10px] text-zinc-400">⚡ Streak</span>
           </div>
         </div>
@@ -197,7 +199,7 @@ export function AnalyticsPage() {
             <span className="text-2xl font-black text-indigo-400 font-display">
               {analytics.studyTime > 0 ? Math.round((analytics.focusTime / analytics.studyTime) * 100) : 0}%
             </span>
-            <span className="text-[10px] text-zinc-500">{analytics.focusTime}m pure focus</span>
+            <span className="text-[10px] text-zinc-400">{analytics.focusTime}m pure focus</span>
           </div>
           <div className="h-1.5 w-full bg-zinc-900 rounded-full overflow-hidden">
             <div className="h-full bg-indigo-500" style={{ width: `${analytics.studyTime > 0 ? (analytics.focusTime / analytics.studyTime) * 100 : 0}%` }} />
@@ -210,7 +212,7 @@ export function AnalyticsPage() {
             <span className="text-2xl font-black text-amber-400 font-display">
               {analytics.idleTime}m
             </span>
-            <span className="text-[10px] text-zinc-500">Wasted time</span>
+            <span className="text-[10px] text-zinc-400">Wasted time</span>
           </div>
         </div>
 
@@ -220,7 +222,7 @@ export function AnalyticsPage() {
             <span className="text-2xl font-black text-emerald-400 font-display">
               {analytics.breakTime}m
             </span>
-            <span className="text-[10px] text-zinc-500">Total breaks taken</span>
+            <span className="text-[10px] text-zinc-400">Total breaks taken</span>
           </div>
         </div>
       </div>
@@ -240,7 +242,7 @@ export function AnalyticsPage() {
           </div>
 
           <div className="flex-1 flex items-center justify-center relative min-h-[200px]">
-            <svg viewBox="-120 -120 240 240" className="w-full h-full max-w-[200px] overflow-visible">
+            <svg role="img" aria-label={`Radar chart showing subject mastery: Physics ${subjectMastery.physics}%, Chemistry ${subjectMastery.chemistry}%, Maths ${subjectMastery.maths}%`} viewBox="-120 -120 240 240" className="w-full h-full max-w-[200px] overflow-visible">
               {/* Background Web */}
               {[20, 40, 60, 80, 100].map(r => (
                 <polygon
@@ -269,17 +271,26 @@ export function AnalyticsPage() {
                 const p1 = `0,${-p}`;
                 const p2 = `${c * 0.866},${c * 0.5}`;
                 const p3 = `${-m * 0.866},${m * 0.5}`;
-                return (
+                return p === 0 && c === 0 && m === 0 ? (
+                  <text x="0" y="0" fill="#a1a1aa" fontSize="10" textAnchor="middle" fontFamily="monospace" fontWeight="bold">NO DATA YET</text>
+                ) : (
                   <polygon
                     points={`${p1} ${p2} ${p3}`}
                     fill="rgba(99, 102, 241, 0.2)"
                     stroke="#6366f1"
                     strokeWidth="2"
-                    className="drop-shadow-[0_0_10px_rgba(99,102,241,0.5)]"
+                    className="drop-shadow-[0_0_15px_rgba(99,102,241,0.5)]"
                   />
                 );
               })()}
             </svg>
+            {(!subjectMastery.physics && !subjectMastery.chemistry && !subjectMastery.maths) && (
+              <div className="absolute inset-0 flex items-center justify-center bg-zinc-950/60 backdrop-blur-[2px] rounded-xl">
+                <p className="text-xs font-mono text-zinc-400 text-center px-4">
+                  Log missions and study sessions to unlock your Subject Mastery radar.
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -292,7 +303,7 @@ export function AnalyticsPage() {
                 Time Distribution
               </h3>
             </div>
-            <span className="text-[10px] font-mono text-zinc-500">Total Logged</span>
+            <span className="text-[10px] font-mono text-zinc-400">Total Logged</span>
           </div>
           
           <div className="flex-1 flex flex-col justify-center items-center gap-6">
@@ -308,7 +319,7 @@ export function AnalyticsPage() {
             >
               {/* Inner cutout for donut chart effect */}
               <div className="w-28 h-28 bg-[#050505] rounded-full flex items-center justify-center flex-col shadow-inner">
-                <span className="text-[10px] text-zinc-500 font-bold">TOTAL</span>
+                <span className="text-[10px] text-zinc-400 font-bold">TOTAL</span>
                 <span className="text-lg text-white font-black">{studyHours}h</span>
               </div>
             </div>
@@ -316,15 +327,15 @@ export function AnalyticsPage() {
             <div className="grid grid-cols-3 gap-6 text-center text-xs font-mono w-full px-2">
               <div className="space-y-1 bg-sky-950/20 py-2 rounded-xl border border-sky-900/30">
                 <div className="text-sky-400 font-black text-sm">{subjectTimeDistribution.physics.pct}%</div>
-                <div className="text-zinc-500 text-[9px] uppercase tracking-wider font-bold">PHY</div>
+                <div className="text-zinc-400 text-[11px] uppercase tracking-wider font-bold">PHY</div>
               </div>
               <div className="space-y-1 bg-emerald-950/20 py-2 rounded-xl border border-emerald-900/30">
                 <div className="text-emerald-400 font-black text-sm">{subjectTimeDistribution.chemistry.pct}%</div>
-                <div className="text-zinc-500 text-[9px] uppercase tracking-wider font-bold">CHEM</div>
+                <div className="text-zinc-400 text-[11px] uppercase tracking-wider font-bold">CHEM</div>
               </div>
               <div className="space-y-1 bg-indigo-950/20 py-2 rounded-xl border border-indigo-900/30">
                 <div className="text-indigo-400 font-black text-sm">{subjectTimeDistribution.maths.pct}%</div>
-                <div className="text-zinc-500 text-[9px] uppercase tracking-wider font-bold">MATH</div>
+                <div className="text-zinc-400 text-[11px] uppercase tracking-wider font-bold">MATH</div>
               </div>
             </div>
           </div>
@@ -339,10 +350,10 @@ export function AnalyticsPage() {
                 7-Day Velocity
               </h3>
             </div>
-            <div className="flex items-center gap-1 bg-zinc-900 border border-zinc-800 p-1 rounded-xl text-[9px] font-mono">
-              <button onClick={() => setVelocityView('time')} className={`px-2 py-1 rounded-lg uppercase font-bold transition-all ${velocityView === 'time' ? 'bg-indigo-600 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}>Time</button>
-              <button onClick={() => setVelocityView('accuracy')} className={`px-2 py-1 rounded-lg uppercase font-bold transition-all ${velocityView === 'accuracy' ? 'bg-emerald-600 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}>Acc</button>
-              <button onClick={() => setVelocityView('missions')} className={`px-2 py-1 rounded-lg uppercase font-bold transition-all ${velocityView === 'missions' ? 'bg-amber-600 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}>Task</button>
+            <div className="flex items-center gap-1 bg-zinc-900 border border-zinc-800 p-1 rounded-xl text-[11px] font-mono">
+              <button onClick={() => setVelocityView('time')} className={`px-2 py-1 rounded-lg uppercase font-bold transition-all ${velocityView === 'time' ? 'bg-indigo-600 text-white' : 'text-zinc-400 hover:text-zinc-300'}`}>Time</button>
+              <button onClick={() => setVelocityView('accuracy')} className={`px-2 py-1 rounded-lg uppercase font-bold transition-all ${velocityView === 'accuracy' ? 'bg-emerald-600 text-white' : 'text-zinc-400 hover:text-zinc-300'}`}>Acc</button>
+              <button onClick={() => setVelocityView('missions')} className={`px-2 py-1 rounded-lg uppercase font-bold transition-all ${velocityView === 'missions' ? 'bg-amber-600 text-white' : 'text-zinc-400 hover:text-zinc-300'}`}>Mission</button>
             </div>
           </div>
 
@@ -362,7 +373,7 @@ export function AnalyticsPage() {
                     className={`w-full ${color} opacity-80 hover:opacity-100 rounded-t-lg transition-all`}
                     style={{ height: `${pct}%`, minHeight: val > 0 ? '4px' : '0' }}
                   />
-                  <span className="text-[9px] font-mono text-zinc-500">{day.label.replace('D-', '')}</span>
+                  <span className="text-[11px] font-mono text-zinc-400">{day.label.replace('D-', '')}</span>
                 </div>
               );
             })}
@@ -388,7 +399,7 @@ export function AnalyticsPage() {
                 key={sub}
                 onClick={() => setActiveSubject(sub)}
                 className={`px-3 py-1 rounded-lg uppercase font-bold transition-all cursor-pointer ${
-                  activeSubject === sub ? 'bg-indigo-600 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
+                  activeSubject === sub ? 'bg-indigo-600 text-white shadow-sm' : 'text-zinc-400 hover:text-zinc-300'
                 }`}
               >
                 {sub}
@@ -410,7 +421,7 @@ export function AnalyticsPage() {
                   <span className="text-xs font-semibold text-white group-hover:text-indigo-300 truncate block">
                     {t.chapterName}
                   </span>
-                  <div className="text-[10px] font-mono text-zinc-500 uppercase flex items-center gap-2 mt-1">
+                  <div className="text-[10px] font-mono text-zinc-400 uppercase flex items-center gap-2 mt-1">
                     {t.subject} • {t.strategyRadar?.jeeWeightageRank || 'Tier 2'} • {t.syllabusStage}
                   </div>
                 </div>
@@ -418,7 +429,7 @@ export function AnalyticsPage() {
 
               <div className="flex items-center gap-3 shrink-0 font-mono text-xs">
                 {t.isBottleneck && (
-                  <Badge variant="secondary" className="text-[9px] bg-red-950/40 text-red-400 border-red-900/60 hidden sm:inline-flex">
+                  <Badge variant="secondary" className="text-[11px] bg-red-950/40 text-red-400 border-red-900/60 hidden sm:inline-flex">
                     Bottleneck
                   </Badge>
                 )}
@@ -438,7 +449,7 @@ export function AnalyticsPage() {
               Retention Decay Simulation
             </h3>
           </div>
-          <span className="text-[10px] text-zinc-500 font-mono">Ebbinghaus Curve Estimation</span>
+          <span className="text-[10px] text-zinc-400 font-mono">Ebbinghaus Curve Estimation</span>
         </div>
 
         <div className="h-48 w-full relative pt-4 pr-4 border-l border-b border-zinc-800">
@@ -450,7 +461,7 @@ export function AnalyticsPage() {
             const theoreticalPath = `M0,5 Q20,40 100,75`;
             
             return (
-              <svg className="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 100 100">
+              <svg role="img" aria-label="Retention decay curve showing drop-off in memory over time based on revision gaps" className="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 100 100">
                 {/* Grid lines */}
                 {[25, 50, 75].map(y => (
                   <line key={y} x1="0" y1={y} x2="100" y2={y} stroke="rgba(255,255,255,0.05)" strokeWidth="0.5" />
@@ -512,12 +523,12 @@ export function AnalyticsPage() {
           })()}
           
           {/* Axis Labels */}
-          <div className="absolute top-0 -left-6 text-[9px] font-mono text-zinc-500 h-full flex flex-col justify-between pb-6">
+          <div className="absolute top-0 -left-6 text-[11px] font-mono text-zinc-400 h-full flex flex-col justify-between pb-6">
             <span>100%</span>
             <span>50%</span>
             <span>0%</span>
           </div>
-          <div className="absolute bottom-[-20px] left-0 w-full flex justify-between text-[9px] font-mono text-zinc-500 pl-2">
+          <div className="absolute bottom-[-20px] left-0 w-full flex justify-between text-[11px] font-mono text-zinc-400 pl-2">
             <span>Now</span>
             <span>1 Week</span>
             <span>1 Month</span>

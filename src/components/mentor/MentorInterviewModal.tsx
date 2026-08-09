@@ -58,7 +58,7 @@ export const MentorInterviewModal: React.FC<Props> = ({ isOpen, onClose, isManda
                     <span className="text-xs font-mono font-bold text-indigo-400 uppercase tracking-widest bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20">
                       AI MENTOR DIAGNOSTIC
                     </span>
-                    <span className="text-xs font-mono text-zinc-500">Step {step} of 6</span>
+                    <span className="text-xs font-mono text-zinc-400">Step {step} of 6</span>
                   </div>
                   <h2 id="mentor-interview-modal-title" className="text-base font-display font-bold text-white tracking-tight mt-0.5">
                     Personalized JEE Preparation Roadmap

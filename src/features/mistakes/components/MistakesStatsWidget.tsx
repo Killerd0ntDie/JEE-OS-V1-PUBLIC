@@ -23,7 +23,7 @@ export function MistakesStatsWidget({
       >
         <div className="flex items-center justify-between mb-1">
           <span className="text-[10px] text-zinc-400 uppercase font-semibold block tracking-wider">Total Logged Errors</span>
-          <Activity className="w-3.5 h-3.5 text-zinc-500 group-hover:text-white transition-colors" />
+          <Activity className="w-3.5 h-3.5 text-zinc-400 group-hover:text-white transition-colors" />
         </div>
         <span className="text-2xl font-black text-white tracking-tight font-display">{totalMistakes}</span>
       </motion.div>

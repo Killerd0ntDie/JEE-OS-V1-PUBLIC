@@ -10,13 +10,13 @@ service cloud.firestore {
     match /users/{userId} {
       allow read, write: if isOwner(userId);
       
-      match /{document=**} {
-        allow read, write: if isOwner(userId);
+      match /{collectionId}/{documentId} {
+        allow read, write: if isOwner(userId) && collectionId in ['chapters', 'notes', 'mistakes', 'studySessions', 'mockResults', 'customMockTests', 'timelineBlocks', 'customTimelineBlocks', 'customMissions'];
       }
     }
 
     match /pyq_bank/{document=**} {
-      allow read: if request.auth != null;
+      allow read: if request.auth != null && request.auth.token.firebase.sign_in_provider != 'anonymous';
       allow write: if false;
     }
   }

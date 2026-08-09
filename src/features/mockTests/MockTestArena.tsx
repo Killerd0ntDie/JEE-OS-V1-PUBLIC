@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Clock, User, X, Check, Bookmark, Target, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { Clock, User, X, Check, Bookmark, Target, AlertCircle, AlertTriangle } from 'lucide-react';
 import { SubjectId } from '../../types';
 import { Modal } from '@/components/ui/Modal';
 import { ConfirmDeleteModal } from '@/components/ui/ConfirmDeleteModal';
 import { MockTest, MockTestAttempt, MockTestAttemptQuestion, QuestionStatus } from '../../types/mockTest';
 import { MissionMode } from '../mission/MissionMode';
-import { InlineMath, BlockMath } from 'react-katex';
+import { RichTextRenderer } from '@/components/MathRenderer';
 
 interface MockTestArenaProps {
   test: MockTest;
@@ -16,12 +16,32 @@ interface MockTestArenaProps {
 export function MockTestArena({ test, onComplete, onExit }: MockTestArenaProps) {
   const [currentSubject, setCurrentSubject] = useState<SubjectId>(test.sections[0].subject);
   const [currentQIdx, setCurrentQIdx] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(test.durationMinutes * 60);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isConfirmSubmitOpen, setIsConfirmSubmitOpen] = useState(false);
-  
+
+  const [targetEndTime] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`jeeos_mock_end_${test.id}`);
+      if (saved) return parseInt(saved, 10);
+    } catch(e) {}
+    const end = Date.now() + test.durationMinutes * 60000;
+    localStorage.setItem(`jeeos_mock_end_${test.id}`, end.toString());
+    return end;
+  });
+
+  const [timeLeft, setTimeLeft] = useState(() => {
+    return Math.max(0, Math.floor((targetEndTime - Date.now()) / 1000));
+  });
+
   // Initialize attempt state
   const [attempt, setAttempt] = useState<MockTestAttempt>(() => {
+    try {
+      const saved = localStorage.getItem(`jeeos_mock_attempt_${test.id}`);
+      if (saved) return JSON.parse(saved);
+    } catch(e) {
+      console.error('Failed to load mock attempt', e);
+    }
+
     const initialQuestions: Record<string, MockTestAttemptQuestion> = {};
     test.sections.forEach(sec => {
       sec.questions.forEach((q, idx) => {
@@ -40,37 +60,27 @@ export function MockTestArena({ test, onComplete, onExit }: MockTestArenaProps) 
     };
   });
 
+  useEffect(() => {
+    localStorage.setItem(`jeeos_mock_attempt_${test.id}`, JSON.stringify(attempt));
+  }, [attempt, test.id]);
+
   const [currentAnswer, setCurrentAnswer] = useState<string>('');
 
   const activeSection = useMemo(() => test.sections.find(s => s.subject === currentSubject)!, [test, currentSubject]);
   const activeQuestion = activeSection.questions[currentQIdx];
 
-  // Helper to render text with inline math: parses text replacing $math$ with <InlineMath math="math"/>
-  const renderMathText = (text: string | undefined | null) => {
-    if (!text) return null;
-    const cleanText = text.replace(/\\\$/g, '$');
-    const parts = cleanText.split(/(\$\$.*?\$\$|\$.*?\$)/gs);
-    return parts.map((part, i) => {
-      if (part.startsWith('$$') && part.endsWith('$$')) {
-        const math = part.slice(2, -2);
-        return <BlockMath key={i} math={math} />;
-      } else if (part.startsWith('$') && part.endsWith('$')) {
-        const math = part.slice(1, -1);
-        return <InlineMath key={i} math={math} />;
-      }
-      return <span key={i}>{part}</span>;
-    });
-  };
+
+
+  const [isConfirmExitOpen, setIsConfirmExitOpen] = useState(false);
 
   // Escape key logic
   useEffect(() => {
-
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (document.fullscreenElement) {
           document.exitFullscreen().catch(err => console.warn(err));
         }
-        onExit();
+        setIsConfirmExitOpen(true);
       }
     };
 
@@ -78,7 +88,7 @@ export function MockTestArena({ test, onComplete, onExit }: MockTestArenaProps) 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [onExit]);
+  }, []);
 
   // Load current answer when question changes
   useEffect(() => {
@@ -90,31 +100,48 @@ export function MockTestArena({ test, onComplete, onExit }: MockTestArenaProps) 
     }
   }, [activeQuestion.id]);
 
-  // Timer logic
+  const entryTimeRef = useRef<number>(Date.now());
+  const activeQuestionIdRef = useRef<string>(activeQuestion.id);
+
+  // Timer logic - Global countdown only
   useEffect(() => {
     const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          handleSubmitTest();
-          return 0;
-        }
-        return prev - 1;
-      });
-      
-      // Update time spent on current question
-      setAttempt(prev => ({
-        ...prev,
-        questions: {
-          ...prev.questions,
-          [activeQuestion.id]: {
-            ...prev.questions[activeQuestion.id],
-            timeSpentSeconds: prev.questions[activeQuestion.id].timeSpentSeconds + 1
-          }
-        }
-      }));
+      setTimeLeft(Math.max(0, Math.floor((targetEndTime - Date.now()) / 1000)));
     }, 1000);
     return () => clearInterval(timer);
+  }, [targetEndTime]);
+
+  // Auto-submit when time is up
+  useEffect(() => {
+    if (timeLeft <= 0 && !isSubmitting) {
+      handleSubmitTest();
+    }
+  }, [timeLeft, isSubmitting]);
+
+  // Track time spent per question
+  useEffect(() => {
+    entryTimeRef.current = Date.now();
+    activeQuestionIdRef.current = activeQuestion.id;
+
+    return () => {
+      const timeSpent = Math.floor((Date.now() - entryTimeRef.current) / 1000);
+      if (timeSpent > 0) {
+        setAttempt(prev => {
+          const qId = activeQuestionIdRef.current;
+          if (!prev.questions[qId]) return prev;
+          return {
+            ...prev,
+            questions: {
+              ...prev.questions,
+              [qId]: {
+                ...prev.questions[qId],
+                timeSpentSeconds: (prev.questions[qId].timeSpentSeconds || 0) + timeSpent
+              }
+            }
+          };
+        });
+      }
+    };
   }, [activeQuestion.id]);
 
   const updateQuestionState = (qId: string, update: Partial<MockTestAttemptQuestion>) => {
@@ -157,8 +184,8 @@ export function MockTestArena({ test, onComplete, onExit }: MockTestArenaProps) 
   };
 
   const handleMarkForReview = () => {
-    updateQuestionState(activeQuestion.id, { status: 'Marked for Review', selectedAnswer: '' });
-    setCurrentAnswer('');
+    const newStatus = currentAnswer ? 'Answered & Marked for Review' : 'Marked for Review';
+    updateQuestionState(activeQuestion.id, { status: newStatus, selectedAnswer: currentAnswer });
     handleNext();
   };
 
@@ -168,11 +195,24 @@ export function MockTestArena({ test, onComplete, onExit }: MockTestArenaProps) 
   };
 
   const handleSubmitTest = () => {
+    if (isSubmitting) return;
     setIsSubmitting(true);
+    
+    // Add time for current question before submitting
+    const timeSpent = Math.floor((Date.now() - entryTimeRef.current) / 1000);
+    
     const finalAttempt = {
       ...attempt,
       endTime: new Date().toISOString()
     };
+    
+    if (timeSpent > 0 && finalAttempt.questions[activeQuestion.id]) {
+        finalAttempt.questions[activeQuestion.id].timeSpentSeconds += timeSpent;
+    }
+
+    localStorage.removeItem(`jeeos_mock_attempt_${test.id}`);
+    localStorage.removeItem(`jeeos_mock_end_${test.id}`);
+
     // Let animation play for a split second
     setTimeout(() => {
       onComplete(finalAttempt);
@@ -198,7 +238,7 @@ export function MockTestArena({ test, onComplete, onExit }: MockTestArenaProps) 
   };
 
   return (
-    <Modal isOpen={true} onClose={onExit} zIndex={50} backdropClassName="bg-[#020202] text-zinc-300 font-sans flex overflow-hidden" className="flex-1 flex overflow-hidden p-4 md:p-6 gap-6 max-w-[1600px] mx-auto w-full">
+    <Modal isOpen={true} onClose={onExit} zIndex={50} backdropClassName="bg-[#020202] text-zinc-300 font-sans flex overflow-hidden" className="flex-1 flex flex-col lg:flex-row overflow-hidden p-4 md:p-6 gap-6 max-w-[1600px] mx-auto w-full">
         {/* Left Panel: Question Area */}
         <div className="flex-1 flex flex-col bg-[#070708] rounded-[22px] border border-zinc-800/50 shadow-2xl overflow-hidden">
           {/* Subject Tabs */}
@@ -236,7 +276,7 @@ export function MockTestArena({ test, onComplete, onExit }: MockTestArenaProps) 
             </div>
 
             <div className="text-base text-zinc-300 leading-relaxed mb-8">
-              {renderMathText(activeQuestion.content)}
+              <RichTextRenderer content={activeQuestion.content} />
             </div>
 
             {/* Answer Input Area */}
@@ -262,7 +302,7 @@ export function MockTestArena({ test, onComplete, onExit }: MockTestArenaProps) 
                       <div className="w-5 h-5 rounded-full border flex-shrink-0 flex items-center justify-center border-inherit">
                         {currentAnswer === idx.toString() && <div className="w-2.5 h-2.5 rounded-full bg-current" />}
                       </div>
-                      <span className="text-sm font-medium">{renderMathText(opt)}</span>
+                      <span className="text-sm font-medium"><RichTextRenderer content={opt} /></span>
                     </label>
                   ))}
                 </div>
@@ -299,17 +339,17 @@ export function MockTestArena({ test, onComplete, onExit }: MockTestArenaProps) 
         </div>
 
         {/* Right Panel: Palette & Profile */}
-        <div className="w-80 bg-[#121318] border-l border-zinc-800 flex flex-col shrink-0">
+        <div className="w-full lg:w-80 max-h-[40vh] lg:max-h-full bg-[#121318] border-t lg:border-l lg:border-t-0 border-zinc-800 flex flex-col shrink-0 overflow-y-auto rounded-xl lg:rounded-none lg:rounded-r-[22px]">
           {/* Profile & Timer Area */}
           <div className="p-4 border-b border-zinc-800">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-zinc-800 rounded-lg flex items-center justify-center">
-                  <User className="w-5 h-5 text-zinc-500" />
+                  <User className="w-5 h-5 text-zinc-400" />
                 </div>
                 <div>
                   <div className="text-sm font-bold text-zinc-200">Candidate</div>
-                  <div className="text-xs text-zinc-500">JEE Main Aspirant</div>
+                  <div className="text-xs text-zinc-400">JEE Main Aspirant</div>
                 </div>
               </div>
             </div>
@@ -361,7 +401,7 @@ export function MockTestArena({ test, onComplete, onExit }: MockTestArenaProps) 
 
           {/* Palette */}
           <div className="flex-1 overflow-y-auto p-4 bg-[#090a0f]">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-500 mb-4">{currentSubject} Palette</h3>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-4">{currentSubject} Palette</h3>
             <div className="grid grid-cols-5 gap-2">
               {activeSection.questions.map((q, idx) => {
                 const status = attempt.questions[q.id].status;
@@ -397,17 +437,77 @@ export function MockTestArena({ test, onComplete, onExit }: MockTestArenaProps) 
           </div>
         </div>
 
-      <ConfirmDeleteModal
+      <Modal
         isOpen={isConfirmSubmitOpen}
-        title="Submit Exam Early?"
-        message="Are you sure you want to finish and submit your exam now? All answered questions will be scored and recorded."
-        confirmLabel="Yes, Submit Exam"
-        onConfirm={() => {
-          setIsConfirmSubmitOpen(false);
-          handleSubmitTest();
-        }}
         onClose={() => setIsConfirmSubmitOpen(false)}
-      />
+        className="max-w-md bg-zinc-950 border border-emerald-500/30 p-6 rounded-2xl shadow-2xl"
+      >
+        <div className="flex flex-col gap-4">
+          <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+            <Check className="w-6 h-6" />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold font-display text-white">Submit Exam Early?</h3>
+            <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
+              Are you sure you want to finish and submit your exam now? All answered questions will be scored and recorded.
+            </p>
+          </div>
+          <div className="flex items-center justify-end gap-3 mt-2">
+            <button
+              onClick={() => setIsConfirmSubmitOpen(false)}
+              className="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs font-mono transition-colors cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                setIsConfirmSubmitOpen(false);
+                handleSubmitTest();
+              }}
+              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-mono font-bold transition-colors shadow-lg cursor-pointer"
+            >
+              Yes, Submit Exam
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={isConfirmExitOpen}
+        onClose={() => setIsConfirmExitOpen(false)}
+        className="max-w-md bg-zinc-950 border border-amber-500/30 p-6 rounded-2xl shadow-2xl"
+      >
+        <div className="flex flex-col gap-4">
+          <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+            <AlertTriangle className="w-6 h-6" />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold font-display text-white">Exit Mock Test?</h3>
+            <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
+              Are you sure you want to exit? Your exam progress will not be saved.
+            </p>
+          </div>
+          <div className="flex items-center justify-end gap-3 mt-2">
+            <button
+              onClick={() => setIsConfirmExitOpen(false)}
+              className="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs font-mono transition-colors cursor-pointer"
+            >
+              Resume Exam
+            </button>
+            <button
+              onClick={() => {
+                setIsConfirmExitOpen(false);
+                localStorage.removeItem(`jeeos_mock_attempt_${test.id}`);
+                localStorage.removeItem(`jeeos_mock_end_${test.id}`);
+                onExit();
+              }}
+              className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-mono font-bold transition-colors shadow-lg cursor-pointer"
+            >
+              Exit & Discard
+            </button>
+          </div>
+        </div>
+      </Modal>
       {isSubmitting && (
         <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center rounded-[22px]">
           <div className="flex flex-col items-center gap-4">

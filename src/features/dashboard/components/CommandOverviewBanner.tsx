@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { Target, Clock, AlertTriangle, TrendingUp, ChevronDown, ChevronUp, ShieldAlert, PauseCircle, LayoutDashboard } from 'lucide-react';
+import { Target, Clock, AlertTriangle, TrendingUp, ChevronDown, ChevronUp, ShieldAlert, PauseCircle, LayoutDashboard, X } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { ChapterTelemetry } from '@jee-os/engines';
@@ -29,6 +29,8 @@ export function CommandOverviewBanner({
 
   const [internalExpanded, setInternalExpanded] = useState<boolean>(true);
   const isExpanded = externalExpanded !== undefined ? externalExpanded : internalExpanded;
+  
+  const [isBottlenecksModalOpen, setIsBottlenecksModalOpen] = useState(false);
 
   const onHoldChapters = useMemo(() => {
     return (chapters || []).filter(c => c.chapterOnHold || c.dppOnHold || c.pyqOnHold);
@@ -71,7 +73,7 @@ export function CommandOverviewBanner({
   const dailyCapHours = mentorProfile?.dailyAvailableHours || 6.5;
 
   return (
-    <div className="w-full bg-zinc-900/70 border border-zinc-800 rounded-2xl p-3.5 mb-8 font-mono text-left shadow-xl transition-all duration-300">
+    <div className="w-full bg-zinc-900/70 border border-zinc-800 rounded-2xl p-3.5 mb-3 font-sans text-left shadow-xl transition-all duration-300">
       {/* Unified Section Header Bar */}
       <div 
         onClick={handleToggle}
@@ -195,17 +197,21 @@ export function CommandOverviewBanner({
           {/* Active Bottlenecks */}
           <motion.div 
             whileHover={{ y: -2 }}
-            className="glass-card rounded-2xl p-4 relative overflow-hidden border border-amber-500/20 bg-amber-950/20 backdrop-blur-xl group"
+            onClick={() => setIsBottlenecksModalOpen(true)}
+            className="glass-card rounded-2xl p-4 relative overflow-hidden border border-amber-500/20 bg-amber-950/20 backdrop-blur-xl group cursor-pointer hover:border-amber-500/40"
           >
             <div className="absolute -top-12 -right-12 w-24 h-24 bg-amber-500/10 rounded-full blur-2xl group-hover:bg-amber-500/20 transition-all" />
             <div className="flex items-center justify-between mb-1">
               <span className="text-[10px] font-mono text-amber-300 uppercase font-bold tracking-wider block">Active Bottlenecks</span>
-              <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+              <AlertTriangle className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform" />
             </div>
             <ul className="text-[10px] text-zinc-300 space-y-0.5 font-mono">
-              {activeBottlenecks.map((bot, idx) => (
+              {activeBottlenecks.slice(0, 3).map((bot, idx) => (
                 <li key={idx} className="truncate text-amber-200/90">• {bot}</li>
               ))}
+              {activeBottlenecks.length > 3 && (
+                <li className="text-amber-500 font-bold mt-1">+{activeBottlenecks.length - 3} more (Click to view)</li>
+              )}
             </ul>
           </motion.div>
 
@@ -226,6 +232,45 @@ export function CommandOverviewBanner({
           </motion.div>
         </div>
       </div>
+
+      {/* Bottlenecks Modal */}
+      {isBottlenecksModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-lg w-full shadow-2xl relative">
+            <button
+              onClick={() => setIsBottlenecksModalOpen(false)}
+              className="absolute top-4 right-4 p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5 text-amber-500" />
+              </div>
+              <div>
+                <h3 className="text-lg font-display font-bold text-white">Active Bottlenecks</h3>
+                <p className="text-xs text-zinc-400 font-mono mt-0.5">Factors slowing down your progress</p>
+              </div>
+            </div>
+            <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+              {activeBottlenecks.map((bot, idx) => (
+                <div key={idx} className="p-3 bg-amber-950/20 border border-amber-900/50 rounded-xl flex items-start gap-3">
+                  <span className="text-amber-500 font-bold mt-0.5 shrink-0">•</span>
+                  <span className="text-sm text-zinc-300">{bot}</span>
+                </div>
+              ))}
+            </div>
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => setIsBottlenecksModalOpen(false)}
+                className="px-4 py-2 rounded-xl font-bold text-sm bg-zinc-800 text-white hover:bg-zinc-700 transition-colors"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

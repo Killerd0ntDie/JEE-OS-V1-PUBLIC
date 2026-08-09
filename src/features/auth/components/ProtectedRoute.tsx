@@ -14,7 +14,7 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
         <div className="space-y-4 text-center">
           <div className="text-[11px] font-mono uppercase tracking-[0.2em] text-indigo-400 font-bold mb-6">JEE COCKPIT</div>
           <h2 className="text-base font-display font-bold text-white tracking-wider uppercase mt-4">LOADING WORKSPACE...</h2>
-          <p className="text-[15px] text-zinc-500 max-w-sm mx-auto leading-relaxed mt-4">
+          <p className="text-[15px] text-zinc-400 max-w-sm mx-auto leading-relaxed mt-4">
             Retrieving syllabus milestones, mistakes logs, and personal preparation notes...
           </p>
         </div>

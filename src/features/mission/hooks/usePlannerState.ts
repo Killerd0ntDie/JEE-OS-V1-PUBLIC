@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
-import { generateWeeklyMatrix, WeeklyBlock, getDayFocusPill, getHeaderBadgeText } from '@jee-os/engines';
+import { WeeklyBlock, getDayFocusPill, getHeaderBadgeText } from '@jee-os/engines';
 import { TodayMission, SubjectId } from '@/types/index';
 
 export function usePlannerState() {
@@ -19,7 +19,7 @@ export function usePlannerState() {
 
   const dailyCapHours = mentorProfile?.dailyAvailableHours || settings.dailyQuota || 4;
 
-  const [viewMode, setViewMode] = useState<'daily' | 'weekly' | 'monthly'>('weekly');
+  const [viewMode, setViewMode] = useState<'daily' | 'weekly' | 'monthly'>('daily');
 
   const currentDayIndex = useMemo(() => {
     const day = new Date().getDay();
@@ -67,16 +67,19 @@ export function usePlannerState() {
       : ['Physics Mechanics lecture backlog', 'Chemistry GOC reaction mechanism DPPs'];
   }, [chapterTelemetryMap]);
 
-  const weeklyMatrix = useMemo<WeeklyBlock[]>(() => {
-    const splitStrategy = mentorProfile?.subjectSplitStrategy || '3_a_day';
-    const plannerWeekly = plannerOutput?.weeklySchedule as any;
-    return generateWeeklyMatrix(splitStrategy, chapters, todayMissions, plannerWeekly, currentDayIndex, mentorProfile?.twoDaySplitConfig);
-  }, [plannerOutput, chapters, mentorProfile?.subjectSplitStrategy, mentorProfile?.twoDaySplitConfig, todayMissions, currentDayIndex]);
+  const deletedMissionIds = useStudyBrainStore(s => s.deletedMissionIds) || [];
 
+
+
+  const weeklyMatrix = useStudyBrainStore(s => s.weeklySchedule) || [];
   const handleAutoBalance = async () => {
     setIsAutoBalancing(true);
     try {
-      await new Promise(r => setTimeout(r, 1000));
+      if (actions?.rebalancePlan) {
+        await actions.rebalancePlan();
+      } else {
+        await new Promise(r => setTimeout(r, 1000));
+      }
       setBalanceToast(true);
       setTimeout(() => setBalanceToast(false), 3000);
     } catch (e) {
@@ -118,6 +121,26 @@ export function usePlannerState() {
     return chapterTelemetryMap?.[selectedBlock.chapterId] || null;
   }, [selectedBlock, chapterTelemetryMap]);
 
+
+
+
+  const handleMoveBlock = (blockId: string, targetDayIndex: number, newTimeSlot: string) => {
+    const timeMatch = newTimeSlot.match(/(\d{1,2}:\d{2})/);
+    const scheduledTime = timeMatch ? timeMatch[1] : undefined;
+    const scheduledDate = getDayDateString(targetDayIndex);
+
+    if (actions.updateScheduleBlock) {
+      actions.updateScheduleBlock(blockId, {
+        dayIndex: targetDayIndex,
+        timeSlot: newTimeSlot,
+        scheduledDate,
+        scheduledTime,
+      });
+    }
+  };
+
+
+
   return {
     actions,
     mentorProfile,
@@ -157,6 +180,7 @@ export function usePlannerState() {
     getDayDateString,
     activeBottlenecks,
     weeklyMatrix,
+    handleMoveBlock,
     handleAutoBalance,
     selectedDayBlocks,
     getSubjectStyle,

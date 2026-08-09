@@ -4,6 +4,7 @@ import * as pdfjsLib from 'pdfjs-dist';
 import { MockTestParsingEngine } from '@jee-os/engines';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { Modal } from '@/components/ui/Modal';
+import { encodeSecret, decodeSecret } from '@/utils/crypto';
 
 // Initialize PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
@@ -23,7 +24,10 @@ export function UploadPDFModal({ isOpen, onSuccess, onCancel }: UploadPDFModalPr
   const [statusText, setStatusText] = useState('');
   
   // Free tier API key handling (Option A)
-  const [apiKey, setApiKey] = useState(localStorage.getItem('gemini_api_key') || '');
+  const [apiKey, setApiKey] = useState(() => {
+    const stored = localStorage.getItem('gemini_api_key');
+    return stored ? decodeSecret(stored) : '';
+  });
   const [showApiSettings, setShowApiSettings] = useState(!localStorage.getItem('gemini_api_key'));
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -31,7 +35,7 @@ export function UploadPDFModal({ isOpen, onSuccess, onCancel }: UploadPDFModalPr
   const saveApiKey = (e: React.FormEvent) => {
     e.preventDefault();
     if (apiKey.trim()) {
-      localStorage.setItem('gemini_api_key', apiKey.trim());
+      localStorage.setItem('gemini_api_key', encodeSecret(apiKey.trim()));
       setShowApiSettings(false);
     }
   };
@@ -50,7 +54,7 @@ export function UploadPDFModal({ isOpen, onSuccess, onCancel }: UploadPDFModalPr
   };
 
   const processFile = async (file: File) => {
-    if (!localStorage.getItem('gemini_api_key')) {
+    if (!apiKey) {
       setError("Please configure your Gemini API Key first.");
       setShowApiSettings(true);
       return;
@@ -75,7 +79,7 @@ export function UploadPDFModal({ isOpen, onSuccess, onCancel }: UploadPDFModalPr
       }
 
       setStatusText('AI analyzing and grading scorecard...');
-      const engine = new MockTestParsingEngine(localStorage.getItem('gemini_api_key')!);
+      const engine = new MockTestParsingEngine(apiKey!);
       const result = await engine.parseMockTestResults(rawText);
 
       setStatusText('Saving mistakes to Mistake Log...');
@@ -168,10 +172,10 @@ export function UploadPDFModal({ isOpen, onSuccess, onCancel }: UploadPDFModalPr
             </div>
           </div>
           <div className="flex gap-2">
-            <button onClick={() => setShowApiSettings(!showApiSettings)} className="text-zinc-500 hover:text-white transition-colors p-1 bg-zinc-900 rounded-md">
+            <button onClick={() => setShowApiSettings(!showApiSettings)} className="text-zinc-400 hover:text-white transition-colors p-1 bg-zinc-900 rounded-md">
               <Settings className="w-4 h-4" />
             </button>
-            <button onClick={onCancel} className="text-zinc-500 hover:text-white transition-colors p-1">
+            <button onClick={onCancel} className="text-zinc-400 hover:text-white transition-colors p-1">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -188,7 +192,7 @@ export function UploadPDFModal({ isOpen, onSuccess, onCancel }: UploadPDFModalPr
                 placeholder="AIzaSy..."
                 className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500"
               />
-              <p className="text-[10px] text-zinc-500 mt-1">Stored securely in your local browser storage.</p>
+              <p className="text-[10px] text-zinc-400 mt-1">Stored securely in your local browser storage.</p>
             </div>
             <button type="submit" className="w-full bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg py-2 text-sm font-bold transition-colors">
               Save Key
@@ -218,11 +222,11 @@ export function UploadPDFModal({ isOpen, onSuccess, onCancel }: UploadPDFModalPr
               </div>
             ) : (
               <>
-                <div className="w-12 h-12 mx-auto rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center mb-4 text-zinc-500">
+                <div className="w-12 h-12 mx-auto rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center mb-4 text-zinc-400">
                   <FileText className="w-6 h-6 text-purple-400" />
                 </div>
                 <p className="text-sm text-zinc-300 font-medium mb-1">Drag and drop scorecard PDF</p>
-                <p className="text-xs text-zinc-500 font-mono mb-4">Or click to browse your files</p>
+                <p className="text-xs text-zinc-400 font-mono mb-4">Or click to browse your files</p>
                 <button 
                   onClick={() => fileInputRef.current?.click()}
                   className="px-4 py-2 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-purple-400 text-xs font-mono font-bold rounded-lg transition-colors"

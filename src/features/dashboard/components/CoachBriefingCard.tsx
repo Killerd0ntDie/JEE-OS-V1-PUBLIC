@@ -17,7 +17,7 @@ export function CoachBriefingCard({ coachMessage }: CoachBriefingCardProps) {
       <p className="text-xs text-zinc-300 font-mono italic leading-relaxed">
         "{coachMessage || 'Models synchronized. Prepare for execution of your current targets. Priority is formula recall and lecture watch.'}"
       </p>
-      <div className="flex justify-between items-center text-[9px] font-mono text-zinc-500 pt-1.5 border-t border-zinc-900">
+      <div className="flex justify-between items-center text-[11px] font-mono text-zinc-400 pt-1.5 border-t border-zinc-900">
         <span>COACH: ACTIVE</span>
         <span>CONFIDENCE: 98%</span>
       </div>

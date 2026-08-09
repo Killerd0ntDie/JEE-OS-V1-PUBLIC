@@ -57,7 +57,7 @@ export function WarRoomSandbox() {
         newAssignments[w as unknown as number] = newAssignments[w as unknown as number].filter(id => id !== selectedChapter);
       }
       // Add to new week
-      newAssignments[week].push(selectedChapter);
+      newAssignments[week] = [...newAssignments[week], selectedChapter];
       return newAssignments;
     });
     setSelectedChapter(null);
@@ -86,7 +86,7 @@ export function WarRoomSandbox() {
               <AlertTriangle className="w-4 h-4" />
             </div>
             <div>
-              <div className="text-[10px] font-mono text-zinc-500 font-bold uppercase tracking-wider">Dependencies Delayed</div>
+              <div className="text-[10px] font-mono text-zinc-400 font-bold uppercase tracking-wider">Dependencies Delayed</div>
               <div className="text-lg font-display font-bold text-white">{butterflyEffect.delayedDependencies} Chapters</div>
             </div>
           </div>
@@ -95,7 +95,7 @@ export function WarRoomSandbox() {
               <Activity className="w-4 h-4" />
             </div>
             <div>
-              <div className="text-[10px] font-mono text-zinc-500 font-bold uppercase tracking-wider">Projected Marks Drop</div>
+              <div className="text-[10px] font-mono text-zinc-400 font-bold uppercase tracking-wider">Projected Marks Drop</div>
               <div className="text-lg font-display font-bold text-white">-{butterflyEffect.projectedDrop} Marks</div>
             </div>
           </div>
@@ -124,7 +124,7 @@ export function WarRoomSandbox() {
               </button>
             ))}
             {pendingChapters.length === 0 && (
-              <div className="text-xs text-zinc-500 font-mono text-center p-4">All queued chapters assigned.</div>
+              <div className="text-xs text-zinc-400 font-mono text-center p-4">All queued chapters assigned.</div>
             )}
           </div>
         </div>
@@ -146,7 +146,7 @@ export function WarRoomSandbox() {
                   <CalendarDays className={`w-4 h-4 ${weekNum <= 2 ? 'text-emerald-400' : 'text-amber-400'}`} />
                   <span className="font-mono text-xs font-bold text-zinc-200">WEEK {weekNum}</span>
                 </div>
-                {weekNum > 2 && <span className="text-[9px] font-mono text-amber-500/70 bg-amber-950/50 px-1.5 py-0.5 rounded">Delay Risk</span>}
+                {weekNum > 2 && <span className="text-[11px] font-mono text-amber-500/70 bg-amber-950/50 px-1.5 py-0.5 rounded">Delay Risk</span>}
               </div>
 
               <div className="flex-1 flex flex-col gap-2">
@@ -161,7 +161,7 @@ export function WarRoomSandbox() {
                           [weekNum]: prev[weekNum].filter(cid => cid !== id)
                         }));
                       }}
-                      className="opacity-0 group-hover:opacity-100 text-zinc-500 hover:text-red-400 transition-opacity"
+                      className="opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-red-400 transition-opacity"
                     >
                       <RefreshCw className="w-3 h-3" />
                     </button>

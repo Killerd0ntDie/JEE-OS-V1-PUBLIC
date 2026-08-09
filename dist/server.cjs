@@ -66,10 +66,6 @@ try {
 var adminAuth = (0, import_app.getApps)().length > 0 ? (0, import_auth.getAuth)() : null;
 var adminDb = (0, import_app.getApps)().length > 0 ? (0, import_firestore.getFirestore)() : null;
 var verifyAuth = async (req, res, next) => {
-  if (process.env.NODE_ENV !== "production") {
-    req.user = { uid: "local-dev-user" };
-    return next();
-  }
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return res.status(401).json({ error: "Unauthorized: Missing or invalid Authorization header" });
@@ -92,11 +88,11 @@ var import_lru_cache = require("lru-cache");
 var import_crypto = __toESM(require("crypto"), 1);
 var import_zod = require("zod");
 var import_node_net = require("node:net");
+var import_http = __toESM(require("http"), 1);
 if (import_fs2.default.existsSync(".env.local")) {
   import_dotenv2.default.config({ path: ".env.local" });
 }
 import_dotenv2.default.config();
-delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
 var findAvailablePort = async (preferredPort, host) => {
   const isPortFree = (port) => new Promise((resolve) => {
     const tester = (0, import_node_net.createServer)();
@@ -124,10 +120,10 @@ async function startServer() {
   app.set("trust proxy", 1);
   app.use(import_express.default.json({ limit: "5mb" }));
   const apiLimiter = (0, import_express_rate_limit.default)({
-    windowMs: 15 * 60 * 1e3,
-    // 15 minutes
-    max: 50,
-    // Limit each IP to 50 requests per window
+    windowMs: 5 * 60 * 1e3,
+    // 5 minutes
+    max: 100,
+    // Limit each IP to 100 requests per window
     standardHeaders: true,
     legacyHeaders: false
   });
@@ -276,7 +272,7 @@ Valid Action examples (as payload):
       res.json({ analysis, actions });
     } catch (error) {
       console.error("Coach API error:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: "Internal server error during analysis." });
     }
   });
   const PracticeSchema = import_zod.z.object({
@@ -355,7 +351,7 @@ Valid Action examples (as payload):
       res.json({ questions: JSON.parse(jsonStr) });
     } catch (error) {
       console.error("Practice API error:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: "Internal server error during practice generation." });
     }
   });
   const MocktestSchema = import_zod.z.object({
@@ -448,7 +444,7 @@ Valid Action examples (as payload):
       res.json({ questions: parsed });
     } catch (error) {
       console.error("Mocktest API error:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: "Internal server error during mock test generation." });
     }
   });
   const RevisionPlanSchema = import_zod.z.object({
@@ -541,13 +537,10 @@ Valid Action examples (as payload):
       res.json({ plan: JSON.parse(jsonStr) });
     } catch (error) {
       console.error("Revision Plan API error:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: "Internal server error during revision plan generation." });
     }
   });
-  const httpServer = app.listen(port, host, () => {
-    const fallbackMessage = port !== preferredPort ? ` (fallback from ${preferredPort})` : "";
-    console.log(`Server running on http://localhost:${port}${fallbackMessage}`);
-  });
+  const httpServer = import_http.default.createServer(app);
   if (process.env.NODE_ENV !== "production") {
     const vite = await (0, import_vite.createServer)({
       server: {
@@ -566,6 +559,10 @@ Valid Action examples (as payload):
       res.sendFile(import_path2.default.join(distPath, "index.html"));
     });
   }
+  httpServer.listen(port, host, () => {
+    const fallbackMessage = port !== preferredPort ? ` (fallback from ${preferredPort})` : "";
+    console.log(`Server running on http://localhost:${port}${fallbackMessage}`);
+  });
 }
 startServer();
 //# sourceMappingURL=server.cjs.map

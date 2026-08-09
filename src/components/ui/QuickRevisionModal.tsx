@@ -87,7 +87,7 @@ export function QuickRevisionModal({ revision, isOpen, onClose, onAction }: Quic
             <button
               onClick={onClose}
               aria-label="Close Quick Revision Modal"
-              className="text-zinc-500 hover:text-zinc-300 h-8 w-8 rounded-lg border border-zinc-900 hover:bg-zinc-900 flex items-center justify-center transition-all cursor-pointer"
+              className="text-zinc-400 hover:text-zinc-300 h-8 w-8 rounded-lg border border-zinc-900 hover:bg-zinc-900 flex items-center justify-center transition-all cursor-pointer"
             >
               <Icon name="X" className="w-4 h-4" />
             </button>
@@ -99,7 +99,7 @@ export function QuickRevisionModal({ revision, isOpen, onClose, onAction }: Quic
             {/* Metadata Badges Deck */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <Card className="p-3 border-zinc-900 text-left bg-zinc-950/40">
-                <span className="text-xs font-mono text-zinc-500 uppercase block mb-1">
+                <span className="text-xs font-mono text-zinc-400 uppercase block mb-1">
                   Memory Retention
                 </span>
                 <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded border inline-block ${getRetentionColor(revision.retentionStatus)}`}>
@@ -108,7 +108,7 @@ export function QuickRevisionModal({ revision, isOpen, onClose, onAction }: Quic
               </Card>
 
               <Card className="p-3 border-zinc-900 text-left bg-zinc-950/40">
-                <span className="text-xs font-mono text-zinc-500 uppercase block mb-1">
+                <span className="text-xs font-mono text-zinc-400 uppercase block mb-1">
                   Confidence Score
                 </span>
                 <div className="flex items-center gap-1.5 pt-0.5">
@@ -120,7 +120,7 @@ export function QuickRevisionModal({ revision, isOpen, onClose, onAction }: Quic
               </Card>
 
               <Card className="p-3 border-zinc-900 text-left bg-zinc-950/40">
-                <span className="text-xs font-mono text-zinc-500 uppercase block mb-1">
+                <span className="text-xs font-mono text-zinc-400 uppercase block mb-1">
                   Health Index
                 </span>
                 <div className="flex items-center gap-1.5 pt-0.5">
@@ -132,7 +132,7 @@ export function QuickRevisionModal({ revision, isOpen, onClose, onAction }: Quic
               </Card>
 
               <Card className="p-3 border-zinc-900 text-left bg-zinc-950/40">
-                <span className="text-[8px] font-mono text-zinc-500 uppercase block mb-1">
+                <span className="text-[11px] font-mono text-zinc-400 uppercase block mb-1">
                   Time Budget
                 </span>
                 <div className="flex items-center gap-1.5 pt-0.5">
@@ -146,7 +146,7 @@ export function QuickRevisionModal({ revision, isOpen, onClose, onAction }: Quic
 
             {/* Spaced Repetition Lifecycle Stage */}
             <div className="space-y-3.5">
-              <span className="text-[10px] font-mono text-zinc-500 uppercase block text-left tracking-wider">
+              <span className="text-[10px] font-mono text-zinc-400 uppercase block text-left tracking-wider">
                 JEE SYLLABUS REVISION LIFECYCLE PROGRESSION
               </span>
               
@@ -174,7 +174,7 @@ export function QuickRevisionModal({ revision, isOpen, onClose, onAction }: Quic
                           {isPassed ? '✓' : idx + 1}
                         </div>
                         {/* Compact display names on hover/small or just first word */}
-                        <span className={`text-[8px] font-mono tracking-tighter mt-2 text-center max-w-[65px] leading-tight transition-colors duration-300 ${
+                        <span className={`text-[11px] font-mono tracking-tighter mt-2 text-center max-w-[65px] leading-tight transition-colors duration-300 ${
                           isCurrent ? 'text-indigo-400 font-bold' : isPassed ? 'text-zinc-400' : 'text-zinc-600'
                         }`}>
                           {stage.replace(' Complete', '')}
@@ -188,7 +188,7 @@ export function QuickRevisionModal({ revision, isOpen, onClose, onAction }: Quic
 
             {/* Quick action buttons selection */}
             <div className="space-y-3">
-              <span className="text-[10px] font-mono text-zinc-500 uppercase block text-left tracking-wider">
+              <span className="text-[10px] font-mono text-zinc-400 uppercase block text-left tracking-wider">
                 SELECT REVISION OUTCOME STATUS
               </span>
               
@@ -202,9 +202,9 @@ export function QuickRevisionModal({ revision, isOpen, onClose, onAction }: Quic
                       : 'bg-zinc-950 border-zinc-900 text-zinc-400 hover:border-zinc-800'
                   }`}
                 >
-                  <Icon name="CheckCircle" className={`w-5 h-5 ${outcome === 'complete' ? 'text-emerald-400' : 'text-zinc-500'}`} />
+                  <Icon name="CheckCircle" className={`w-5 h-5 ${outcome === 'complete' ? 'text-emerald-400' : 'text-zinc-400'}`} />
                   <span className="text-xs font-mono font-bold">Mark Complete</span>
-                  <span className="text-[8px] text-zinc-500 leading-none font-medium">Stage Up (+80 XP)</span>
+                  <span className="text-[11px] text-zinc-400 leading-none font-medium">Stage Up (+80 XP)</span>
                 </button>
 
                 <button
@@ -216,9 +216,9 @@ export function QuickRevisionModal({ revision, isOpen, onClose, onAction }: Quic
                       : 'bg-zinc-950 border-zinc-900 text-zinc-400 hover:border-zinc-800'
                   }`}
                 >
-                  <Icon name="SlidersHorizontal" className={`w-5 h-5 ${outcome === 'difficult' ? 'text-red-400' : 'text-zinc-500'}`} />
+                  <Icon name="SlidersHorizontal" className={`w-5 h-5 ${outcome === 'difficult' ? 'text-red-400' : 'text-zinc-400'}`} />
                   <span className="text-xs font-mono font-bold">Mark Difficult</span>
-                  <span className="text-[8px] text-zinc-500 leading-none font-medium">Queue for review</span>
+                  <span className="text-[11px] text-zinc-400 leading-none font-medium">Queue for review</span>
                 </button>
 
                 <button
@@ -230,9 +230,9 @@ export function QuickRevisionModal({ revision, isOpen, onClose, onAction }: Quic
                       : 'bg-zinc-950 border-zinc-900 text-zinc-400 hover:border-zinc-800'
                   }`}
                 >
-                  <Icon name="Clock" className={`w-5 h-5 ${outcome === 'needs_another' ? 'text-amber-400' : 'text-zinc-500'}`} />
+                  <Icon name="Clock" className={`w-5 h-5 ${outcome === 'needs_another' ? 'text-amber-400' : 'text-zinc-400'}`} />
                   <span className="text-xs font-mono font-bold">Needs Another</span>
-                  <span className="text-[8px] text-zinc-500 leading-none font-medium">Flag for tomorrow</span>
+                  <span className="text-[11px] text-zinc-400 leading-none font-medium">Flag for tomorrow</span>
                 </button>
 
                 <button
@@ -244,16 +244,16 @@ export function QuickRevisionModal({ revision, isOpen, onClose, onAction }: Quic
                       : 'bg-zinc-950 border-zinc-900 text-zinc-400 hover:border-zinc-800'
                   }`}
                 >
-                  <Icon name="X" className={`w-5 h-5 ${outcome === 'skip' ? 'text-zinc-200' : 'text-zinc-500'}`} />
+                  <Icon name="X" className={`w-5 h-5 ${outcome === 'skip' ? 'text-zinc-200' : 'text-zinc-400'}`} />
                   <span className="text-xs font-mono font-bold">Skip / Snooze</span>
-                  <span className="text-[8px] text-zinc-500 leading-none font-medium">Delay due priority</span>
+                  <span className="text-[11px] text-zinc-400 leading-none font-medium">Delay due priority</span>
                 </button>
               </div>
             </div>
 
             {/* Notes Section with visual prompts */}
             <div className="space-y-2 text-left">
-              <label className="text-[10px] font-mono text-zinc-500 uppercase block tracking-wider">
+              <label className="text-[10px] font-mono text-zinc-400 uppercase block tracking-wider">
                 WRITE DOWN REVISION LOG / ACTIVE RECALL NOTES
               </label>
               <textarea
@@ -271,7 +271,7 @@ export function QuickRevisionModal({ revision, isOpen, onClose, onAction }: Quic
             <Button
               variant="ghost"
               onClick={onClose}
-              className="text-xs font-mono font-bold text-zinc-500 hover:text-zinc-300"
+              className="text-xs font-mono font-bold text-zinc-400 hover:text-zinc-300"
             >
               CANCEL
             </Button>

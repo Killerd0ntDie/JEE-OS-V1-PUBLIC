@@ -63,7 +63,7 @@ export function PlannerHeader({ state }: { state: any }) {
       <div className="pt-4 border-t border-zinc-900/80 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
         {/* GROUP A: View Mode Segmented Control */}
         <div className="flex items-center gap-2">
-          <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider font-bold shrink-0">VIEW:</span>
+          <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider font-bold shrink-0">VIEW:</span>
           <div className="p-1 rounded-xl bg-zinc-900/90 border border-zinc-800 flex items-center gap-1 font-mono text-xs shrink-0">
             <button
               type="button"
@@ -102,6 +102,34 @@ export function PlannerHeader({ state }: { state: any }) {
               Monthly Strategy
             </button>
           </div>
+
+          {/* Design Comparison Toggle */}
+          {state.designLayout && state.setDesignLayout && (
+            <div className="p-1 rounded-xl bg-indigo-950/40 border border-indigo-800/40 flex items-center gap-1 font-mono text-xs">
+              <button
+                type="button"
+                onClick={() => state.setDesignLayout('grid')}
+                className={`px-2.5 py-1 rounded-lg flex items-center gap-1 transition-all cursor-pointer font-bold ${
+                  state.designLayout === 'grid'
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                ⚡ Grid Design
+              </button>
+              <button
+                type="button"
+                onClick={() => state.setDesignLayout('classic')}
+                className={`px-2.5 py-1 rounded-lg flex items-center gap-1 transition-all cursor-pointer font-bold ${
+                  state.designLayout === 'classic'
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                📋 Classic View
+              </button>
+            </div>
+          )}
         </div>
 
         {/* GROUP B: Action Toolbar (Separated visually) */}
@@ -152,7 +180,7 @@ export function PlannerHeader({ state }: { state: any }) {
             >
               <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-400" />
               AI Audits & Sync
-              <ChevronDown className="w-3.5 h-3.5 text-zinc-500" />
+              <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
             </button>
 
             {isAuditDropdownOpen && (

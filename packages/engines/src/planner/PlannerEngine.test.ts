@@ -73,9 +73,9 @@ describe('PlannerEngine', () => {
     // Should prioritize revision (30 min) + 1 lecture (60 min) = 90 mins total
     console.log(output.todaysMission.map(t => t.type));
 
-    expect(output.dailyWorkload).toBe(90);
+    expect(output.dailyWorkload).toBe(105);
     expect(output.todaysMission.length).toBe(2);
-    expect(output.todaysMission[0].type).toBe('Revise Formulas'); // Highest priority
+    expect(output.todaysMission[0].type).toBe('Revise Formulas');
     expect(output.todaysMission[1].type).toBe('Watch Lecture');
     
     // Time blocks
@@ -84,7 +84,6 @@ describe('PlannerEngine', () => {
     // Deterministic date
     expect(output.estimatedFinishDate).toBeDefined();
 
-    // Carry forward should be empty because 90 <= 120
     expect(output.carryForward.length).toBe(0);
   });
 

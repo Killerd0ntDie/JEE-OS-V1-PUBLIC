@@ -59,7 +59,7 @@ export function MissionTimeUpModal({
   const canSubmitProof = summary.length >= 50;
 
   return (
-    <Modal isOpen={isOpen} onClose={onComplete} className="max-w-md w-full bg-zinc-950 border border-zinc-800 rounded-3xl p-8 shadow-2xl relative z-10 space-y-6 text-left">
+    <Modal isOpen={isOpen} onClose={onComplete} zIndex={10000} className="max-w-md w-full bg-zinc-950 border border-zinc-800 rounded-3xl p-8 shadow-2xl relative z-10 space-y-6 text-left">
             
             {isCasinoActive ? (
               // CASINO PROOF OF WORK UI
@@ -70,7 +70,7 @@ export function MissionTimeUpModal({
                   </div>
                   <div className="text-right">
                     <div className="text-xl font-mono font-bold text-amber-500">{timeString}</div>
-                    <div className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold">Time to prove</div>
+                    <div className="text-[10px] uppercase tracking-widest text-zinc-400 font-bold">Time to prove</div>
                   </div>
                 </div>
 
@@ -94,7 +94,7 @@ export function MissionTimeUpModal({
                     <span className={charsLeft > 0 ? "text-rose-400" : "text-emerald-400"}>
                       {charsLeft > 0 ? `${charsLeft} chars remaining` : 'Ready to submit!'}
                     </span>
-                    <span className="text-zinc-500">{summary.length} chars</span>
+                    <span className="text-zinc-400">{summary.length} chars</span>
                   </div>
                 </div>
 

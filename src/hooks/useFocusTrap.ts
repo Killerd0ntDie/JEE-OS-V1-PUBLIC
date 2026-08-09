@@ -9,6 +9,7 @@ const FOCUSABLE_ELEMENTS = [
   'button:not([disabled])',
   '[tabindex]:not([tabindex="-1"])',
   '[contentEditable=true]',
+  'details > summary',
 ].join(', ');
 
 export function useFocusTrap(ref: RefObject<HTMLElement | null>, isActive: boolean) {
@@ -25,7 +26,13 @@ export function useFocusTrap(ref: RefObject<HTMLElement | null>, isActive: boole
     const element = ref.current;
     if (!element) return;
 
-    const focusableEls = element.querySelectorAll<HTMLElement>(FOCUSABLE_ELEMENTS);
+    const focusableEls = Array.from(element.querySelectorAll<HTMLElement>(FOCUSABLE_ELEMENTS)).filter(
+      (el) =>
+        !el.hasAttribute('hidden') &&
+        el.getAttribute('aria-hidden') !== 'true' &&
+        window.getComputedStyle(el).display !== 'none' &&
+        window.getComputedStyle(el).visibility !== 'hidden'
+    );
     const firstFocusable = focusableEls[0];
     const lastFocusable = focusableEls[focusableEls.length - 1];
 

@@ -181,7 +181,7 @@ export const SyllabusDiagnosisModal: React.FC<Props> = ({ isOpen, onClose }) => 
           <button 
             onClick={onClose}
             aria-label="Close Diagnosis Engine Modal"
-            className="text-zinc-500 hover:text-zinc-300 p-1.5 rounded-lg hover:bg-zinc-900 transition-colors cursor-pointer"
+            className="text-zinc-400 hover:text-zinc-300 p-1.5 rounded-lg hover:bg-zinc-900 transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -206,7 +206,7 @@ export const SyllabusDiagnosisModal: React.FC<Props> = ({ isOpen, onClose }) => 
           </div>
 
           <div className="relative w-full sm:w-64">
-            <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-zinc-500" />
+            <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-zinc-400" />
             <input
               type="text"
               value={searchQuery}
@@ -222,7 +222,7 @@ export const SyllabusDiagnosisModal: React.FC<Props> = ({ isOpen, onClose }) => 
           
           {/* Left Column: Chapter List (4 cols) */}
           <div className="lg:col-span-5 space-y-2 max-h-[60vh] overflow-y-auto pr-1">
-            <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider pb-1">
+            <div className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider pb-1">
               {subjectChapters.length} Chapters in {activeSubject.toUpperCase()}
             </div>
 
@@ -242,11 +242,11 @@ export const SyllabusDiagnosisModal: React.FC<Props> = ({ isOpen, onClose }) => 
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-xs font-semibold text-white truncate">{chap.name}</span>
-                    <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 shrink-0">
+                    <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 shrink-0">
                       {currentStage}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between text-[10px] font-mono text-zinc-500 mt-1">
+                  <div className="flex items-center justify-between text-[10px] font-mono text-zinc-400 mt-1">
                     <span>{chap.unit}</span>
                     <span>Lectures: {chap.currentLecture}/{chap.totalLectures}</span>
                   </div>
@@ -313,7 +313,7 @@ export const SyllabusDiagnosisModal: React.FC<Props> = ({ isOpen, onClose }) => 
 
                 <div className="grid grid-cols-2 gap-3 text-xs">
                   <div>
-                    <label className="text-[10px] font-mono text-zinc-500 uppercase block">Teacher / Platform</label>
+                    <label className="text-[10px] font-mono text-zinc-400 uppercase block">Teacher / Platform</label>
                     <input
                       type="text"
                       value={selectedChapter.lectureProgress?.teacher || 'Physics Galaxy / PW'}
@@ -323,7 +323,7 @@ export const SyllabusDiagnosisModal: React.FC<Props> = ({ isOpen, onClose }) => 
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-mono text-zinc-500 uppercase block">Total Lectures</label>
+                    <label className="text-[10px] font-mono text-zinc-400 uppercase block">Total Lectures</label>
                     <input
                       type="number"
                       value={selectedChapter.lectureProgress?.totalLectures || selectedChapter.totalLectures || 18}
@@ -333,7 +333,7 @@ export const SyllabusDiagnosisModal: React.FC<Props> = ({ isOpen, onClose }) => 
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-mono text-zinc-500 uppercase block">Completed Lectures</label>
+                    <label className="text-[10px] font-mono text-zinc-400 uppercase block">Completed Lectures</label>
                     <input
                       type="number"
                       value={selectedChapter.lectureProgress?.completedLectures || selectedChapter.currentLecture || 0}
@@ -343,11 +343,11 @@ export const SyllabusDiagnosisModal: React.FC<Props> = ({ isOpen, onClose }) => 
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-mono text-zinc-500 uppercase block">Avg Lecture Duration (mins)</label>
+                    <label className="text-[10px] font-mono text-zinc-400 uppercase block">Avg Lecture Duration (mins)</label>
                     <input
                       type="number"
-                      value={selectedChapter.lectureProgress?.avgLectureDurationMinutes || 80}
-                      onChange={(e) => handleUpdateLectureProgress(selectedChapter.id, 'avgLectureDurationMinutes', parseInt(e.target.value) || 60)}
+                      value={selectedChapter.lectureProgress?.avgLectureDurationMinutes || 75}
+                      onChange={(e) => handleUpdateLectureProgress(selectedChapter.id, 'avgLectureDurationMinutes', parseInt(e.target.value) || 75)}
                       className="w-full bg-[#121318] border border-zinc-800 rounded px-2.5 py-1.5 text-white font-mono text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
                     />
                   </div>
@@ -370,7 +370,7 @@ export const SyllabusDiagnosisModal: React.FC<Props> = ({ isOpen, onClose }) => 
                   <button
                     onClick={() => handleUpdatePracticeProgress(selectedChapter.id, 'dppCompleted', !selectedChapter.practiceProgress?.dppCompleted)}
                     className={`p-2 rounded border text-center cursor-pointer ${
-                      selectedChapter.practiceProgress?.dppCompleted ? 'border-emerald-500/50 bg-emerald-950/30 text-emerald-300 font-bold' : 'border-zinc-800 bg-zinc-900 text-zinc-500'
+                      selectedChapter.practiceProgress?.dppCompleted ? 'border-emerald-500/50 bg-emerald-950/30 text-emerald-300 font-bold' : 'border-zinc-800 bg-zinc-900 text-zinc-400'
                     }`}
                   >
                     DPP: {selectedChapter.practiceProgress?.dppCompleted ? 'Completed ✓' : 'Pending'}
@@ -379,7 +379,7 @@ export const SyllabusDiagnosisModal: React.FC<Props> = ({ isOpen, onClose }) => 
                   <button
                     onClick={() => handleUpdatePracticeProgress(selectedChapter.id, 'pyqsCompleted', !selectedChapter.practiceProgress?.pyqsCompleted)}
                     className={`p-2 rounded border text-center cursor-pointer ${
-                      selectedChapter.practiceProgress?.pyqsCompleted ? 'border-emerald-500/50 bg-emerald-950/30 text-emerald-300 font-bold' : 'border-zinc-800 bg-zinc-900 text-zinc-500'
+                      selectedChapter.practiceProgress?.pyqsCompleted ? 'border-emerald-500/50 bg-emerald-950/30 text-emerald-300 font-bold' : 'border-zinc-800 bg-zinc-900 text-zinc-400'
                     }`}
                   >
                     PYQs: {selectedChapter.practiceProgress?.pyqsCompleted ? 'Completed ✓' : 'Pending'}
@@ -388,7 +388,7 @@ export const SyllabusDiagnosisModal: React.FC<Props> = ({ isOpen, onClose }) => 
                   <button
                     onClick={() => handleUpdatePracticeProgress(selectedChapter.id, 'moduleCompleted', !selectedChapter.practiceProgress?.moduleCompleted)}
                     className={`p-2 rounded border text-center cursor-pointer ${
-                      selectedChapter.practiceProgress?.moduleCompleted ? 'border-emerald-500/50 bg-emerald-950/30 text-emerald-300 font-bold' : 'border-zinc-800 bg-zinc-900 text-zinc-500'
+                      selectedChapter.practiceProgress?.moduleCompleted ? 'border-emerald-500/50 bg-emerald-950/30 text-emerald-300 font-bold' : 'border-zinc-800 bg-zinc-900 text-zinc-400'
                     }`}
                   >
                     Module: {selectedChapter.practiceProgress?.moduleCompleted ? 'Completed ✓' : 'Pending'}
@@ -437,7 +437,7 @@ export const SyllabusDiagnosisModal: React.FC<Props> = ({ isOpen, onClose }) => 
 
                 <div className="grid grid-cols-2 gap-3 text-xs">
                   <div>
-                    <label className="text-[10px] font-mono text-zinc-500 uppercase block">Last Revised (Days Ago)</label>
+                    <label className="text-[10px] font-mono text-zinc-400 uppercase block">Last Revised (Days Ago)</label>
                     <input
                       type="number"
                       value={selectedChapter.revisionProgress?.lastRevisedDaysAgo || selectedChapter.lastRevisionDaysAgo || 7}
@@ -447,7 +447,7 @@ export const SyllabusDiagnosisModal: React.FC<Props> = ({ isOpen, onClose }) => 
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-mono text-zinc-500 uppercase block">Retention Confidence</label>
+                    <label className="text-[10px] font-mono text-zinc-400 uppercase block">Retention Confidence</label>
                     <select
                       value={selectedChapter.revisionProgress?.retentionConfidence || 'Medium'}
                       onChange={(e) => handleUpdateRevisionState(selectedChapter.id, 'retentionConfidence', e.target.value)}

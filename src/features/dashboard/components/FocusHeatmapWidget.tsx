@@ -53,14 +53,14 @@ export const FocusHeatmapWidget: React.FC<FocusHeatmapWidgetProps> = ({ studySes
     <Card className="p-5 border-zinc-800/80 bg-zinc-950/40 text-left relative overflow-hidden">
       <div className="flex items-center justify-between mb-3.5">
         <div>
-          <span className="text-[9px] font-mono text-emerald-400 font-bold tracking-widest uppercase block">
+          <span className="text-[11px] font-mono text-emerald-400 font-bold tracking-widest uppercase block">
             CONSISTENCY METRIC
           </span>
           <h4 className="text-xs font-semibold text-zinc-200 mt-0.5">14-Day Focus Flow</h4>
         </div>
         <div className="text-right">
           <span className="text-xs font-mono font-bold text-emerald-400">{activeDays}/14 Days</span>
-          <span className="text-[9px] font-mono text-zinc-500 block">Active Study Rate</span>
+          <span className="text-[11px] font-mono text-zinc-400 block">Active Study Rate</span>
         </div>
       </div>
 
@@ -78,20 +78,20 @@ export const FocusHeatmapWidget: React.FC<FocusHeatmapWidgetProps> = ({ studySes
               className="group relative flex flex-col items-center gap-1 cursor-default"
             >
               <div
-                className={`w-full aspect-square rounded-lg border transition-all duration-200 flex items-center justify-center text-[9px] font-mono ${getIntensity(mins)} ${
+                className={`w-full aspect-square rounded-lg border transition-all duration-200 flex items-center justify-center text-[11px] font-mono ${getIntensity(mins)} ${
                   isToday ? 'ring-1 ring-emerald-400 ring-offset-1 ring-offset-black' : ''
                 }`}
               >
                 {mins > 0 ? (mins >= 60 ? `${Math.round(mins/60)}h` : `${mins}m`) : ''}
               </div>
 
-              <span className="text-[8px] font-mono text-zinc-500 uppercase">
+              <span className="text-[11px] font-mono text-zinc-400 uppercase">
                 {getDayName(day)}
               </span>
 
               {/* Tooltip on hover */}
               <div className="absolute bottom-full mb-2 hidden group-hover:flex flex-col items-center pointer-events-none z-30">
-                <div className="bg-zinc-900 border border-zinc-700 text-zinc-200 px-2 py-1 rounded text-[9px] font-mono whitespace-nowrap shadow-xl">
+                <div className="bg-zinc-900 border border-zinc-700 text-zinc-200 px-2 py-1 rounded text-[11px] font-mono whitespace-nowrap shadow-xl">
                   <span className="font-bold text-white">{formatDateLabel(day)}</span>: {hrs} hrs ({mins} mins)
                 </div>
                 <div className="w-1.5 h-1.5 bg-zinc-900 border-b border-r border-zinc-700 rotate-45 -mt-1" />
@@ -101,7 +101,7 @@ export const FocusHeatmapWidget: React.FC<FocusHeatmapWidgetProps> = ({ studySes
         })}
       </div>
 
-      <div className="flex items-center justify-between text-[9px] font-mono text-zinc-500 pt-3 border-t border-zinc-900/60 mt-3">
+      <div className="flex items-center justify-between text-[11px] font-mono text-zinc-400 pt-3 border-t border-zinc-900/60 mt-3">
         <span>Less active</span>
         <div className="flex items-center gap-1">
           <span className="w-2.5 h-2.5 rounded bg-zinc-900 border border-zinc-800" />

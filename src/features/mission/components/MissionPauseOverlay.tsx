@@ -21,7 +21,7 @@ export function MissionPauseOverlay({
   onExit
 }: MissionPauseOverlayProps) {
   return (
-    <Modal isOpen={isPaused} onClose={() => setIsPaused(false)} className="max-w-md space-y-6 text-center w-full bg-transparent border-none shadow-none">
+    <Modal isOpen={isPaused} onClose={() => setIsPaused(false)} zIndex={10000} className="max-w-md space-y-6 text-center w-full bg-transparent border-none shadow-none">
             
             <div className="relative flex justify-center mb-4">
               <motion.div
@@ -47,7 +47,7 @@ export function MissionPauseOverlay({
             </div>
 
             <div className="bg-zinc-950/50 border border-zinc-900 p-4 rounded-xl text-left space-y-2">
-              <span className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest block font-bold">INTERRUPT LOG</span>
+              <span className="text-[11px] font-mono text-zinc-400 uppercase tracking-widest block font-bold">INTERRUPT LOG</span>
               <div className="flex justify-between items-center text-[11px] font-mono">
                 <span className="text-zinc-400">Active study time</span>
                 <span className="text-zinc-200">{formatTime(seconds)}</span>

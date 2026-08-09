@@ -101,9 +101,8 @@ export const RevisionEngineService = {
   },
 
   // 4. Automatically update Chapter Health based on current status
-  calculateHealth(chapter: Chapter, mistakes: Mistake[]): number {
+  calculateHealth(chapter: Chapter, chapterMistakesCount: number): number {
     const { retention } = this.estimateRetention(chapter);
-    const chapterMistakesCount = mistakes.filter(m => m.chapter.toLowerCase() === chapter.name.toLowerCase() && m.revisionStatus !== 'Mastered').length;
     
     // Weighted Health: Completion (20%), Confidence (45%), Retention (35%)
     // Subtract 4% penalty for each active mistake in this chapter (capped at -24%)
@@ -167,6 +166,13 @@ export const RevisionEngineService = {
       }
     });
 
+    const mistakeCounts: Record<string, number> = {};
+    mistakes.forEach(m => {
+      if (m.revisionStatus !== 'Mastered' && m.chapter) {
+        mistakeCounts[m.chapter.toLowerCase()] = (mistakeCounts[m.chapter.toLowerCase()] || 0) + 1;
+      }
+    });
+
     chapters.forEach(chapter => {
       // Check if eligible for spaced repetition revision
       // Must be at least Theory Complete or DPP Complete
@@ -198,14 +204,14 @@ export const RevisionEngineService = {
       if (!isDue) return;
 
       // Unresolved Mistakes Count
-      const mistakesCount = mistakes.filter(m => m.chapter.toLowerCase() === chapter.name.toLowerCase() && m.revisionStatus !== 'Mastered').length;
+      const mistakesCount = mistakeCounts[chapter.name.toLowerCase()] || 0;
       
       // Dependency weight
       const dependencyCount = depCounts[chapter.name.toLowerCase()] || 0;
 
       // Estimate Retention & Health
       const { retention, status: retentionStatus } = this.estimateRetention(chapter);
-      const healthScore = this.calculateHealth(chapter, mistakes);
+      const healthScore = this.calculateHealth(chapter, mistakesCount);
 
       // Priority calculation
       const priorityScore = this.calculatePriorityScore(chapter, daysOverdue, mistakesCount, dependencyCount, settings);

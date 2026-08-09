@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
-import { CalendarDays, LayoutGrid, BarChart2, Calendar, X, Sparkles, SlidersHorizontal } from 'lucide-react';
+import { X, Sparkles, SlidersHorizontal } from 'lucide-react';
 import { usePlannerState } from './hooks/usePlannerState';
-import { PlannerHeader } from './components/PlannerHeader';
-import { PlannerCalendarTab } from './components/PlannerCalendarTab';
+import { PlannerCalendarGrid } from './components/PlannerCalendarGrid';
+import { PlannerStickySidebar } from './components/PlannerStickySidebar';
 import { PlannerRoadmapTab } from './components/PlannerRoadmapTab';
 
 import { MentorInterviewModal } from '@/components/mentor/MentorInterviewModal';
@@ -15,13 +15,17 @@ import { CustomMissionModal } from './components/CustomMissionModal';
 import { AiRevisionPlanModal } from '@/components/shared/AiRevisionPlanModal';
 import { ConfirmDeleteModal } from '@/components/ui/ConfirmDeleteModal';
 import { SwapSubjectModal } from './components/SwapSubjectModal';
-import { OnHoldReminderBanner } from '@/features/dashboard/components/OnHoldReminderBanner';
+
+import { motion, AnimatePresence } from 'framer-motion';
 
 export function PlannerPage() {
   const state = usePlannerState();
   const {
     viewMode,
     setViewMode,
+    selectedDayIndex,
+    setSelectedDayIndex,
+    getDayDateString,
     selectedBlock,
     setSelectedBlock,
     isRationaleExpanded,
@@ -48,158 +52,179 @@ export function PlannerPage() {
     setIsEditGoalsOpen,
     weeklyGoals,
     actions,
-    chapters,
   } = state;
 
+  const [slideDirection, setSlideDirection] = useState<'forward' | 'backward'>('forward');
+
+  const handlePrevDate = () => {
+    setSlideDirection('backward');
+    setSelectedDayIndex((prev: number) => Math.max(0, prev - 1));
+  };
+
+  const handleNextDate = () => {
+    setSlideDirection('forward');
+    setSelectedDayIndex((prev: number) => Math.min(6, prev + 1));
+  };
+
+  const slideVariants = {
+    initial: (direction: 'forward' | 'backward') => ({
+      x: direction === 'forward' ? 40 : -40,
+      opacity: 0,
+    }),
+    animate: {
+      x: 0,
+      opacity: 1,
+    },
+    exit: (direction: 'forward' | 'backward') => ({
+      x: direction === 'forward' ? -40 : 40,
+      opacity: 0,
+    }),
+  };
+
+  const getWeekRangeString = (dayIdx: number) => {
+    const today = new Date();
+    const currentDayOfWeek = today.getDay(); // 0 = Sun
+    const distToMon = (currentDayOfWeek + 6) % 7;
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - distToMon);
+
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+
+    const monMonth = monday.toLocaleDateString('en-US', { month: 'short' });
+    const monDay = monday.getDate();
+    const sunMonth = sunday.toLocaleDateString('en-US', { month: 'short' });
+    const sunDay = sunday.getDate();
+
+    if (monMonth === sunMonth) {
+      return `${monMonth} ${monDay} – ${sunDay}, ${sunday.getFullYear()}`;
+    }
+    return `${monMonth} ${monDay} – ${sunMonth} ${sunDay}, ${sunday.getFullYear()}`;
+  };
+
   return (
-    <div className="space-y-6 pb-12 text-left relative">
-      <PlannerHeader state={state} />
-
-      {(viewMode === 'daily' || viewMode === 'weekly') && <PlannerCalendarTab state={state} />}
-      {viewMode === 'monthly' && <PlannerRoadmapTab state={state} />}
-
-      <Modal
-        isOpen={!!selectedBlock}
-        onClose={() => setSelectedBlock(null)}
-        zIndex={100}
-        backdropClassName="bg-[#09090b] font-sans animate-in fade-in duration-300"
-        className="w-full max-w-4xl mx-auto flex flex-col flex-1 relative py-12 px-6 overflow-y-auto"
-      >
-        {selectedBlock && (
-          <>
+    <div className="w-full max-w-7xl mx-auto flex flex-col gap-4 font-sans text-zinc-400 relative flex-1 h-[calc(100dvh-2rem)] pb-4">
+      {/* PLANNER HEADER CONTROLS */}
+      <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 select-none py-0.5">
+        {/* LEFT: Date / Week Stepper & Status Badge */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#0c0d14] border border-zinc-800 shadow-sm">
             <button
-              onClick={() => setSelectedBlock(null)}
-              className="absolute top-6 right-6 p-2.5 rounded-xl border border-zinc-800 bg-zinc-900/50 hover:bg-zinc-800 text-zinc-400 hover:text-white cursor-pointer z-10 transition-colors"
+              type="button"
+              onClick={handlePrevDate}
+              className="w-6 h-6 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white transition-all flex items-center justify-center cursor-pointer font-bold text-xs"
+              title={viewMode === 'weekly' ? 'Previous week' : 'Previous day'}
             >
-              <X className="w-6 h-6" />
+              ‹
             </button>
+            <span className="font-space-grotesk font-bold text-zinc-200 text-xs px-2 min-w-[110px] text-center tracking-wide">
+              {viewMode === 'weekly' ? getWeekRangeString(selectedDayIndex) : getDayDateString(selectedDayIndex)}
+            </span>
+            <button
+              type="button"
+              onClick={handleNextDate}
+              className="w-6 h-6 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white transition-all flex items-center justify-center cursor-pointer font-bold text-xs"
+              title={viewMode === 'weekly' ? 'Next week' : 'Next day'}
+            >
+              ›
+            </button>
+          </div>
 
-            <div className="flex-1 overflow-y-auto p-6 md:p-10 space-y-8 text-left">
-              <div className="space-y-2 pr-12">
-                <div className="flex items-center gap-2">
-                  <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border uppercase ${getBadgeStyle(selectedBlock.subject)}`}>
-                    {selectedBlock.subject}
-                  </span>
-                  <span className="text-xs font-mono text-zinc-400">
-                    {selectedBlock.timeSlot} • {selectedBlock.durationMinutes} minutes
-                  </span>
-                </div>
+          <span className="text-xs text-zinc-400 font-sans hidden sm:flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+            <span className="font-mono text-[11px] text-zinc-400">42h planned this week</span>
+          </span>
+        </div>
 
-                <h3 className="text-lg font-display font-bold text-white tracking-tight">
-                  {selectedBlock.chapterName}
-                </h3>
-                <p className="text-xs font-mono text-indigo-400 font-semibold">
-                  {selectedBlock.activity}
-                </p>
-              </div>
+        {/* RIGHT: View Switcher + Add Block CTA */}
+        <div className="flex items-center gap-3">
+          {/* Day / Week / Month Switcher */}
+          <div className="flex items-center p-1 rounded-xl bg-[#0c0d14] border border-zinc-800 gap-1 shadow-sm">
+            <button
+              type="button"
+              onClick={() => {
+                setSlideDirection('forward');
+                setViewMode('daily');
+              }}
+              className={`px-3 py-1 rounded-lg font-syne font-bold text-xs tracking-wider uppercase cursor-pointer transition-all ${
+                viewMode === 'daily' ? 'bg-indigo-600 text-white shadow-sm' : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              Day
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSlideDirection('forward');
+                setViewMode('weekly');
+              }}
+              className={`px-3 py-1 rounded-lg font-syne font-bold text-xs tracking-wider uppercase cursor-pointer transition-all ${
+                viewMode === 'weekly' ? 'bg-indigo-600 text-white shadow-sm' : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              Week
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSlideDirection('forward');
+                setViewMode('monthly');
+              }}
+              className={`px-3 py-1 rounded-lg font-syne font-bold text-xs tracking-wider uppercase cursor-pointer transition-all ${
+                viewMode === 'monthly' ? 'bg-indigo-600 text-white shadow-sm' : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              Month
+            </button>
+          </div>
 
-              <div className="p-4 rounded-xl border border-zinc-800 bg-zinc-900/40 space-y-3">
-                <span className="text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider block">
-                  Chapter Infographics & Mastery Telemetry
-                </span>
+          {/* Add Block CTA */}
+          <button
+            type="button"
+            onClick={() => setIsCustomMissionModalOpen(true)}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-syne font-bold text-xs tracking-wide shadow-sm transition-all cursor-pointer"
+          >
+            <span className="text-sm">+</span>
+            <span>Add Block</span>
+          </button>
+        </div>
+      </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs font-mono">
-                  <div className="p-2.5 rounded-lg border border-zinc-800 bg-zinc-950/60 space-y-0.5">
-                    <span className="text-[9px] text-zinc-500 block uppercase">Mastery Score</span>
-                    <span className="text-sm font-bold text-indigo-400">
-                      {activeInspectorTelemetry?.masteryScore || 65}%
-                    </span>
-                  </div>
-                  <div className="p-2.5 rounded-lg border border-zinc-800 bg-zinc-950/60 space-y-0.5">
-                    <span className="text-[9px] text-zinc-500 block uppercase">Theory Progress</span>
-                    <span className="text-xs font-bold text-white">
-                      {activeInspectorTelemetry?.currentLecture || 0} / {activeInspectorTelemetry?.totalLectures || 12} Lecs
-                    </span>
-                  </div>
-                  <div className="p-2.5 rounded-lg border border-zinc-800 bg-zinc-950/60 space-y-0.5">
-                    <span className="text-[9px] text-zinc-500 block uppercase">DPP Status</span>
-                    <span className={`text-xs font-bold ${activeInspectorTelemetry?.dppComplete ? 'text-emerald-400' : 'text-amber-400'}`}>
-                      {activeInspectorTelemetry?.dppComplete ? '✓ Mastered' : '⏳ Pending'}
-                    </span>
-                  </div>
-                  <div className="p-2.5 rounded-lg border border-zinc-800 bg-zinc-950/60 space-y-0.5">
-                    <span className="text-[9px] text-zinc-500 block uppercase">PYQ Status</span>
-                    <span className={`text-xs font-bold ${activeInspectorTelemetry?.pyqsComplete ? 'text-emerald-400' : 'text-amber-400'}`}>
-                      {activeInspectorTelemetry?.pyqsComplete ? '✓ Mastered' : '⏳ Pending'}
-                    </span>
-                  </div>
-                  <div className="p-2.5 rounded-lg border border-zinc-800 bg-zinc-950/60 space-y-0.5">
-                    <span className="text-[9px] text-zinc-500 block uppercase">JEE Weightage</span>
-                    <span className="text-xs font-bold text-purple-400">
-                      {activeInspectorTelemetry?.weightagePercent || 4.5}% Weight
-                    </span>
-                  </div>
-                  <div className="p-2.5 rounded-lg border border-zinc-800 bg-zinc-950/60 space-y-0.5">
-                    <span className="text-[9px] text-zinc-500 block uppercase">Retention Score</span>
-                    <span className="text-xs font-bold text-sky-400">
-                      {activeInspectorTelemetry?.retentionConfidence || 'High'}
-                    </span>
-                  </div>
-                </div>
-              </div>
+      
 
-              <div className="p-3.5 rounded-xl border border-indigo-900/40 bg-indigo-950/30 space-y-2 font-sans text-xs">
-                <div 
-                  onClick={() => setIsRationaleExpanded(!isRationaleExpanded)}
-                  className="flex items-center justify-between cursor-pointer group"
-                >
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-indigo-400" />
-                    <span className="font-mono text-xs font-bold text-indigo-300 uppercase">
-                      AI Mentor Rationale
-                    </span>
-                  </div>
-                  <span className="font-mono text-2xs text-indigo-400 group-hover:underline flex items-center gap-1">
-                    {isRationaleExpanded ? 'Minimize ▲' : 'Expand Rationale ▼'}
-                  </span>
-                </div>
-
-                {isRationaleExpanded ? (
-                  <div className="space-y-2 text-zinc-300 text-xs leading-relaxed pt-2 border-t border-indigo-900/30">
-                    <p>🎯 <strong>Why Selected:</strong> {selectedBlock.reasoning.whySelected}</p>
-                    <p>🔗 <strong>Dependencies Unlocked:</strong> {selectedBlock.reasoning.dependentChapters.join(', ')}</p>
-                    <p>⚖️ <strong>Ranking Rationale:</strong> {selectedBlock.reasoning.rankingRationale}</p>
-                    <p>📈 <strong>Long-term Impact:</strong> {selectedBlock.reasoning.longTermImpact}</p>
-                    <p>⚠️ <strong>Risk of Postponing:</strong> {selectedBlock.reasoning.postponeRisk}</p>
-                    <p>🎯 <strong>Target Benchmark:</strong> <span className="text-purple-300 font-bold font-mono">{selectedBlock.reasoning.targetAccuracy}</span></p>
-                  </div>
-                ) : (
-                  <p className="text-zinc-400 text-[11px] line-clamp-1">
-                    💡 {selectedBlock.reasoning.whySelected}
-                  </p>
-                )}
-              </div>
-
-              <div className="flex items-center justify-between pt-6 border-t border-zinc-900/60 mt-4">
-                <div className="flex items-center gap-3">
-                  {activeInspectorTelemetry && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        actions.openChapterEditModal(activeInspectorTelemetry.chapterId);
-                        setSelectedBlock(null);
-                      }}
-                      className="px-4 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-mono text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer border border-zinc-800"
-                    >
-                      <SlidersHorizontal className="w-3.5 h-3.5" />
-                      Edit Telemetry
-                    </button>
-                  )}
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setSelectedBlock(null)}
-                  className="px-6 py-2.5 rounded-xl text-zinc-400 hover:text-zinc-300 font-mono text-xs font-bold cursor-pointer transition-colors"
-                >
-                  Close
-                </button>
-              </div>
+      {/* SEPARATE FULL-HEIGHT STANDALONE CARDS WITH DIRECTIONAL SLIDE TRANSITIONS */}
+      <AnimatePresence mode="wait" custom={slideDirection}>
+        <motion.div
+          key={`${viewMode}-${selectedDayIndex}`}
+          custom={slideDirection}
+          variants={slideVariants}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          transition={{ duration: 0.22, ease: [0.25, 1, 0.5, 1] }}
+          className="flex flex-1 overflow-hidden gap-4 min-h-0"
+        >
+          {viewMode === 'daily' && (
+            <>
+              <PlannerCalendarGrid state={state} />
+              <PlannerStickySidebar state={state} />
+            </>
+          )}
+          {viewMode === 'weekly' && (
+            <>
+              <PlannerCalendarGrid state={state} />
+              <PlannerStickySidebar state={state} />
+            </>
+          )}
+          {viewMode === 'monthly' && (
+            <div className="flex-1 overflow-y-auto no-scrollbar">
+              <PlannerRoadmapTab state={state} />
             </div>
-          </>
-        )}
-      </Modal>
+          )}
+        </motion.div>
+      </AnimatePresence>
 
+      {/* AUXILIARY SYSTEM MODALS */}
       <MentorInterviewModal
         isOpen={isInterviewModalOpen}
         onClose={() => setIsInterviewModalOpen(false)}
@@ -222,8 +247,23 @@ export function PlannerPage() {
       />
 
       <CustomMissionModal 
-        isOpen={isCustomMissionModalOpen}
-        onClose={() => setIsCustomMissionModalOpen(false)}
+        isOpen={isCustomMissionModalOpen || !!selectedBlock}
+        onClose={() => {
+          setIsCustomMissionModalOpen(false);
+          setSelectedBlock(null);
+        }}
+        missionToEdit={selectedBlock ? {
+          id: selectedBlock.id,
+          taskName: selectedBlock.activity || selectedBlock.chapterName || 'Study Session',
+          subject: (selectedBlock.subject as any) || 'physics',
+          chapter: selectedBlock.chapterName,
+          type: ((selectedBlock as any).type as any) || 'Solve DPP',
+          duration: selectedBlock.durationMinutes || 60,
+          completed: !!selectedBlock.completed,
+          xp: 60,
+          unlocked: true,
+          date: (selectedBlock as any).scheduledDate || getDayDateString(selectedBlock.dayIndex)
+        } : null}
       />
 
       <AiRevisionPlanModal
@@ -250,7 +290,7 @@ export function PlannerPage() {
 
       {isEditGoalsOpen && (
         <EditWeeklyGoalsModal
-          initialGoals={weeklyGoals || []}
+          initialGoals={state.weeklyGoals || []}
           onClose={() => setIsEditGoalsOpen(false)}
           onSave={async (goals: any) => {
             await actions.updateWeeklyGoals(goals);

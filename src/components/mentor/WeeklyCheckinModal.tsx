@@ -70,7 +70,7 @@ export const WeeklyCheckinModal: React.FC<Props> = ({ isOpen, onClose }) => {
           <button
             onClick={onClose}
             aria-label="Close Weekly Audit Modal"
-            className="text-zinc-500 hover:text-zinc-300 p-1.5 rounded-lg hover:bg-zinc-900 cursor-pointer"
+            className="text-zinc-400 hover:text-zinc-300 p-1.5 rounded-lg hover:bg-zinc-900 cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>

@@ -1,10 +1,13 @@
 node_modules/
 build/
+dist/
+dist-ssr/
 coverage/
 .DS_Store
 *.log
 .env*
 !.env.example
+.env.local
 jeeosv1-firebase-adminsdk-fbsvc-6ad645c2c9
 firebase-admin-key.json
 *firebase-adminsdk*.json

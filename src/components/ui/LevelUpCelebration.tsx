@@ -96,7 +96,7 @@ export function LevelUpCelebration({ isOpen, oldLevel, newLevel, onClose }: Leve
                     LEVEL UP!
                   </h2>
                   <div className="flex items-center justify-center gap-2 text-4xl font-mono font-bold">
-                    <span className="text-zinc-500">{oldLevel}</span>
+                    <span className="text-zinc-400">{oldLevel}</span>
                     <Zap className="w-6 h-6 text-amber-400" />
                     <span className="text-amber-400">{newLevel}</span>
                   </div>
@@ -110,7 +110,7 @@ export function LevelUpCelebration({ isOpen, oldLevel, newLevel, onClose }: Leve
                     transition={{ delay: 0.3 }}
                     className="pt-3 border-t border-zinc-800/50"
                   >
-                    <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest mb-1">New Title</p>
+                    <p className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest mb-1">New Title</p>
                     <p className={`text-lg font-bold ${titleColor}`}>
                       {newTitle}
                     </p>

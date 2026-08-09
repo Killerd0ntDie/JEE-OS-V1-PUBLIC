@@ -1,9 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { useAuth } from '@/features/auth';
 import { RevisionCard } from '@/services/revisionEngineService';
 
 export function useDashboardState() {
+  const navigate = useNavigate();
   const actions = useStudyBrainStore(s => s.actions);
   const chapterTelemetryMap = useStudyBrainStore(s => s.chapterTelemetryMap);
   const mentorProfile = useStudyBrainStore(s => s.mentorProfile);
@@ -35,6 +37,18 @@ export function useDashboardState() {
   const [isShortcutGuideOpen, setIsShortcutGuideOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'focus' | 'analytics'>('focus');
   const [isMonthlyObjectiveModalOpen, setIsMonthlyObjectiveModalOpen] = useState(false);
+  const [selectedMissionId, setSelectedMissionIdState] = useState<string | null>(
+    () => sessionStorage.getItem('jee_selected_mission_id')
+  );
+
+  const setSelectedMissionId = (id: string | null) => {
+    setSelectedMissionIdState(id);
+    if (id) {
+      sessionStorage.setItem('jee_selected_mission_id', id);
+    } else {
+      sessionStorage.removeItem('jee_selected_mission_id');
+    }
+  };
 
   // Header cards smart expand/collapse state
   const [isHeaderExpanded, setIsHeaderExpanded] = useState<boolean>(false);
@@ -102,27 +116,16 @@ export function useDashboardState() {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Focus session timer effect
-  useEffect(() => {
-    let interval: any = null;
-    if (sessionState === 'active') {
-      interval = setInterval(() => {
-        setSecondsElapsed(prev => prev + 1);
-      }, 1000);
-    } else {
-      clearInterval(interval);
-    }
-    return () => clearInterval(interval);
-  }, [sessionState]);
+  // Focus session timer is now strictly handled by MissionMode.tsx
+  // Dashboard only holds the static paused value to prevent massive unneeded re-renders.
 
   const handleStartSession = () => {
-    if (sessionState === 'active') {
-      setSessionState('paused');
-      actions.setMissionModeActive(true);
-    } else {
-      setSessionState('active');
-      actions.setMissionModeActive(true);
+    let targetMissionId = selectedMissionId;
+    if (!targetMissionId) {
+      const nextMission = todayMissions.find(m => !m.completed);
+      targetMissionId = nextMission?.id || '';
     }
+    navigate(`/cockpit/${targetMissionId}`);
   };
 
   const handleResetSession = (e?: React.MouseEvent) => {
@@ -141,9 +144,10 @@ export function useDashboardState() {
   // Dynamic Greeting based on time of day
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
+    if (hour >= 4 && hour < 12) return 'Good morning';
+    if (hour >= 12 && hour < 17) return 'Good afternoon';
+    if (hour >= 17 && hour < 22) return 'Good evening';
+    return 'Good night';
   };
 
   const userName = user?.displayName?.split(' ')[0] || (mentorProfile?.coachingName ? 'Mani' : 'Aspirant');
@@ -180,6 +184,7 @@ export function useDashboardState() {
       incompleteTasks,
       nextTaskName,
       missionModeSubject,
+      selectedMissionId,
       // Store state
       mentorProfile,
       estimatedRemainingHours,
@@ -212,6 +217,7 @@ export function useDashboardState() {
       formatTimer,
       setSecondsElapsed,
       setSessionState,
+      setSelectedMissionId,
     },
     actions
   };

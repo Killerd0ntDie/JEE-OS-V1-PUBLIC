@@ -58,25 +58,25 @@ export const RoadmapLockStep: React.FC<Props> = ({
 
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 pt-1 font-mono text-[11px]">
           <div className="p-3 rounded-xl bg-black/40 border border-zinc-800">
-            <span className="text-[9px] text-zinc-500 uppercase block font-bold">Daily Hours</span>
+            <span className="text-[11px] text-zinc-400 uppercase block font-bold">Daily Hours</span>
             <span className="text-indigo-300 font-bold text-sm">{dailyHours} hrs/day</span>
           </div>
           <div className="p-3 rounded-xl bg-black/40 border border-zinc-800">
-            <span className="text-[9px] text-zinc-500 uppercase block font-bold">Class</span>
+            <span className="text-[11px] text-zinc-400 uppercase block font-bold">Class</span>
             <span className="text-white font-bold text-sm">{currentClass}</span>
           </div>
           <div className="p-3 rounded-xl bg-black/40 border border-zinc-800">
-            <span className="text-[9px] text-zinc-500 uppercase block font-bold">Subject Strategy</span>
+            <span className="text-[11px] text-zinc-400 uppercase block font-bold">Subject Strategy</span>
             <span className="text-purple-300 font-bold text-sm truncate block">
               {subjectSplitStrategy === '1_a_day_alternating' ? '1 Focus' : subjectSplitStrategy === '2_a_day_alternating' ? '2 Alternating' : '3 Daily'}
             </span>
           </div>
           <div className="p-3 rounded-xl bg-black/40 border border-zinc-800">
-            <span className="text-[9px] text-zinc-500 uppercase block font-bold">Completed</span>
+            <span className="text-[11px] text-zinc-400 uppercase block font-bold">Completed</span>
             <span className="text-emerald-400 font-bold text-sm">{completedCount} Chapters</span>
           </div>
           <div className="p-3 rounded-xl bg-black/40 border border-zinc-800">
-            <span className="text-[9px] text-zinc-500 uppercase block font-bold">Pending</span>
+            <span className="text-[11px] text-zinc-400 uppercase block font-bold">Pending</span>
             <span className="text-indigo-400 font-bold text-sm">{inProgressCount + notStartedCount} Chapters</span>
           </div>
         </div>

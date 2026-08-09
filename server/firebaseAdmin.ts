@@ -43,11 +43,6 @@ export const adminAuth = getApps().length > 0 ? getAuth() : null;
 export const adminDb = getApps().length > 0 ? getFirestore() : null;
 
 export const verifyAuth = async (req: any, res: any, next: any) => {
-  if (process.env.NODE_ENV !== 'production') {
-    req.user = { uid: 'local-dev-user' };
-    return next();
-  }
-
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Unauthorized: Missing or invalid Authorization header' });

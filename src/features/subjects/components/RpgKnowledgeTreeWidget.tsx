@@ -94,7 +94,7 @@ export function RpgKnowledgeTreeWidget({ chapters, allChapters, subjectId, onCha
               </div>
               <div>
                 <h4 className="font-display font-bold leading-tight line-clamp-2 text-sm">{chap.name}</h4>
-                <div className="text-[9px] font-mono mt-1.5 opacity-60 uppercase">{status}</div>
+                <div className="text-[11px] font-mono mt-1.5 opacity-60 uppercase">{status}</div>
               </div>
               
               {status === 'learning' && (

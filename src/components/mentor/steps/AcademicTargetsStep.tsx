@@ -96,7 +96,7 @@ export const AcademicTargetsStep: React.FC<Props> = ({
               className={`px-3 py-1 rounded-lg text-[11px] font-mono border transition-all cursor-pointer ${
                 targetRank === chip
                   ? 'border-amber-500/60 bg-amber-500/10 text-amber-300 font-bold'
-                  : 'border-zinc-800 bg-zinc-900/40 text-zinc-500 hover:text-zinc-300'
+                  : 'border-zinc-800 bg-zinc-900/40 text-zinc-400 hover:text-zinc-300'
               }`}
             >
               {chip}
@@ -125,7 +125,7 @@ export const AcademicTargetsStep: React.FC<Props> = ({
                 className={`px-2.5 py-1 rounded-lg text-[10px] font-mono border transition-all cursor-pointer ${
                   targetCollege === c
                     ? 'border-indigo-500/60 bg-indigo-500/10 text-indigo-300 font-bold'
-                    : 'border-zinc-800 bg-zinc-900/40 text-zinc-500 hover:text-zinc-300'
+                    : 'border-zinc-800 bg-zinc-900/40 text-zinc-400 hover:text-zinc-300'
                 }`}
               >
                 {c}
@@ -152,7 +152,7 @@ export const AcademicTargetsStep: React.FC<Props> = ({
                 className={`px-2.5 py-1 rounded-lg text-[10px] font-mono border transition-all cursor-pointer ${
                   targetBranch === b
                     ? 'border-purple-500/60 bg-purple-500/10 text-purple-300 font-bold'
-                    : 'border-zinc-800 bg-zinc-900/40 text-zinc-500 hover:text-zinc-300'
+                    : 'border-zinc-800 bg-zinc-900/40 text-zinc-400 hover:text-zinc-300'
                 }`}
               >
                 {b}

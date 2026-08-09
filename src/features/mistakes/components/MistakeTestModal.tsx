@@ -4,8 +4,9 @@ import { X, ChevronRight, CheckCircle2, XCircle, RefreshCw, AlertCircle, Eye } f
 import { Mistake } from '@/types';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { soundSystem } from '@/utils/audioEffects';
-import { BlockMath, InlineMath } from 'react-katex';
+import { BlockMath, InlineMath } from '@/components/MathRenderer';
 import { Modal } from '@/components/ui/Modal';
+import { RichTextRenderer } from '@/components/MathRenderer';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 
 interface MistakeTestModalProps {
@@ -70,21 +71,6 @@ export function MistakeTestModal({ isOpen, onClose, mistakes }: MistakeTestModal
     }
   };
 
-  const renderMathText = (text: string | undefined | null) => {
-    if (!text) return null;
-    const cleanText = text.replace(/\\\$/g, '$');
-    const parts = cleanText.split(/(\$\$.*?\$\$|\$.*?\$)/gs);
-    return parts.map((part, i) => {
-      if (part.startsWith('$$') && part.endsWith('$$')) {
-        const math = part.slice(2, -2);
-        return <BlockMath key={i} math={math} />;
-      } else if (part.startsWith('$') && part.endsWith('$')) {
-        const math = part.slice(1, -1);
-        return <InlineMath key={i} math={math} />;
-      }
-      return <span key={i}>{part}</span>;
-    });
-  };
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} className="w-full h-[90vh] bg-[#09090b] flex flex-col font-sans overflow-hidden">
@@ -180,9 +166,9 @@ export function MistakeTestModal({ isOpen, onClose, mistakes }: MistakeTestModal
 
                 {/* Question */}
                 <div className="p-6 rounded-2xl bg-zinc-900 border border-zinc-800">
-                  <h4 className="text-xs font-mono text-zinc-500 uppercase tracking-widest mb-4">Question</h4>
+                  <h4 className="text-xs font-mono text-zinc-400 uppercase tracking-widest mb-4">Question</h4>
                   <div className="text-zinc-200 leading-relaxed whitespace-pre-wrap font-sans text-lg">
-                    {renderMathText(currentMistake.questionText)}
+                    <RichTextRenderer content={currentMistake.questionText} />
                   </div>
                 </div>
 
@@ -196,7 +182,7 @@ export function MistakeTestModal({ isOpen, onClose, mistakes }: MistakeTestModal
                       <Eye className="w-5 h-5" />
                       Reveal Solution
                     </button>
-                    <p className="text-xs text-zinc-500 font-mono mt-4">Solve this on paper, then reveal to check your answer.</p>
+                    <p className="text-xs text-zinc-400 font-mono mt-4">Solve this on paper, then reveal to check your answer.</p>
                   </div>
                 ) : (
                   <motion.div 
@@ -207,7 +193,7 @@ export function MistakeTestModal({ isOpen, onClose, mistakes }: MistakeTestModal
                     <div className="p-6 rounded-2xl bg-emerald-950/20 border border-emerald-500/20">
                       <h4 className="text-xs font-mono text-emerald-500 uppercase tracking-widest mb-4">Correct Solution & Method</h4>
                       <div className="text-emerald-100 leading-relaxed whitespace-pre-wrap font-sans">
-                        {renderMathText(currentMistake.correctSolution || currentMistake.correctMethod || 'No solution recorded.')}
+                        <RichTextRenderer content={currentMistake.correctSolution || currentMistake.correctMethod || 'No solution recorded.'} />
                       </div>
                     </div>
 

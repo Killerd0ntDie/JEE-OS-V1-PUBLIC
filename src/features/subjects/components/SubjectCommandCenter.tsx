@@ -131,8 +131,7 @@ export function SubjectCommandCenter({
     if (focusChapter) {
       actions.setRadarFocusedChapter(focusChapter.id);
       actions.setActiveSubject(focusChapter.subject);
-      actions.setMissionModeActive(true);
-      navigate('/dashboard');
+      navigate('/cockpit', { state: { subject: focusChapter.subject } });
     }
   };
 
@@ -155,7 +154,7 @@ export function SubjectCommandCenter({
                   <h1 className="text-lg sm:text-xl md:text-2xl font-display font-bold text-white tracking-tight">
                     {subjectTitle}
                   </h1>
-                  <span className={`text-[9px] sm:text-[10px] font-mono font-bold px-2 py-0.5 rounded-full ${theme.badge}`}>
+                  <span className={`text-[11px] sm:text-[10px] font-mono font-bold px-2 py-0.5 rounded-full ${theme.badge}`}>
                     {masteredCount}/{totalCount} Mastered ({subjectProgressPercent}%)
                   </span>
                 </div>
@@ -172,7 +171,7 @@ export function SubjectCommandCenter({
             {/* Live Search */}
             <div className="relative w-full flex items-center gap-2">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
                 <input 
                   type="text" 
                   placeholder={`Search ${subjectTitle}...`}
@@ -215,7 +214,7 @@ export function SubjectCommandCenter({
 
               {/* Status Dropdown Filter */}
               <div className="flex items-center gap-2 shrink-0">
-                <Filter className="w-3.5 h-3.5 text-zinc-500" />
+                <Filter className="w-3.5 h-3.5 text-zinc-400" />
                 <select
                   value={activeFilter}
                   onChange={(e) => setActiveFilter(e.target.value as FilterType)}
@@ -228,12 +227,12 @@ export function SubjectCommandCenter({
 
             {/* View Mode Toggle */}
             <div className="flex items-center gap-2 mt-4 pt-4 border-t border-zinc-900/50">
-                <span className="text-[10px] font-mono font-bold text-zinc-500 uppercase tracking-widest">Layout View:</span>
+                <span className="text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-widest">Layout View:</span>
                 <button
                   type="button"
                   onClick={() => setViewMode('list')}
                   className={`px-3 py-1 text-[10px] font-mono font-bold uppercase rounded-md transition-all ${
-                    viewMode === 'list' ? 'bg-zinc-800 text-white' : 'text-zinc-500 hover:text-zinc-300'
+                    viewMode === 'list' ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:text-zinc-300'
                   }`}
                 >
                   List
@@ -242,7 +241,7 @@ export function SubjectCommandCenter({
                   type="button"
                   onClick={() => setViewMode('rpg')}
                   className={`px-3 py-1 text-[10px] font-mono font-bold uppercase rounded-md transition-all flex items-center gap-1.5 ${
-                    viewMode === 'rpg' ? 'bg-indigo-600 text-white shadow-[0_0_10px_rgba(79,70,229,0.3)]' : 'text-zinc-500 hover:text-zinc-300'
+                    viewMode === 'rpg' ? 'bg-indigo-600 text-white shadow-[0_0_10px_rgba(79,70,229,0.3)]' : 'text-zinc-400 hover:text-zinc-300'
                   }`}
                 >
                   <Network className="w-3 h-3" />
@@ -274,7 +273,7 @@ export function SubjectCommandCenter({
           {/* LEFT COLUMN: 65% width — Chapter Cards */}
           <div className="lg:col-span-7 xl:col-span-7 space-y-3">
             {filteredChapters.length === 0 ? (
-              <div className="p-8 sm:p-12 flex flex-col items-center justify-center text-zinc-500 space-y-3 border border-dashed border-zinc-850 rounded-2xl bg-zinc-950/20 text-center">
+              <div className="p-8 sm:p-12 flex flex-col items-center justify-center text-zinc-400 space-y-3 border border-dashed border-zinc-850 rounded-2xl bg-zinc-950/20 text-center">
                 <Icon name="SearchX" className="w-8 h-8 sm:w-10 sm:h-10 opacity-30 text-zinc-400" />
                 <p className="text-xs font-mono text-zinc-400">No chapters match active filters.</p>
                 <button
@@ -308,7 +307,7 @@ export function SubjectCommandCenter({
                     SUBJECT TELEMETRY RADAR
                   </span>
                 </div>
-                <span className="text-[10px] font-mono text-zinc-500">
+                <span className="text-[10px] font-mono text-zinc-400">
                   {subjectTitle.toUpperCase()}
                 </span>
               </div>
@@ -325,7 +324,7 @@ export function SubjectCommandCenter({
                 </div>
                 <div className="flex justify-between items-center text-xs font-mono">
                   <span className="text-zinc-400">Unstarted Modules</span>
-                  <span className="text-zinc-500 font-bold">{unstartedCount} ({Math.round((unstartedCount / (totalCount || 1)) * 100)}%)</span>
+                  <span className="text-zinc-400 font-bold">{unstartedCount} ({Math.round((unstartedCount / (totalCount || 1)) * 100)}%)</span>
                 </div>
               </div>
 

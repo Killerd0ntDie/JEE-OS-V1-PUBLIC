@@ -1,7 +1,7 @@
 import React from 'react';
 import { Chapter } from '@/types/index';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
-import { Lock, Clock, AlertTriangle, BookOpen, PenTool, CheckCircle2, SlidersHorizontal, PauseCircle } from 'lucide-react';
+import { Lock, Clock, AlertTriangle, BookOpen, PenTool, CheckCircle2, SlidersHorizontal, PauseCircle, PlayCircle } from 'lucide-react';
 
 interface ChapterCommandCardProps {
   chapter: Chapter;
@@ -71,7 +71,7 @@ export const ChapterCommandCard: React.FC<ChapterCommandCardProps> = ({ chapter,
         </div>
 
         {/* Priority */}
-        <div className="flex items-center gap-2 shrink-0 font-mono text-[10px] text-zinc-500">
+        <div className="flex items-center gap-2 shrink-0 font-mono text-[10px] text-zinc-400">
           <span className="bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded text-zinc-400 font-semibold">
             {priorityTier}
           </span>
@@ -83,12 +83,12 @@ export const ChapterCommandCard: React.FC<ChapterCommandCardProps> = ({ chapter,
         <h3 className="text-base font-display font-bold text-white group-hover:text-indigo-300 transition-colors tracking-tight flex items-center gap-2 flex-wrap">
           {chapter.name}
           {chapter.isCustom && (
-            <span className="text-[8px] font-mono font-bold px-1.5 py-0.5 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-300">
+            <span className="text-[11px] font-mono font-bold px-1.5 py-0.5 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-300">
               CUSTOM
             </span>
           )}
           {(chapter.chapterOnHold || chapter.dppOnHold || chapter.pyqOnHold) && (
-            <span className="text-[8px] font-mono font-bold px-1.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300">
+            <span className="text-[11px] font-mono font-bold px-1.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300">
               {chapter.chapterOnHold ? 'CHAPTER HOLD' : 'ON HOLD'}
             </span>
           )}
@@ -99,7 +99,7 @@ export const ChapterCommandCard: React.FC<ChapterCommandCardProps> = ({ chapter,
       <div className="grid grid-cols-3 gap-2.5 pt-1">
         {/* Lecture Progress */}
         <div className="p-2.5 rounded-xl bg-zinc-900/60 border border-zinc-850 space-y-1.5">
-          <div className="flex justify-between items-center text-[9px] font-mono uppercase tracking-wider text-zinc-400 font-semibold">
+          <div className="flex justify-between items-center text-[11px] font-mono uppercase tracking-wider text-zinc-400 font-semibold">
             <span className="flex items-center gap-1"><BookOpen className="w-3 h-3 text-indigo-400" /> Theory</span>
             <span className="text-indigo-300 font-bold">Lec {currentLec}/{totalLec}</span>
           </div>
@@ -113,12 +113,12 @@ export const ChapterCommandCard: React.FC<ChapterCommandCardProps> = ({ chapter,
 
         {/* DPP Status */}
         <div className="p-2.5 rounded-xl bg-zinc-900/60 border border-zinc-850 flex flex-col justify-between">
-          <div className="flex justify-between items-center text-[9px] font-mono uppercase tracking-wider text-zinc-400 font-semibold">
+          <div className="flex justify-between items-center text-[11px] font-mono uppercase tracking-wider text-zinc-400 font-semibold">
             <span className="flex items-center gap-1"><PenTool className="w-3 h-3 text-emerald-400" /> DPP</span>
             {dppComplete ? (
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
             ) : (
-              <span className="text-[9px] text-zinc-500">Pending</span>
+              <span className="text-[11px] text-zinc-400">Pending</span>
             )}
           </div>
           <span className="text-[10px] font-mono text-zinc-400 font-bold">
@@ -128,12 +128,12 @@ export const ChapterCommandCard: React.FC<ChapterCommandCardProps> = ({ chapter,
 
         {/* PYQ Status */}
         <div className="p-2.5 rounded-xl bg-zinc-900/60 border border-zinc-850 flex flex-col justify-between">
-          <div className="flex justify-between items-center text-[9px] font-mono uppercase tracking-wider text-zinc-400 font-semibold">
+          <div className="flex justify-between items-center text-[11px] font-mono uppercase tracking-wider text-zinc-400 font-semibold">
             <span className="flex items-center gap-1"><CheckCircle2 className="w-3 h-3 text-purple-400" /> PYQs</span>
             {pyqsComplete ? (
               <CheckCircle2 className="w-3.5 h-3.5 text-purple-400" />
             ) : (
-              <span className="text-[9px] text-zinc-500">Pending</span>
+              <span className="text-[11px] text-zinc-400">Pending</span>
             )}
           </div>
           <span className="text-[10px] font-mono text-zinc-400 font-bold">
@@ -144,11 +144,25 @@ export const ChapterCommandCard: React.FC<ChapterCommandCardProps> = ({ chapter,
 
       {/* Action Bar */}
       <div className="flex items-center justify-between pt-2 border-t border-zinc-900/80">
-        <div className="flex items-center gap-3 text-[11px] font-mono text-zinc-500">
+        <div className="flex items-center gap-3 text-[11px] font-mono text-zinc-400">
           <span>Est. {chapter.estimatedRemainingTime || 4}h remaining</span>
         </div>
 
         <div className="flex items-center gap-2">
+          {chapter.status !== 'Learning' && chapter.status !== 'Mastered' && chapter.completion < 100 && (
+            <button
+              type="button"
+              onClick={async (e) => {
+                e.stopPropagation();
+                await actions.updateChapterData(chapter.id, { status: 'Learning' });
+              }}
+              className="px-3 py-1.5 rounded-lg bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-800/60 text-emerald-400 font-mono text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer"
+              title="Start learning this chapter"
+            >
+              <PlayCircle className="w-3.5 h-3.5" />
+              START
+            </button>
+          )}
           <button
             type="button"
             onClick={async (e) => {

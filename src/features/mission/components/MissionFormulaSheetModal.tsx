@@ -35,7 +35,7 @@ export function MissionFormulaSheetModal({
   useEscapeKey(() => setIsFormulaOpen(false), isFormulaOpen);
 
   return (
-    <Modal isOpen={isFormulaOpen} onClose={() => setIsFormulaOpen(false)} className="w-full max-w-xl border border-zinc-800 bg-[#09090b] p-6 rounded-2xl shadow-2xl flex flex-col max-h-[80vh] overflow-hidden">
+    <Modal isOpen={isFormulaOpen} onClose={() => setIsFormulaOpen(false)} zIndex={10000} className="w-full max-w-xl border border-zinc-800 bg-[#09090b] p-6 rounded-2xl shadow-2xl flex flex-col max-h-[80vh] overflow-hidden">
             <div className="flex justify-between items-center border-b border-zinc-900 pb-3 shrink-0">
               <div className="flex items-center gap-2 text-left">
                 <BookOpen className="w-4 h-4 text-emerald-400" />
@@ -45,7 +45,7 @@ export function MissionFormulaSheetModal({
               </div>
               <button 
                 onClick={() => setIsFormulaOpen(false)}
-                className="text-zinc-500 hover:text-zinc-300 p-1"
+                className="text-zinc-400 hover:text-zinc-300 p-1"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -53,7 +53,7 @@ export function MissionFormulaSheetModal({
 
             {/* Search Box */}
             <div className="mt-4 relative shrink-0">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
               <input
                 type="text"
                 value={formulaSearch}
@@ -79,7 +79,7 @@ export function MissionFormulaSheetModal({
                     <span className="text-xs font-bold text-zinc-200 group-hover:text-emerald-400 transition-colors">
                       {f.name}
                     </span>
-                    <span className="text-[9px] font-mono text-zinc-600 group-hover:text-emerald-500/50 uppercase">
+                    <span className="text-[11px] font-mono text-zinc-600 group-hover:text-emerald-500/50 uppercase">
                       Click to capture note ↗
                     </span>
                   </div>
@@ -91,7 +91,7 @@ export function MissionFormulaSheetModal({
                     </span>
                   </div>
 
-                  <p className="text-[11px] text-zinc-500 leading-relaxed mt-1.5">
+                  <p className="text-[11px] text-zinc-400 leading-relaxed mt-1.5">
                     {f.description}
                   </p>
                 </div>
@@ -104,7 +104,7 @@ export function MissionFormulaSheetModal({
               )}
             </div>
 
-            <div className="mt-4 pt-3 border-t border-zinc-900 flex justify-between items-center text-[10px] font-mono text-zinc-500 shrink-0">
+            <div className="mt-4 pt-3 border-t border-zinc-900 flex justify-between items-center text-[10px] font-mono text-zinc-400 shrink-0">
               <span>Subject: {activeDetails.name}</span>
               <span>Active Track: Complete formula set</span>
             </div>

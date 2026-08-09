@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Play, Clock, Target, ChevronRight, FileText, Award, Plus, Loader2, X, Sparkles } from 'lucide-react';
 import { MockTest, MockTestAttempt, MockQuestion, QuestionType } from '../../types/mockTest';
@@ -47,6 +47,7 @@ export function MockTestsPage({ onNavigate }: MockTestsPageProps) {
   const [showAiSelector, setShowAiSelector] = useState(false);
   const [isGeneratingAiTest, setIsGeneratingAiTest] = useState(false);
   const [aiGenError, setAiGenError] = useState<string | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const [selectedPastAttempt, setSelectedPastAttempt] = useState<MockResult | null>(null);
 
   // Lock body scroll when a full-page modal is open

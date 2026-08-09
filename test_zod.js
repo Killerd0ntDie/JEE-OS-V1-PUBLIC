@@ -1,1 +1,0 @@
-fetch('http://localhost:3001/api/practice/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subject: 'physics' }) }).then(async r => console.log('HTTP ' + r.status + '\n' + await r.text()));

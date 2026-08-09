@@ -47,11 +47,11 @@ export const MistakeCard: React.FC<MistakeCardProps> = ({
         className="p-4 bg-zinc-950/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer"
       >
         <div className="flex items-center gap-2.5 flex-wrap">
-          <Badge variant="default" className={`text-[9px] ${subColor.badge}`}>
+          <Badge variant="default" className={`text-[11px] ${subColor.badge}`}>
             {item.subject}
           </Badge>
           <h3 className="text-xs font-extrabold text-zinc-200">{item.chapter}</h3>
-          <span className="text-[10px] text-zinc-500 font-mono">/ {item.topic}</span>
+          <span className="text-[10px] text-zinc-400 font-mono">/ {item.topic}</span>
           <span className="text-3xs text-zinc-600 font-mono shrink-0">Logged {item.dateLogged}</span>
         </div>
 
@@ -60,14 +60,14 @@ export const MistakeCard: React.FC<MistakeCardProps> = ({
             <span className="text-[10px] font-mono text-zinc-400 border border-zinc-800/60 bg-zinc-950 px-2 py-0.5 rounded-full">
               {item.difficulty}
             </span>
-            <Badge variant={statusInfo.style} className="text-[9px]">
+            <Badge variant={statusInfo.style} className="text-[11px]">
               {statusInfo.label}
             </Badge>
           </div>
           {isExpanded ? (
-            <ChevronUp className="w-4 h-4 text-zinc-500 shrink-0" />
+            <ChevronUp className="w-4 h-4 text-zinc-400 shrink-0" />
           ) : (
-            <ChevronDown className="w-4 h-4 text-zinc-500 shrink-0" />
+            <ChevronDown className="w-4 h-4 text-zinc-400 shrink-0" />
           )}
         </div>
       </div>
@@ -85,7 +85,7 @@ export const MistakeCard: React.FC<MistakeCardProps> = ({
             <div className="p-5 space-y-5">
               {/* Question Snapshot */}
               <div className="space-y-1.5">
-                <span className="text-[10px] font-mono uppercase text-zinc-500 tracking-wider">
+                <span className="text-[10px] font-mono uppercase text-zinc-400 tracking-wider">
                   Question Snapshot (Source: {item.source})
                 </span>
                 <div className="p-4 bg-zinc-950 border border-zinc-900 rounded-xl font-mono text-xs text-zinc-300 leading-relaxed whitespace-pre-line shadow-inner">
@@ -120,8 +120,8 @@ export const MistakeCard: React.FC<MistakeCardProps> = ({
 
               {/* Correct Solution step by step */}
               <div className="space-y-1.5">
-                <span className="text-[10px] font-mono uppercase text-zinc-500 tracking-wider flex items-center gap-1">
-                  <BookOpen className="w-3.5 h-3.5 text-zinc-500" />
+                <span className="text-[10px] font-mono uppercase text-zinc-400 tracking-wider flex items-center gap-1">
+                  <BookOpen className="w-3.5 h-3.5 text-zinc-400" />
                   Step-by-Step Correct Solution
                 </span>
                 <div className="p-4 bg-zinc-950 border border-zinc-900 rounded-xl font-sans text-xs text-zinc-400 leading-relaxed whitespace-pre-line">
@@ -145,20 +145,20 @@ export const MistakeCard: React.FC<MistakeCardProps> = ({
               {/* Classroom Notes */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1 text-2xs">
                 <div className="space-y-1">
-                  <span className="text-[10px] font-mono uppercase text-zinc-500 tracking-wider">Teacher Feedback</span>
+                  <span className="text-[10px] font-mono uppercase text-zinc-400 tracking-wider">Teacher Feedback</span>
                   <p className="text-zinc-400 font-mono italic">"{item.teacherNotes}"</p>
                 </div>
                 <div className="space-y-1">
-                  <span className="text-[10px] font-mono uppercase text-zinc-500 tracking-wider">My Cockpit Reminders</span>
+                  <span className="text-[10px] font-mono uppercase text-zinc-400 tracking-wider">My Cockpit Reminders</span>
                   <p className="text-zinc-400 font-mono italic">"{item.personalNotes}"</p>
                 </div>
               </div>
 
               {/* Mistake Class tags */}
               <div className="flex flex-wrap items-center gap-1 pt-1">
-                <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-wide mr-2">Tags:</span>
+                <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wide mr-2">Tags:</span>
                 {item.mistakeTypes.map((tag) => (
-                  <Badge key={tag} variant="secondary" className="text-[9px] lowercase">
+                  <Badge key={tag} variant="secondary" className="text-[11px] lowercase">
                     {tag}
                   </Badge>
                 ))}
@@ -167,7 +167,7 @@ export const MistakeCard: React.FC<MistakeCardProps> = ({
               {/* Expanded Interactive Action controls */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-t border-zinc-900 pt-4 bg-zinc-950/10 p-3 rounded-xl">
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="text-2xs font-mono text-zinc-500 uppercase mr-1.5">Promotion:</span>
+                  <span className="text-2xs font-mono text-zinc-400 uppercase mr-1.5">Promotion:</span>
 
                   {item.revisionStatus !== 'Reviewed' && item.revisionStatus !== 'Mastered' && (
                     <button

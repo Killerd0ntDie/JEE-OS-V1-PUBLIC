@@ -74,7 +74,7 @@ export function CustomMissionHistoryModal({ isOpen, onClose }: CustomMissionHist
                 <History className="w-8 h-8 text-zinc-600" />
               </div>
               <p className="text-zinc-400 font-medium">No history found</p>
-              <p className="text-xs text-zinc-500 mt-1 max-w-[250px]">
+              <p className="text-xs text-zinc-400 mt-1 max-w-[250px]">
                 Completed custom missions will appear here automatically.
               </p>
             </div>
@@ -97,7 +97,7 @@ export function CustomMissionHistoryModal({ isOpen, onClose }: CustomMissionHist
                     </span>
                   </div>
                   <h3 className="text-sm font-semibold text-zinc-200">{mission.taskName}</h3>
-                  <div className="flex items-center gap-2 text-xs text-zinc-500">
+                  <div className="flex items-center gap-2 text-xs text-zinc-400">
                     <span className="flex items-center gap-1">
                       <Calendar className="w-3 h-3" />
                       Completed
@@ -109,14 +109,14 @@ export function CustomMissionHistoryModal({ isOpen, onClose }: CustomMissionHist
                 <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button
                     onClick={() => actions.completeTask(mission.id)}
-                    className="w-9 h-9 rounded-xl bg-zinc-950 border border-zinc-800 text-zinc-500 hover:text-indigo-400 hover:bg-indigo-500/10 hover:border-indigo-500/30 flex items-center justify-center transition-colors cursor-pointer relative z-10"
+                    className="w-9 h-9 rounded-xl bg-zinc-950 border border-zinc-800 text-zinc-400 hover:text-indigo-400 hover:bg-indigo-500/10 hover:border-indigo-500/30 flex items-center justify-center transition-colors cursor-pointer relative z-10"
                     title="Restore to Queue"
                   >
                     <RotateCcw className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => actions.deleteMission(mission.id)}
-                    className="w-9 h-9 rounded-xl bg-zinc-950 border border-zinc-800 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/30 flex items-center justify-center transition-colors cursor-pointer relative z-10"
+                    className="w-9 h-9 rounded-xl bg-zinc-950 border border-zinc-800 text-zinc-400 hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/30 flex items-center justify-center transition-colors cursor-pointer relative z-10"
                     title="Permanently Delete"
                   >
                     <Trash2 className="w-4 h-4" />

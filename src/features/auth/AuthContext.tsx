@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { 
-  User, 
   onAuthStateChanged, 
   signInAnonymously, 
   signInWithPopup, 
@@ -9,7 +8,12 @@ import {
   createUserWithEmailAndPassword,
   signOut,
   updateProfile,
-  deleteUser as firebaseDeleteUser
+  deleteUser as firebaseDeleteUser,
+  sendPasswordResetEmail,
+  linkWithPopup,
+  linkWithCredential,
+  EmailAuthProvider,
+  User
 } from 'firebase/auth';
 import { auth } from '@/firebase';
 
@@ -21,12 +25,13 @@ interface AuthContextType {
   loginWithGoogle: () => Promise<void>;
   loginWithEmail: (email: string, pass: string) => Promise<void>;
   registerWithEmail: (email: string, pass: string, name: string) => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
   logout: () => Promise<void>;
   deleteAccount: () => Promise<void>;
   clearError: () => void;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -36,16 +41,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     let active = true;
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (!active) return;
-
-      if (currentUser) {
+      
+      // If we just explicitly logged out, skip setting the user back momentarily
+      if (explicitLogout.current && firebaseUser) {
+        return;
+      }
+      
+      if (explicitLogout.current && !firebaseUser) {
         explicitLogout.current = false;
       }
 
-      setUser(currentUser);
+      setUser(firebaseUser);
       setLoading(false);
-
     });
 
     return () => {
@@ -72,7 +81,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(true);
       setError(null);
       const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
+      if (auth.currentUser?.isAnonymous) {
+        await linkWithPopup(auth.currentUser, provider);
+      } else {
+        await signInWithPopup(auth, provider);
+      }
     } catch (err: any) {
       setError(err.message || 'Google authentication failed');
       throw err;
@@ -98,14 +111,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setLoading(true);
       setError(null);
-      const credential = await createUserWithEmailAndPassword(auth, email, pass);
-      if (credential.user) {
-        await updateProfile(credential.user, { displayName: name });
-        // Force state update to capture display name immediately
-        setUser({ ...credential.user, displayName: name });
+      if (auth.currentUser?.isAnonymous) {
+        const credential = EmailAuthProvider.credential(email, pass);
+        const result = await linkWithCredential(auth.currentUser, credential);
+        if (result.user) {
+          await updateProfile(result.user, { displayName: name });
+          setUser({ ...result.user, displayName: name });
+        }
+      } else {
+        const credential = await createUserWithEmailAndPassword(auth, email, pass);
+        if (credential.user) {
+          await updateProfile(credential.user, { displayName: name });
+          // Force state update to capture display name immediately
+          setUser({ ...credential.user, displayName: name });
+        }
       }
     } catch (err: any) {
       setError(err.message || 'Email registration failed');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetPassword = async (email: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      await sendPasswordResetEmail(auth, email);
+    } catch (err: any) {
+      setError(err.message || 'Password reset failed');
       throw err;
     } finally {
       setLoading(false);
@@ -118,6 +153,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setError(null);
       explicitLogout.current = true;
       await signOut(auth);
+      localStorage.clear();
     } catch (err: any) {
       explicitLogout.current = false;
       setError(err.message || 'Sign-out failed');
@@ -154,6 +190,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       loginWithGoogle,
       loginWithEmail,
       registerWithEmail,
+      resetPassword,
       logout,
       deleteAccount,
       clearError

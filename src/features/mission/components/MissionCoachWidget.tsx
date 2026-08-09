@@ -31,7 +31,7 @@ export function MissionCoachWidget({
             </div>
             <button
               onClick={() => setIsCoachVisible(false)}
-              className="text-zinc-500 hover:text-zinc-300 p-0.5 rounded transition-colors shrink-0"
+              className="text-zinc-400 hover:text-zinc-300 p-0.5 rounded transition-colors shrink-0"
               title="Dismiss Coach HUD"
             >
               <X className="w-3.5 h-3.5" />

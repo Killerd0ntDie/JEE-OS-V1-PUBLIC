@@ -67,9 +67,9 @@ export function MonthlyCampaignBanner() {
       
       {/* Middle: Boss HP */}
       <div className="w-full md:w-1/3 space-y-1.5 z-10">
-        <div className="flex justify-between text-[9px] font-mono font-bold uppercase tracking-wider">
+        <div className="flex justify-between text-[11px] font-mono font-bold uppercase tracking-wider">
           <span className="text-red-400 flex items-center gap-1"><Skull className="w-3 h-3" /> Boss HP</span>
-          <span className="text-zinc-500">{boss.currentHealth} / {boss.baseHealth} ({Math.round(boss.healthPercent)}%)</span>
+          <span className="text-zinc-400">{boss.currentHealth} / {boss.baseHealth} ({Math.round(boss.healthPercent)}%)</span>
         </div>
         <div className="h-1.5 rounded-full bg-red-950/50 border border-red-900/50 overflow-hidden flex justify-end">
           <div 
@@ -84,9 +84,9 @@ export function MonthlyCampaignBanner() {
         <div className="flex justify-between items-center mb-2">
           <div className="flex items-center gap-1.5">
             <Crosshair className="w-3 h-3 text-zinc-400" />
-            <span className="text-[9px] font-mono font-bold text-zinc-300 uppercase tracking-wider">XP Race</span>
+            <span className="text-[11px] font-mono font-bold text-zinc-300 uppercase tracking-wider">XP Race</span>
           </div>
-          <div className="text-[8.5px] font-mono font-bold text-zinc-500">
+          <div className="text-[8.5px] font-mono font-bold text-zinc-400">
             {ghost.isAhead ? <span className="text-emerald-400">Winning</span> : `Ghost +${ghost.ghostXp - ghost.userXp}`}
           </div>
         </div>

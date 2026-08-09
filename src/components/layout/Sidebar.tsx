@@ -56,7 +56,7 @@ export function Sidebar({
   const renderNavGroup = (title: string, items: PageDefinition[], collapsed: boolean) => (
     <div className="space-y-1 py-1">
       {/* Category Section Header */}
-      <span className={`text-xs font-mono uppercase text-zinc-500 font-bold tracking-widest px-4 h-5 flex items-center whitespace-nowrap ${getTextFadeClass(collapsed)}`}>
+      <span className={`text-xs font-mono uppercase text-zinc-400 font-bold tracking-widest px-4 h-5 flex items-center whitespace-nowrap ${getTextFadeClass(collapsed)}`}>
         {title}
       </span>
 
@@ -136,7 +136,7 @@ export function Sidebar({
               <span>JEE OS</span>
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
             </h1>
-            <span className="text-[9px] font-mono text-zinc-500 font-medium tracking-wider">FOUNDATION PREP</span>
+            <span className="text-[11px] font-mono text-zinc-400 font-medium tracking-wider">FOUNDATION PREP</span>
           </div>
         </button>
         
@@ -147,7 +147,7 @@ export function Sidebar({
               onToggleCollapse();
             }}
             aria-label={collapsed ? "Pin Sidebar Navigation" : "Unpin Sidebar Navigation"}
-            className={`rounded-lg text-zinc-500 hover:text-white hover:bg-zinc-800 transition-all duration-300 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:ring-2 focus:ring-zinc-500/50 flex items-center justify-center ${collapsed ? 'opacity-0 w-0 p-0 overflow-hidden pointer-events-none group-hover:opacity-100 group-hover:w-8 group-hover:p-1.5 group-hover:pointer-events-auto group-hover:ml-1' : 'opacity-100 w-8 p-1.5 ml-1'}`}
+            className={`rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all duration-300 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:ring-2 focus:ring-zinc-500/50 flex items-center justify-center ${collapsed ? 'opacity-0 w-0 p-0 overflow-hidden pointer-events-none group-hover:opacity-100 group-hover:w-8 group-hover:p-1.5 group-hover:pointer-events-auto group-hover:ml-1' : 'opacity-100 w-8 p-1.5 ml-1'}`}
             title={collapsed ? "Pin Sidebar" : "Unpin Sidebar (Auto-collapse)"}
           >
             <Icon name={collapsed ? "Menu" : "PanelLeftClose"} aria-hidden="true" className="w-4 h-4" />
@@ -195,7 +195,7 @@ export function Sidebar({
 
           <div className={`flex-1 overflow-hidden text-left leading-tight transition-all duration-300 ${collapsed ? 'max-w-0 opacity-0 group-hover:max-w-xs group-hover:opacity-100' : 'max-w-xs opacity-100'}`}>
             <p className="text-xs text-zinc-200 font-semibold truncate">{displayName}</p>
-            <p className="text-xs font-mono text-zinc-500 truncate">JEE {settings?.targetYear || '2025'} Aspirant</p>
+            <p className="text-xs font-mono text-zinc-400 truncate">JEE {settings?.targetYear || '2025'} Aspirant</p>
           </div>
           <Icon name="ChevronUp" aria-hidden="true" className={`mr-2 w-3.5 h-3.5 text-zinc-600 shrink-0 group-hover/profile:text-zinc-300 transition-colors ${collapsed ? 'opacity-0 w-0 group-hover:opacity-100 group-hover:w-auto' : 'opacity-100 w-auto'}`} />
         </button>

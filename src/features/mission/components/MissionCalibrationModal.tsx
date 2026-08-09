@@ -158,7 +158,7 @@ export function MissionCalibrationModal({
               
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[10px] font-mono text-zinc-500 uppercase block mb-1">Current Lecture</label>
+                  <label className="text-[10px] font-mono text-zinc-400 uppercase block mb-1">Current Lecture</label>
                   <input
                     type="number"
                     min={1}
@@ -185,7 +185,7 @@ export function MissionCalibrationModal({
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-mono text-zinc-500 uppercase block mb-1">Total Lectures</label>
+                  <label className="text-[10px] font-mono text-zinc-400 uppercase block mb-1">Total Lectures</label>
                   <input
                     type="number"
                     min={1}
@@ -253,7 +253,7 @@ export function MissionCalibrationModal({
                       className={`flex-1 py-1.5 rounded-lg text-[10px] font-mono font-bold transition-all cursor-pointer ${
                         dppDoneInput === opt.val
                           ? opt.val === true ? 'bg-emerald-600 text-white' : opt.val === 'partial' ? 'bg-amber-600 text-white' : 'bg-zinc-700 text-white'
-                          : 'bg-zinc-900 text-zinc-500 border border-zinc-800 hover:text-zinc-300'
+                          : 'bg-zinc-900 text-zinc-400 border border-zinc-800 hover:text-zinc-300'
                       }`}
                     >
                       {opt.label}
@@ -276,7 +276,7 @@ export function MissionCalibrationModal({
                       className={`flex-1 py-1.5 rounded-lg text-[10px] font-mono font-bold transition-all cursor-pointer ${
                         pyqsDoneInput === opt.val
                           ? opt.val === true ? 'bg-emerald-600 text-white' : 'bg-zinc-700 text-white'
-                          : 'bg-zinc-900 text-zinc-500 border border-zinc-800 hover:text-zinc-300'
+                          : 'bg-zinc-900 text-zinc-400 border border-zinc-800 hover:text-zinc-300'
                       }`}
                     >
                       {opt.label}

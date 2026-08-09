@@ -23,29 +23,36 @@ export function SettingsPage() {
   const deletedMissionIds = useStudyBrainStore(state => state.deletedMissionIds);
   const { user, loginWithGoogle, loginWithEmail, registerWithEmail, logout } = useAuth();
   
-  // Settings Form States
-  const [targetYear, setTargetYear] = useState(settings.targetYear || '2027');
-  const [dreamIit, setDreamIit] = useState(settings.dreamIit || 'IIT Bombay');
-  const [targetBranch, setTargetBranch] = useState(settings.targetBranch || 'Computer Science & Engineering');
-  const [dailyQuota, setDailyQuota] = useState(settings.dailyQuota || 6);
-  const [subjectSplitStrategy, setSubjectSplitStrategy] = useState<'3_a_day' | '2_a_day_alternating' | '1_a_day_alternating'>(
-    mentorProfile?.subjectSplitStrategy || '3_a_day'
-  );
-  
-  const defaultTwoDayConfig: [SubjectId[], SubjectId[], SubjectId[]] = [
-    ['physics', 'chemistry'],
-    ['chemistry', 'maths'],
-    ['maths', 'physics']
-  ];
-  const [twoDaySplitConfig, setTwoDaySplitConfig] = useState<[SubjectId[], SubjectId[], SubjectId[]]>(
-    normalizeTwoDaySplitConfig(mentorProfile?.twoDaySplitConfig)
-  );
-  
-  const [soundEffects, setSoundEffects] = useState(settings.soundEffects ?? false);
-  const [desktopNotifications, setDesktopNotifications] = useState(settings.desktopNotifications ?? false);
-  const [volume, setVolume] = useState(settings.volume ?? 75);
-  const [pauseOnTabChange, setPauseOnTabChange] = useState(settings.pauseOnTabChange ?? true);
-  const [enableGodMode, setEnableGodMode] = useState(settings.enableGodMode ?? true);
+    // Settings Form States
+  const [formData, setFormData] = useState({
+    targetYear: settings.targetYear || '2027',
+    dreamIit: settings.dreamIit || 'IIT Bombay',
+    targetBranch: settings.targetBranch || 'Computer Science & Engineering',
+    dailyQuota: settings.dailyQuota || 6,
+    subjectSplitStrategy: mentorProfile?.subjectSplitStrategy || '3_a_day',
+    dayStartTime: settings.dayStartTime || '07:00',
+    dayEndTime: settings.dayEndTime || '23:00',
+    twoDaySplitConfig: normalizeTwoDaySplitConfig(mentorProfile?.twoDaySplitConfig),
+    soundEffects: settings.soundEffects ?? false,
+    desktopNotifications: settings.desktopNotifications ?? false,
+    volume: settings.volume ?? 75,
+    pauseOnTabChange: settings.pauseOnTabChange ?? true,
+    enableGodMode: settings.enableGodMode ?? true,
+    minStreakHours: settings.minStreakHours ?? 0.5,
+    enablePomodoroCasino: settings.enablePomodoroCasino ?? false,
+  });
+
+  const handleChange = (key, value) => {
+    setFormData(prev => ({ ...prev, [key]: value }));
+  };
+
+  const {
+    targetYear, dreamIit, targetBranch, dailyQuota, subjectSplitStrategy,
+    dayStartTime, dayEndTime, twoDaySplitConfig, soundEffects, desktopNotifications,
+    volume, pauseOnTabChange, enableGodMode, minStreakHours, enablePomodoroCasino
+  } = formData;
+
+  const [isSaving, setIsSaving] = useState(false);
 
   const [isSaved, setIsSaved] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -54,6 +61,8 @@ export function SettingsPage() {
   const [showXpResetSuccess, setShowXpResetSuccess] = useState(false);
   const [showHiddenMissionsConfirm, setShowHiddenMissionsConfirm] = useState(false);
   const [showHiddenMissionsSuccess, setShowHiddenMissionsSuccess] = useState(false);
+  const [showCustomMissionsConfirm, setShowCustomMissionsConfirm] = useState(false);
+  const [showCustomMissionsSuccess, setShowCustomMissionsSuccess] = useState(false);
 
   // Auth Form States
   const [email, setEmail] = useState('');
@@ -62,24 +71,33 @@ export function SettingsPage() {
   const [isRegistering, setIsRegistering] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
 
-  useEffect(() => {
-    setTargetYear(settings.targetYear || '2027');
-    setDreamIit(settings.dreamIit || 'IIT Bombay');
-    setTargetBranch(settings.targetBranch || 'Computer Science & Engineering');
-    setDailyQuota(settings.dailyQuota || 6);
-    setSoundEffects(settings.soundEffects ?? false);
-    setDesktopNotifications(settings.desktopNotifications ?? false);
-    setVolume(settings.volume ?? 75);
-    setPauseOnTabChange(settings.pauseOnTabChange ?? true);
-    setEnableGodMode(settings.enableGodMode ?? true);
-    setSubjectSplitStrategy(mentorProfile?.subjectSplitStrategy || '3_a_day');
-    setTwoDaySplitConfig(normalizeTwoDaySplitConfig(mentorProfile?.twoDaySplitConfig));
+    useEffect(() => {
+    setFormData({
+      targetYear: settings.targetYear || '2027',
+      dreamIit: settings.dreamIit || 'IIT Bombay',
+      targetBranch: settings.targetBranch || 'Computer Science & Engineering',
+      dailyQuota: settings.dailyQuota || 6,
+      subjectSplitStrategy: mentorProfile?.subjectSplitStrategy || '3_a_day',
+      dayStartTime: settings.dayStartTime || '07:00',
+      dayEndTime: settings.dayEndTime || '23:00',
+      twoDaySplitConfig: normalizeTwoDaySplitConfig(mentorProfile?.twoDaySplitConfig),
+      soundEffects: settings.soundEffects ?? false,
+      desktopNotifications: settings.desktopNotifications ?? false,
+      volume: settings.volume ?? 75,
+      pauseOnTabChange: settings.pauseOnTabChange ?? true,
+      enableGodMode: settings.enableGodMode ?? true,
+      minStreakHours: settings.minStreakHours ?? 0.5,
+      enablePomodoroCasino: settings.enablePomodoroCasino ?? false,
+    });
   }, [settings, mentorProfile]);
 
-  const handleSave = async (e: React.FormEvent) => {
+    const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Sound test click
+    if (isSaving) return;
+    setIsSaving(true);
+    
+    try {
+      // Sound test click
     if (soundEffects) {
       soundSystem.playSuccess(true, volume);
     }
@@ -101,7 +119,11 @@ export function SettingsPage() {
       desktopNotifications,
       volume,
       pauseOnTabChange,
-      enableGodMode
+      enableGodMode,
+      dayStartTime,
+      dayEndTime,
+      minStreakHours,
+      enablePomodoroCasino
     });
 
     if (mentorProfile) {
@@ -116,8 +138,11 @@ export function SettingsPage() {
       });
     }
 
-    setIsSaved(true);
+        setIsSaved(true);
     setTimeout(() => setIsSaved(false), 3000);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleAuthSubmit = async (e: React.FormEvent) => {
@@ -207,12 +232,12 @@ export function SettingsPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {/* Target Year */}
             <div className="space-y-2">
-              <label className="text-xs font-mono font-medium text-zinc-300 block">
+              <label htmlFor="targetYear" className="text-xs font-mono font-medium text-zinc-300 block">
                 Target Exam Year
               </label>
-              <select
+              <select id="targetYear"
                 value={targetYear}
-                onChange={(e) => setTargetYear(e.target.value)}
+                onChange={(e) => handleChange('targetYear', e.target.value)}
                 className="w-full bg-zinc-900/90 border border-zinc-800 text-zinc-100 rounded-xl px-3.5 py-2.5 text-xs font-mono focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500 cursor-pointer"
               >
                 <option value="2026">JEE 2026 (Class 12 / Dropper)</option>
@@ -223,12 +248,12 @@ export function SettingsPage() {
 
             {/* Dream IIT */}
             <div className="space-y-2">
-              <label className="text-xs font-mono font-medium text-zinc-300 block">
+              <label htmlFor="dreamIit" className="text-xs font-mono font-medium text-zinc-300 block">
                 Dream IIT / Target Institute
               </label>
-              <select
+              <select id="dreamIit"
                 value={dreamIit}
-                onChange={(e) => setDreamIit(e.target.value)}
+                onChange={(e) => handleChange('dreamIit', e.target.value)}
                 className="w-full bg-zinc-900/90 border border-zinc-800 text-zinc-100 rounded-xl px-3.5 py-2.5 text-xs font-mono focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500 cursor-pointer"
               >
                 <option value="IIT Bombay">IIT Bombay</option>
@@ -244,12 +269,12 @@ export function SettingsPage() {
 
             {/* Target Branch */}
             <div className="space-y-2">
-              <label className="text-xs font-mono font-medium text-zinc-300 block">
+              <label htmlFor="targetBranch" className="text-xs font-mono font-medium text-zinc-300 block">
                 Target Engineering Branch
               </label>
-              <select
+              <select id="targetBranch"
                 value={targetBranch}
-                onChange={(e) => setTargetBranch(e.target.value)}
+                onChange={(e) => handleChange('targetBranch', e.target.value)}
                 className="w-full bg-zinc-900/90 border border-zinc-800 text-zinc-100 rounded-xl px-3.5 py-2.5 text-xs font-mono focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500 cursor-pointer"
               >
                 <option value="Computer Science & Engineering">Computer Science & Engineering</option>
@@ -297,10 +322,10 @@ export function SettingsPage() {
                 max="14"
                 step="1"
                 value={dailyQuota}
-                onChange={(e) => setDailyQuota(Number(e.target.value))}
+                onChange={(e) => handleChange('dailyQuota', Number(e.target.value))}
                 className="w-full h-2 bg-zinc-900 rounded-lg appearance-none cursor-pointer accent-indigo-500 border border-zinc-800"
               />
-              <p className="text-[10px] text-zinc-500 font-mono">
+              <p className="text-[10px] text-zinc-400 font-mono">
                 Allocates time across Physics, Chemistry, and Maths in the Daily Execution Cockpit.
               </p>
             </div>
@@ -312,15 +337,75 @@ export function SettingsPage() {
               </label>
               <select
                 value={subjectSplitStrategy}
-                onChange={(e) => setSubjectSplitStrategy(e.target.value as any)}
+                onChange={(e) => handleChange('subjectSplitStrategy', e.target.value as any)}
                 className="w-full bg-zinc-900/90 border border-zinc-800 text-zinc-100 rounded-xl px-3.5 py-2.5 text-xs font-mono focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500 cursor-pointer"
               >
                 <option value="3_a_day">3 Subjects Daily (Balanced Coverage)</option>
                 <option value="2_a_day_alternating">2 Subjects Alternating (Deeper Focus)</option>
                 <option value="1_a_day_alternating">1 Subject Focus (Immersive Deep-Dive)</option>
               </select>
-              <p className="text-[10px] text-zinc-500 font-mono">
+              <p className="text-[10px] text-zinc-400 font-mono">
                 Configures the 7-day Weekly Master Matrix layout in the Planner.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+            {/* Day Start Time */}
+            <div className="space-y-2">
+              <label className="text-xs font-mono font-medium text-zinc-300 block">
+                Day Start Time
+              </label>
+              <input
+                type="time"
+                value={dayStartTime}
+                onChange={(e) => handleChange('dayStartTime', e.target.value)}
+                className="w-full bg-zinc-900/90 border border-zinc-800 text-zinc-100 rounded-xl px-3.5 py-2.5 text-xs font-mono focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500 cursor-pointer"
+              />
+              <p className="text-[10px] text-zinc-400 font-mono">
+                When does your study day begin?
+              </p>
+            </div>
+
+            {/* Day End Time */}
+            <div className="space-y-2">
+              <label className="text-xs font-mono font-medium text-zinc-300 block">
+                Day End Time (Cutoff)
+              </label>
+              <input
+                type="time"
+                value={dayEndTime}
+                onChange={(e) => handleChange('dayEndTime', e.target.value)}
+                className="w-full bg-zinc-900/90 border border-zinc-800 text-zinc-100 rounded-xl px-3.5 py-2.5 text-xs font-mono focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500 cursor-pointer"
+              />
+              <p className="text-[10px] text-zinc-400 font-mono">
+                Tasks that cross this limit are pushed to tomorrow.
+              </p>
+            </div>
+
+            {/* Minimum Study Hours for Streak */}
+            <div className="space-y-2 col-span-1 md:col-span-2 pt-3 border-t border-zinc-900">
+              <label htmlFor="minStreakHours" className="text-xs font-mono font-medium text-zinc-300 flex items-center justify-between">
+                <span>Minimum Daily Study Time for Streak (Threshold)</span>
+                <span className="text-amber-400 font-bold bg-amber-950/60 border border-amber-800/60 px-2.5 py-0.5 rounded-lg text-[11px]">
+                  ⚡ {minStreakHours ?? 0.5} Hours / Day
+                </span>
+              </label>
+              <select id="minStreakHours"
+                value={minStreakHours ?? 0.5}
+                onChange={(e) => handleChange('minStreakHours', parseFloat(e.target.value))}
+                className="w-full bg-zinc-900/90 border border-zinc-800 text-zinc-100 rounded-xl px-3.5 py-2.5 text-xs font-mono focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50 focus:border-amber-500 cursor-pointer"
+              >
+                <option value={0.25}>0.25 Hours (15 Mins) - Casual</option>
+                <option value={0.5}>0.5 Hours (30 Mins) - Default</option>
+                <option value={1.0}>1.0 Hour (60 Mins) - Disciplined</option>
+                <option value={1.5}>1.5 Hours (90 Mins) - Hardcore</option>
+                <option value={2.0}>2.0 Hours (120 Mins) - Intensive</option>
+                <option value={3.0}>3.0 Hours (180 Mins) - Beast Mode</option>
+                <option value={4.0}>4.0 Hours (240 Mins) - JEE Top 100 AIR</option>
+              </select>
+              <p className="text-[10px] text-zinc-400 font-mono">
+                A daily streak is ONLY maintained if your total study duration for that day meets or exceeds this threshold.
               </p>
             </div>
           </div>
@@ -333,12 +418,17 @@ export function SettingsPage() {
                   <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-400" />
                   Customize 2-Subject Daily Pairs
                 </span>
-                <span className="text-[10px] text-zinc-500">3-Day Rotation Cycle</span>
+                <span className="text-[10px] text-zinc-400">3-Day Rotation Cycle</span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {([0, 1, 2] as const).map((idx) => {
-                  const pair = twoDaySplitConfig[idx] || defaultTwoDayConfig[idx];
+                  const defaultPairs: [SubjectId, SubjectId][] = [
+                    ['physics', 'chemistry'],
+                    ['physics', 'maths'],
+                    ['chemistry', 'maths']
+                  ];
+                  const pair = twoDaySplitConfig[idx] || defaultPairs[idx];
                   return (
                     <div key={idx} className="p-3 rounded-lg border border-zinc-800 bg-zinc-900/60 space-y-2">
                       <span className="text-[10px] text-zinc-400 font-bold block uppercase">
@@ -346,7 +436,7 @@ export function SettingsPage() {
                       </span>
                       <div className="space-y-1 text-[11px]">
                         <div>
-                          <span className="text-zinc-500 text-[10px] block">Subject 1:</span>
+                          <span className="text-zinc-400 text-[10px] block">Subject 1:</span>
                           <select
                             value={pair[0]}
                             onChange={(e) => {
@@ -356,7 +446,7 @@ export function SettingsPage() {
                                 [...twoDaySplitConfig[2]]
                               ];
                               newConfig[idx][0] = e.target.value as SubjectId;
-                              setTwoDaySplitConfig(newConfig);
+                              handleChange('twoDaySplitConfig', newConfig);
                             }}
                             className="w-full bg-zinc-950 border border-zinc-800 rounded px-2 py-1 text-white font-mono"
                           >
@@ -366,7 +456,7 @@ export function SettingsPage() {
                           </select>
                         </div>
                         <div>
-                          <span className="text-zinc-500 text-[10px] block">Subject 2:</span>
+                          <span className="text-zinc-400 text-[10px] block">Subject 2:</span>
                           <select
                             value={pair[1]}
                             onChange={(e) => {
@@ -376,7 +466,7 @@ export function SettingsPage() {
                                 [...twoDaySplitConfig[2]]
                               ];
                               newConfig[idx][1] = e.target.value as SubjectId;
-                              setTwoDaySplitConfig(newConfig);
+                              handleChange('twoDaySplitConfig', newConfig);
                             }}
                             className="w-full bg-zinc-950 border border-zinc-800 rounded px-2 py-1 text-white font-mono"
                           >
@@ -418,7 +508,7 @@ export function SettingsPage() {
               <div className="flex items-start gap-3">
                 <div className="mt-0.5">
                   <div className="w-6 h-6 rounded-md bg-zinc-800 flex items-center justify-center border border-zinc-700">
-                    <Sparkles className={`w-3 h-3 ${enableGodMode ? 'text-amber-400' : 'text-zinc-500'}`} />
+                    <Sparkles className={`w-3 h-3 ${enableGodMode ? 'text-amber-400' : 'text-zinc-400'}`} />
                   </div>
                 </div>
                 <div>
@@ -428,12 +518,60 @@ export function SettingsPage() {
                   </div>
                 </div>
               </div>
-              <input
-                type="checkbox"
-                checked={enableGodMode}
-                onChange={(e) => setEnableGodMode(e.target.checked)}
+              <input id="enableGodMode" type="checkbox" checked={enableGodMode}
+                onChange={(e) => handleChange('enableGodMode', e.target.checked)}
                 className="w-5 h-5 accent-amber-500 cursor-pointer shrink-0"
               />
+            </div>
+
+            {/* Pomodoro Casino Toggle */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border border-zinc-850 bg-zinc-900/40 gap-4">
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5">
+                  <div className="w-6 h-6 rounded-md bg-zinc-800 flex items-center justify-center border border-zinc-700">
+                    <Sparkles className={`w-3 h-3 ${enablePomodoroCasino ? 'text-red-500' : 'text-zinc-400'}`} />
+                  </div>
+                </div>
+                <div>
+                  <div className="text-sm font-mono font-bold text-white">Pomodoro Casino (XP Wager)</div>
+                  <div className="text-[11px] text-zinc-400 mt-1 max-w-xl leading-relaxed">
+                    When enabled, opening the Cockpit will require you to <span className="text-white font-bold">wager your XP</span>. Upon completion, you must provide a "Proof of Work" summary to earn a <span className="text-red-400 font-bold border border-red-500/30 bg-red-500/10 px-1 py-0.5 rounded">2.5x Payout</span>. If you fail or quit early, the Casino takes your wager.
+                  </div>
+                </div>
+              </div>
+              <input id="enablePomodoroCasino" type="checkbox" checked={enablePomodoroCasino}
+                onChange={(e) => handleChange('enablePomodoroCasino', e.target.checked)}
+                className="w-5 h-5 accent-red-500 cursor-pointer shrink-0"
+              />
+            </div>
+
+            {/* Minimum Streak Requirement */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border border-zinc-850 bg-zinc-900/40 gap-4">
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5">
+                  <div className="w-6 h-6 rounded-md bg-zinc-800 flex items-center justify-center border border-zinc-700">
+                    <Icon name="Flame" className="w-3 h-3 text-amber-500" />
+                  </div>
+                </div>
+                <div>
+                  <div className="text-sm font-mono font-bold text-white">Minimum Streak Requirement</div>
+                  <div className="text-[11px] text-zinc-400 mt-1 max-w-xl leading-relaxed">
+                    Minimum hours of study required per day to earn a streak fire ⚡. Prevents 5-minute sessions from artificially inflating streaks.
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min="0.1"
+                  max="10"
+                  step="0.1"
+                  value={minStreakHours || 0.5}
+                  onChange={(e) => handleChange('minStreakHours', parseFloat(e.target.value) || 0.5)}
+                  className="w-20 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-1.5 text-white font-mono text-sm text-center focus:outline-none focus:border-amber-500/50"
+                />
+                <span className="text-xs font-mono text-zinc-400">hours</span>
+              </div>
             </div>
           </div>
         </div>
@@ -459,7 +597,7 @@ export function SettingsPage() {
             <div className="space-y-3">
               <div className="flex items-center justify-between p-3 rounded-xl border border-zinc-850 bg-zinc-900/40">
                 <div className="flex items-center gap-2.5">
-                  {soundEffects ? <Volume2 className="w-4 h-4 text-emerald-400" /> : <VolumeX className="w-4 h-4 text-zinc-500" />}
+                  {soundEffects ? <Volume2 className="w-4 h-4 text-emerald-400" /> : <VolumeX className="w-4 h-4 text-zinc-400" />}
                   <div>
                     <div className="text-xs font-mono font-semibold text-white">Web Audio Sound Chimes</div>
                     <div className="text-[10px] text-zinc-400">Play audio chimes on task completion</div>
@@ -468,7 +606,7 @@ export function SettingsPage() {
                 <input
                   type="checkbox"
                   checked={soundEffects}
-                  onChange={(e) => setSoundEffects(e.target.checked)}
+                  onChange={(e) => handleChange('soundEffects', e.target.checked)}
                   className="w-4 h-4 accent-emerald-500 cursor-pointer"
                 />
               </div>
@@ -486,7 +624,7 @@ export function SettingsPage() {
                       min="10"
                       max="100"
                       value={volume}
-                      onChange={(e) => setVolume(Number(e.target.value))}
+                      onChange={(e) => handleChange('volume', Number(e.target.value))}
                       className="w-full h-1.5 bg-zinc-900 rounded-lg appearance-none cursor-pointer accent-emerald-500 border border-zinc-800"
                     />
                     <button
@@ -504,7 +642,7 @@ export function SettingsPage() {
             {/* Desktop Notifications Toggle */}
             <div className="flex items-center justify-between p-3 rounded-xl border border-zinc-850 bg-zinc-900/40">
               <div className="flex items-center gap-2.5">
-                {desktopNotifications ? <Bell className="w-4 h-4 text-indigo-400" /> : <BellOff className="w-4 h-4 text-zinc-500" />}
+                {desktopNotifications ? <Bell className="w-4 h-4 text-indigo-400" /> : <BellOff className="w-4 h-4 text-zinc-400" />}
                 <div>
                   <div className="text-xs font-mono font-semibold text-white">Browser Desktop Notifications</div>
                   <div className="text-[10px] text-zinc-400">Receive system popups for revision alerts</div>
@@ -515,7 +653,7 @@ export function SettingsPage() {
                 checked={desktopNotifications}
                 onChange={async (e) => {
                   const checked = e.target.checked;
-                  setDesktopNotifications(checked);
+                  handleChange('desktopNotifications', checked);
                   if (checked) {
                     await soundSystem.requestNotificationPermission();
                   }
@@ -536,7 +674,7 @@ export function SettingsPage() {
               <input
                 type="checkbox"
                 checked={pauseOnTabChange}
-                onChange={(e) => setPauseOnTabChange(e.target.checked)}
+                onChange={(e) => handleChange('pauseOnTabChange', e.target.checked)}
                 className="w-4 h-4 accent-amber-500 cursor-pointer"
               />
             </div>
@@ -677,87 +815,12 @@ export function SettingsPage() {
       </div>
 
       {/* DANGER ZONE: WORKSPACE RESET */}
-      <div className="p-6 rounded-2xl border border-red-900/30 bg-red-950/10 space-y-4">
-        <div className="flex items-center gap-2.5 border-b border-red-900/20 pb-3">
-          <div className="w-8 h-8 rounded-lg bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400">
-            <AlertTriangle className="w-4 h-4" />
-          </div>
-          <div>
-            <h3 className="text-sm font-display font-bold text-white tracking-tight">
-              Danger Zone
-            </h3>
-            <p className="text-[11px] text-zinc-400">
-              Irreversible actions — use carefully during testing.
-            </p>
-          </div>
-        </div>
-
-        {/* XP / Level Reset */}
-        <div className="flex items-center justify-between py-1">
-          <div>
-            <p className="text-xs font-mono font-bold text-zinc-200">Reset XP &amp; Level</p>
-            <p className="text-[11px] text-zinc-500">
-              Current: Level {xp?.level ?? 1} · {xp?.total ?? 0} XP total · {xp?.streak ?? 0} day streak
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowXpResetConfirm(true)}
-            className="px-4 py-2 rounded-xl bg-amber-600/20 hover:bg-amber-600/30 border border-amber-500/40 text-amber-300 font-mono text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            Reset XP
-          </button>
-        </div>
-
-        {showXpResetSuccess && (
-          <div className="text-xs font-mono text-emerald-400 bg-emerald-950/40 p-3 rounded-xl border border-emerald-900/40 text-center">
-            XP &amp; level reset to zero — persisted to cloud.
-          </div>
-        )}
-
-        {/* Reset Hidden Missions */}
-        <div className="flex items-center justify-between pt-3 border-t border-red-900/20">
-          <div>
-            <p className="text-xs font-mono font-bold text-zinc-200">Reset Hidden Missions</p>
-            <p className="text-[11px] text-zinc-500">
-              {deletedMissionIds?.length || 0} missions currently hidden. Clears the blocklist.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowHiddenMissionsConfirm(true)}
-            className="px-4 py-2 rounded-xl bg-amber-600/20 hover:bg-amber-600/30 border border-amber-500/40 text-amber-300 font-mono text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            Clear Hidden
-          </button>
-        </div>
-
-        {showHiddenMissionsSuccess && (
-          <div className="text-xs font-mono text-emerald-400 bg-emerald-950/40 p-3 rounded-xl border border-emerald-900/40 text-center">
-            Hidden missions blocklist cleared.
-          </div>
-        )}
-
-        {/* Workspace Reset */}
-        <div className="flex items-center justify-between pt-3 border-t border-red-900/20">
-          <div>
-            <p className="text-xs font-mono font-bold text-zinc-200">Reset Workspace &amp; Clear Progress</p>
-            <p className="text-[11px] text-zinc-500">
-              Purges all local sessions, mistakes, custom missions, and settings state.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setShowResetConfirm(true)}
-            className="px-4 py-2 rounded-xl bg-red-600/20 hover:bg-red-600/30 border border-red-500/40 text-red-300 font-mono text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            Reset Workspace
-          </button>
-        </div>
+      <DangerZoneSection
+        onOpenResetXP={() => setShowXpResetConfirm(true)}
+        onOpenResetMissions={() => setShowCustomMissionsConfirm(true)}
+        onOpenResetHidden={() => setShowHiddenMissionsConfirm(true)}
+        onOpenPurgeWorkspace={() => setShowResetConfirm(true)}
+      />
 
         {/* XP Reset Confirmation Modal */}
         <Modal
@@ -830,6 +893,43 @@ export function SettingsPage() {
               </div>
         </Modal>
 
+        {/* Reset Custom Missions Modal */}
+        <Modal
+          isOpen={showCustomMissionsConfirm}
+          onClose={() => setShowCustomMissionsConfirm(false)}
+          zIndex={9999}
+          backdropClassName="bg-black/80 backdrop-blur-md"
+          className="bg-zinc-950 border border-amber-900/50 p-6 rounded-2xl max-w-md w-full space-y-4 text-left shadow-2xl animate-in fade-in zoom-in-95 duration-200"
+        >
+              <div className="flex items-center gap-3 text-amber-400">
+                <AlertTriangle className="w-6 h-6 shrink-0" />
+                <h4 className="text-base font-display font-bold text-white">Reset Custom Missions?</h4>
+              </div>
+              <p className="text-xs text-zinc-300 leading-relaxed font-mono">
+                This will clear all your custom daily tasks and any manually scheduled missions for today. The AI Planner will then generate a brand new daily schedule for you based on your goals.
+              </p>
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCustomMissionsConfirm(false)}
+                  className="px-4 py-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 rounded-xl text-xs font-mono cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await actions.resetCustomMissions();
+                    setShowCustomMissionsConfirm(false);
+                    setShowCustomMissionsSuccess(true);
+                    setTimeout(() => setShowCustomMissionsSuccess(false), 3000);
+                  }}
+                  className="px-4 py-2 bg-amber-600 hover:bg-amber-500 border border-amber-500 text-white rounded-xl text-xs font-mono font-bold cursor-pointer"
+                >
+                  Yes, Reset Schedule
+                </button>
+              </div>
+        </Modal>
         {/* Universal Confirmation Modal */}
         <Modal
           isOpen={showResetConfirm}
@@ -868,7 +968,6 @@ export function SettingsPage() {
             Workspace reset successfully! Reloading...
           </div>
         )}
-      </div>
 
     </div>
   );

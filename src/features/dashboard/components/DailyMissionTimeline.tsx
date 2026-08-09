@@ -24,7 +24,22 @@ interface DailyMissionTimelineProps {
   formatTimer: (totalSecs: number) => string;
   onOpenCustomMission?: () => void;
   onEditMission?: (mission: TodayMission) => void;
+  selectedMissionId?: string | null;
+  setSelectedMissionId?: (id: string | null) => void;
 }
+
+const getStartMinutesFromTimeSlot = (timeSlot?: string): number => {
+  if (!timeSlot) return 9999;
+  const match = timeSlot.match(/(\d{1,2}):(\d{2})/);
+  if (!match) return 9999;
+  let hours = parseInt(match[1], 10);
+  const minutes = parseInt(match[2], 10);
+  // If hours are between 00:00 and 05:59, treat as past-midnight (add 24h) for study day ordering
+  if (hours < 6) {
+    hours += 24;
+  }
+  return hours * 60 + minutes;
+};
 
 const getSubjectBadgeStyle = (subj: SubjectId) => {
   switch (subj) {
@@ -48,9 +63,12 @@ export function DailyMissionTimeline({
   handleResetSession,
   formatTimer,
   onOpenCustomMission,
-  onEditMission
+  onEditMission,
+  selectedMissionId,
+  setSelectedMissionId
 }: DailyMissionTimelineProps) {
-  const actions = useStudyBrainStore(s => s.actions);
+  
+  const actions = useStudyBrainStore(state => state.actions);
   const todayMissions = useStudyBrainStore(s => s.todayMissions);
   const energyLevel = useStudyBrainStore(s => s.energyLevel);
   const estimatedRemainingHours = useStudyBrainStore(s => s.estimatedRemainingHours);
@@ -58,7 +76,6 @@ export function DailyMissionTimeline({
   const targetFinishTime = useStudyBrainStore(s => s.targetFinishTime);
   const chapters = useStudyBrainStore(s => s.chapters);
   const chapterTelemetryMap = useStudyBrainStore(s => s.chapterTelemetryMap);
-  const [selectedMissionId, setSelectedMissionId] = useState<string | null>(null);
   const [missionToDelete, setMissionToDelete] = useState<string | null>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
 
@@ -107,7 +124,7 @@ export function DailyMissionTimeline({
               <span className="text-[10px] font-mono font-bold tracking-widest text-indigo-400 uppercase shrink-0">
                 TODAY'S MISSION CHECKLIST
               </span>
-              <span className="text-[9px] font-mono font-normal tracking-normal text-zinc-400 bg-zinc-900 border border-zinc-800 px-2.5 py-1 rounded-full flex items-center gap-2 shrink-0 whitespace-nowrap shadow-sm">
+              <span className="text-[11px] font-mono font-normal tracking-normal text-zinc-400 bg-zinc-900 border border-zinc-800 px-2.5 py-1 rounded-full flex items-center gap-2 shrink-0 whitespace-nowrap shadow-sm">
                 <span>{completedCount}/{totalCount} Done</span>
                 <div className="w-16 bg-zinc-800 rounded-full h-1.5 overflow-hidden shrink-0">
                   <motion.div
@@ -161,7 +178,7 @@ export function DailyMissionTimeline({
             {todayMissions.length === 0 ? (
               <div className="p-8 flex flex-col items-center gap-4 text-center border border-dashed border-zinc-800 rounded-xl bg-zinc-950/30">
                 <div className="text-zinc-300 font-display font-medium text-base">Execution Queue is Empty</div>
-                <div className="text-zinc-500 text-xs max-w-sm">
+                <div className="text-zinc-400 text-xs max-w-sm">
                   You have no active chapters in progress. Pick a foundational module to start your journey.
                 </div>
                 <div className="flex flex-wrap gap-3 justify-center mt-2">
@@ -206,19 +223,92 @@ export function DailyMissionTimeline({
                   </button>
                 </div>
               </div>
-            ) : (
-              [...todayMissions]
-                .sort((a, b) => {
-                  // Sort order: active → completed → dismissed
-                  const rank = (m: typeof a) => m.dismissed ? 2 : m.completed ? 1 : 0;
-                  return rank(a) - rank(b);
-                })
-                .map((mission, idx) => {
+            ) : (() => {
+              const sortedMissions = [...todayMissions].sort((a, b) => {
+                // Sort order: active → completed → dismissed
+                const rank = (m: typeof a) => m.dismissed ? 2 : m.completed ? 1 : 0;
+                const rankDiff = rank(a) - rank(b);
+                if (rankDiff !== 0) return rankDiff;
+
+                // Secondary sort by chronological timeSlot if available to sync with Planner's Single Source of Truth
+                const minA = getStartMinutesFromTimeSlot(a.timeSlot);
+                const minB = getStartMinutesFromTimeSlot(b.timeSlot);
+                return minA - minB;
+              });
+
+              const uncompletedMissions = sortedMissions.filter(m => !m.completed && !m.dismissed);
+              
+              const now = new Date();
+              const nowMins = now.getHours() * 60 + now.getMinutes();
+
+              let liveMissionId: string | null = null;
+              let nextUpMissionId: string | null = null;
+              const pushedSlotsMap = new Map<string, { slot: string; isPushed: boolean }>();
+              
+              let runningPushMins = nowMins;
+
+              uncompletedMissions.forEach((m, idx) => {
+                let duration = m.duration || 60;
+                let startMins = 0;
+                let endMins = 0;
+                let isOriginalPushed = false;
+                
+                if (m.timeSlot) {
+                  const match = m.timeSlot.match(/(\d{1,2}):(\d{2})\s*[-–]\s*(\d{1,2}):(\d{2})/);
+                  if (match) {
+                    startMins = parseInt(match[1], 10) * 60 + parseInt(match[2], 10);
+                    endMins = parseInt(match[3], 10) * 60 + parseInt(match[4], 10);
+                    if (endMins > startMins) duration = endMins - startMins;
+                  }
+                }
+
+                // If scheduled start is in the past, push it to runningPushMins (sequential cascading)
+                if (startMins < runningPushMins) {
+                  isOriginalPushed = true;
+                  startMins = runningPushMins;
+                  endMins = startMins + duration;
+                  
+                  const sH = Math.floor((startMins % 1440) / 60).toString().padStart(2, '0');
+                  const sM = (startMins % 60).toString().padStart(2, '0');
+                  const eH = Math.floor((endMins % 1440) / 60).toString().padStart(2, '0');
+                  const eM = (endMins % 60).toString().padStart(2, '0');
+                  
+                  pushedSlotsMap.set(m.id, {
+                    slot: `${sH}:${sM} - ${eH}:${eM}`,
+                    isPushed: true
+                  });
+                }
+
+                if (nowMins >= startMins && nowMins < endMins) {
+                  if (!liveMissionId) {
+                    liveMissionId = m.id;
+                  }
+                }
+
+                runningPushMins = endMins;
+              });
+
+              // Fallback: If no mission window is currently live (e.g. gap between slots), 
+              // but we have uncompleted missions, don't just assign the first one unless it's past its start time.
+              // Actually, to match PlannerCalendarGrid, we only mark it LIVE if nowMins is within start/end.
+              // If it's a gap, nothing is LIVE.
+              
+              // 2. Find Next Up Mission
+              if (liveMissionId) {
+                const liveIdx = uncompletedMissions.findIndex(m => m.id === liveMissionId);
+                nextUpMissionId = uncompletedMissions[liveIdx + 1]?.id || null;
+              } else if (uncompletedMissions.length > 0) {
+                nextUpMissionId = uncompletedMissions[0].id;
+              }
+
+              return sortedMissions.map((mission, idx) => {
                   const isDismissed = !!mission.dismissed;
                   const badgeStyle = getSubjectBadgeStyle(mission.subject);
                   const isExpanded = expandedMission === mission.id;
                   const isSelected = activeMission?.id === mission.id;
-                  const isNextUp = !mission.completed && idx === 0;
+                  
+                  const isLive = mission.id === liveMissionId;
+                  const isNextUp = mission.id === nextUpMissionId;
 
                   // Chapter metadata
                   const chap = chapters.find(c => 
@@ -243,24 +333,24 @@ export function DailyMissionTimeline({
                     <div
                       key={mission.id}
                       onClick={() => {
-                        if (sessionState !== 'idle' && activeMission?.id !== mission.id) {
+                        if (sessionState !== 'idle' && selectedMissionId !== mission.id) {
                           handleResetSession();
                         }
-                        setSelectedMissionId(mission.id);
+                        setSelectedMissionId?.(mission.id);
                         if (chap) {
                           actions.setRadarFocusedChapter(chap.id);
                         }
                       }}
                     className={`group transition-all duration-200 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 active:scale-[0.99] relative overflow-hidden ${
-                        isNextUp
-                          ? 'p-6 md:p-7 rounded-2xl border border-indigo-500/40 bg-zinc-900/80 shadow-md mb-4'
+                        isLive
+                          ? 'p-6 md:p-7 rounded-2xl border-2 border-emerald-500 shadow-[0_0_18px_rgba(16,185,129,0.15)] bg-zinc-900/80 mb-4'
                           : isDismissed
                           ? 'premium-card p-3.5 rounded-xl border-red-900/20 opacity-40 cursor-default'
                           : mission.completed
                           ? 'premium-card p-3.5 rounded-xl border-zinc-900/40 opacity-60'
                           : isSelected
                           ? 'glass-card p-4 rounded-xl border-indigo-500/40 shadow-lg'
-                          : 'premium-card p-3.5 rounded-xl hover:border-zinc-750'
+                          : 'premium-card p-4 rounded-xl hover:border-zinc-750'
                       }`}
                     >
                       <div className="flex items-start justify-between gap-4 relative z-10">
@@ -274,15 +364,17 @@ export function DailyMissionTimeline({
                             actions.completeTask(mission.id);
                           }}
                           className={`rounded-full border flex items-center justify-center shrink-0 transition-all duration-100 cursor-pointer ${
-                            isNextUp ? 'w-6 h-6 mt-0.5' : 'w-5 h-5'
+                            isLive ? 'w-6 h-6 mt-0.5' : 'w-5 h-5'
                           } ${
                             mission.completed
                               ? 'bg-emerald-500 border-emerald-400 text-white shadow-[0_0_10px_rgba(16,185,129,0.3)]'
+                              : isLive
+                              ? 'border-emerald-500 bg-transparent text-transparent hover:text-emerald-500/60'
                               : 'border-zinc-700 hover:border-indigo-400 bg-transparent text-transparent hover:text-indigo-400/60'
                           }`}
                           title={mission.completed ? "Mark incomplete" : "Mark complete"}
                         >
-                          <Icon name="Check" className={`${isNextUp ? 'w-3.5 h-3.5' : 'w-3 h-3'} stroke-[3]`} />
+                          <Icon name="Check" className={`${isLive ? 'w-3.5 h-3.5' : 'w-3 h-3'} stroke-[3]`} />
                         </button>
                         )}
                         {isDismissed && (
@@ -294,7 +386,7 @@ export function DailyMissionTimeline({
                         {/* Content Area */}
                         <div className="space-y-2 min-w-0 flex-1">
                           {/* Badges */}
-                          <div className="flex items-center gap-2 flex-wrap text-[9px] font-mono">
+                          <div className="flex items-center gap-2 flex-wrap text-[11px] font-mono">
                             {isDismissed && (
                               <span className="font-bold uppercase tracking-wider px-2 py-0.5 rounded border bg-red-950/30 text-red-400/70 border-red-900/30">
                                 Dismissed
@@ -309,19 +401,29 @@ export function DailyMissionTimeline({
                             <span className="bg-amber-950/30 border border-amber-900/40 text-amber-300 font-semibold px-2 py-0.5 rounded flex items-center gap-1">
                               <Icon name={priorityTier.iconName as any} className={`w-3 h-3 ${priorityTier.color}`} /> {priorityTier.label} • +{weightageMarks} M
                             </span>
-                            {isNextUp && (
-                              <span className="bg-indigo-600 text-white font-extrabold px-2.5 py-0.5 rounded-md uppercase tracking-wider shadow-md flex items-center gap-1.5 animate-pulse">
-                                <span className="w-2 h-2 rounded-full bg-white" /> HERO MISSION
+                            {isLive && (
+                              <span className="bg-emerald-500 text-emerald-950 font-extrabold px-2.5 py-0.5 rounded-md uppercase tracking-wider shadow-[0_0_12px_rgba(16,185,129,0.5)] flex items-center gap-1.5 animate-pulse">
+                                <span className="w-2 h-2 rounded-full bg-emerald-100" /> LIVE
+                              </span>
+                            )}
+                            {!isLive && isNextUp && (
+                              <span className="bg-indigo-600 text-white font-extrabold px-2.5 py-0.5 rounded-md uppercase tracking-wider shadow-md flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full bg-white" /> NEXT UP
+                              </span>
+                            )}
+                            {pushedSlotsMap.has(mission.id) && (
+                              <span className="text-emerald-400 bg-emerald-950/40 border border-emerald-800/60 font-mono text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-1">
+                                <Icon name="Clock" className="w-3 h-3 text-emerald-400" /> {pushedSlotsMap.get(mission.id)?.slot} (Pushed to Live)
                               </span>
                             )}
                           </div>
 
                           {/* Title */}
                           <p className={`tracking-tight transition-colors ${
-                              isNextUp 
-                                ? 'text-base md:text-lg font-extrabold text-white group-hover:text-indigo-200' 
+                              isLive
+                                ? 'text-base md:text-lg font-extrabold text-white group-hover:text-emerald-300'
                                 : isDismissed ? 'text-xs md:text-sm text-zinc-600 line-through' 
-                                : mission.completed ? 'text-xs md:text-sm text-zinc-500 line-through' 
+                                : mission.completed ? 'text-xs md:text-sm text-zinc-400 line-through' 
                                 : 'text-xs md:text-sm font-semibold text-zinc-100 group-hover:text-indigo-300'
                             }`}>
                             {mission.taskName}
@@ -353,17 +455,17 @@ export function DailyMissionTimeline({
 
                           {/* Action Buttons */}
                           <div className="pt-2 flex items-center gap-2 flex-wrap">
-                            {isNextUp && (
+                            {isLive && (
                               <button
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleStartSession();
                                 }}
-                                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-mono text-xs font-bold rounded-xl shadow-lg shadow-indigo-600/30 flex items-center gap-2 cursor-pointer transition-all active:scale-95"
+                                className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-white font-mono text-xs font-bold rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.4)] flex items-center gap-2 cursor-pointer transition-all active:scale-95"
                               >
                                 <Icon name="Play" className="w-4 h-4 fill-white text-white" />
-                                <span>START HERO MISSION</span>
+                                <span>START MISSION</span>
                               </button>
                             )}
 
@@ -409,7 +511,7 @@ export function DailyMissionTimeline({
                               e.stopPropagation();
                               setMissionToDelete(mission.id);
                             }}
-                            className="w-7 h-7 rounded-lg border border-zinc-800 bg-zinc-900/40 hover:bg-red-500/20 hover:border-red-500/40 text-zinc-500 hover:text-red-400 flex items-center justify-center transition-colors cursor-pointer"
+                            className="w-7 h-7 rounded-lg border border-zinc-800 bg-zinc-900/40 hover:bg-red-500/20 hover:border-red-500/40 text-zinc-400 hover:text-red-400 flex items-center justify-center transition-colors cursor-pointer"
                             title="Delete mission"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -422,7 +524,7 @@ export function DailyMissionTimeline({
                               e.stopPropagation();
                               setExpandedMission(isExpanded ? null : mission.id);
                             }}
-                            className="w-7 h-7 rounded-lg border border-zinc-800 bg-zinc-900/40 flex items-center justify-center text-zinc-500 hover:text-zinc-200 transition-colors cursor-pointer"
+                            className="w-7 h-7 rounded-lg border border-zinc-800 bg-zinc-900/40 flex items-center justify-center text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer"
                           >
                             <Icon name={isExpanded ? "ChevronUp" : "ChevronDown"} className="w-3.5 h-3.5" />
                           </button>
@@ -473,7 +575,7 @@ export function DailyMissionTimeline({
                                     actions.deleteMission(mission.id);
                                     setExpandedMission(null);
                                   }}
-                                  className="bg-transparent hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300 text-[10px] py-1.5 px-3 rounded-md transition-all active:scale-[0.98] hover:scale-[1.02] cursor-pointer border border-zinc-800"
+                                  className="bg-transparent hover:bg-zinc-800 text-zinc-400 hover:text-zinc-300 text-[10px] py-1.5 px-3 rounded-md transition-all active:scale-[0.98] hover:scale-[1.02] cursor-pointer border border-zinc-800"
                                 >
                                   Skip
                                 </button>
@@ -486,7 +588,8 @@ export function DailyMissionTimeline({
                     </div>
                   );
                 })
-            )}
+              })()
+            }
           </div>
         </div>
 
@@ -504,7 +607,7 @@ export function DailyMissionTimeline({
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 px-2 text-[10px] font-mono text-zinc-500 hover:text-zinc-300 uppercase"
+              className="h-6 px-2 text-[10px] font-mono text-zinc-400 hover:text-zinc-300 uppercase"
               onClick={handleResetSession}
             >
               RESET
@@ -546,10 +649,10 @@ export function DailyMissionTimeline({
                 {/* Active Module Header */}
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <span className={`text-[9px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${getSubjectBadgeStyle(activeMission.subject)}`}>
+                    <span className={`text-[11px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${getSubjectBadgeStyle(activeMission.subject)}`}>
                       {activeMission.subject.toUpperCase()}
                     </span>
-                    <span className="text-[9px] font-mono text-amber-300 bg-amber-950/30 border border-amber-900/40 px-2 py-0.5 rounded font-semibold">
+                    <span className="text-[11px] font-mono text-amber-300 bg-amber-950/30 border border-amber-900/40 px-2 py-0.5 rounded font-semibold">
                       +{strategyRadar.weightageGain} Marks Gain
                     </span>
                   </div>
@@ -558,51 +661,67 @@ export function DailyMissionTimeline({
                   </h3>
                 </div>
 
-                {/* Key Concepts to Recall */}
-                <div className="space-y-1.5">
-                  <span className="text-xs font-mono font-bold text-zinc-400 uppercase tracking-widest block">
-                    Key Concept Formulae
-                  </span>
-                  <div className="space-y-1">
-                    {strategyRadar.formulas.map((formula, fIdx) => (
-                      <div key={fIdx} className="p-2 rounded-lg bg-zinc-900/60 border border-zinc-850/80 text-xs font-mono text-indigo-300 flex items-center gap-2">
-                        <Icon name="Zap" className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-                        <span className="truncate">{formula}</span>
+                {/* Chapter Vitals */}
+                {activeChap ? (
+                  <div className="space-y-1.5 mt-4">
+                    <span className="text-xs font-mono font-bold text-zinc-400 uppercase tracking-widest block">
+                      Chapter Vitals
+                    </span>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="p-2.5 rounded-lg bg-zinc-900/60 border border-zinc-850/80 flex flex-col gap-1">
+                        <span className="text-[10px] text-zinc-500 font-mono uppercase">Completion</span>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-white">{activeChap.completion}%</span>
+                          <div className="w-16 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                            <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${activeChap.completion}%` }} />
+                          </div>
+                        </div>
                       </div>
-                    ))}
+                      <div className="p-2.5 rounded-lg bg-zinc-900/60 border border-zinc-850/80 flex flex-col gap-1">
+                        <span className="text-[10px] text-zinc-500 font-mono uppercase">Confidence</span>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-white">{activeChap.confidence}%</span>
+                          <div className="w-16 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                            <div className={`h-full rounded-full ${activeChap.confidence > 70 ? 'bg-emerald-500' : activeChap.confidence > 40 ? 'bg-amber-500' : 'bg-rose-500'}`} style={{ width: `${activeChap.confidence}%` }} />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="p-2.5 rounded-lg bg-zinc-900/60 border border-zinc-850/80 flex flex-col gap-1">
+                        <span className="text-[10px] text-zinc-500 font-mono uppercase">Difficulty</span>
+                        <span className={`text-xs font-bold ${activeChap.difficulty === 'Hard' ? 'text-rose-400' : activeChap.difficulty === 'Medium' ? 'text-amber-400' : 'text-emerald-400'}`}>{activeChap.difficulty}</span>
+                      </div>
+                      <div className="p-2.5 rounded-lg bg-zinc-900/60 border border-zinc-850/80 flex flex-col gap-1">
+                        <span className="text-[10px] text-zinc-500 font-mono uppercase">Lectures</span>
+                        <span className="text-xs font-bold text-white">{activeChap.currentLecture} / {activeChap.totalLectures}</span>
+                      </div>
+                    </div>
                   </div>
-                </div>
-
-                {/* Common Pitfall Warning */}
-                <div className="p-3 rounded-xl border border-amber-900/30 bg-amber-950/10 space-y-1 text-xs text-amber-200/90 leading-relaxed">
-                  <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-amber-400 uppercase tracking-widest">
-                    <Icon name="AlertTriangle" className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                    <span>Common Exam Pitfall</span>
+                ) : (
+                  <div className="p-4 rounded-xl border border-zinc-900/80 bg-zinc-900/40 space-y-1 text-center">
+                    <span className="text-[10px] text-zinc-400 uppercase font-mono block">No Chapter Data</span>
+                    <span className="text-xs text-zinc-500">Mission does not belong to a specific syllabus chapter.</span>
                   </div>
-                  <p className="text-xs text-zinc-300">
-                    {strategyRadar.pitfalls}
-                  </p>
-                </div>
+                )}
 
                 {/* Target PYQ Quota & Metrics */}
                 <div className="grid grid-cols-3 gap-2 text-center font-mono">
                   <div className="p-2.5 rounded-xl border border-zinc-900 bg-zinc-900/40 space-y-0.5">
-                    <span className="text-xs text-zinc-500 uppercase block">Est. Time</span>
+                    <span className="text-xs text-zinc-400 uppercase block">Est. Time</span>
                     <span className="text-xs font-bold text-white">{activeMission.duration}m</span>
                   </div>
                   <div className="p-2.5 rounded-xl border border-zinc-900 bg-zinc-900/40 space-y-0.5">
-                    <span className="text-xs text-zinc-500 uppercase block">Target PYQs</span>
+                    <span className="text-xs text-zinc-400 uppercase block">Target PYQs</span>
                     <span className="text-xs font-bold text-indigo-400">{strategyRadar.recommendedPYQs} Qs</span>
                   </div>
                   <div className="p-2.5 rounded-xl border border-zinc-900 bg-zinc-900/40 space-y-0.5">
-                    <span className="text-xs text-zinc-500 uppercase block">XP Award</span>
+                    <span className="text-xs text-zinc-400 uppercase block">XP Award</span>
                     <span className="text-xs font-bold text-emerald-400">+{activeMission.xp}</span>
                   </div>
                 </div>
 
               </div>
             ) : (
-              <div className="p-8 text-center text-zinc-500 text-xs font-mono">
+              <div className="p-8 text-center text-zinc-400 text-xs font-mono">
                 All daily modules complete! Select a chapter to review.
               </div>
             )}

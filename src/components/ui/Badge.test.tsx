@@ -17,13 +17,13 @@ describe('Badge', () => {
   it('applies success variant styles correctly', () => {
     render(<Badge variant="success" data-testid="badge-success">Success</Badge>);
     const badge = screen.getByTestId('badge-success');
-    expect(badge.className).toContain('bg-emerald-950/40');
+    expect(badge.className).toContain('bg-emerald-950/50');
   });
 
   it('applies destructive variant styles correctly', () => {
-    render(<Badge variant="destructive" data-testid="badge-destructive">Error</Badge>);
+    render(<Badge variant="destructive" data-testid="badge-destructive">Destructive</Badge>);
     const badge = screen.getByTestId('badge-destructive');
-    expect(badge.className).toContain('bg-red-950/40');
+    expect(badge.className).toContain('bg-red-950/50');
   });
 
   it('appends custom class names correctly', () => {

@@ -1,5 +1,7 @@
 import React from 'react';
 import { Modal } from '@/components/ui/Modal';
+import { useStudyBrainStore } from '@/store/useStudyBrainStore';
+import { calculateCurrentStreak } from '@/utils/streakCalculations';
 
 import { MissionTimerWidget } from './components/MissionTimerWidget';
 import { MissionSubjectSwitcherWidget } from './components/MissionSubjectSwitcherWidget';
@@ -9,6 +11,7 @@ import { MissionNotesDrawer } from './components/MissionNotesDrawer';
 import { MissionFormulaSheetModal } from './components/MissionFormulaSheetModal';
 import { MissionPauseOverlay } from './components/MissionPauseOverlay';
 import { MissionCompleteModal } from './components/MissionCompleteModal';
+import { MissionDebriefModal } from './components/MissionDebriefModal';
 import { MissionTimeUpModal } from './components/MissionTimeUpModal';
 import { MissionCoachWidget } from './components/MissionCoachWidget';
 import { QuestionViewerWidget } from './components/QuestionViewerWidget';
@@ -20,13 +23,44 @@ import { LECTURE_SPEEDS } from './constants/formulas';
 
 export function MissionMode(props: MissionModeProps) {
   const { mode = 'learning', children } = props;
+  const [isClosing, setIsClosing] = React.useState(false);
+  const [showDebrief, setShowDebrief] = React.useState(false);
+  const pendingCompleteData = React.useRef<any>(null);
+  const actions = useStudyBrainStore(state => state.actions);
+  const studySessions = useStudyBrainStore(state => state.studySessions || []);
+  const settings = useStudyBrainStore(state => state.settings);
   
-  const { state, setters, handlers, refs } = useMissionState(props);
+  const minStreakMins = Math.round((settings?.minStreakHours ?? 0.5) * 60);
+  const computedStreak = React.useMemo(() => calculateCurrentStreak(studySessions, minStreakMins), [studySessions, minStreakMins]);
+  
+  const parentOnExitRef = React.useRef(props.onExit);
+  parentOnExitRef.current = props.onExit;
+
+  // Smooth exit interceptors
+  const handleSmoothExit = React.useCallback(() => {
+    setIsClosing(true);
+    setTimeout(() => {
+      if (parentOnExitRef.current) parentOnExitRef.current();
+    }, 250);
+  }, []);
+
+  const { state, setters, handlers, refs } = useMissionState({
+    ...props,
+    onExit: handleSmoothExit
+  });
+
+  const handleSmoothComplete = (data?: any) => {
+    if (isClosing) return;
+    setIsClosing(true);
+    setTimeout(() => {
+      handlers.handleMissionComplete(data);
+    }, 250);
+  };
 
   return (
     <Modal
-      isOpen={true}
-      onClose={handlers.handleExit}
+      isOpen={!isClosing}
+      onClose={handleSmoothExit}
       zIndex={9999}
       className="bg-[#070708] text-zinc-100 flex flex-col font-sans overflow-hidden select-none w-full h-full"
     >
@@ -35,7 +69,7 @@ export function MissionMode(props: MissionModeProps) {
           isSettingUp={state.isSettingUp} 
           xpTotal={state.xp?.total || 0} 
           xpWager={state.xpWager} 
-          setXpWager={setters.setXpWager} 
+          setXpWager={setters.setXpWager}
           onAccept={() => {
             setters.setIsSettingUp(false);
             setters.setIsPaused(false);
@@ -45,7 +79,7 @@ export function MissionMode(props: MissionModeProps) {
         <CasinoFailureOverlay 
           missionFailed={state.missionFailed} 
           xpWager={state.xpWager} 
-          onExit={handlers.handleExit} 
+          onExit={handleSmoothExit} 
         />
 
         {/* GLOWING AMBIENT FIELD BACKGROUND */}
@@ -54,10 +88,10 @@ export function MissionMode(props: MissionModeProps) {
           <div className="absolute top-[20%] right-[10%] w-[400px] h-[400px] bg-emerald-500/3 blur-[120px] rounded-full" />
         </div>
 
-        <MissionHeader onExit={handlers.handleExit} />
+        <MissionHeader onExit={handleSmoothExit} />
 
         {/* MAIN TWO-COLUMN DECK WORKSPACE */}
-        <main className="flex-1 relative z-10 flex flex-col md:flex-row overflow-hidden w-full max-w-5xl mx-auto p-3 sm:p-4 md:p-6 gap-4 md:gap-6 lg:gap-8 justify-center items-center pt-20 md:pt-24 my-auto">
+        <main className="flex-1 min-h-0 relative z-10 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden w-full max-w-5xl mx-auto p-3 sm:p-4 md:p-6 gap-4 md:gap-6 lg:gap-8 justify-center items-center pt-20 md:pt-24 my-auto">
           
           {/* LEFT COMPONENT COLUMN (TIMER & CONTENT COCKPIT) */}
           <div className="flex-1 flex flex-col items-center justify-center w-full max-w-lg mx-auto md:mx-0 h-full min-h-0">
@@ -125,16 +159,19 @@ export function MissionMode(props: MissionModeProps) {
                   chapterId={state.activeChap.id} 
                   subject={state.activeSubject} 
                   onExitPractice={() => {
-                    props.onComplete({
-                      missionId: state.activeSubjectMission?.id,
-                      duration: Math.max(60, state.seconds),
-                      questions: 0,
-                      xp: Math.max(5, Math.floor(state.seconds / 60) * 5),
-                      streak: 0,
-                      idleTime: state.idleTime,
-                      focusInterruptions: state.focusInterruptions,
-                      focusScore: state.focusScore
-                    });
+                    setIsClosing(true);
+                    setTimeout(() => {
+                      props.onComplete({
+                        missionId: state.activeSubjectMission?.id,
+                        duration: Math.max(60, state.seconds),
+                        questions: 0,
+                        xp: Math.max(5, Math.floor(state.seconds / 60) * 5),
+                        streak: 0,
+                        idleTime: state.idleTime,
+                        focusInterruptions: state.focusInterruptions,
+                        focusScore: state.focusScore
+                      });
+                    }, 250);
                     setters.setForcePracticeMode(false);
                   }}
                 />
@@ -154,6 +191,8 @@ export function MissionMode(props: MissionModeProps) {
                       setters.setCoachTip(`No pending ${state.subjectsDetails[state.activeSubject].name} mission right now — switch subject or check your Daily Missions list.`);
                       return;
                     }
+                    // ONLY set checklist to full and show modal here. 
+                    // The actual completion (DB save and XP) runs when the modal is closed via handleSmoothComplete.
                     setters.setChecklist(prev => {
                       const allDone: Record<string, boolean> = {};
                       Object.keys(prev).forEach(k => { allDone[k] = true; });
@@ -201,19 +240,46 @@ export function MissionMode(props: MissionModeProps) {
           seconds={state.seconds}
           formatTime={handlers.formatTime}
           lectureSpeed={state.lectureSpeed}
-          onExit={handlers.handleExit}
+          onExit={handleSmoothExit}
         />
 
         <MissionCompleteModal
-          isCompleted={state.isCompleted}
+          isCompleted={state.isCompleted && !showDebrief}
           activeDetails={state.activeDetails}
           seconds={state.seconds}
-          streak={state.xp?.streak || 0}
+          streak={computedStreak}
           idleTime={state.idleTime}
           focusInterruptions={state.focusInterruptions}
           focusScore={state.focusScore}
-          onComplete={handlers.handleMissionComplete}
+          onComplete={(data) => {
+            pendingCompleteData.current = data;
+            setShowDebrief(true);
+          }}
           onNextSubject={handlers.handleNextSubject}
+        />
+
+        <MissionDebriefModal
+          isOpen={showDebrief}
+          onSubmit={(debrief) => {
+            const base = pendingCompleteData.current || {
+              duration: state.seconds,
+              questions: 0,
+              xp: Math.floor(state.seconds / 60) * 5,
+              streak: computedStreak,
+              idleTime: state.idleTime,
+              focusInterruptions: state.focusInterruptions,
+              focusScore: state.focusScore,
+            };
+            handleSmoothComplete({
+              ...base,
+              questions: debrief.questions,
+              correct: debrief.correct,
+              confidence: debrief.confidence,
+            });
+          }}
+          onSkip={() => {
+            handleSmoothComplete(pendingCompleteData.current);
+          }}
         />
 
         <MissionTimeUpModal 

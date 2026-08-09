@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { getSubjectTheme } from '@/constants/subjectTheme';
 import {
@@ -13,6 +13,86 @@ import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { Modal } from '@/components/ui/Modal';
 import { ConfirmDeleteModal } from '@/components/ui/ConfirmDeleteModal';
+
+const PracticeModule = ({
+  title,
+  colorClass,
+  badgeColorClass,
+  subtitle,
+  holdMsg,
+  recommendedMsg,
+  onHold,
+  setOnHold,
+  completed,
+  setCompleted,
+  total,
+  setTotal,
+}: {
+  title: string;
+  colorClass: string;
+  badgeColorClass: string;
+  subtitle: string;
+  holdMsg: string;
+  recommendedMsg: string;
+  onHold: boolean;
+  setOnHold: (val: boolean) => void;
+  completed: number;
+  setCompleted: (val: number) => void;
+  total: number;
+  setTotal: (val: number) => void;
+}) => (
+  <div className="p-4 rounded-xl border border-zinc-800 bg-zinc-900/40 flex flex-col gap-2">
+    <div className="flex items-center justify-between">
+      <span className={`text-xs font-mono font-bold ${colorClass}`}>{title}</span>
+      <button
+        type="button"
+        onClick={() => setOnHold(!onHold)}
+        className={`text-[11px] font-mono font-bold px-2 py-1 rounded-full border transition-colors cursor-pointer ${
+          onHold
+            ? badgeColorClass
+            : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-300'
+        }`}
+      >
+        {onHold ? 'ON HOLD' : 'Put on Hold'}
+      </button>
+    </div>
+    <span className="text-[10px] font-mono text-zinc-400">{subtitle}</span>
+    {onHold && (
+      <p className="text-[11px] font-mono text-amber-400/90 -mt-1">
+        {holdMsg}
+      </p>
+    )}
+    <div className="grid grid-cols-2 gap-2 mt-1 font-mono text-[10px]">
+      <div>
+        <span className="text-zinc-400 block mb-1">Solved</span>
+        <input
+          type="number"
+          min="0"
+          max={total}
+          value={completed}
+          onChange={(e) => {
+            const val = parseInt(e.target.value) || 0;
+            setCompleted(Math.max(0, Math.min(total, val)));
+          }}
+          className="w-full bg-zinc-950 border border-zinc-800 rounded px-2 py-1.5 text-white text-xs focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
+        />
+      </div>
+      <div>
+        <span className="text-zinc-400 block mb-1">Total</span>
+        <input
+          type="number"
+          min="1"
+          value={total}
+          onChange={(e) => setTotal(Math.max(1, parseInt(e.target.value) || 1))}
+          className="w-full bg-zinc-950 border border-zinc-800 rounded px-2 py-1.5 text-white text-xs focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
+        />
+      </div>
+    </div>
+    <div className="mt-2 text-[11px] text-zinc-400 italic">
+      {recommendedMsg}
+    </div>
+  </div>
+);
 
 export interface ChapterEditModalProps {
   isOpen?: boolean;
@@ -34,7 +114,10 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
 
   const effectiveIsOpen = isOpen !== undefined ? isOpen : !!activeEditChapterId;
   const effectiveChapterId = chapterId !== undefined ? chapterId : activeEditChapterId;
-  const handleClose = onClose || (() => actions.closeChapterEditModal());
+  const handleClose = useCallback(() => {
+    if (onClose) onClose();
+    else actions.closeChapterEditModal();
+  }, [onClose, actions]);
 
   const chapter: Chapter | undefined = chapters.find(c => c.id === effectiveChapterId || c.name === effectiveChapterId);
   const telemetry: ChapterTelemetry | undefined = effectiveChapterId && chapterTelemetryMap ? chapterTelemetryMap[effectiveChapterId] : undefined;
@@ -202,14 +285,19 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
       }
     };
 
-    await actions.updateChapter(chapter.id, updatedFields);
-
-    setIsSaving(false);
-    setShowSuccessToast(true);
-    setTimeout(() => {
-      setShowSuccessToast(false);
-      handleClose();
-    }, 500);
+    try {
+      await actions.updateChapter(chapter.id, updatedFields);
+      setIsSaving(false);
+      setShowSuccessToast(true);
+      setTimeout(() => {
+        setShowSuccessToast(false);
+        handleClose();
+      }, 500);
+    } catch (err) {
+      console.error('Failed to save chapter:', err);
+      setIsSaving(false);
+      alert('Failed to save chapter data. Please check your connection and try again.');
+    }
   };
 
   const theme = getSubjectTheme(chapter.subject);
@@ -235,7 +323,7 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
               <span className={`px-2 py-0.5 text-xs font-mono font-bold uppercase rounded border ${subjectColorClass}`}>
                 {chapter.subject.toUpperCase()}
               </span>
-              <span className="text-xs font-mono text-zinc-500 uppercase">{chapter.unit || 'Core Module'}</span>
+              <span className="text-xs font-mono text-zinc-400 uppercase">{chapter.unit || 'Core Module'}</span>
             </div>
             <h2 id="chapter-modal-title" className="text-lg font-bold text-white tracking-tight">{chapter.name}</h2>
           </div>
@@ -264,19 +352,19 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
         {/* Telemetry Overview Card */}
         <div className="p-4 bg-zinc-900/60 border-b border-zinc-800/80 grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono text-xs text-left">
           <div className="p-2.5 rounded-xl border border-zinc-800/80 bg-zinc-950/60">
-            <span className="text-xs text-zinc-500 block uppercase">Mastery Score</span>
+            <span className="text-xs text-zinc-400 block uppercase">Mastery Score</span>
             <span className="text-sm font-bold text-indigo-400">{telemetry?.masteryScore ?? chapter.completion ?? 0}%</span>
           </div>
           <div className="p-2.5 rounded-xl border border-zinc-800/80 bg-zinc-950/60">
-            <span className="text-xs text-zinc-500 block uppercase">JEE Weightage</span>
+            <span className="text-xs text-zinc-400 block uppercase">JEE Weightage</span>
             <span className="text-sm font-bold text-purple-400">{telemetry?.weightagePercent ?? chapter.weightage ?? 4.5}%</span>
           </div>
           <div className="p-2.5 rounded-xl border border-zinc-800/80 bg-zinc-950/60">
-            <span className="text-xs text-zinc-500 block uppercase">Retention</span>
+            <span className="text-xs text-zinc-400 block uppercase">Retention</span>
             <span className="text-xs font-bold text-sky-400">{telemetry?.retentionConfidence || 'High'}</span>
           </div>
           <div className="p-2.5 rounded-xl border border-zinc-800/80 bg-zinc-950/60">
-            <span className="text-xs text-zinc-500 block uppercase">Bottleneck</span>
+            <span className="text-xs text-zinc-400 block uppercase">Bottleneck</span>
             <span className={`text-xs font-bold ${telemetry?.isBottleneck ? 'text-amber-400' : 'text-emerald-400'}`}>
               {telemetry?.isBottleneck ? 'Active' : 'Clear'}
             </span>
@@ -335,7 +423,7 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
                 </label>
                 <div className="grid grid-cols-2 gap-3 sm:gap-4">
                   <div>
-                    <span className="text-[11px] text-zinc-500 block mb-1 font-mono">Watched Lectures</span>
+                    <span className="text-[11px] text-zinc-400 block mb-1 font-mono">Watched Lectures</span>
                     <input
                       type="number"
                       min="0"
@@ -349,7 +437,7 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
                     />
                   </div>
                   <div>
-                    <span className="text-[11px] text-zinc-500 block mb-1 font-mono">Total Chapter Lectures</span>
+                    <span className="text-[11px] text-zinc-400 block mb-1 font-mono">Total Chapter Lectures</span>
                     <input
                       type="number"
                       min="1"
@@ -364,7 +452,7 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                  <span className="text-[11px] text-zinc-500 block mb-1 font-mono">Teacher / Coaching Batch</span>
+                  <span className="text-[11px] text-zinc-400 block mb-1 font-mono">Teacher / Coaching Batch</span>
                   <input
                     type="text"
                     placeholder="e.g. Physics Galaxy, PW, Allen"
@@ -374,7 +462,7 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
                   />
                 </div>
                 <div>
-                  <span className="text-[11px] text-zinc-500 block mb-1 font-mono">Avg Duration (mins)</span>
+                  <span className="text-[11px] text-zinc-400 block mb-1 font-mono">Avg Duration (mins)</span>
                   <input
                     type="number"
                     value={avgLectureDuration}
@@ -399,109 +487,35 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
           {activeTab === 'practice' && (
             <div className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                <div className="p-4 rounded-xl border border-zinc-800 bg-zinc-900/40 flex flex-col gap-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-mono font-bold text-emerald-400">DPP Practice</span>
-                    <button
-                      type="button"
-                      onClick={() => setDppOnHold(!dppOnHold)}
-                      className={`text-[9px] font-mono font-bold px-2 py-1 rounded-full border transition-colors cursor-pointer ${
-                        dppOnHold
-                          ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
-                          : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300'
-                      }`}
-                    >
-                      {dppOnHold ? 'ON HOLD' : 'Put on Hold'}
-                    </button>
-                  </div>
-                  <span className="text-[10px] font-mono text-zinc-400">Problem Sets & Daily Practice</span>
-                  {dppOnHold && (
-                    <p className="text-[9px] font-mono text-amber-400/90 -mt-1">
-                      DPPs won't be scheduled for this chapter until you turn this off.
-                    </p>
-                  )}
-                  <div className="grid grid-cols-2 gap-2 mt-1 font-mono text-[10px]">
-                    <div>
-                      <span className="text-zinc-500 block mb-1">Solved Sets</span>
-                      <input
-                        type="number"
-                        min="0"
-                        max={totalDpp}
-                        value={completedDpp}
-                        onChange={(e) => {
-                          const val = parseInt(e.target.value) || 0;
-                          setCompletedDpp(Math.max(0, Math.min(totalDpp, val)));
-                        }}
-                        className="w-full bg-zinc-950 border border-zinc-800 rounded px-2 py-1.5 text-white text-xs focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
-                      />
-                    </div>
-                    <div>
-                      <span className="text-zinc-500 block mb-1">Total Sets</span>
-                      <input
-                        type="number"
-                        min="1"
-                        value={totalDpp}
-                        onChange={(e) => setTotalDpp(Math.max(1, parseInt(e.target.value) || 1))}
-                        className="w-full bg-zinc-950 border border-zinc-800 rounded px-2 py-1.5 text-white text-xs focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
-                      />
-                    </div>
-                  </div>
-                  <div className="mt-2 text-[9px] text-zinc-500 italic">
-                    * Recommended: {Math.max(5, Math.round((totalLectures || 10) * 0.8))} sets for completion.
-                  </div>
-                </div>
+                <PracticeModule
+                  title="DPP Practice"
+                  colorClass="text-emerald-400"
+                  badgeColorClass="bg-amber-500/20 border-amber-500/40 text-amber-300"
+                  subtitle="Problem Sets & Daily Practice"
+                  holdMsg="DPPs won't be scheduled for this chapter until you turn this off."
+                  recommendedMsg={`* Recommended: ${Math.max(5, Math.round((totalLectures || 10) * 0.8))} sets for completion.`}
+                  onHold={dppOnHold}
+                  setOnHold={setDppOnHold}
+                  completed={completedDpp}
+                  setCompleted={setCompletedDpp}
+                  total={totalDpp}
+                  setTotal={setTotalDpp}
+                />
 
-                <div className="p-4 rounded-xl border border-zinc-800 bg-zinc-900/40 flex flex-col gap-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-mono font-bold text-purple-400">JEE PYQs</span>
-                    <button
-                      type="button"
-                      onClick={() => setPyqOnHold(!pyqOnHold)}
-                      className={`text-[9px] font-mono font-bold px-2 py-1 rounded-full border transition-colors cursor-pointer ${
-                        pyqOnHold
-                          ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
-                          : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300'
-                      }`}
-                    >
-                      {pyqOnHold ? 'ON HOLD' : 'Put on Hold'}
-                    </button>
-                  </div>
-                  <span className="text-[10px] font-mono text-zinc-400">Past Years Questions Drill</span>
-                  {pyqOnHold && (
-                    <p className="text-[9px] font-mono text-amber-400/90 -mt-1">
-                      PYQs won't be scheduled for this chapter until you turn this off.
-                    </p>
-                  )}
-                  <div className="grid grid-cols-2 gap-2 mt-1 font-mono text-[10px]">
-                    <div>
-                      <span className="text-zinc-500 block mb-1">Solved PYQs</span>
-                      <input
-                        type="number"
-                        min="0"
-                        max={totalPyq}
-                        value={completedPyq}
-                        onChange={(e) => {
-                          const val = parseInt(e.target.value) || 0;
-                          setCompletedPyq(Math.max(0, Math.min(totalPyq, val)));
-                        }}
-                        className="w-full bg-zinc-950 border border-zinc-800 rounded px-2 py-1.5 text-white text-xs focus:border-purple-500 focus:ring-1 focus:ring-purple-500/20"
-                      />
-                    </div>
-                    <div>
-                      <span className="text-zinc-500 block mb-1">Total PYQs</span>
-                      <input
-                        type="number"
-                        min="1"
-                        value={totalPyq}
-                        onChange={(e) => setTotalPyq(Math.max(1, parseInt(e.target.value) || 1))}
-                        className="w-full bg-zinc-950 border border-zinc-800 rounded px-2 py-1.5 text-white text-xs focus:border-purple-500 focus:ring-1 focus:ring-purple-500/20"
-                      />
-                    </div>
-                  </div>
-                  <div className="mt-2 text-[9px] text-zinc-500 italic">
-                    * Recommended: ~50-80 PYQs per chapter.
-                  </div>
-                </div>
+                <PracticeModule
+                  title="JEE PYQs"
+                  colorClass="text-purple-400"
+                  badgeColorClass="bg-amber-500/20 border-amber-500/40 text-amber-300"
+                  subtitle="Past Years Questions Drill"
+                  holdMsg="PYQs won't be scheduled for this chapter until you turn this off."
+                  recommendedMsg="* Recommended: ~50-80 PYQs per chapter."
+                  onHold={pyqOnHold}
+                  setOnHold={setPyqOnHold}
+                  completed={completedPyq}
+                  setCompleted={setCompletedPyq}
+                  total={totalPyq}
+                  setTotal={setTotalPyq}
+                />
               </div>
 
               <div className="space-y-3 pt-4 border-t border-zinc-800/80">
@@ -539,20 +553,20 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3 sm:gap-4 font-mono text-xs">
                 <div>
-                  <label className="block mb-1 text-zinc-500 uppercase text-[10px] font-bold tracking-wider">JEE Weightage %</label>
+                  <label className="block mb-1 text-zinc-400 uppercase text-[10px] font-bold tracking-wider">JEE Weightage %</label>
                   <input
                     type="number"
                     value={weightage}
                     readOnly
-                    className="w-full bg-zinc-950/50 border border-zinc-800/50 rounded-xl px-3 py-2 text-zinc-500 cursor-not-allowed"
+                    className="w-full bg-zinc-950/50 border border-zinc-800/50 rounded-xl px-3 py-2 text-zinc-400 cursor-not-allowed"
                   />
-                  <span className="text-[9px] text-zinc-600 italic mt-1 block">* System defined</span>
+                  <span className="text-[11px] text-zinc-600 italic mt-1 block">* System defined</span>
                 </div>
                 <div>
                   <label className="block mb-1 text-zinc-400 uppercase text-[10px]">Priority Tier</label>
                   <select
                     value={priority}
-                    onChange={(e) => setPriority(parseInt(e.target.value) as any)}
+                    onChange={(e) => setPriority(parseInt(e.target.value) as 1 | 2 | 3)}
                     className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500 cursor-pointer"
                   >
                     <option value={1}>Tier 1 (High Priority)</option>
@@ -571,7 +585,7 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
                   placeholder="e.g. 22"
                   className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white placeholder-zinc-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500 font-mono"
                 />
-                <span className="text-[9px] text-zinc-600 italic mt-1 block">* Optional: Enter a number (will be prefixed with CH)</span>
+                <span className="text-[11px] text-zinc-600 italic mt-1 block">* Optional: Enter a number (will be prefixed with CH)</span>
               </div>
 
               <div className="grid grid-cols-2 gap-3 sm:gap-4 font-mono text-xs">
@@ -579,7 +593,7 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
                   <label className="block mb-1 text-zinc-400 uppercase text-[10px]">Difficulty Level</label>
                   <select
                     value={difficulty}
-                    onChange={(e) => setDifficulty(e.target.value as any)}
+                    onChange={(e) => setDifficulty(e.target.value as 'Easy' | 'Medium' | 'Hard')}
                     className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500 cursor-pointer"
                   >
                     <option value="Easy">Easy</option>
@@ -588,14 +602,14 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
                   </select>
                 </div>
                 <div>
-                  <label className="block mb-1 text-zinc-500 uppercase text-[10px] font-bold tracking-wider">Est. Theory Remaining</label>
+                  <label className="block mb-1 text-zinc-400 uppercase text-[10px] font-bold tracking-wider">Est. Theory Remaining</label>
                   <input
                     type="number"
                     value={estimatedHours}
                     readOnly
-                    className="w-full bg-zinc-950/50 border border-zinc-800/50 rounded-xl px-3.5 py-2 text-zinc-500 cursor-not-allowed"
+                    className="w-full bg-zinc-950/50 border border-zinc-800/50 rounded-xl px-3.5 py-2 text-zinc-400 cursor-not-allowed"
                   />
-                  <span className="text-[9px] text-zinc-600 italic mt-1 block">* Auto-calculated (Lectures only)</span>
+                  <span className="text-[11px] text-zinc-600 italic mt-1 block">* Auto-calculated (Lectures only)</span>
                 </div>
               </div>
 
@@ -617,19 +631,19 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
                 <span className="text-[10px] text-zinc-400 uppercase font-bold block">Strategy Radar Engine Metrics</span>
                 <div className="grid grid-cols-2 gap-3 text-[11px]">
                   <div className="p-2.5 bg-zinc-950/60 rounded-lg border border-zinc-800/80">
-                    <span className="text-zinc-500 block text-[9px] uppercase">Theory Completion</span>
+                    <span className="text-zinc-400 block text-[11px] uppercase">Theory Completion</span>
                     <strong className="text-indigo-400 text-sm">{telemetry?.strategyRadar.theoryCompletionPercent ?? 0}%</strong>
                   </div>
                   <div className="p-2.5 bg-zinc-950/60 rounded-lg border border-zinc-800/80">
-                    <span className="text-zinc-500 block text-[9px] uppercase">DPP Practice</span>
+                    <span className="text-zinc-400 block text-[11px] uppercase">DPP Practice</span>
                     <strong className="text-emerald-400 text-sm">{telemetry?.strategyRadar.dppCompletionPercent ?? 0}%</strong>
                   </div>
                   <div className="p-2.5 bg-zinc-950/60 rounded-lg border border-zinc-800/80">
-                    <span className="text-zinc-500 block text-[9px] uppercase">PYQ Completion</span>
+                    <span className="text-zinc-400 block text-[11px] uppercase">PYQ Completion</span>
                     <strong className="text-purple-400 text-sm">{telemetry?.strategyRadar.pyqCompletionPercent ?? 0}%</strong>
                   </div>
                   <div className="p-2.5 bg-zinc-950/60 rounded-lg border border-zinc-800/80">
-                    <span className="text-zinc-500 block text-[9px] uppercase">Retention Score</span>
+                    <span className="text-zinc-400 block text-[11px] uppercase">Retention Score</span>
                     <strong className="text-sky-400 text-sm">{telemetry?.strategyRadar.retentionConfidenceScore ?? 70}</strong>
                   </div>
                 </div>

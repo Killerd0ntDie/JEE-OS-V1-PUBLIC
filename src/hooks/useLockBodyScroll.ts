@@ -1,5 +1,9 @@
 import { useEffect } from 'react';
 
+let lockCount = 0;
+let previousOverflow = '';
+let previousPaddingRight = '';
+
 /**
  * Locks page scroll while a modal is open.
  *
@@ -21,19 +25,25 @@ export function useLockBodyScroll(isOpen: boolean): void {
   useEffect(() => {
     if (!isOpen) return;
 
-    const previousOverflow = document.body.style.overflow;
-    const previousPaddingRight = document.body.style.paddingRight;
+    if (lockCount === 0) {
+      previousOverflow = document.body.style.overflow;
+      previousPaddingRight = document.body.style.paddingRight;
 
-    // Prevent layout shift from the scrollbar disappearing.
-    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
-    document.body.style.overflow = 'hidden';
-    if (scrollbarWidth > 0) {
-      document.body.style.paddingRight = `${scrollbarWidth}px`;
+      // Prevent layout shift from the scrollbar disappearing.
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      document.body.style.overflow = 'hidden';
+      if (scrollbarWidth > 0) {
+        document.body.style.paddingRight = `${scrollbarWidth}px`;
+      }
     }
+    lockCount++;
 
     return () => {
-      document.body.style.overflow = previousOverflow;
-      document.body.style.paddingRight = previousPaddingRight;
+      lockCount--;
+      if (lockCount === 0) {
+        document.body.style.overflow = previousOverflow;
+        document.body.style.paddingRight = previousPaddingRight;
+      }
     };
   }, [isOpen]);
 }

@@ -1,9 +1,10 @@
-import { Chapter, TodayMission, SubjectId } from '@/types/index';
+import { TimelineBlock, StudySession, UserProfile, Chapter, SubjectId, Mistake, TodayMission } from '@/types/index';
+import { calculateLevelFromXP, getTitleAndColor } from '@/utils/levelingCalculations';
 import { KnowledgeEngine, SyllabusNode } from '@jee-os/engines';
 import { PlannerEngine, PlannerInput } from '@jee-os/engines';
 import { OptimizationEngine, OptimizationInput } from '@jee-os/engines';
 import { RevisionEngineService } from './revisionEngineService';
-import { Mistake, MockResult, StudySession } from '@/types/index';
+import { MockResult } from '@/types/index';
 import { AnalyticsEngine, AnalyticsInput } from '@jee-os/engines';
 import { CoachEngine, CoachInput } from '@jee-os/engines';
 import { calculateMistakeScore } from '@/utils/mistakeIntelligence';
@@ -39,30 +40,11 @@ export function createSyllabusGraph(chapters: Chapter[]): SyllabusNode[] {
 
 export const LevelingSystem = {
   getTitle(level: number): { title: string; color: string } {
-    if (level < 5) return { title: 'Aspirant', color: 'text-zinc-400' };
-    if (level < 10) return { title: 'Novice', color: 'text-blue-400' };
-    if (level < 15) return { title: 'Initiate', color: 'text-emerald-400' };
-    if (level < 20) return { title: 'Scholar', color: 'text-indigo-400' };
-    if (level < 25) return { title: 'Adept', color: 'text-purple-400' };
-    if (level < 30) return { title: 'Expert', color: 'text-rose-400' };
-    if (level < 40) return { title: 'Master', color: 'text-amber-400' };
-    if (level < 50) return { title: 'Grandmaster', color: 'text-cyan-400' };
-    return { title: 'JEE Legend', color: 'text-yellow-400 font-bold drop-shadow-[0_0_8px_rgba(250,204,21,0.8)]' };
+    return getTitleAndColor(level);
   },
   
-  calculateLevel(totalXP: number): { level: number; currentLevelXP: number; nextLevelXP: number; progressPercent: number; xpForCurrentLevel: number; xpForNextLevel: number } {
-    // Scaling formula: Level N requires N * 100 XP (was 1000, now 100 for finer progression)
-    // Total XP for level N = (N * (N + 1) / 2) * 100
-    // Inverse: N = floor((-1 + sqrt(1 + 8 * TotalXP / 100)) / 2)
-    const level = Math.floor((-1 + Math.sqrt(1 + 8 * totalXP / 100)) / 2) + 1;
-    const xpForCurrentLevel = ((level - 1) * level / 2) * 100;
-    const xpForNextLevel = (level * (level + 1) / 2) * 100;
-    
-    const currentLevelXP = totalXP - xpForCurrentLevel;
-    const requiredForNextLevel = xpForNextLevel - xpForCurrentLevel;
-    const progressPercent = Math.min(100, Math.max(0, (currentLevelXP / requiredForNextLevel) * 100));
-    
-    return { level, currentLevelXP, nextLevelXP: requiredForNextLevel, progressPercent, xpForCurrentLevel, xpForNextLevel };
+  calculateLevel(totalXP: number) {
+    return calculateLevelFromXP(totalXP);
   }
 };
 
@@ -520,20 +502,36 @@ export const StudyBrainService = {
   },
 
   getDaysUntilExam(targetYear: string, examType: 'JEE Main' | 'JEE Advanced' = 'JEE Main'): number {
-    const targetYearNum = parseInt(targetYear) || 2027;
+    let targetYearNum = parseInt(targetYear) || 2027;
     // JEE Main Session 1 is in January (Jan 24th). JEE Advanced is in May (May 30th).
-    const targetDate = examType === 'JEE Main' 
+    let targetDate = examType === 'JEE Main' 
       ? new Date(targetYearNum, 0, 24)
       : new Date(targetYearNum, 4, 30);
     const today = new Date();
+    
+    // If the exam date for the target year has already passed, roll over to the next year
+    if (targetDate.getTime() < today.getTime()) {
+      targetYearNum += 1;
+      targetDate = examType === 'JEE Main' 
+        ? new Date(targetYearNum, 0, 24)
+        : new Date(targetYearNum, 4, 30);
+    }
+    
     const diffTime = targetDate.getTime() - today.getTime();
     return Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
   },
 
   sortChaptersByRecommendation(chapters: Chapter[], mistakes: Mistake[]): Chapter[] {
+    const mistakeCounts = new Map<string, number>();
+    for (const m of mistakes) {
+      if (m.revisionStatus !== 'Mastered' && m.chapter) {
+        mistakeCounts.set(m.chapter, (mistakeCounts.get(m.chapter) || 0) + 1);
+      }
+    }
+
     return [...chapters].sort((a, b) => {
-      const aMistakes = mistakes.filter(m => m.chapter === a.name && m.revisionStatus !== 'Mastered').length;
-      const bMistakes = mistakes.filter(m => m.chapter === b.name && m.revisionStatus !== 'Mastered').length;
+      const aMistakes = mistakeCounts.get(a.name) || 0;
+      const bMistakes = mistakeCounts.get(b.name) || 0;
       const aMastery = this.calculateMastery(a, aMistakes).score;
       const bMastery = this.calculateMastery(b, bMistakes).score;
       

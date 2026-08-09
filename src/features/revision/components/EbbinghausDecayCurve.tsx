@@ -48,7 +48,7 @@ export function EbbinghausDecayCurve({ avgRetentionScore, overdueCount }: Ebbing
 
       {/* Interactive SVG Decay Graph */}
       <div className="relative bg-zinc-900/40 border border-zinc-850 rounded-xl p-4 space-y-2">
-        <div className="flex justify-between text-[9px] font-mono text-zinc-500 pb-1">
+        <div className="flex justify-between text-[11px] font-mono text-zinc-400 pb-1">
           <span>Day 1 (Immediate)</span>
           <span>Day 3</span>
           <span>Day 7</span>
@@ -97,7 +97,7 @@ export function EbbinghausDecayCurve({ avgRetentionScore, overdueCount }: Ebbing
               <span className="w-3 h-0.5 bg-emerald-500 border-dashed" /> Target Spaced Curve
             </span>
           </div>
-          <span className="text-zinc-500">
+          <span className="text-zinc-400">
             {overdueCount > 0 ? `⚠️ ${overdueCount} overdue chapters dragging exam prediction down` : '✅ All chapters within optimal interval'}
           </span>
         </div>

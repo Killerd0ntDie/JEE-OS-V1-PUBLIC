@@ -47,7 +47,7 @@ export const NeuralGraphPage = () => {
       initial={{ opacity: 0, scale: 0.98 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.5, ease: 'easeOut' }}
-      className="w-full h-[calc(100vh-80px)] rounded-3xl overflow-hidden border border-zinc-800/50 shadow-2xl relative bg-[#030303]"
+      className="w-full h-[calc(100dvh-80px)] rounded-3xl overflow-hidden border border-zinc-800/50 shadow-2xl relative bg-[#030303]"
     >
       <ReactFlow
         nodes={nodes}
@@ -85,7 +85,7 @@ export const NeuralGraphPage = () => {
                     ? subject === 'physics' ? 'bg-sky-500/20 text-sky-400 shadow-[0_0_15px_rgba(56,189,248,0.3)]'
                     : subject === 'chemistry' ? 'bg-emerald-500/20 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.3)]'
                     : 'bg-violet-500/20 text-violet-400 shadow-[0_0_15px_rgba(139,92,246,0.3)]'
-                    : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/50'
+                    : 'text-zinc-400 hover:text-zinc-300 hover:bg-zinc-900/50'
                 }`}
               >
                 {subject} Matrix

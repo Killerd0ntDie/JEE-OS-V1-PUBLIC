@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { Sparkles, Calendar, Clock, Check, Loader2, X, ArrowRight, Zap, Target } from 'lucide-react';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
@@ -21,12 +21,21 @@ export function AiRevisionPlanModal({ isOpen, onClose }: AiRevisionPlanModalProp
   const [selectedDays, setSelectedDays] = useState<3 | 7>(3);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedPlan, setGeneratedPlan] = useState<any | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const [importedTaskIds, setImportedTaskIds] = useState<string[]>([]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const telemetryList = (Object.values(chapterTelemetryMap || {}) as ChapterTelemetry[]);
   const bottlenecks = telemetryList.filter(t => t.isBottleneck).map(t => t.chapterName);
   const lowRetention = telemetryList.filter(t => t.retentionConfidence === 'Low').map(t => t.chapterName);
   const dailyHours = mentorProfile?.dailyAvailableHours || 6.5;
+
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   const handleGeneratePlan = async () => {
     setIsGenerating(true);

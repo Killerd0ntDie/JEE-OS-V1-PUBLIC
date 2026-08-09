@@ -1,11 +1,13 @@
+import { toLocalDateString } from '@/utils/dateUtils';
 import { 
   Chapter, TodayMission, TimelineBlock, Note, StudySession, MockResult, 
   Mistake, XPState, SessionAnalytics, SubjectId, RevisionSettings, UserProfile, MentorProfile
 } from '../types/index';
+import { ScheduledTask } from '@jee-os/engines/src/planner/types';
 import { MockTest } from '@/types/mockTest';
 import { KnowledgeEngine, SyllabusNode } from '@jee-os/engines';
-import { PlannerEngine, PlannerInput, PlannerOutput } from '@jee-os/engines';
-import { OptimizationEngine, OptimizationInput, OptimizationResult } from '@jee-os/engines';
+import type { PlannerInput, PlannerOutput, WeeklyBlock } from '@jee-os/engines';
+import type { OptimizationInput, OptimizationResult } from '@jee-os/engines';
 import { AnalyticsEngine, AnalyticsInput, AnalyticsOutput } from '@jee-os/engines';
 import { CoachEngine, CoachInput, CoachOutput } from '@jee-os/engines';
 import { ChapterInfoEngine, ChapterTelemetry } from '@jee-os/engines';
@@ -46,6 +48,10 @@ export interface StudyBrainState {
     revisionSettings?: RevisionSettings;
     migratedToPristine?: boolean;
     enableGodMode?: boolean;
+    dayStartTime?: string;
+    dayEndTime?: string;
+    minStreakHours?: number;
+    enablePomodoroCasino?: boolean;
   };
   weeklyGoals?: {
     weekIndex: number;
@@ -63,15 +69,18 @@ export interface StudyBrainState {
   revisionQueue: RevisionCard[];
   todayMissions: TodayMission[];
   customMissions: TodayMission[];
+  weeklySchedule: WeeklyBlock[]; // WeeklyBlock[]
+  scheduleOverrides: Record<string, { dayIndex?: number; timeSlot?: string; scheduledDate?: string; scheduledTime?: string }>;
+
 
   // 1. All Derived Computations (No duplicated logic in UI)
-  dashboardSummary: any;
-  completionPrediction: any;
+  dashboardSummary: { syllabusCompletion: number; daysUntilExam: number; } | null;
+  completionPrediction: OptimizationResult | null;
   subjectPriorities: Chapter[];
   syllabusProgress: {
-    physics: { total: number, completed: number, percentage: number };
-    chemistry: { total: number, completed: number, percentage: number };
-    maths: { total: number, completed: number, percentage: number };
+    physics: { percentage: number; masteredCount?: number; totalCount?: number; completed: number; total: number; };
+    chemistry: { percentage: number; masteredCount?: number; totalCount?: number; completed: number; total: number; };
+    maths: { percentage: number; masteredCount?: number; totalCount?: number; completed: number; total: number; };
   };
   estimatedRemainingHours: string;
   plannedQuestions: number;
@@ -84,7 +93,7 @@ export interface StudyBrainState {
     highestRiskChapters: Chapter[];
   };
 
-  chaptersWithData: { chapter: Chapter, data: any }[];
+  chaptersWithData: { chapter: Chapter, data: ReturnType<typeof StudyBrainService['getChapterCommandCenterData']> }[];
 
   loading: boolean;
   initializationError?: string | null;
@@ -125,6 +134,14 @@ export class StudyBrainRuntime {
   private totalEngineRuntimeMs: number = 0;
   private cacheHits: number = 0;
   private cacheMisses: number = 0;
+  private prevMemoState: {
+    chapters?: Chapter[];
+    mistakes?: Mistake[];
+    sessions?: StudySession[];
+    mocks?: MockResult[];
+    settings?: any;
+    timeline?: TimelineBlock[];
+  } = {};
 
   private constructor() {
     this.chapterInfoEngine = new ChapterInfoEngine();
@@ -179,6 +196,8 @@ export class StudyBrainRuntime {
       revisionQueue: [],
       todayMissions: [],
       customMissions: [],
+      weeklySchedule: [],
+      scheduleOverrides: {},
       
       dashboardSummary: null,
       completionPrediction: null,
@@ -229,7 +248,17 @@ export class StudyBrainRuntime {
     };
   }
 
+  public resetToInitialState() {
+    this.state = this.getInitialState();
+    this.state.writeBlocked = true;
+    this.state.loading = false;
+    this.notifySubscribers();
+  }
+
   public dispose() {
+    if (this.refreshTimeout) {
+      clearTimeout(this.refreshTimeout);
+    }
     this.subscribers.clear();
   }
 
@@ -252,17 +281,82 @@ export class StudyBrainRuntime {
   }
 
   // For optimistic updates, they can pass partial state
+  
+  private refreshTimeout: NodeJS.Timeout | null = null;
+  private pendingRefreshPromise: Promise<void> | null = null;
+  private pendingRefreshResolve: (() => void) | null = null;
+  private pendingReason: RefreshTriggers = 'INIT';
+
+
+
   public async refresh(reason: RefreshTriggers, optimisticData?: Partial<StudyBrainState>) {
     if (optimisticData) {
       this.state = { ...this.state, ...optimisticData };
+      this.notifySubscribers();
     }
+
+    if (reason === 'INIT') {
+      await this.executeRefresh(reason);
+      return;
+    }
+
+    this.pendingReason = reason;
+
+    if (!this.pendingRefreshPromise) {
+      this.pendingRefreshPromise = new Promise((resolve) => {
+        this.pendingRefreshResolve = resolve;
+      });
+    }
+
+    if (this.refreshTimeout) {
+      clearTimeout(this.refreshTimeout);
+    }
+
+    this.refreshTimeout = setTimeout(async () => {
+      this.refreshTimeout = null;
+      const reasonToExecute = this.pendingReason;
+      await this.executeRefresh(reasonToExecute);
+      
+      if (this.pendingRefreshResolve) {
+        this.pendingRefreshResolve();
+        this.pendingRefreshResolve = null;
+      }
+      this.pendingRefreshPromise = null;
+    }, 250);
+
+    return this.pendingRefreshPromise;
+  }
+
+  private async executeRefresh(reason: RefreshTriggers) {
+
+
+    const stateChanged = {
+      chapters: this.state.chapters !== this.prevMemoState.chapters,
+      mistakes: this.state.mistakes !== this.prevMemoState.mistakes,
+      sessions: this.state.studySessions !== this.prevMemoState.sessions,
+      mocks: this.state.mocks !== this.prevMemoState.mocks,
+      settings: this.state.settings !== this.prevMemoState.settings,
+      timeline: this.state.timeline !== this.prevMemoState.timeline,
+    };
+    
+    this.prevMemoState = {
+      chapters: this.state.chapters,
+      mistakes: this.state.mistakes,
+      sessions: this.state.studySessions,
+      mocks: this.state.mocks,
+      settings: this.state.settings,
+      timeline: this.state.timeline,
+    };
 
     const startTime = performance.now();
     const engineTimes: Record<string, number> = {};
+
+    const yieldToMain = () => new Promise(resolve => setTimeout(resolve, 0));
+
     const invalidatedEngines: string[] = [];
 
     // 0. ChapterInfo Engine (Centralized Chapter Telemetry Brain)
-    if (reason === 'INIT' || reason === 'CHAPTER_UPDATE' || reason === 'SESSION_UPDATE' || reason === 'MISTAKE_UPDATE') {
+    if (reason === 'INIT' || stateChanged.chapters || stateChanged.sessions || stateChanged.mistakes || stateChanged.mocks || stateChanged.settings) {
       const ciStart = performance.now();
       this.state.chapterTelemetryMap = this.chapterInfoEngine.generateChapterTelemetry({
         chapters: this.state.chapters,
@@ -286,8 +380,10 @@ export class StudyBrainRuntime {
       invalidatedEngines.push('RevisionEngine');
     }
 
+    await yieldToMain();
+    await yieldToMain();
     // 1. Knowledge Engine
-    if (reason === 'INIT' || reason === 'CHAPTER_UPDATE') {
+    if (reason === 'INIT' || stateChanged.chapters) {
       const kStart = performance.now();
       const nodes = createSyllabusGraph(this.state.chapters);
       this.knowledgeEngine = new KnowledgeEngine(nodes);
@@ -299,8 +395,10 @@ export class StudyBrainRuntime {
       this.cacheHits++;
     }
 
+    await yieldToMain();
+    await yieldToMain();
     // 2. Analytics Engine
-    if (reason === 'INIT' || reason === 'CHAPTER_UPDATE' || reason === 'SESSION_UPDATE' || reason === 'MOCK_UPDATE' || reason === 'MISTAKE_UPDATE') {
+    if (reason === 'INIT' || stateChanged.chapters || stateChanged.sessions || stateChanged.mocks || stateChanged.mistakes) {
       const aStart = performance.now();
       
       // Compute subject specific filters inside engine input
@@ -326,13 +424,17 @@ export class StudyBrainRuntime {
       this.cacheHits++;
     }
 
+    await yieldToMain();
+    await yieldToMain();
     // 3. Planner Engine & Optimization Engine (Unconditionally optimize to keep everything in sync)
     const pStart = performance.now();
     if (this.knowledgeEngine) {
-      if (!this.plannerEngine || reason === 'INIT' || reason === 'CHAPTER_UPDATE') {
+      if (!this.plannerEngine || reason === 'INIT' || stateChanged.chapters || stateChanged.sessions || stateChanged.mistakes || stateChanged.settings) {
+        const { PlannerEngine } = await import('@jee-os/engines');
         this.plannerEngine = new PlannerEngine(this.knowledgeEngine);
       }
-      if (!this.optimizationEngine || reason === 'INIT' || reason === 'CHAPTER_UPDATE') {
+      if (!this.optimizationEngine || reason === 'INIT' || stateChanged.chapters || stateChanged.sessions || stateChanged.mistakes || stateChanged.settings) {
+        const { OptimizationEngine } = await import('@jee-os/engines');
         this.optimizationEngine = new OptimizationEngine(this.knowledgeEngine);
       }
       
@@ -348,11 +450,10 @@ export class StudyBrainRuntime {
       const energyMultiplier = this.state.energyLevel === 'Low' ? 0.5 : this.state.energyLevel === 'Medium' ? 1.0 : 1.25;
       const totalDailyQuotaHours = Math.min(14, Math.max(1.0, Math.round(userQuota * energyMultiplier * 10) / 10));
 
-      // Calculate time already consumed by preserved missions so the planner doesn't exceed the quota
+      // Calculate time already consumed by completed or custom missions
       const preservedMissionsForQuota = [
         ...this.state.customMissions,
-        ...this.state.todayMissions.filter(m => !m.id.startsWith('custom-') && m.completed),
-        ...this.state.todayMissions.filter(m => m.id.startsWith('mission-ai-') && !m.completed)
+        ...this.state.todayMissions.filter(m => m.completed)
       ];
       // Only count missions that weren't dismissed
       const consumedMinutes = preservedMissionsForQuota
@@ -360,8 +461,7 @@ export class StudyBrainRuntime {
         .reduce((acc, m) => acc + (m.duration || 0), 0);
       
       const consumedHours = consumedMinutes / 60;
-      // Provide at least 0.1h to planner to prevent potential zero-division errors, but not enough to schedule large tasks
-      const effectiveStudyHours = Math.max(0.1, totalDailyQuotaHours - consumedHours);
+      const effectiveStudyHours = Math.max(1.0, totalDailyQuotaHours - consumedHours);
 
       const plannerInput: PlannerInput = {
         studyHours: effectiveStudyHours, 
@@ -404,13 +504,21 @@ export class StudyBrainRuntime {
       // Retain explicit AI assistant custom missions that are incomplete
       const customAiMissions = this.state.todayMissions.filter(m => m.id.startsWith('mission-ai-') && !m.completed);
 
+      // Filter custom missions that are meant for today OR are overdue
+      const todayStr = toLocalDateString();
+      const activeCustomMissionsForToday = this.state.customMissions.filter(m => {
+        const mDate = m.scheduledDate || m.date;
+        if (!mDate) return true; // if no date, assume today
+        return mDate <= todayStr;
+      });
+
       this.state.todayMissions = [
-        ...this.state.customMissions, // User's persistent custom missions (active and completed for today)
+        ...activeCustomMissionsForToday, // User's persistent custom missions (active and completed for today)
         ...completedPlannerMissions,  // Retain checked-off planner missions (lectures, DPPs, PYQs, AI missions)
         ...customAiMissions,          // Retain explicit AI assistant custom missions
         ...(this.state.plannerOutput?.todaysMission || []).map(t => ({
         id: t.id,
-        subject: t.subjectId,
+        subject: t.subjectId as SubjectId,
         chapter: t.chapterName,
         type: t.type,
         taskName: t.taskName,
@@ -444,11 +552,53 @@ export class StudyBrainRuntime {
 
       this.state.todayMissions = Array.from(uniqueMissions.values());
 
-      // Dynamically generate daily algorithmic timeline missions
-      const customBlocks = this.state.timeline.filter(b => b.id.startsWith('custom-'));
-      const generatedBlocks: TimelineBlock[] = [];
+      const currentDayIndex = (new Date().getDay() + 6) % 7; // Monday = 0
+      const splitStrategy = this.state.mentorProfile?.subjectSplitStrategy || '3_a_day';
+      const { generateWeeklyMatrix } = await import('@jee-os/engines');
+      this.state.weeklySchedule = (generateWeeklyMatrix as any)(
+        splitStrategy,
+        this.state.chapters,
+        this.state.todayMissions,
+        this.state.plannerOutput?.weeklySchedule as any,
+        currentDayIndex,
+        this.state.mentorProfile?.twoDaySplitConfig,
+        this.state.deletedMissionIds || [],
+        this.state.scheduleOverrides as any,
+        this.state.settings?.dayStartTime,
+        this.state.settings?.dayEndTime
+      );
+
+      // Map generated matrix blocks back to todayMissions to synchronize Dashboard and Planner
+      const currentDayBlocks = this.state.weeklySchedule.filter(b => b.dayIndex === currentDayIndex);
+      this.state.todayMissions = currentDayBlocks.map(b => {
+        const originalId = b.id.startsWith('today-') ? b.id.slice(6) : b.id;
+        const original = uniqueMissions.get(originalId);
+        return {
+          id: originalId,
+          subject: b.subject as SubjectId,
+          chapter: b.chapterName,
+          chapterId: b.chapterId,
+          type: b.taskType,
+          taskName: b.activity,
+          duration: b.durationMinutes,
+          timeSlot: b.timeSlot,
+          completed: original ? original.completed : b.completed,
+          xp: original ? original.xp : Math.round(b.priorityScore),
+          unlocked: true,
+          priorityScore: b.priorityScore,
+          reasoning: b.reasoning,
+          dismissed: original ? original.dismissed : false,
+          isManualOverride: (b as any).isManualOverride,
+          scheduledDate: (b as any).scheduledDate,
+          scheduledTime: (b as any).scheduledTime
+        };
+      });
+
+      // Update timeline based on the newly synchronized todayMissions
       let currentHour = 9;
       let currentMinute = 0;
+      const customBlocks = this.state.timeline.filter(b => b.id.startsWith('custom-'));
+      const generatedBlocks: TimelineBlock[] = [];
 
       this.state.todayMissions.forEach((mission, idx) => {
         const startStr = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
@@ -461,7 +611,7 @@ export class StudyBrainRuntime {
 
         generatedBlocks.push({
           id: `mission-${mission.id}`,
-          time: `${startStr} - ${endStr}`,
+          time: mission.timeSlot || `${startStr} - ${endStr}`,
           subject: mission.subject as any,
           chapter: mission.chapter,
           activity: `${mission.type}: ${mission.taskName}`,
@@ -480,7 +630,7 @@ export class StudyBrainRuntime {
           generatedBlocks.push({
             id: `break-${idx}`,
             time: `${breakStart} - ${breakEnd}`,
-            subject: 'break' as any,
+            subject: 'break',
             chapter: 'Cognitive Disconnection',
             activity: 'Take a 20-minute break. Absolutely no social media feeds or high-intensity audio.',
             completed: false
@@ -489,12 +639,15 @@ export class StudyBrainRuntime {
       });
       this.state.timeline = [...customBlocks, ...generatedBlocks];
     }
+
     engineTimes['PlannerAndOptimization'] = performance.now() - pStart;
     invalidatedEngines.push('PlannerEngine');
     this.cacheMisses++;
 
+    await yieldToMain();
+    await yieldToMain();
     // 4. Revision Engine
-    if (reason === 'INIT' || reason === 'MISTAKE_UPDATE' || reason === 'CHAPTER_UPDATE' || reason === 'SETTINGS_UPDATE') {
+    if (reason === 'INIT' || stateChanged.mistakes || stateChanged.chapters || stateChanged.settings) {
       const rStart = performance.now();
       this.state.revisionQueue = StudyBrainService.getRevisionQueue(
         this.state.chapters, 
@@ -508,6 +661,8 @@ export class StudyBrainRuntime {
       this.cacheHits++;
     }
 
+    await yieldToMain();
+    await yieldToMain();
     // 5. Precompute UI Derived States
     const uiStart = performance.now();
     this.state.dashboardSummary = StudyBrainService.getDashboardSummary(this.state.chapters, this.state.settings.targetYear);
@@ -521,12 +676,12 @@ export class StudyBrainRuntime {
     };
     
     // Add exact mastered counts based on `isMastered` flag (or completion === 100)
-    (this.state.syllabusProgress.physics as any).masteredCount = this.state.chapters.filter(c => c.subject === 'physics' && (c.status === 'Mastered' || c.completion >= 100)).length;
-    (this.state.syllabusProgress.physics as any).totalCount = this.state.chapters.filter(c => c.subject === 'physics').length;
-    (this.state.syllabusProgress.chemistry as any).masteredCount = this.state.chapters.filter(c => c.subject === 'chemistry' && (c.status === 'Mastered' || c.completion >= 100)).length;
-    (this.state.syllabusProgress.chemistry as any).totalCount = this.state.chapters.filter(c => c.subject === 'chemistry').length;
-    (this.state.syllabusProgress.maths as any).masteredCount = this.state.chapters.filter(c => c.subject === 'maths' && (c.status === 'Mastered' || c.completion >= 100)).length;
-    (this.state.syllabusProgress.maths as any).totalCount = this.state.chapters.filter(c => c.subject === 'maths').length;
+    this.state.syllabusProgress.physics.masteredCount = this.state.chapters.filter(c => c.subject === 'physics' && (c.status === 'Mastered' || c.completion >= 100)).length;
+    this.state.syllabusProgress.physics.totalCount = this.state.chapters.filter(c => c.subject === 'physics').length;
+    this.state.syllabusProgress.chemistry.masteredCount = this.state.chapters.filter(c => c.subject === 'chemistry' && (c.status === 'Mastered' || c.completion >= 100)).length;
+    this.state.syllabusProgress.chemistry.totalCount = this.state.chapters.filter(c => c.subject === 'chemistry').length;
+    this.state.syllabusProgress.maths.masteredCount = this.state.chapters.filter(c => c.subject === 'maths' && (c.status === 'Mastered' || c.completion >= 100)).length;
+    this.state.syllabusProgress.maths.totalCount = this.state.chapters.filter(c => c.subject === 'maths').length;
 
     this.state.daysRemaining = StudyBrainService.getDaysUntilExam(this.state.settings.targetYear);
 
@@ -631,27 +786,19 @@ export class StudyBrainRuntime {
     if (this.coachEngine && this.state.analyticsSummary && this.state.plannerOutput) {
       try {
         const coachInput: CoachInput = {
-          mission: this.state.todayMissions.map((m: any) => ({ title: m.title, subject: m.subject, completed: m.completed })) as any,
-          weakTopics: this.state.mistakes.filter((m: any) => m.revisionStatus !== 'Mastered').map((m: any) => ({
-            topic: m.topicName,
-            errorType: m.errorType,
-            status: m.revisionStatus
-          })) as any,
-          revisionQueue: this.state.chapters.filter((c: any) => c.status === 'Learning' || c.status === 'Theory Complete' || c.status === 'DPP Pending' || c.status === 'PYQ Pending').map((c: any) => c.name) as any,
+          mission: this.state.todayMissions,
+          weakTopics: this.state.mistakes.filter(m => m.revisionStatus !== 'Mastered'),
+          revisionQueue: this.state.chapters.filter(c => c.status === 'Learning' || c.status === 'Theory Complete' || c.status === 'DPP Pending' || c.status === 'PYQ Pending'),
           plannerDecisions: this.state.plannerOutput?.todaysMission || [],
           analyticsSummary: this.state.analyticsSummary,
           plannerOutput: undefined, // Strip massive payload
-          chapters: this.state.chapters.filter((c: any) => c.status !== 'Unstarted' || c.completion > 0).map((c: any) => ({
-            name: c.name,
-            progress: c.completion,
-            status: c.status
-          })) as any,
+          chapters: this.state.chapters.filter(c => c.status !== 'Not Started' || c.completion > 0),
           studyHistory: undefined, // Strip massive payload
           remainingDays: this.state.daysRemaining,
           question: question,
           targetYear: this.state.settings?.targetYear,
           targetCollege: this.state.settings?.dreamIit,
-          mockHistory: this.state.mocks.map((m: any) => ({ score: m.score, maxScore: m.maxScore, date: m.date })) as any
+          mockHistory: this.state.mocks
         };
         const analysis = await this.coachEngine.getAnalysis(coachInput);
         this.state.coachAnalysis = analysis;

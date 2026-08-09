@@ -133,15 +133,15 @@ export const FormulaSpeedDrillModal: React.FC<FormulaSpeedDrillModalProps> = ({
 
             <div className="grid grid-cols-3 gap-3 max-w-xs mx-auto font-mono">
               <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 text-center">
-                <span className="text-[9px] text-zinc-500 block uppercase">Recalled</span>
+                <span className="text-[11px] text-zinc-400 block uppercase">Recalled</span>
                 <span className="text-lg font-bold text-emerald-400">{scoreCount} Qs</span>
               </div>
               <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 text-center">
-                <span className="text-[9px] text-zinc-500 block uppercase">Max Streak</span>
+                <span className="text-[11px] text-zinc-400 block uppercase">Max Streak</span>
                 <span className="text-lg font-bold text-amber-400">{streak} 🔥</span>
               </div>
               <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 text-center">
-                <span className="text-[9px] text-zinc-500 block uppercase">XP Earned</span>
+                <span className="text-[11px] text-zinc-400 block uppercase">XP Earned</span>
                 <span className="text-lg font-bold text-indigo-400">+{totalXP}</span>
               </div>
             </div>
@@ -184,13 +184,13 @@ export const FormulaSpeedDrillModal: React.FC<FormulaSpeedDrillModalProps> = ({
                   : 'bg-zinc-950/60 border-zinc-800 hover:border-zinc-700'
               }`}
             >
-              <span className="text-[10px] font-mono font-bold uppercase text-zinc-500 tracking-wider">
+              <span className="text-[10px] font-mono font-bold uppercase text-zinc-400 tracking-wider">
                 {currentCard?.subject.toUpperCase()} • {currentCard?.chapterName}
               </span>
 
               {isFlipped ? (
                 <div className="w-full text-left space-y-1.5">
-                  <span className="text-[9px] font-mono text-indigo-400 font-bold uppercase tracking-wider block">
+                  <span className="text-[11px] font-mono text-indigo-400 font-bold uppercase tracking-wider block">
                     Formula Expression:
                   </span>
                   <pre className="font-mono text-sm text-indigo-200 bg-zinc-950 p-4 rounded-xl border border-indigo-900/40 overflow-x-auto whitespace-pre-wrap leading-relaxed">
@@ -233,7 +233,7 @@ export const FormulaSpeedDrillModal: React.FC<FormulaSpeedDrillModalProps> = ({
                 </button>
               </div>
             ) : (
-              <div className="p-3 text-center text-zinc-500 font-mono text-xs bg-zinc-950/40 rounded-xl border border-zinc-900">
+              <div className="p-3 text-center text-zinc-400 font-mono text-xs bg-zinc-950/40 rounded-xl border border-zinc-900">
                 Press Spacebar to reveal formula answer
               </div>
             )}

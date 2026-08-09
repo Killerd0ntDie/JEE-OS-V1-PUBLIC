@@ -6,6 +6,7 @@ import { DailyStudyTrackerWidget } from './DailyStudyTrackerWidget';
 import { FocusHeatmapWidget } from './FocusHeatmapWidget';
 import { WeeklyStrategyWidget } from './WeeklyStrategyWidget';
 import { RevisionCard } from '@/services/revisionEngineService';
+import { getTodayStudyMinutes } from '@/utils/streakCalculations';
 
 interface DashboardFocusSectionProps {
   activeTab: 'focus' | 'analytics';
@@ -70,7 +71,7 @@ export function DashboardFocusSection({
           </button>
         </div>
 
-        <span className="text-xs font-mono text-zinc-500 hidden sm:inline-block">
+        <span className="text-xs font-mono text-zinc-400 hidden sm:inline-block">
           {activeTab === 'focus' ? 'Active study queues' : 'Long-term exam readiness'}
         </span>
       </div>
@@ -95,8 +96,8 @@ export function DashboardFocusSection({
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 text-left items-stretch animate-fade-in">
           <div className="flex flex-col gap-4 lg:gap-6">
             <DailyStudyTrackerWidget
-              studyTime={analytics?.studyTime || 0}
-              dailyQuota={settings?.dailyQuota || 360}
+              studyTime={getTodayStudyMinutes(studySessions || [])}
+              dailyQuota={mentorProfile?.dailyAvailableHours || 6.5}
               xpLevel={xp?.level || 1}
               xpTotal={xp?.total || 0}
               xpNextLevel={xp?.nextLevelXP || 100}

@@ -4,7 +4,7 @@ import { SubjectId, Chapter } from '@/types/index';
 import { calculateMistakeScore } from '@/utils/mistakeIntelligence';
 
 export interface ScoringContext {
-  taskType: 'Watch Lecture' | 'Solve DPP' | 'Solve PYQs' | 'Revise Formulas' | 'Review Mistakes';
+  taskType: 'Watch Lecture' | 'Solve DPP' | 'Solve PYQs' | 'Revise Formulas' | 'Review Mistakes' | 'Break';
   node: SyllabusNode;
   progress: ProgressState;
   revisionData?: {

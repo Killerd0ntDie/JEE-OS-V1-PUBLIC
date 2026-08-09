@@ -74,10 +74,10 @@ export const ChapterRevisionInspectorModal: React.FC<ChapterRevisionInspectorMod
               <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded border border-indigo-500/30 text-indigo-400 bg-indigo-950/40">
                 {chapter.subject.toUpperCase()} • CHAPTER REVISION INSPECTOR
               </span>
-              <Badge variant="secondary" className={`text-[9px] font-mono px-2 py-0.5 border ${
+              <Badge variant="secondary" className={`text-[11px] font-mono px-2 py-0.5 border ${
                 retentionConfidence === 'Low' ? 'bg-red-950/40 text-red-400 border-red-800/60' :
                 retentionConfidence === 'Medium' ? 'bg-amber-950/40 text-amber-400 border-amber-800/60' :
-                retentionConfidence === 'Not Started' ? 'bg-zinc-900/60 text-zinc-500 border-zinc-800/60' :
+                retentionConfidence === 'Not Started' ? 'bg-zinc-900/60 text-zinc-400 border-zinc-800/60' :
                 'bg-emerald-950/40 text-emerald-400 border-emerald-800/60'
               }`}>
                 {retentionConfidence === 'Not Started' ? 'Not Started' : `${retentionConfidence} Confidence (${retentionScore}%)`}
@@ -102,7 +102,7 @@ export const ChapterRevisionInspectorModal: React.FC<ChapterRevisionInspectorMod
           <button
             onClick={() => setActiveTab('overview')}
             className={`py-3 px-3 border-b-2 font-semibold transition-all cursor-pointer ${
-              activeTab === 'overview' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-zinc-500 hover:text-zinc-300'
+              activeTab === 'overview' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-zinc-400 hover:text-zinc-300'
             }`}
           >
             Retention & Spaced Interval
@@ -110,7 +110,7 @@ export const ChapterRevisionInspectorModal: React.FC<ChapterRevisionInspectorMod
           <button
             onClick={() => setActiveTab('formulas')}
             className={`py-3 px-3 border-b-2 font-semibold transition-all cursor-pointer ${
-              activeTab === 'formulas' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-zinc-500 hover:text-zinc-300'
+              activeTab === 'formulas' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-zinc-400 hover:text-zinc-300'
             }`}
           >
             Formula Flashcards ({formulas.length})
@@ -118,7 +118,7 @@ export const ChapterRevisionInspectorModal: React.FC<ChapterRevisionInspectorMod
           <button
             onClick={() => setActiveTab('history')}
             className={`py-3 px-3 border-b-2 font-semibold transition-all cursor-pointer ${
-              activeTab === 'history' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-zinc-500 hover:text-zinc-300'
+              activeTab === 'history' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-zinc-400 hover:text-zinc-300'
             }`}
           >
             Revision Log & History ({chapSessions.length})
@@ -134,21 +134,21 @@ export const ChapterRevisionInspectorModal: React.FC<ChapterRevisionInspectorMod
               {/* Spaced Repetition Metrics Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono">
                 <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 text-center space-y-0.5">
-                  <span className="text-[9px] text-zinc-500 uppercase block">Retention Score</span>
+                  <span className="text-[11px] text-zinc-400 uppercase block">Retention Score</span>
                   <span className="text-base font-bold text-indigo-400">{retentionConfidence === 'Not Started' ? '—' : `${retentionScore}%`}</span>
                 </div>
                 <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 text-center space-y-0.5">
-                  <span className="text-[9px] text-zinc-500 uppercase block">SM-2 Interval</span>
+                  <span className="text-[11px] text-zinc-400 uppercase block">SM-2 Interval</span>
                   <span className="text-base font-bold text-emerald-400">
                     {retentionConfidence === 'Not Started' ? 'N/A' : retentionConfidence === 'Low' ? '1 Day' : retentionConfidence === 'Medium' ? '3 Days' : '7 Days'}
                   </span>
                 </div>
                 <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 text-center space-y-0.5">
-                  <span className="text-[9px] text-zinc-500 uppercase block">Formulas Vault</span>
+                  <span className="text-[11px] text-zinc-400 uppercase block">Formulas Vault</span>
                   <span className="text-base font-bold text-amber-400">{formulas.length} Cards</span>
                 </div>
                 <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 text-center space-y-0.5">
-                  <span className="text-[9px] text-zinc-500 uppercase block">Open Errors</span>
+                  <span className="text-[11px] text-zinc-400 uppercase block">Open Errors</span>
                   <span className="text-base font-bold text-red-400">{chapterMistakes.length} Errors</span>
                 </div>
               </div>
@@ -212,7 +212,7 @@ export const ChapterRevisionInspectorModal: React.FC<ChapterRevisionInspectorMod
           {activeTab === 'formulas' && (
             <div className="space-y-3">
               {formulas.length === 0 ? (
-                <div className="p-8 text-center text-zinc-500 font-mono text-xs">
+                <div className="p-8 text-center text-zinc-400 font-mono text-xs">
                   No formula cards defined for this chapter.
                 </div>
               ) : (
@@ -279,12 +279,12 @@ export const ChapterRevisionInspectorModal: React.FC<ChapterRevisionInspectorMod
           {/* TAB 3: REVISION LOG & HISTORY */}
           {activeTab === 'history' && (
             <div className="space-y-3">
-              <div className="text-[10px] font-mono uppercase text-zinc-500 font-bold tracking-wider">
+              <div className="text-[10px] font-mono uppercase text-zinc-400 font-bold tracking-wider">
                 Logged Revision Events ({chapSessions.length})
               </div>
 
               {chapSessions.length === 0 ? (
-                <div className="p-8 text-center text-zinc-500 font-mono text-xs bg-zinc-900/20 rounded-xl border border-zinc-850">
+                <div className="p-8 text-center text-zinc-400 font-mono text-xs bg-zinc-900/20 rounded-xl border border-zinc-850">
                   No previous revision sessions logged for this chapter.
                 </div>
               ) : (

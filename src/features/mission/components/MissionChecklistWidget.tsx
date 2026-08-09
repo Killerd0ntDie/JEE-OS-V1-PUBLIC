@@ -50,7 +50,7 @@ export function MissionChecklistWidget({
                 TODAY'S MISSION CHECKLIST
               </span>
             </div>
-            <span className="text-[10px] font-mono text-zinc-500 font-bold bg-zinc-900/80 border border-zinc-850 px-2 py-0.5 rounded">
+            <span className="text-[10px] font-mono text-zinc-400 font-bold bg-zinc-900/80 border border-zinc-850 px-2 py-0.5 rounded">
               {progressPercent}% DONE
             </span>
           </div>
@@ -86,7 +86,7 @@ export function MissionChecklistWidget({
                   }`}>
                     {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
                   </div>
-                  <span className={`text-[12px] font-medium tracking-wide ${isChecked ? 'line-through text-zinc-500' : 'text-zinc-200'}`}>
+                  <span className={`text-[12px] font-medium tracking-wide ${isChecked ? 'line-through text-zinc-400' : 'text-zinc-200'}`}>
                     {task}
                   </span>
                 </div>

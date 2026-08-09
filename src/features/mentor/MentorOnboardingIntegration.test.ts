@@ -81,8 +81,8 @@ describe('Diagnostic Onboarding & Master Schedule Integration Audit', () => {
       revisionQueue: [],
       todayMissions: [],
       customMissions: [],
-      dashboardSummary: {},
-      completionPrediction: {},
+      dashboardSummary: null,
+      completionPrediction: null,
       subjectPriorities: [],
       syllabusProgress: {
         physics: { total: 1, completed: 0, percentage: 0 },

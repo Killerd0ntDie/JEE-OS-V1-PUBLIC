@@ -86,7 +86,7 @@ export const FeynmanSandboxModal: React.FC<FeynmanSandboxModalProps> = ({
 
         {/* Card Selector */}
         <div className="space-y-1.5 font-mono text-xs">
-          <label className="text-[10px] text-zinc-500 uppercase font-semibold">Select Concept to Explain:</label>
+          <label className="text-[10px] text-zinc-400 uppercase font-semibold">Select Concept to Explain:</label>
           <select
             value={selectedCardId}
             onChange={(e) => {
@@ -107,14 +107,14 @@ export const FeynmanSandboxModal: React.FC<FeynmanSandboxModalProps> = ({
         {/* Concept Question Prompt */}
         {selectedCard && (
           <div className="p-3.5 rounded-xl bg-zinc-950/60 border border-zinc-850 space-y-1">
-            <span className="text-[9px] font-mono text-indigo-400 uppercase font-bold">Concept Prompt:</span>
+            <span className="text-[11px] font-mono text-indigo-400 uppercase font-bold">Concept Prompt:</span>
             <p className="text-xs text-zinc-200">"{selectedCard.concept}"</p>
           </div>
         )}
 
         {/* Explanation Textarea */}
         <div className="space-y-1.5">
-          <label className="text-[10px] font-mono text-zinc-500 uppercase font-semibold">Your Explanation in Simple Words:</label>
+          <label className="text-[10px] font-mono text-zinc-400 uppercase font-semibold">Your Explanation in Simple Words:</label>
           <textarea
             value={explanationText}
             onChange={(e) => setExplanationText(e.target.value)}

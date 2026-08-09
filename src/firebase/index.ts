@@ -1,8 +1,12 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth, connectAuthEmulator } from "firebase/auth";
-import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, connectFirestoreEmulator } from "firebase/firestore";
 
-const apiKey = import.meta.env.VITE_FIREBASE_API_KEY || "demo-api-key";
+const apiKey = import.meta.env.VITE_FIREBASE_API_KEY;
+
+if (!apiKey) {
+  throw new Error("CRITICAL: Missing Firebase API Key (VITE_FIREBASE_API_KEY). App cannot initialize without a valid backend configuration.");
+}
 
 const firebaseConfig = {
   apiKey,
@@ -16,7 +20,9 @@ const firebaseConfig = {
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+export const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+});
 
 if (import.meta.env.VITE_USE_FIREBASE_EMULATOR === 'true') {
   connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { safelyParseJSON } from '@/utils/jsonParser';
+import { idbGet, idbSet } from '@/utils/idb';
 import { Icon } from '@/components/ui/Icon';
 import { Badge } from '@/components/ui/Badge';
 import { ChapterTelemetry } from '@jee-os/engines';

@@ -29,7 +29,7 @@ export function DailyStudyTrackerWidget({
   return (
     <div className="glass-card rounded-2xl p-5 border border-zinc-800/80 bg-zinc-950/40 backdrop-blur-xl space-y-4 shadow-2xl relative overflow-hidden">
       <div className="flex items-center justify-between">
-        <span className="text-[9px] font-mono text-indigo-400 font-bold tracking-widest uppercase flex items-center gap-1.5">
+        <span className="text-[11px] font-mono text-indigo-400 font-bold tracking-widest uppercase flex items-center gap-1.5">
           <Target className="w-3.5 h-3.5 text-indigo-400" />
           DAILY STUDY TRACKER
         </span>

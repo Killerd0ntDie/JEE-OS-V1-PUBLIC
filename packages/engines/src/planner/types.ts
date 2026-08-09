@@ -49,7 +49,7 @@ export interface PlannerInput {
 
 export interface ScheduledTask {
   id: string;
-  type: 'Watch Lecture' | 'Solve DPP' | 'Solve PYQs' | 'Revise Formulas' | 'Review Mistakes';
+  type: 'Watch Lecture' | 'Solve DPP' | 'Solve PYQs' | 'Revise Formulas' | 'Review Mistakes' | 'Break';
   subjectId: SubjectId;
   chapterId: string;
   chapterName: string;
@@ -63,6 +63,8 @@ export interface ScheduledTask {
   revisionContribution?: number;
   selectionReason?: string;
   reasoning?: MissionReasoning;
+  scheduledDate?: string;  // ISO date e.g. '2026-08-06'
+  scheduledTime?: string;  // HH:MM e.g. '07:00'
 }
 
 export interface PlannerOutput {

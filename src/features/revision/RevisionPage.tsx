@@ -109,7 +109,7 @@ export function RevisionPage() {
       case 'Low':
         return 'bg-red-950/40 text-red-400 border-red-800/60';
       case 'Not Started':
-        return 'bg-zinc-900/60 text-zinc-500 border-zinc-800/60';
+        return 'bg-zinc-900/60 text-zinc-400 border-zinc-800/60';
     }
   };
 
@@ -221,23 +221,23 @@ export function RevisionPage() {
             {/* Global Retention Stats Cards */}
             <div className="flex flex-wrap gap-2 shrink-0 font-mono self-start lg:self-auto">
               <div className="bg-zinc-900/60 border border-zinc-800/80 px-3 py-1.5 rounded-xl text-center min-w-[90px] shadow-sm">
-                <span className="text-[9px] text-zinc-500 block uppercase font-semibold">Overdue</span>
+                <span className="text-[11px] text-zinc-400 block uppercase font-semibold">Overdue</span>
                 <span className="text-base font-bold text-red-400">{stats.totalOverdue}</span>
               </div>
               <div className="bg-zinc-900/60 border border-zinc-800/80 px-3 py-1.5 rounded-xl text-center min-w-[90px] shadow-sm">
-                <span className="text-[9px] text-zinc-500 block uppercase font-semibold">Review Soon</span>
+                <span className="text-[11px] text-zinc-400 block uppercase font-semibold">Review Soon</span>
                 <span className="text-base font-bold text-amber-400">{stats.totalUpcoming}</span>
               </div>
               <div className="bg-zinc-900/60 border border-zinc-800/80 px-3 py-1.5 rounded-xl text-center min-w-[90px] shadow-sm">
-                <span className="text-[9px] text-zinc-500 block uppercase font-semibold">Safe</span>
+                <span className="text-[11px] text-zinc-400 block uppercase font-semibold">Safe</span>
                 <span className="text-base font-bold text-emerald-400">{stats.totalMastered}</span>
               </div>
               <div className="bg-zinc-900/60 border border-zinc-800/80 px-3 py-1.5 rounded-xl text-center min-w-[90px] shadow-sm">
-                <span className="text-[9px] text-zinc-500 block uppercase font-semibold">Not Started</span>
-                <span className="text-base font-bold text-zinc-500">{stats.totalNotStarted}</span>
+                <span className="text-[11px] text-zinc-400 block uppercase font-semibold">Not Started</span>
+                <span className="text-base font-bold text-zinc-400">{stats.totalNotStarted}</span>
               </div>
               <div className="bg-zinc-900/60 border border-zinc-800/80 px-3 py-1.5 rounded-xl text-center min-w-[90px] shadow-sm">
-                <span className="text-[9px] text-zinc-500 block uppercase font-semibold">Avg Score</span>
+                <span className="text-[11px] text-zinc-400 block uppercase font-semibold">Avg Score</span>
                 <span className="text-base font-bold text-indigo-400">{stats.avgRetentionScore}%</span>
               </div>
             </div>
@@ -251,7 +251,7 @@ export function RevisionPage() {
               <span className="text-xs font-mono font-bold uppercase tracking-wider text-white">
                 Syllabus Retention Matrix (70 Chapters)
               </span>
-              <span className="text-[10px] font-mono text-zinc-500">
+              <span className="text-[10px] font-mono text-zinc-400">
                 • Click any chapter to inspect revision history & stats
               </span>
             </div>
@@ -265,7 +265,7 @@ export function RevisionPage() {
               <span className="flex items-center gap-1 text-red-400">
                 <span className="w-2 h-2 rounded-full bg-red-500" /> Low (40%)
               </span>
-              <span className="flex items-center gap-1 text-zinc-500">
+              <span className="flex items-center gap-1 text-zinc-400">
                 <span className="w-2 h-2 rounded-full bg-zinc-600" /> Not Started
               </span>
             </div>
@@ -284,7 +284,7 @@ export function RevisionPage() {
                     <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${subColor}`}>
                       {subTitle} ({list.length})
                     </span>
-                    <span className="text-[10px] font-mono text-zinc-500">
+                    <span className="text-[10px] font-mono text-zinc-400">
                       {list.filter(t => t.retentionConfidence === 'Low').length} Overdue
                     </span>
                   </div>
@@ -310,7 +310,7 @@ export function RevisionPage() {
                             {t.chapterName}
                           </span>
                           {t.retentionConfidence === 'Not Started' ? (
-                            <span className="text-[9px] font-mono text-zinc-600 mt-1 block">
+                            <span className="text-[11px] font-mono text-zinc-600 mt-1 block">
                               Not started yet — no retention data
                             </span>
                           ) : (
@@ -323,14 +323,14 @@ export function RevisionPage() {
                                   style={{ width: `${t.retentionScore}%` }}
                                 />
                               </div>
-                              <span className="text-[9px] font-mono text-zinc-500 shrink-0">
+                              <span className="text-[11px] font-mono text-zinc-400 shrink-0">
                                 {t.retentionScore}%
                               </span>
                             </div>
                           )}
                         </div>
 
-                        <Badge variant="secondary" className={`text-[9px] font-mono px-1.5 py-0.2 shrink-0 border ${getConfidenceBadge(t.retentionConfidence)}`}>
+                        <Badge variant="secondary" className={`text-[11px] font-mono px-1.5 py-0.2 shrink-0 border ${getConfidenceBadge(t.retentionConfidence)}`}>
                           {t.retentionConfidence}
                         </Badge>
                       </div>
@@ -350,7 +350,7 @@ export function RevisionPage() {
             <div className="space-y-0.5">
               <h3 className="text-base font-display font-bold text-white tracking-tight flex items-center gap-2">
                 <span>Active Recall Vault</span>
-                <span className="text-[10px] font-mono font-normal text-zinc-500">
+                <span className="text-[10px] font-mono font-normal text-zinc-400">
                   (Showing {cardsToDisplay.length} Cards)
                 </span>
               </h3>
@@ -366,7 +366,7 @@ export function RevisionPage() {
                 <button
                   onClick={() => setFilterScope('urgent')}
                   className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                    filterScope === 'urgent' ? 'bg-indigo-600 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
+                    filterScope === 'urgent' ? 'bg-indigo-600 text-white shadow-sm' : 'text-zinc-400 hover:text-zinc-300'
                   }`}
                 >
                   Urgent (6)
@@ -374,7 +374,7 @@ export function RevisionPage() {
                 <button
                   onClick={() => setFilterScope('overdue')}
                   className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                    filterScope === 'overdue' ? 'bg-indigo-600 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
+                    filterScope === 'overdue' ? 'bg-indigo-600 text-white shadow-sm' : 'text-zinc-400 hover:text-zinc-300'
                   }`}
                 >
                   Overdue Only
@@ -382,7 +382,7 @@ export function RevisionPage() {
                 <button
                   onClick={() => setFilterScope('all')}
                   className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                    filterScope === 'all' ? 'bg-indigo-600 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
+                    filterScope === 'all' ? 'bg-indigo-600 text-white shadow-sm' : 'text-zinc-400 hover:text-zinc-300'
                   }`}
                 >
                   All Cards
@@ -399,7 +399,7 @@ export function RevisionPage() {
                       setFlippedCards({});
                     }}
                     className={`px-2.5 py-1 rounded-lg font-bold uppercase transition-all cursor-pointer ${
-                      activeSubject === sub ? 'bg-zinc-800 text-white' : 'text-zinc-500 hover:text-zinc-300'
+                      activeSubject === sub ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:text-zinc-300'
                     }`}
                   >
                     {sub}
@@ -443,13 +443,13 @@ export function RevisionPage() {
                 {/* Header */}
                 <div className="p-4 pb-2 border-b border-zinc-900/60 flex items-center justify-between gap-2">
                   <div className="min-w-0">
-                    <span className="text-[9px] font-mono text-zinc-500 uppercase block truncate">
+                    <span className="text-[11px] font-mono text-zinc-400 uppercase block truncate">
                       {card.subject.toUpperCase()} • {card.chapterName}
                     </span>
                     <h4 className="text-xs md:text-sm font-display font-bold text-white truncate">{card.title}</h4>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
-                    <Badge variant="secondary" className={`text-[9px] font-mono px-1.5 py-0.2 border ${getConfidenceBadge(card.retentionConfidence)}`}>
+                    <Badge variant="secondary" className={`text-[11px] font-mono px-1.5 py-0.2 border ${getConfidenceBadge(card.retentionConfidence)}`}>
                       {card.retentionConfidence}
                     </Badge>
                   </div>
@@ -459,7 +459,7 @@ export function RevisionPage() {
                 <div className="p-4 flex flex-col justify-center items-center text-center flex-1">
                   {isFlipped ? (
                     <div className="w-full text-left space-y-1.5">
-                      <span className="text-[9px] font-mono text-indigo-400 font-bold uppercase tracking-wider block">
+                      <span className="text-[11px] font-mono text-indigo-400 font-bold uppercase tracking-wider block">
                         Formula Expression:
                       </span>
                       <pre className="font-mono text-xs text-indigo-200 bg-zinc-950/80 p-3 rounded-xl border border-indigo-900/30 overflow-x-auto whitespace-pre-wrap leading-relaxed">
@@ -468,7 +468,7 @@ export function RevisionPage() {
                     </div>
                   ) : (
                     <div className="space-y-1">
-                      <span className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest block font-semibold">
+                      <span className="text-[11px] font-mono text-zinc-400 uppercase tracking-widest block font-semibold">
                         Concept Question
                       </span>
                       <p className="text-xs text-zinc-300 leading-relaxed font-sans max-w-md">

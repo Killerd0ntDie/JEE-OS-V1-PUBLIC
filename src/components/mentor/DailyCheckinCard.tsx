@@ -26,7 +26,8 @@ export function DailyCheckinCard() {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    const completedToday = localStorage.getItem(`jeeos_daily_checkin_${todayStr}`) === 'true';
+    const lastCheckin = localStorage.getItem('jeeos_last_daily_checkin_date');
+    const completedToday = lastCheckin === todayStr;
     if (completedToday) {
       setIsSubmitted(true);
     }
@@ -56,7 +57,7 @@ export function DailyCheckinCard() {
     setIsSaving(true);
     try {
       await actions.submitDailyCheckin(checkin);
-      localStorage.setItem(`jeeos_daily_checkin_${todayStr}`, 'true');
+      localStorage.setItem('jeeos_last_daily_checkin_date', todayStr);
       setIsSubmitted(true);
     } catch (err: any) {
       setSaveError(err?.message || 'Could not save your check-in. Please try again.');
@@ -186,7 +187,7 @@ export function DailyCheckinCard() {
                     className={`py-1 rounded-lg font-bold border transition-colors ${
                       energy === l
                         ? 'bg-indigo-600 border-indigo-500 text-white'
-                        : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300'
+                        : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-300'
                     }`}
                   >
                     {l}

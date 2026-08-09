@@ -127,7 +127,7 @@ export function SubjectExpandedView({ chapterId, onClose }: SubjectExpandedViewP
         >
           MISTAKES LEDGER
           {chapterMistakes.length > 0 && (
-            <span className={`px-2 py-0.5 rounded-full text-[9px] font-mono ${activeTab === 'mistakes' ? 'bg-indigo-500 text-white' : 'bg-red-950 text-red-400 border border-red-900/50'}`}>
+            <span className={`px-2 py-0.5 rounded-full text-[11px] font-mono ${activeTab === 'mistakes' ? 'bg-indigo-500 text-white' : 'bg-red-950 text-red-400 border border-red-900/50'}`}>
               {chapterMistakes.length}
             </span>
           )}
@@ -142,19 +142,19 @@ export function SubjectExpandedView({ chapterId, onClose }: SubjectExpandedViewP
             {/* Quick Stats Grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="bg-zinc-900/40 border border-zinc-850 rounded-2xl p-4 space-y-1">
-                <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider">Time Remaining</div>
+                <div className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">Time Remaining</div>
                 <div className="text-xl font-display font-bold text-zinc-200">{data.estimatedRemainingTime} <span className="text-xs font-mono text-zinc-400">hrs</span></div>
               </div>
               <div className="bg-zinc-900/40 border border-zinc-850 rounded-2xl p-4 space-y-1">
-                <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider">Solved Qs</div>
+                <div className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">Solved Qs</div>
                 <div className="text-xl font-display font-bold text-zinc-200">{chapter.solvedQuestions}</div>
               </div>
               <div className="bg-zinc-900/40 border border-zinc-850 rounded-2xl p-4 space-y-1">
-                <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider">Weightage</div>
+                <div className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">Weightage</div>
                 <div className="text-xl font-display font-bold text-zinc-200">{data.weightage}%</div>
               </div>
               <div className="bg-zinc-900/40 border border-zinc-850 rounded-2xl p-4 space-y-1">
-                <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider">Difficulty</div>
+                <div className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">Difficulty</div>
                 <div className="text-xl font-display font-bold text-zinc-200">{data.difficulty}</div>
               </div>
             </div>
@@ -193,19 +193,19 @@ export function SubjectExpandedView({ chapterId, onClose }: SubjectExpandedViewP
                 <div className="space-y-3 text-xs font-mono">
                   <div className="flex items-center justify-between p-2.5 rounded-xl bg-zinc-950/60 border border-zinc-850">
                     <span className="text-zinc-300">Theory & Video Lectures</span>
-                    <span className={chapter.theoryComplete ? 'text-emerald-400 font-bold' : 'text-zinc-500'}>
+                    <span className={chapter.theoryComplete ? 'text-emerald-400 font-bold' : 'text-zinc-400'}>
                       {chapter.theoryComplete ? 'Completed ✓' : 'In Progress'}
                     </span>
                   </div>
                   <div className="flex items-center justify-between p-2.5 rounded-xl bg-zinc-950/60 border border-zinc-850">
                     <span className="text-zinc-300">DPP (Daily Practice Problems)</span>
-                    <span className={chapter.dppComplete ? 'text-emerald-400 font-bold' : 'text-zinc-500'}>
+                    <span className={chapter.dppComplete ? 'text-emerald-400 font-bold' : 'text-zinc-400'}>
                       {chapter.dppComplete ? 'Completed ✓' : 'Pending'}
                     </span>
                   </div>
                   <div className="flex items-center justify-between p-2.5 rounded-xl bg-zinc-950/60 border border-zinc-850">
                     <span className="text-zinc-300">PYQs (Previous Year Questions)</span>
-                    <span className={chapter.pyqsComplete ? 'text-purple-400 font-bold' : 'text-zinc-500'}>
+                    <span className={chapter.pyqsComplete ? 'text-purple-400 font-bold' : 'text-zinc-400'}>
                       {chapter.pyqsComplete ? '25+ Solved ✓' : 'Pending'}
                     </span>
                   </div>
@@ -225,7 +225,7 @@ export function SubjectExpandedView({ chapterId, onClose }: SubjectExpandedViewP
                   ].map((rev, idx) => (
                     <div key={idx} className="flex items-center justify-between p-2.5 rounded-xl bg-zinc-950/60 border border-zinc-850">
                       <span className="text-zinc-300">{rev.label}</span>
-                      <span className={rev.done ? 'text-emerald-400 font-bold' : 'text-zinc-500'}>
+                      <span className={rev.done ? 'text-emerald-400 font-bold' : 'text-zinc-400'}>
                         {rev.done ? 'Logged ✓' : 'Upcoming'}
                       </span>
                     </div>
@@ -252,7 +252,7 @@ export function SubjectExpandedView({ chapterId, onClose }: SubjectExpandedViewP
 
             {/* Mistakes List */}
             {chapterMistakes.length === 0 ? (
-              <div className="p-8 text-center border border-dashed border-zinc-850 rounded-2xl text-zinc-500 font-mono text-xs">
+              <div className="p-8 text-center border border-dashed border-zinc-850 rounded-2xl text-zinc-400 font-mono text-xs">
                 No active errors logged for {chapter.name}.
               </div>
             ) : (

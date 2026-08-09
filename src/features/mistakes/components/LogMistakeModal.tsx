@@ -92,14 +92,14 @@ export const LogMistakeModal: React.FC<LogMistakeModalProps> = ({
                 <Plus className="w-4 h-4 text-red-500" />
                 Log Conceptual / Tactical Prep Error
               </h2>
-              <p className="text-xs text-zinc-500 font-mono">
+              <p className="text-xs text-zinc-400 font-mono">
                 DOCUMENTING MISTAKES IS THE QUICKEST ROAD TO SECURING AN IIT RANK
               </p>
             </div>
             <button
               onClick={onClose}
               aria-label="Close Log Mistake Modal"
-              className="text-zinc-500 hover:text-zinc-200 p-1 rounded-lg hover:bg-zinc-900 cursor-pointer"
+              className="text-zinc-400 hover:text-zinc-200 p-1 rounded-lg hover:bg-zinc-900 cursor-pointer"
             >
               ✕
             </button>
@@ -123,7 +123,7 @@ export const LogMistakeModal: React.FC<LogMistakeModalProps> = ({
                           : sub === 'chemistry'
                           ? 'bg-emerald-950/40 text-emerald-400 border-emerald-800/80'
                           : 'bg-purple-950/40 text-purple-400 border-purple-800/80'
-                        : 'bg-zinc-950 text-zinc-500 border-zinc-900 hover:text-zinc-300'
+                        : 'bg-zinc-950 text-zinc-400 border-zinc-900 hover:text-zinc-300'
                     }`}
                   >
                     {sub}
@@ -292,7 +292,7 @@ export const LogMistakeModal: React.FC<LogMistakeModalProps> = ({
                       className={`px-2.5 py-1 rounded text-3xs font-mono border cursor-pointer ${
                         isSelected
                           ? 'bg-red-950/40 text-red-400 border-red-800/60'
-                          : 'bg-zinc-950 text-zinc-500 border-zinc-900 hover:text-zinc-300'
+                          : 'bg-zinc-950 text-zinc-400 border-zinc-900 hover:text-zinc-300'
                       }`}
                     >
                       {tag}

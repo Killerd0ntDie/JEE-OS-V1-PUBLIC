@@ -53,7 +53,7 @@ export function PlannerCalendarTab({ state }: { state: any }) {
                       TODAY
                     </span>
                   ) : selectedDayIndex < currentDayIndex ? (
-                    <span className="text-[10px] font-mono text-zinc-500 bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded-full">
+                    <span className="text-[10px] font-mono text-zinc-400 bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded-full">
                       Past Day History
                     </span>
                   ) : (
@@ -153,7 +153,7 @@ export function PlannerCalendarTab({ state }: { state: any }) {
                         e.stopPropagation();
                         setMissionToDelete(block.id);
                       }}
-                      className="p-1 rounded hover:bg-red-500/20 text-zinc-500 hover:text-red-400 transition-colors cursor-pointer"
+                      className="p-1 rounded hover:bg-red-500/20 text-zinc-400 hover:text-red-400 transition-colors cursor-pointer"
                       title="Delete mission"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -210,55 +210,85 @@ export function PlannerCalendarTab({ state }: { state: any }) {
                           {dayName}
                         </span>
                         {isToday && (
-                          <span className="text-[8px] font-mono font-bold text-indigo-300 bg-indigo-950/80 border border-indigo-800/80 px-1.5 py-0.2 rounded uppercase">
+                          <span className="text-[11px] font-mono font-bold text-indigo-300 bg-indigo-950/80 border border-indigo-800/80 px-1.5 py-0.2 rounded uppercase">
                             LIVE
                           </span>
                         )}
                       </div>
-                      <span className="text-[10px] font-mono text-zinc-500 font-bold group-hover:text-indigo-300">
+                      <span className="text-[10px] font-mono text-zinc-400 font-bold group-hover:text-indigo-300">
                         {dailyCapHours}h →
                       </span>
                     </div>
                     <div>
-                      <span className="text-[8px] font-mono font-bold px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-300 uppercase tracking-wider">
+                      <span className="text-[11px] font-mono font-bold px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-300 uppercase tracking-wider">
                         {getDayFocusPill(dayIndex, mentorProfile?.subjectSplitStrategy || '3_a_day', mentorProfile?.twoDaySplitConfig)}
                       </span>
                     </div>
                   </div>
 
                   <div className="space-y-2.5">
-                    {dayBlocks.map((block: any) => (
-                      <div
-                        key={block.id}
-                        onClick={() => {
-                          setSelectedBlock(block);
-                          setIsRationaleExpanded(false);
-                        }}
-                        className={`p-3 rounded-xl border text-left space-y-2 transition-all cursor-pointer group shadow-sm ${getSubjectStyle(block.subject)}`}
-                      >
-                        <div className="flex items-center justify-between gap-1">
-                          <span className={`text-[8px] font-mono font-bold px-2 py-0.5 rounded border uppercase tracking-wider ${getBadgeStyle(block.subject)}`}>
-                            {block.subject}
-                          </span>
-                          <span className="text-[9px] font-mono text-zinc-400 font-semibold">
-                            {block.durationMinutes}m
-                          </span>
+                    {dayBlocks.map((block: any) => {
+                      const timeMatch = (block.timeSlot || '').match(/(\d{1,2}):(\d{2})/);
+                      const startHour = timeMatch ? parseInt(timeMatch[1], 10) : 8;
+                      const startMin = timeMatch ? parseInt(timeMatch[2], 10) : 0;
+                      const startMins = startHour * 60 + startMin;
+                      const endMins = startMins + (block.durationMinutes || 120);
+
+                      const now = new Date();
+                      const nowMins = now.getHours() * 60 + now.getMinutes();
+
+                      const isLive = isToday && nowMins >= startMins && nowMins < endMins && !block.completed;
+                      const isPast = (dayIndex < currentDayIndex) || (isToday && nowMins >= endMins) || !!block.completed;
+
+                      let cardStyle = getSubjectStyle(block.subject);
+                      if (isLive) {
+                        cardStyle = 'bg-emerald-950/80 border-2 border-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.4)] ring-1 ring-emerald-400/50 text-white';
+                      } else if (isPast) {
+                        cardStyle = 'bg-zinc-950/60 border-zinc-850 opacity-60 grayscale-[0.25] text-zinc-400';
+                      }
+
+                      return (
+                        <div
+                          key={block.id}
+                          onClick={() => {
+                            setSelectedBlock(block);
+                            setIsRationaleExpanded(false);
+                          }}
+                          className={`p-3 rounded-xl border text-left space-y-2 transition-all cursor-pointer group shadow-sm ${cardStyle}`}
+                        >
+                          <div className="flex items-center justify-between gap-1">
+                            <span className={`text-[11px] font-mono font-bold px-2 py-0.5 rounded border uppercase tracking-wider ${getBadgeStyle(block.subject)}`}>
+                              {block.subject}
+                            </span>
+                            {isLive ? (
+                              <span className="bg-emerald-500 text-white font-mono font-extrabold text-[11px] px-1.5 py-0.2 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)] flex items-center gap-1 animate-pulse">
+                                <span className="w-1 h-1 rounded-full bg-white animate-ping" />
+                                LIVE
+                              </span>
+                            ) : (
+                              <span className="text-[11px] font-mono text-zinc-400 font-semibold">
+                                {block.durationMinutes}m
+                              </span>
+                            )}
+                          </div>
+
+                          <h4 className={`text-xs font-display font-bold transition-colors line-clamp-2 leading-snug ${
+                            block.completed ? 'text-zinc-400 line-through' : 'text-white group-hover:text-indigo-300'
+                          }`}>
+                            {block.chapterName}
+                          </h4>
+
+                          <p className="text-[10px] font-mono text-zinc-400 line-clamp-1 leading-normal">
+                            {block.activity}
+                          </p>
+
+                          <div className="flex items-center justify-between text-[11px] font-mono text-zinc-400 pt-1.5 border-t border-zinc-900/60">
+                            <span>Score: {block.priorityScore}</span>
+                            {block.completed && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}
+                          </div>
                         </div>
-
-                        <h4 className="text-xs font-display font-bold text-white group-hover:text-indigo-300 transition-colors line-clamp-2 leading-snug">
-                          {block.chapterName}
-                        </h4>
-
-                        <p className="text-[10px] font-mono text-zinc-400 line-clamp-1 leading-normal">
-                          {block.activity}
-                        </p>
-
-                        <div className="flex items-center justify-between text-[9px] font-mono text-zinc-500 pt-1.5 border-t border-zinc-900/60">
-                          <span>Score: {block.priorityScore}</span>
-                          {block.completed && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               );

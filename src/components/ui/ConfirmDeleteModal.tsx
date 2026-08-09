@@ -39,7 +39,7 @@ export function ConfirmDeleteModal({
               type="button"
               onClick={onClose}
               aria-label="Close modal"
-              className="absolute top-4 right-4 text-zinc-500 hover:text-zinc-300 p-1.5 rounded-lg hover:bg-zinc-900 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
+              className="absolute top-4 right-4 text-zinc-400 hover:text-zinc-300 p-1.5 rounded-lg hover:bg-zinc-900 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
             >
               <X className="w-4 h-4" aria-hidden="true" />
             </button>

@@ -49,7 +49,7 @@ export function ExamReadinessWidget({ targetYear, syllabusProgress }: ExamReadin
       )}
 
       <div className="flex items-center justify-between relative z-10">
-        <span className={`text-[9px] font-mono font-bold tracking-widest uppercase flex items-center gap-1.5 ${isDoomsday ? 'text-red-500' : 'text-indigo-400'}`}>
+        <span className={`text-[11px] font-mono font-bold tracking-widest uppercase flex items-center gap-1.5 ${isDoomsday ? 'text-red-500' : 'text-indigo-400'}`}>
           {isDoomsday ? <AlertTriangle className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
           {isDoomsday ? 'DOOMSDAY VELOCITY WARNING' : 'EXAM READINESS & TRAJECTORY'}
         </span>
@@ -90,7 +90,7 @@ export function ExamReadinessWidget({ targetYear, syllabusProgress }: ExamReadin
           {/* Velocity Stats */}
           <div className="flex items-center gap-3">
             <div className={`px-3 py-1.5 rounded-lg border flex flex-col items-end ${isDoomsday ? 'bg-red-950/50 border-red-900/50' : 'bg-zinc-900/80 border-zinc-800'}`}>
-              <span className={`text-[9px] font-mono uppercase ${isDoomsday ? 'text-red-400/70' : 'text-zinc-500'}`}>Your Speed</span>
+              <span className={`text-[11px] font-mono uppercase ${isDoomsday ? 'text-red-400/70' : 'text-zinc-400'}`}>Your Speed</span>
               <div className="flex items-center gap-1">
                 <Zap className={`w-3 h-3 ${isDoomsday ? 'text-red-400' : 'text-amber-400'}`} />
                 <span className={`font-mono font-bold text-xs ${isDoomsday ? 'text-red-300' : 'text-white'}`}>{currentVelocity.toFixed(2)} ch/day</span>
@@ -98,7 +98,7 @@ export function ExamReadinessWidget({ targetYear, syllabusProgress }: ExamReadin
             </div>
             
             <div className={`px-3 py-1.5 rounded-lg border flex flex-col items-end ${isDoomsday ? 'bg-red-950/80 border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.2)]' : 'bg-indigo-950/30 border-indigo-900/50'}`}>
-              <span className={`text-[9px] font-mono uppercase ${isDoomsday ? 'text-red-400' : 'text-indigo-400/70'}`}>Required Speed</span>
+              <span className={`text-[11px] font-mono uppercase ${isDoomsday ? 'text-red-400' : 'text-indigo-400/70'}`}>Required Speed</span>
               <span className={`font-mono font-bold text-xs ${isDoomsday ? 'text-white animate-pulse' : 'text-indigo-300'}`}>{requiredVelocity.toFixed(2)} ch/day</span>
             </div>
           </div>
@@ -121,7 +121,7 @@ export function ExamReadinessWidget({ targetYear, syllabusProgress }: ExamReadin
         {/* Physics */}
         <div className="space-y-1">
           <div className="flex justify-between items-baseline text-[11px] font-semibold">
-            <span className="text-zinc-300">Physics <span className="text-[9px] text-zinc-500 font-normal ml-1.5">{syllabusProgress.physics.masteredCount}/{syllabusProgress.physics.totalCount} Mastered</span></span>
+            <span className="text-zinc-300">Physics <span className="text-[11px] text-zinc-400 font-normal ml-1.5">{syllabusProgress.physics.masteredCount}/{syllabusProgress.physics.totalCount} Mastered</span></span>
             <span className="font-mono text-sky-400 font-bold">{syllabusProgress.physics.percentage}%</span>
           </div>
           <div className="w-full bg-zinc-900/80 rounded-full h-2 overflow-hidden border border-zinc-800 p-0.5">
@@ -137,7 +137,7 @@ export function ExamReadinessWidget({ targetYear, syllabusProgress }: ExamReadin
         {/* Chemistry */}
         <div className="space-y-1">
           <div className="flex justify-between items-baseline text-[11px] font-semibold">
-            <span className="text-zinc-300">Chemistry <span className="text-[9px] text-zinc-500 font-normal ml-1.5">{syllabusProgress.chemistry.masteredCount}/{syllabusProgress.chemistry.totalCount} Mastered</span></span>
+            <span className="text-zinc-300">Chemistry <span className="text-[11px] text-zinc-400 font-normal ml-1.5">{syllabusProgress.chemistry.masteredCount}/{syllabusProgress.chemistry.totalCount} Mastered</span></span>
             <span className="font-mono text-emerald-400 font-bold">{syllabusProgress.chemistry.percentage}%</span>
           </div>
           <div className="w-full bg-zinc-900/80 rounded-full h-2 overflow-hidden border border-zinc-800 p-0.5">
@@ -153,7 +153,7 @@ export function ExamReadinessWidget({ targetYear, syllabusProgress }: ExamReadin
         {/* Mathematics */}
         <div className="space-y-1">
           <div className="flex justify-between items-baseline text-[11px] font-semibold">
-            <span className="text-zinc-300">Mathematics <span className="text-[9px] text-zinc-500 font-normal ml-1.5">{syllabusProgress.maths.masteredCount}/{syllabusProgress.maths.totalCount} Mastered</span></span>
+            <span className="text-zinc-300">Mathematics <span className="text-[11px] text-zinc-400 font-normal ml-1.5">{syllabusProgress.maths.masteredCount}/{syllabusProgress.maths.totalCount} Mastered</span></span>
             <span className="font-mono text-indigo-400 font-bold">{syllabusProgress.maths.percentage}%</span>
           </div>
           <div className="w-full bg-zinc-900/80 rounded-full h-2 overflow-hidden border border-zinc-800 p-0.5">

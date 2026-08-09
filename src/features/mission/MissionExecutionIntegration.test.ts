@@ -114,8 +114,8 @@ describe('Mission Execution & Chapter State Flow Integration Audit', () => {
       revisionQueue: [],
       todayMissions: initialMissions,
       customMissions: [],
-      dashboardSummary: {},
-      completionPrediction: {},
+      dashboardSummary: null,
+      completionPrediction: null,
       subjectPriorities: [],
       syllabusProgress: {
         physics: { total: 1, completed: 0, percentage: 20 },

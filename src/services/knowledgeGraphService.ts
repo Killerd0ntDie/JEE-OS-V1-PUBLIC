@@ -92,6 +92,10 @@ export const KnowledgeGraphService = {
       });
     }
 
+    if (sorted.length !== nodes.length) {
+      console.warn('Knowledge Graph contains cyclic dependencies. Topological sort is incomplete.');
+    }
+
     return sorted;
   },
 

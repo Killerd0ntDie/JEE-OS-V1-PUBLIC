@@ -131,7 +131,7 @@ export function MonthlyCalendarWidget() {
         </div>
         
         {/* Legend */}
-        <div className="flex gap-4 text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-500">
+        <div className="flex gap-4 text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-400">
           <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500/50" /> Target Met</div>
           <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-amber-500/50" /> Burnout Risk</div>
           <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-purple-500/50" /> Decay Risk</div>
@@ -141,7 +141,7 @@ export function MonthlyCalendarWidget() {
       {/* Weekday Headers */}
       <div className="grid grid-cols-7 gap-2 mb-2 text-center relative z-10">
         {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
-          <div key={day} className="text-[10px] font-mono text-zinc-500 uppercase font-bold tracking-wider py-1">
+          <div key={day} className="text-[10px] font-mono text-zinc-400 uppercase font-bold tracking-wider py-1">
             {day}
           </div>
         ))}

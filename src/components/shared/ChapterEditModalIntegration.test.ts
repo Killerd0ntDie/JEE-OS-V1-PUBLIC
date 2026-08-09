@@ -69,9 +69,9 @@ describe('App-Wide UI Integration & Modal Cleanup empirical verification', () =>
     });
 
     it('Domain 3: Planner Page & Inspector Modal triggers openChapterEditModal', () => {
-      const filePath = path.join(rootSrcDir, 'features', 'mission', 'PlannerPage.tsx');
+      const filePath = path.join(rootSrcDir, 'features', 'mission', 'components', 'PlannerSidebarPanel.tsx');
       const content = fs.readFileSync(filePath, 'utf-8');
-      expect(content).toContain('actions.openChapterEditModal(activeInspectorTelemetry.chapterId)');
+      expect(content).toContain('actions.openChapterEditModal(id)');
     });
 
     it('Domain 4: Syllabus Table & Revision Ledger triggers openChapterEditModal', () => {

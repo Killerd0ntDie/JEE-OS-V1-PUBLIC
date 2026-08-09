@@ -10,14 +10,12 @@ import { LRUCache } from "lru-cache";
 import crypto from "crypto";
 import { z } from "zod";
 import { createServer as createNetServer } from "node:net";
+import http from "http";
 
 if (fs.existsSync('.env.local')) {
   dotenv.config({ path: '.env.local' });
 }
 dotenv.config();
-
-// Fix for Google GenAI SDK conflict with Firebase ADC
-delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
 
 const findAvailablePort = async (preferredPort: number, host: string) => {
   const isPortFree = (port: number) =>
@@ -57,8 +55,8 @@ async function startServer() {
 
   // Rate Limiter
   const apiLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 50, // Limit each IP to 50 requests per window
+    windowMs: 5 * 60 * 1000, // 5 minutes
+    max: 100, // Limit each IP to 100 requests per window
     standardHeaders: true,
     legacyHeaders: false,
   });
@@ -223,7 +221,7 @@ Valid Action examples (as payload):
       res.json({ analysis, actions });
     } catch (error: any) {
       console.error("Coach API error:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: "Internal server error during analysis." });
     }
   });
 
@@ -314,7 +312,7 @@ Valid Action examples (as payload):
       res.json({ questions: JSON.parse(jsonStr) });
     } catch (error: any) {
       console.error("Practice API error:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: "Internal server error during practice generation." });
     }
   });
 
@@ -424,7 +422,7 @@ Valid Action examples (as payload):
       res.json({ questions: parsed });
     } catch (error: any) {
       console.error("Mocktest API error:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: "Internal server error during mock test generation." });
     }
   });
 
@@ -528,15 +526,11 @@ Valid Action examples (as payload):
       res.json({ plan: JSON.parse(jsonStr) });
     } catch (error: any) {
       console.error("Revision Plan API error:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: "Internal server error during revision plan generation." });
     }
   });
 
-
-  const httpServer = app.listen(port, host, () => {
-    const fallbackMessage = port !== preferredPort ? ` (fallback from ${preferredPort})` : "";
-    console.log(`Server running on http://localhost:${port}${fallbackMessage}`);
-  });
+  const httpServer = http.createServer(app);
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
@@ -557,6 +551,11 @@ Valid Action examples (as payload):
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
+
+  httpServer.listen(port, host, () => {
+    const fallbackMessage = port !== preferredPort ? ` (fallback from ${preferredPort})` : "";
+    console.log(`Server running on http://localhost:${port}${fallbackMessage}`);
+  });
 }
 
 startServer();

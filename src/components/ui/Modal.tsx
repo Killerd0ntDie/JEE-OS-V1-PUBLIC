@@ -20,7 +20,7 @@ export function Modal({
   className = '',
   hideBackdrop = false,
   backdropClassName = 'bg-black/80 backdrop-blur-md',
-  zIndex = 50,
+  zIndex = 999,
   center = true
 }: ModalProps) {
   // Prevent scrolling on body when modal is open
@@ -38,7 +38,11 @@ export function Modal({
   const modalContent = (
     <AnimatePresence>
       {isOpen && (
-        <div 
+        <motion.div 
+          initial={{ opacity: 1 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
           className={`fixed inset-0 flex ${center ? 'items-center justify-center' : 'items-start justify-center pt-[10vh]'} p-4`}
           style={{ zIndex }}
         >
@@ -68,7 +72,7 @@ export function Modal({
           >
             {children}
           </motion.div>
-        </div>
+        </motion.div>
       )}
     </AnimatePresence>
   );

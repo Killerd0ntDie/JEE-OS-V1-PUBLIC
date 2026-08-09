@@ -12,7 +12,6 @@ import { StudySessionRepository } from '@/repositories/studySessionRepository';
 import { MockResultRepository } from '@/repositories/mockResultRepository';
 import { MockTestRepository } from '@/repositories/mockTestRepository';
 import { TimelineRepository } from '@/repositories/timelineRepository';
-import { DEFAULT_COACH_BRIEFING, INITIAL_CHAPTERS, INITIAL_MISTAKES } from '@/constants/initialSeeds';
 import { StudyBrainActions } from '@/actions/StudyBrainActions';
 import { Chapter, Mistake, TimelineBlock, UserProfile } from '@/types/index';
 import { normalizeChapter } from '@/utils/academicState';
@@ -31,27 +30,27 @@ const validateAndSanitizeChapters = (chaps: any[]): Chapter[] => {
     if (!c.name || typeof c.name !== 'string') {
       throw new Error(`Chapters database corruption: Chapter with ID '${c.id}' has an invalid or missing name`);
     }
-    const seed = INITIAL_CHAPTERS.find(ic => ic.id === c.id || ic.name === c.name);
+    
     const rawChap: Chapter = {
       id: c.id,
-      subject: c.subject || seed?.subject || 'physics',
-      unit: c.unit || seed?.unit || 'General',
+      subject: c.subject || 'physics',
+      unit: c.unit || 'General',
       name: c.name,
       hasTelemetry: !!c.hasTelemetry,
       completion: typeof c.completion === 'number' ? c.completion : 0,
       currentLecture: c.hasTelemetry ? (typeof c.currentLecture === 'number' ? c.currentLecture : 0) : 0,
-      totalLectures: c.hasTelemetry ? (typeof c.totalLectures === 'number' ? c.totalLectures : (seed?.totalLectures || 10)) : 0,
+      totalLectures: c.hasTelemetry ? (typeof c.totalLectures === 'number' ? c.totalLectures : 10) : 0,
       theoryComplete: !!c.theoryComplete,
       dppComplete: !!c.dppComplete,
       pyqsComplete: !!c.pyqsComplete,
       formulaComplete: !!c.formulaComplete,
       revisionCount: typeof c.revisionCount === 'number' ? c.revisionCount : 0,
-      difficulty: c.difficulty || seed?.difficulty || 'Medium',
+      difficulty: c.difficulty || 'Medium',
       confidence: typeof c.confidence === 'number' ? c.confidence : 0,
-      estimatedRemainingTime: c.hasTelemetry ? (typeof c.estimatedRemainingTime === 'number' ? c.estimatedRemainingTime : (seed?.estimatedRemainingTime || 0)) : 0,
-      priority: (c.priority === 1 || c.priority === 2 || c.priority === 3) ? c.priority : (seed?.priority || 2),
-      dependencies: Array.isArray(c.dependencies) ? c.dependencies : (seed?.dependencies || []),
-      weightage: (typeof c.weightage === 'number' && c.weightage > 1) ? c.weightage : (seed?.weightage ?? (typeof c.weightage === 'number' ? c.weightage : 3)),
+      estimatedRemainingTime: c.hasTelemetry ? (typeof c.estimatedRemainingTime === 'number' ? c.estimatedRemainingTime : 0) : 0,
+      priority: (c.priority === 1 || c.priority === 2 || c.priority === 3) ? c.priority : 2,
+      dependencies: Array.isArray(c.dependencies) ? c.dependencies : [],
+      weightage: (typeof c.weightage === 'number' && c.weightage > 1) ? c.weightage : (typeof c.weightage === 'number' ? c.weightage : 3),
       weaknessScore: typeof c.weaknessScore === 'number' ? c.weaknessScore : 0,
       status: c.status || 'Not Started',
       solvedQuestions: typeof c.solvedQuestions === 'number' ? c.solvedQuestions : 0,
@@ -66,7 +65,7 @@ const validateAndSanitizeChapters = (chaps: any[]): Chapter[] => {
       retentionStatus: c.retentionStatus || 'Fresh',
       nextRevisionDueAt: c.nextRevisionDueAt || new Date().toISOString(),
       lastRevisedAt: c.lastRevisedAt || new Date().toISOString(),
-      serialNumber: c.serialNumber || seed?.serialNumber,
+      serialNumber: c.serialNumber,
       chapterOnHold: !!c.chapterOnHold,
       dppOnHold: !!c.dppOnHold,
       pyqOnHold: !!c.pyqOnHold,
@@ -145,11 +144,7 @@ export const StudyBrainProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     let active = true;
 
     if (!user) {
-      runtime.initialize({
-        loading: false,
-        initializationError: null,
-        writeBlocked: true
-      });
+      runtime.resetToInitialState();
       return;
     }
     const currentUid = user.uid;
@@ -178,6 +173,7 @@ export const StudyBrainProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     };
 
     let isFullyLoaded = false;
+    let debounceTimer: any = null;
 
     const checkAndInit = () => {
       if (!active) return;
@@ -192,10 +188,27 @@ export const StudyBrainProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           initializationError: null,
           writeBlocked: false
         });
+
+        // Sync offline mock results
+        try {
+          const offlineQueue = JSON.parse(localStorage.getItem('jeeos_offline_mocks') || '[]');
+          if (offlineQueue.length > 0) {
+            console.log(`Syncing ${offlineQueue.length} offline mock results...`);
+            offlineQueue.forEach((mock: any) => {
+              actions.addMockResult(mock).catch(e => console.error("Offline sync failed for mock:", e));
+            });
+            localStorage.removeItem('jeeos_offline_mocks');
+          }
+        } catch (e) {
+          console.error("Error processing offline mocks:", e);
+        }
       } else if (allLoaded && isFullyLoaded) {
         // For subsequent real-time updates after initial load, we updateoptimistic and trigger a lightweight refresh
-        runtime.updateStateOptimistic(snapshotState);
-        runtime.refresh('INIT');
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          runtime.updateStateOptimistic(snapshotState);
+          runtime.refresh('INIT');
+        }, 50);
       }
     };
 
@@ -212,9 +225,9 @@ export const StudyBrainProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           energyLevel: 'Medium' as const,
           activeSubject: 'physics' as const,
           isMissionModeActive: false,
-          coachMessage: DEFAULT_COACH_BRIEFING ? DEFAULT_COACH_BRIEFING[0] : 'Ready',
+          coachMessage: 'Welcome to JEE OS. Complete your first study session to generate insights.',
           settings: {
-            targetYear: '2027',
+            targetYear: String(new Date().getFullYear() + 2),
             dreamIit: 'IIT Bombay',
             targetBranch: 'Computer Science & Engineering',
             dailyQuota: 30,
@@ -225,16 +238,18 @@ export const StudyBrainProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             pauseOnTabChange: true,
             migratedToPristine: true
           },
-          weeklyGoals: [
-            { weekIndex: 1, title: 'Mechanics Core & Vectors', focus: 'Focus: Kinematics, NLM, Work Power Energy. Complete 45 DPPs & 30 PYQs.', status: 'Completed' as const },
-            { weekIndex: 2, title: 'GOC & Reaction Mechanisms', focus: 'Focus: Inductive & Resonance Effects, Isomerism, Hydrocarbons.', status: 'Active' as const },
-            { weekIndex: 3, title: 'Algebra & Differential Calculus', focus: 'Focus: Sets & Relations, Functions, Limits & Continuity.', status: 'Upcoming' as const },
-            { weekIndex: 4, title: 'Full Monthly Mock & Error Audit', focus: 'Focus: Full-Syllabus Mock Test Session 1 Benchmark & Mistakes Review.', status: 'Upcoming' as const }
-          ]
+          weeklyGoals: Array.from({ length: 48 }, (_, i) => ({
+            weekIndex: i + 1,
+            title: `JEE Prep Week ${i + 1}`,
+            focus: i === 0 ? 'Diagnostic Tests and Foundation Building' : 'Syllabus Coverage and Practice',
+            status: (i === 0 ? 'Active' : 'Upcoming') as "Completed" | "Upcoming" | "Active"
+          }))
         };
+        const seeds = await import('@/constants/initialSeeds');
+        if (!active) return;
         await UserRepository.saveUserProfile(currentUid, initialProfile);
-        await ChapterRepository.seedChapters(currentUid, INITIAL_CHAPTERS);
-        await MistakeRepository.seedMistakes(currentUid, INITIAL_MISTAKES);
+        await ChapterRepository.seedChapters(currentUid, seeds.INITIAL_CHAPTERS);
+        await MistakeRepository.seedMistakes(currentUid, seeds.INITIAL_MISTAKES);
         return; // Will re-trigger snapshot on creation
       }
       
@@ -326,6 +341,7 @@ export const StudyBrainProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
     return () => {
       active = false;
+      if (debounceTimer) clearTimeout(debounceTimer);
       unsubProfile();
       unsubChapters();
       unsubNotes();

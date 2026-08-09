@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { PAGES, PageId, PageDefinition } from '@/types/index';
 import { Icon } from '@/components/ui/Icon';
 
@@ -67,9 +68,9 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
     }
   }, [selectedIndex, isOpen]);
 
-  return (
+  return createPortal(
     <div
-      className={`fixed inset-0 z-50 flex items-start justify-center p-4 pt-[12vh] transition-all duration-200 ${
+      className={`fixed inset-0 z-[999] flex items-start justify-center p-4 pt-[12vh] transition-all duration-200 ${
         isOpen ? 'bg-black/75 backdrop-blur-md visible pointer-events-auto' : 'bg-transparent backdrop-blur-none invisible pointer-events-none'
       }`}
       onClick={onClose}
@@ -107,7 +108,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
         {/* Results list */}
         <div ref={listRef} className="max-h-[340px] overflow-y-auto p-2 space-y-1 divide-y divide-zinc-950 scrollbar">
           {filteredPages.length === 0 ? (
-            <div className="p-8 text-center text-xs text-zinc-500">
+            <div className="p-8 text-center text-xs text-zinc-400">
               No pages or modules found matching "{searchQuery}"
             </div>
           ) : (
@@ -127,7 +128,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
                   }`}
                 >
                   <div className={`p-1.5 rounded-lg border ${
-                    isSelected ? 'bg-zinc-950 border-zinc-700 text-zinc-100' : 'bg-zinc-900/60 border-zinc-850 text-zinc-500'
+                    isSelected ? 'bg-zinc-950 border-zinc-700 text-zinc-100' : 'bg-zinc-900/60 border-zinc-850 text-zinc-400'
                   }`}>
                     <Icon name={page.icon} className="w-4 h-4" />
                   </div>
@@ -135,16 +136,16 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-semibold leading-tight">{page.label}</span>
                       {page.badge && (
-                        <span className="text-[9px] font-mono font-medium px-1.5 bg-zinc-850 rounded border border-zinc-800 text-zinc-500">
+                        <span className="text-[11px] font-mono font-medium px-1.5 bg-zinc-850 rounded border border-zinc-800 text-zinc-400">
                           {page.badge}
                         </span>
                       )}
                     </div>
-                    <p className="text-[10px] text-zinc-500 truncate mt-0.5">{page.description}</p>
+                    <p className="text-[10px] text-zinc-400 truncate mt-0.5">{page.description}</p>
                   </div>
                   <div className="flex items-center shrink-0">
                     {isSelected && (
-                      <span className="text-[10px] font-mono text-zinc-500 flex items-center gap-1 bg-zinc-950 border border-zinc-850 px-1.5 py-0.5 rounded">
+                      <span className="text-[10px] font-mono text-zinc-400 flex items-center gap-1 bg-zinc-950 border border-zinc-850 px-1.5 py-0.5 rounded">
                         <span>⏎</span>
                         <span>Go</span>
                       </span>
@@ -157,7 +158,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
         </div>
 
         {/* Footer */}
-        <div className="px-4 py-2 bg-zinc-900/40 border-t border-zinc-900 flex justify-between items-center text-[10px] text-zinc-500 font-mono">
+        <div className="px-4 py-2 bg-zinc-900/40 border-t border-zinc-900 flex justify-between items-center text-[10px] text-zinc-400 font-mono">
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1">
               <span className="bg-zinc-900 px-1 py-0.2 rounded border border-zinc-850">↑↓</span> Navigate
@@ -171,6 +172,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -2,7 +2,6 @@ import React from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { MissionMode } from '@/features/mission/MissionMode';
 import { QuickRevisionModal } from '@/components/ui/QuickRevisionModal';
 import { DailyMissionTimeline } from './components/DailyMissionTimeline';
 import { CustomMissionModal } from '@/features/mission/components/CustomMissionModal';
@@ -10,53 +9,20 @@ import { DailyCheckinCard } from '@/components/mentor/DailyCheckinCard';
 import { MonthlyObjectiveModal } from '@/components/mentor/MonthlyObjectiveModal';
 import { DashboardSkeleton } from '@/components/ui/Skeleton';
 import { DashboardHeader } from './components/DashboardHeader';
+import { RoutineBreakModal } from './components/RoutineBreakModal';
 import { DashboardFocusSection } from './components/DashboardFocusSection';
 import { useDashboardState } from './hooks/useDashboardState';
 
 export function DashboardPage() {
   const navigate = useNavigate();
   const { state, handlers, actions } = useDashboardState();
+  const [isRoutineBreakModalOpen, setIsRoutineBreakModalOpen] = React.useState(false);
 
   if (state.loading) return <DashboardSkeleton />;
 
   return (
-    <div className="w-full max-w-6xl mx-auto flex flex-col gap-6 font-sans text-zinc-400 relative pb-8">
+    <div className="w-full max-w-6xl mx-auto flex flex-col gap-6 px-4 font-sans text-zinc-400 relative pb-8">
       
-      {/* FULL-SCREEN FOCUS MODE (MISSION MODE) OVERLAY */}
-      {state.isMissionModeActive && (
-              <MissionMode 
-                activeSubject={state.missionModeSubject}
-                initialPaused={state.sessionState === 'paused'}
-                initialSeconds={state.secondsElapsed}
-                onExit={(currentSecs) => {
-                  if (typeof currentSecs === 'number' && currentSecs > 0) {
-                    handlers.setSecondsElapsed(currentSecs);
-                  }
-                  actions.setMissionModeActive(false);
-                  handlers.setSessionState('paused');
-                }}
-                onComplete={(stats) => {
-                  // Mission completion is already handled by MissionMode.tsx
-                  // Convert duration from seconds to minutes (duration is always sent in seconds from MissionMode)
-                  const durationMinutes = Math.max(1, Math.ceil(stats.duration / 60));
-                  actions.completeStudySession({
-                    duration: durationMinutes,
-                    focusTime: durationMinutes,
-                    questions: stats.questions,
-                    correct: stats.questions,
-                    type: 'Practice',
-                    subjectId: state.missionModeSubject,
-                    idleTime: stats.idleTime ? Math.ceil(stats.idleTime / 60) : 0,
-                    focusInterruptions: stats.focusInterruptions,
-                    focusScore: stats.focusScore
-                  });
-                  actions.setMissionModeActive(false);
-                  handlers.setSessionState('idle');
-                  handlers.setSecondsElapsed(0);
-                }}
-              />
-      )}
-
       {/* DASHBOARD HEADER */}
       <DashboardHeader
         getGreeting={state.getGreeting}
@@ -65,13 +31,19 @@ export function DashboardPage() {
         estimatedRemainingHours={Number(state.estimatedRemainingHours) || 0}
         nextTaskName={state.nextTaskName}
         energyLevel={state.energyLevel}
-        setEnergyLevel={actions.setEnergyLevel}
+        setEnergyLevel={(level) => actions.setEnergyLevel(level)}
+        onOpenRoutineBreak={() => setIsRoutineBreakModalOpen(true)}
         chapters={state.chapters || []}
-        onOpenChapter={actions.openChapterEditModal}
+        onOpenChapter={(chapterId) => actions.openChapterEditModal(chapterId)}
         onSetMonthlyObjective={() => handlers.setIsMonthlyObjectiveModalOpen(true)}
         onSetDailyCapacity={() => navigate('/planner')}
         isHeaderExpanded={state.isHeaderExpanded}
         onToggleExpand={handlers.handleManualToggleHeader}
+      />
+
+      <RoutineBreakModal
+        isOpen={isRoutineBreakModalOpen}
+        onClose={() => setIsRoutineBreakModalOpen(false)}
       />
 
       {/* EMBEDDED HERO DAILY CHECK-IN CARD */}
@@ -96,6 +68,8 @@ export function DashboardPage() {
           handlers.setIsCustomMissionModalOpen(true);
         }}
         onOpenCustomMission={() => handlers.setIsCustomMissionModalOpen(true)}
+        selectedMissionId={state.selectedMissionId}
+        setSelectedMissionId={handlers.setSelectedMissionId}
       />
 
       {/* SECONDARY DASHBOARD TABBED VIEWS (Focus & Queue vs Analytics & Readiness) */}

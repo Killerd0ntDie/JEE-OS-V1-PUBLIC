@@ -48,24 +48,27 @@ export function MissionTimerWidget({
 
       {/* Central Chronometer HUD */}
       <div className="relative text-center space-y-2">
-        <span className="text-[10px] font-mono tracking-[0.25em] text-zinc-500 uppercase block font-bold">
+        <span className="text-[10px] font-mono tracking-[0.25em] text-zinc-400 uppercase block font-bold">
           FOCUS RUNTIME
         </span>
         
         {/* Massive Timer */}
-        <span className="text-5xl md:text-6xl font-black font-mono tracking-wider text-white leading-none block select-none">
+        <span 
+          className="text-5xl md:text-6xl font-black font-mono tabular-nums tracking-wider text-white leading-none block select-none"
+          style={{ fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"zero" 0' }}
+        >
           {formatTime(seconds)}
         </span>
 
         {/* Demoted Muted Focus Score & Lecture Speed Indicator */}
-        <div className="pt-1 flex items-center justify-center gap-3 text-[9px] font-mono text-zinc-500 font-medium">
+        <div className="pt-1 flex items-center justify-center gap-3 text-[11px] font-mono text-zinc-400 font-medium">
           <span className="flex items-center gap-1">
             <Zap className="w-2.5 h-2.5 text-indigo-400/70" />
             <span>Focus {focusScore}%</span>
           </span>
           <span>•</span>
           <span className="flex items-center gap-1">
-            <Volume2 className="w-2.5 h-2.5 text-zinc-500" />
+            <Volume2 className="w-2.5 h-2.5 text-zinc-400" />
             <span>{lectureSpeed}x Speed</span>
           </span>
         </div>

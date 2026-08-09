@@ -36,7 +36,7 @@ export function PlannerRoadmapTab({ state }: { state: any }) {
       {/* 4-WEEK MILESTONE ROADMAP GRID */}
       <div className="relative mt-8">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-mono text-sm font-bold text-zinc-500 uppercase tracking-widest">Milestone Roadmap</h3>
+          <h3 className="font-mono text-sm font-bold text-zinc-400 uppercase tracking-widest">Milestone Roadmap</h3>
           <button
             onClick={() => setIsEditGoalsOpen(true)}
             className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900/50 text-xs font-mono text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
@@ -55,7 +55,7 @@ export function PlannerRoadmapTab({ state }: { state: any }) {
             let borderStyle = 'border-zinc-800';
             let bgStyle = 'bg-zinc-900/30';
             let textStyle = 'text-zinc-400';
-            let statusEl = <span className="text-zinc-500 font-bold">Upcoming</span>;
+            let statusEl = <span className="text-zinc-400 font-bold">Upcoming</span>;
             
             if (goal.status === 'Completed') {
               statusEl = <span className="text-emerald-400 font-bold">Completed ✓</span>;

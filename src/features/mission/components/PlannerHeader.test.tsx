@@ -25,8 +25,8 @@ describe('PlannerHeader', () => {
 
   it('displays the correct capacity budget and energy level', () => {
     render(<PlannerHeader state={defaultState} />);
-    expect(screen.getByText('6 hrs/day')).toBeInTheDocument();
-    expect(screen.getByText('High Energy • Adaptive')).toBeInTheDocument();
+    expect(screen.getByText(/6\s*h\/day/)).toBeInTheDocument();
+    expect(screen.getByText(/High\s*Energy/i)).toBeInTheDocument();
   });
 
   it('calls handleAutoBalance when the auto-balance button is clicked', () => {
@@ -45,7 +45,7 @@ describe('PlannerHeader', () => {
   it('changes button text when balance toast is active', () => {
     const toastState = { ...defaultState, balanceToast: true };
     render(<PlannerHeader state={toastState} />);
-    expect(screen.getByText('Plan Auto-Balanced!')).toBeInTheDocument();
+    expect(screen.getByText('Plan Balanced!')).toBeInTheDocument();
   });
 
   it('toggles the audit dropdown when clicked', () => {

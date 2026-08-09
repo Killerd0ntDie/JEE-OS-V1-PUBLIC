@@ -16,7 +16,7 @@ export function MissionHeader({ onExit }: MissionHeaderProps) {
           <h2 className="text-sm font-bold tracking-wider font-mono uppercase text-zinc-100 leading-tight">
             MISSION <span className="text-indigo-400">CONTROL</span>
           </h2>
-          <div className="text-[10px] text-zinc-500 font-mono flex items-center gap-2 mt-0.5 uppercase tracking-widest font-semibold">
+          <div className="text-[10px] text-zinc-400 font-mono flex items-center gap-2 mt-0.5 uppercase tracking-widest font-semibold">
             <span className="flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               LINK ACTIVE

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { audioEngine } from '@/utils/audioEngine';
 import { calculateFocusScore } from '@/utils/focusScore';
@@ -7,16 +7,19 @@ import { LECTURE_SPEEDS, FORMULAS } from '../constants/formulas';
 export interface MissionModeProps {
   mode?: 'learning' | 'mock' | 'revision' | 'mistake';
   children?: React.ReactNode;
+  activeMissionId?: string;
   customDurationSecs?: number;
   activeSubject: 'physics' | 'chemistry' | 'maths' | 'all';
   initialPaused?: boolean;
   initialSeconds?: number;
   skipSetup?: boolean;
   onExit: (currentSeconds?: number) => void;
-  onComplete: (stats: {
-    missionId: string | undefined;
+  onComplete?: (stats: {
+    missionId?: string;
     duration: number;
     questions: number;
+    correct?: number;
+    confidence?: number;
     xp: number;
     streak: number;
     idleTime: number;
@@ -26,15 +29,19 @@ export interface MissionModeProps {
 }
 
 export function useMissionState(props: MissionModeProps) {
-  const { initialPaused = false, initialSeconds = 0, skipSetup = false, customDurationSecs, onExit, onComplete } = props;
+  const { initialPaused = false, initialSeconds = 0, skipSetup = false, customDurationSecs, onExit, onComplete, activeMissionId } = props;
   
   const safeInitial = (props.activeSubject === 'all' || !['physics', 'chemistry', 'maths'].includes(props.activeSubject)) ? 'physics' : (props.activeSubject as 'physics' | 'chemistry' | 'maths');
   const [activeSubject, setActiveSubject] = useState<'physics' | 'chemistry' | 'maths'>(safeInitial);
   
-  const [isPaused, setIsPaused] = useState(initialPaused);
+  const settings = useStudyBrainStore(state => state.settings);
+  const isCasinoEnabled = settings.enablePomodoroCasino ?? false;
+
+  const [isPaused, setIsPaused] = useState(initialPaused && isCasinoEnabled);
   const [isPauseOverlayDismissed, setIsPauseOverlayDismissed] = useState(false);
-  const [isSettingUp, setIsSettingUp] = useState(initialSeconds === 0 && !skipSetup);
-  const [xpWager, setXpWager] = useState(0);
+  const [isSettingUp, setIsSettingUp] = useState(initialSeconds === 0 && !skipSetup && isCasinoEnabled);
+  const [targetQuestions, setTargetQuestions] = useState(25);
+  const [xpWager, setXpWager] = useState(50);
   const [missionFailed, setMissionFailed] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
   const [seconds, setSeconds] = useState(initialSeconds);
@@ -62,7 +69,7 @@ export function useMissionState(props: MissionModeProps) {
   const notesEndRef = useRef<HTMLDivElement>(null);
   
   const actions = useStudyBrainStore(state => state.actions);
-  const settings = useStudyBrainStore(state => state.settings);
+  // settings is already defined above
   const todayMissions = useStudyBrainStore(state => state.todayMissions);
   const chapters = useStudyBrainStore(state => state.chapters);
   const chaptersWithData = useStudyBrainStore(state => state.chaptersWithData);
@@ -85,7 +92,11 @@ export function useMissionState(props: MissionModeProps) {
   };
 
   const dynamicChecklist = useMemo(() => {
-    const activeSubjectMission = todayMissions.find(m => m.subject === activeSubject && !m.completed);
+    let activeSubjectMission = todayMissions.find(m => m.subject === activeSubject && !m.completed);
+    if (activeMissionId) {
+      const explicitMission = todayMissions.find(m => m.id === activeMissionId);
+      if (explicitMission) activeSubjectMission = explicitMission;
+    }
     
     const initialList: Record<string, boolean> = {};
     if (!activeSubjectMission) {
@@ -132,14 +143,24 @@ export function useMissionState(props: MissionModeProps) {
       const focusedChap = focusedId
         ? subjChaps.find(c => c.id === focusedId || c.name === focusedId)
         : undefined;
-      const activeChap = focusedChap || subjChaps.find(c => c.completion < 100) || subjChaps[0];
+      let mission = todayMissions.find(m => m.subject === subj && !m.completed);
+      if (activeMissionId) {
+        const explicitMission = todayMissions.find(m => m.id === activeMissionId && m.subject === subj);
+        if (explicitMission) mission = explicitMission;
+      }
+      
+      let activeChap = focusedChap || subjChaps.find(c => c.completion < 100) || subjChaps[0];
+      if (mission && mission.chapterId) {
+        const mc = subjChaps.find(c => c.id === mission.chapterId);
+        if (mc) activeChap = mc;
+      }
 
       if (!activeChap) {
         return {
           name: subj === 'physics' ? 'Physics' : subj === 'chemistry' ? 'Chemistry' : 'Mathematics',
-          chapter: 'Syllabus Core',
-          lecture: 'Lecture 1: Introduction',
-          duration: '0h',
+          chapter: mission?.chapterName || mission?.chapter || 'Syllabus Core',
+          lecture: mission?.taskName || 'Lecture 1: Introduction',
+          duration: mission?.duration ? `${mission.duration}m remaining` : '0h',
           color: subj === 'physics' ? 'sky' : subj === 'chemistry' ? 'emerald' : 'purple',
           textClass: subj === 'physics' ? 'text-sky-400' : subj === 'chemistry' ? 'text-emerald-400' : 'text-indigo-400',
           bgGlow: subj === 'physics' ? 'bg-sky-500/10' : subj === 'chemistry' ? 'bg-emerald-500/10' : 'bg-indigo-500/10',
@@ -148,20 +169,19 @@ export function useMissionState(props: MissionModeProps) {
       }
 
       const nextLec = Math.min(activeChap.totalLectures, activeChap.currentLecture + 1);
-      const mission = todayMissions.find(m => m.subject === subj && !m.completed);
       let durationStr = '';
       if (mission && mission.duration) {
         durationStr = `${mission.duration}m remaining`;
       } else {
         const activeChapData = chaptersWithData.find(c => c.chapter.id === activeChap.id)?.data;
         const estTime = activeChapData ? Math.max(1, activeChapData.estimatedRemainingTime) : 5;
-        durationStr = `60m remaining`; 
+        durationStr = `${estTime}h remaining`;
       }
 
       return {
         name: subj === 'physics' ? 'Physics' : subj === 'chemistry' ? 'Chemistry' : 'Mathematics',
-        chapter: activeChap.name,
-        lecture: nextLec > 0 ? `Lecture ${nextLec}: Core Foundations` : `Lecture 1: Introduction`,
+        chapter: mission?.chapterName || mission?.chapter || activeChap.name,
+        lecture: mission?.taskName || (nextLec > 0 ? `Lecture ${nextLec}: Core Foundations` : `Lecture 1: Introduction`),
         duration: durationStr,
         color: subj === 'physics' ? 'sky' : subj === 'chemistry' ? 'emerald' : 'purple',
         textClass: subj === 'physics' ? 'text-sky-400' : subj === 'chemistry' ? 'text-emerald-400' : 'text-indigo-400',
@@ -175,14 +195,17 @@ export function useMissionState(props: MissionModeProps) {
       chemistry: getActiveChapterInfo('chemistry'),
       maths: getActiveChapterInfo('maths')
     };
-  }, [chapters, radarFocusedChapter, todayMissions, chaptersWithData]);
+  }, [chapters, radarFocusedChapter, todayMissions, chaptersWithData, activeMissionId]);
 
   const activeDetails = subjectsDetails[activeSubject];
 
-  const activeSubjectMission = useMemo(
-    () => todayMissions.find(m => m.subject.toLowerCase() === activeSubject.toLowerCase() && !m.completed),
-    [todayMissions, activeSubject]
-  );
+  const activeSubjectMission = useMemo(() => {
+    if (activeMissionId) {
+      const explicitMission = todayMissions.find(m => m.id === activeMissionId);
+      if (explicitMission) return explicitMission;
+    }
+    return todayMissions.find(m => m.subject.toLowerCase() === activeSubject.toLowerCase() && !m.completed);
+  }, [todayMissions, activeSubject, activeMissionId]);
 
   const activeChap = useMemo(() => {
     const subjChaps = chapters.filter(c => c.subject === activeSubject);
@@ -202,17 +225,25 @@ export function useMissionState(props: MissionModeProps) {
 
   const isPracticeMission = useMemo(() => {
     if (forcePracticeMode) return true;
-    const activeSubjMission = todayMissions.find(m => m.subject === activeSubject && !m.completed);
+    let activeSubjMission = todayMissions.find(m => m.subject === activeSubject && !m.completed);
+    if (activeMissionId) {
+      const explicitMission = todayMissions.find(m => m.id === activeMissionId);
+      if (explicitMission) activeSubjMission = explicitMission;
+    }
     if (!activeSubjMission) return false;
     const type = activeSubjMission.type.toLowerCase();
     return type.includes('practice') || type.includes('pyq') || type.includes('revision');
-  }, [todayMissions, activeSubject, forcePracticeMode]);
+  }, [todayMissions, activeSubject, forcePracticeMode, activeMissionId]);
 
   const sessionDurationSecs = useMemo(() => {
     if (customDurationSecs) return customDurationSecs + extraTimeAdded * 60;
-    const activeSubjMission = todayMissions.find(m => m.subject === activeSubject && !m.completed);
+    let activeSubjMission = todayMissions.find(m => m.subject === activeSubject && !m.completed);
+    if (activeMissionId) {
+      const explicitMission = todayMissions.find(m => m.id === activeMissionId);
+      if (explicitMission) activeSubjMission = explicitMission;
+    }
     return (activeSubjMission?.duration || 60) * 60 + extraTimeAdded * 60;
-  }, [customDurationSecs, todayMissions, activeSubject, extraTimeAdded]);
+  }, [customDurationSecs, todayMissions, activeSubject, extraTimeAdded, activeMissionId]);
 
   const timeProgressPercent = Math.min(100, (seconds / sessionDurationSecs) * 100);
 
@@ -466,9 +497,9 @@ export function useMissionState(props: MissionModeProps) {
     );
   }, [activeSubject, formulaSearch]);
 
-  const handleNextSubject = () => {
+  const handleNextSubject = async () => {
     if (activeSubjectMission?.id) {
-      actions.completeTask(activeSubjectMission.id);
+      await actions.completeTask(activeSubjectMission.id);
     } else {
       console.warn(`[MissionMode] "Next subject" pressed for ${activeSubject} but no matching mission was found — nothing was marked complete.`);
     }
@@ -506,30 +537,39 @@ export function useMissionState(props: MissionModeProps) {
     setIsSettingUp(true);
   };
 
-  const handleMissionComplete = () => {
+  const handleMissionComplete = async (data?: any) => {
     if (activeSubjectMission?.id) {
-      actions.completeTask(activeSubjectMission.id);
+      await actions.completeTask(activeSubjectMission.id);
     } else {
-      console.warn(`[MissionMode] Completion modal confirmed for ${activeSubject} but no matching mission was found — nothing was marked complete.`);
+      console.warn(`[MissionMode] Complete pressed for ${activeSubject} but no matching mission was found — nothing was marked complete in store.`);
     }
-    onComplete({
-      missionId: activeSubjectMission?.id,
-      duration: seconds,
-      questions: 15,
-      xp: activeChap ? Math.round(activeChap.completion / 5) + (xpWager > 0 ? Math.floor(xpWager * 2.5) : 10) : (activeSubjectMission?.xp || 200),
-      streak: 12, // this uses hardcoded 12 originally, sticking to behavior
-      idleTime,
-      focusInterruptions,
-      focusScore
-    });
+
+    if (onComplete) {
+      onComplete({
+        missionId: activeSubjectMission?.id,
+        duration: data?.duration ?? Math.max(60, seconds), // Ensure at least 60s
+        questions: data?.questions ?? 0, 
+        correct: data?.correct ?? 0,
+        confidence: data?.confidence ?? 3,
+        xp: data?.xp ?? Math.max(5, Math.floor(seconds / 60) * 5),
+        streak: 0,
+        idleTime: data?.idleTime ?? idleTime,
+        focusInterruptions: data?.focusInterruptions ?? focusInterruptions,
+        focusScore: data?.focusScore ?? focusScore
+      });
+    } else {
+      onExit(seconds);
+    }
   };
 
-  return {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  return useMemo(() => ({
     state: {
       activeSubject,
       isPaused,
       isPauseOverlayDismissed,
       isSettingUp,
+      targetQuestions,
       xpWager,
       missionFailed,
       isCompleted,
@@ -569,6 +609,7 @@ export function useMissionState(props: MissionModeProps) {
       setIsPaused,
       setIsPauseOverlayDismissed,
       setIsSettingUp,
+      setTargetQuestions,
       setXpWager,
       setMissionFailed,
       setIsCompleted,
@@ -607,5 +648,15 @@ export function useMissionState(props: MissionModeProps) {
     refs: {
       notesEndRef
     }
-  };
+  }), [
+    activeSubject, isPaused, isPauseOverlayDismissed, isSettingUp,
+    xpWager, missionFailed, isCompleted, seconds, focusScore, lectureSpeed,
+    idleTime, focusInterruptions, extraTimeAdded, isTimeUpModalOpen,
+    hasTriggeredTimeUp, isNotesOpen, isFormulaOpen, formulaSearch,
+    checklist, notes, noteInput, activeNoteCategory, coachTip,
+    isCoachVisible, showShortcuts, subjectsDetails, activeDetails,
+    activeSubjectMission, activeChap, isCompletedChapter, forcePracticeMode,
+    isPracticeMission, sessionDurationSecs, timeProgressPercent,
+    checklistProgressPercent, filteredFormulas, xp
+  ]);
 }

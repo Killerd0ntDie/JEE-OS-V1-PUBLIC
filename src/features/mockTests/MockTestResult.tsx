@@ -3,90 +3,9 @@ import { Target, Clock, Award, X, AlertTriangle, ArrowRight, CheckCircle2, XCirc
 import { useStudyBrainStore } from '../../store/useStudyBrainStore';
 import { MockTest, MockTestAttempt, MockQuestion, MockTestAttemptQuestion } from '../../types/mockTest';
 import { SubjectId } from '../../types/index';
-import { InlineMath, BlockMath } from 'react-katex';
+import { RichTextRenderer } from '@/components/MathRenderer';
 
-const renderMarkdownInline = (text: string) => {
-  if (!text) return null;
-  const parts = text.split(/(\*\*.*?\*\*|\*.*?\*)/g);
-  return parts.map((part, idx) => {
-    if (part.startsWith('**') && part.endsWith('**')) {
-      return <strong key={idx} className="font-bold text-white">{part.slice(2, -2)}</strong>;
-    }
-    if (part.startsWith('*') && part.endsWith('*')) {
-      return <em key={idx} className="italic text-zinc-200">{part.slice(1, -1)}</em>;
-    }
-    return <span key={idx}>{part}</span>;
-  });
-};
 
-const renderSafeMath = (mathStr: string) => {
-  try {
-    return <InlineMath math={mathStr} />;
-  } catch (err) {
-    return <span>{mathStr}</span>;
-  }
-};
-
-const renderSingleLine = (rawLine: string) => {
-  const line = rawLine.replace(/\\\$/g, '$');
-  if (line.includes('$')) {
-    const parts = line.split(/(\$\$.*?\$\$|\$.*?\$)/g);
-    return parts.map((part, i) => {
-      if (part.startsWith('$$') && part.endsWith('$$')) {
-        return <BlockMath key={i} math={part.slice(2, -2)} />;
-      }
-      if (part.startsWith('$') && part.endsWith('$')) {
-        return <InlineMath key={i} math={part.slice(1, -1)} />;
-      }
-      return <span key={i}>{renderMarkdownInline(part)}</span>;
-    });
-  }
-
-  const hasRawLatex = /\\[a-zA-Z]+|\{.*?\}/.test(line);
-
-  if (hasRawLatex) {
-    const matchHeader = line.match(/^(\d+\.\s*)?(\*\*.*?\*\*\:?|\*.*?\*\:?|[A-Za-z0-9\s\(\)]+\:)\s*(.*)/);
-
-    if (matchHeader) {
-      const numberPrefix = matchHeader[1] || '';
-      const headerPart = matchHeader[2] || '';
-      const mathBody = matchHeader[3] || '';
-
-      return (
-        <span className="flex flex-wrap items-baseline gap-1.5">
-          {numberPrefix && <span className="font-bold text-indigo-400">{numberPrefix}</span>}
-          {headerPart && renderMarkdownInline(headerPart)}
-          {mathBody && renderSafeMath(mathBody)}
-        </span>
-      );
-    } else {
-      return renderSafeMath(line);
-    }
-  }
-
-  return renderMarkdownInline(line);
-};
-
-const renderMathText = (text: string) => {
-  if (!text) return null;
-
-  const lines = text.split('\n');
-
-  return (
-    <div className="space-y-3">
-      {lines.map((line, lineIdx) => {
-        const trimmed = line.trim();
-        if (!trimmed) return null;
-
-        return (
-          <div key={lineIdx} className="leading-relaxed">
-            {renderSingleLine(trimmed)}
-          </div>
-        );
-      })}
-    </div>
-  );
-};
 
 interface MockTestResultProps {
   test: MockTest;
@@ -129,7 +48,11 @@ export function MockTestResult({ test, attempt, onClose, onNavigate }: MockTestR
         const isAnswered = a.status === 'Answered' || a.status === 'Answered & Marked for Review';
         
         if (isAnswered && a.selectedAnswer) {
-          if (a.selectedAnswer === q.correctAnswer) {
+          const isCorrectAnswer = q.type === 'NUMERICAL' 
+            ? parseFloat(a.selectedAnswer) === parseFloat(q.correctAnswer) 
+            : a.selectedAnswer.trim() === q.correctAnswer.trim();
+            
+          if (isCorrectAnswer) {
             totalScore += q.marks.correct;
             correct++;
             subjectStats[sec.subject].correct++;
@@ -155,15 +78,21 @@ export function MockTestResult({ test, attempt, onClose, onNavigate }: MockTestR
     const totalTimeSpent = (Object.values(attempt.questions) as any[]).reduce((acc, q) => acc + q.timeSpentSeconds, 0);
 
     // AI Autopsy Calculator (What-If Analysis)
-    // Assume all incorrect answers were "silly mistakes" that should have been correct
+    // What if the student had just left incorrect answers blank instead of guessing? (Eliminates negative marking)
     let whatIfScore = totalScore;
     test.sections.forEach(sec => {
       sec.questions.forEach(q => {
         const a = attempt.questions[q.id];
         const isAnswered = a.status === 'Answered' || a.status === 'Answered & Marked for Review';
-        if (isAnswered && a.selectedAnswer && a.selectedAnswer !== q.correctAnswer) {
-          // Refund the negative penalty and add the correct marks
-          whatIfScore += Math.abs(q.marks.incorrect) + q.marks.correct;
+        if (isAnswered && a.selectedAnswer) {
+          const isCorrectAnswer = q.type === 'NUMERICAL' 
+            ? parseFloat(a.selectedAnswer) === parseFloat(q.correctAnswer) 
+            : a.selectedAnswer.trim() === q.correctAnswer.trim();
+            
+          if (!isCorrectAnswer) {
+            // Refund the negative penalty only
+            whatIfScore += Math.abs(q.marks.incorrect);
+          }
         }
       });
     });
@@ -174,43 +103,7 @@ export function MockTestResult({ test, attempt, onClose, onNavigate }: MockTestR
     return { totalScore, correct, incorrect, unattempted, subjectStats, totalTimeSpent, incorrectQuestions, whatIfScore, actualRank, whatIfRank };
   }, [test, attempt]);
 
-  useEffect(() => {
-    if (!hasLoggedMistakes.current) {
-      hasLoggedMistakes.current = true;
-      
-      if (analysis.incorrectQuestions.length > 0) {
-        // Auto-log mistakes
-        analysis.incorrectQuestions.forEach(item => {
-          const { question, attempt } = item;
-          actions.addMistake({
-            subject: question.subject,
-            chapter: question.chapter,
-            topic: question.topic,
-            subtopic: 'Mock Test Error',
-            difficulty: question.difficulty,
-            source: `Mock Test: ${test.name}`,
-            timeTaken: Math.round(attempt.timeSpentSeconds / 60), // in minutes
-            correctMethod: question.explanation || 'Refer to solution',
-            studentMethod: `Selected answer: ${attempt.selectedAnswer}`,
-            mistakeTypes: ['Uncategorized Mock Error'],
-            confidence: 0,
-            revisionSchedule: 'Next Day',
-            masteryImpact: 'High',
-            attemptNumber: 1,
-            revisionStatus: 'New',
-            recoveryScore: 0,
-            teacherNotes: '',
-            personalNotes: '',
-            aiAdvice: '',
-            priority: 'Medium',
-            dateLogged: new Date().toISOString(),
-            questionText: question.content,
-            correctSolution: question.explanation || 'Refer to solution'
-          });
-        });
-      }
-    }
-  }, [analysis, actions, test]);
+
 
   const formatTime = (secs: number) => {
     const m = Math.floor(secs / 60);
@@ -260,7 +153,7 @@ export function MockTestResult({ test, attempt, onClose, onNavigate }: MockTestR
           
           {/* Actual Score & Rank */}
           <div className="flex-1 space-y-2">
-            <div className="text-zinc-500 text-xs font-mono font-bold uppercase tracking-wider">Actual Performance</div>
+            <div className="text-zinc-400 text-xs font-mono font-bold uppercase tracking-wider">Actual Performance</div>
             <div className="flex items-end gap-3">
               <div className="text-5xl font-display font-bold text-white">{analysis.totalScore} <span className="text-xl text-zinc-600">/ {test.totalMarks}</span></div>
             </div>
@@ -280,14 +173,14 @@ export function MockTestResult({ test, attempt, onClose, onNavigate }: MockTestR
                 <ArrowRight className="w-3 h-3 text-red-400" />
               </div>
             </div>
-            <div className="mt-3 text-xs font-mono text-zinc-500">
-              <span className="text-red-400 font-bold">-{analysis.whatIfScore - analysis.totalScore}</span> Marks Lost
+            <div className="mt-3 text-xs font-mono text-zinc-400">
+              <span className="text-red-400 font-bold">+{analysis.whatIfScore - analysis.totalScore}</span> Penalty Avoided
             </div>
           </div>
 
           {/* What-If Score & Rank */}
           <div className="flex-1 space-y-2 text-right">
-            <div className="text-zinc-500 text-xs font-mono font-bold uppercase tracking-wider flex justify-end items-center gap-2">
+            <div className="text-zinc-400 text-xs font-mono font-bold uppercase tracking-wider flex justify-end items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
               What-If Analysis
             </div>
@@ -317,14 +210,14 @@ export function MockTestResult({ test, attempt, onClose, onNavigate }: MockTestR
       <div className="grid grid-cols-3 gap-4">
         <div className="bg-[#121318] border border-zinc-800 rounded-2xl p-5 relative overflow-hidden group">
           <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-          <div className="text-zinc-500 text-xs font-mono font-bold uppercase tracking-wider mb-2">Accuracy</div>
+          <div className="text-zinc-400 text-xs font-mono font-bold uppercase tracking-wider mb-2">Accuracy</div>
           <div className="text-3xl font-display font-bold text-emerald-400">
             {analysis.correct + analysis.incorrect > 0 ? Math.round((analysis.correct / (analysis.correct + analysis.incorrect)) * 100) : 0}%
           </div>
         </div>
 
         <div className="bg-[#121318] border border-zinc-800 rounded-2xl p-5 relative overflow-hidden group">
-          <div className="text-zinc-500 text-xs font-mono font-bold uppercase tracking-wider mb-2">Questions Profile</div>
+          <div className="text-zinc-400 text-xs font-mono font-bold uppercase tracking-wider mb-2">Questions Profile</div>
           <div className="flex items-end gap-2">
             <span className="text-2xl font-display font-bold text-emerald-500">{analysis.correct}</span>
             <span className="text-2xl font-display font-bold text-rose-500">{analysis.incorrect}</span>
@@ -333,14 +226,14 @@ export function MockTestResult({ test, attempt, onClose, onNavigate }: MockTestR
         </div>
 
         <div className="bg-[#121318] border border-zinc-800 rounded-2xl p-5 relative overflow-hidden group">
-          <div className="text-zinc-500 text-xs font-mono font-bold uppercase tracking-wider mb-2">Time Taken</div>
+          <div className="text-zinc-400 text-xs font-mono font-bold uppercase tracking-wider mb-2">Time Taken</div>
           <div className="text-3xl font-display font-bold text-zinc-200 mt-1">{formatTime(analysis.totalTimeSpent)}</div>
         </div>
       </div>
 
       {/* Subject Breakdown */}
       <div className="space-y-4">
-        <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-500 font-mono">Subject Breakdown</h2>
+        <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-400 font-mono">Subject Breakdown</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {Object.entries(analysis.subjectStats).map(([subj, stats]: [string, any]) => (
             <div key={subj} className="bg-[#121318] border border-zinc-800 rounded-2xl p-5">
@@ -350,15 +243,15 @@ export function MockTestResult({ test, attempt, onClose, onNavigate }: MockTestR
               </h3>
               <div className="space-y-2 text-sm font-mono">
                 <div className="flex justify-between">
-                  <span className="text-zinc-500">Correct</span>
+                  <span className="text-zinc-400">Correct</span>
                   <span className="text-emerald-400 font-bold">{stats.correct}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-zinc-500">Incorrect</span>
+                  <span className="text-zinc-400">Incorrect</span>
                   <span className="text-rose-400 font-bold">{stats.incorrect}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-zinc-500">Unattempted</span>
+                  <span className="text-zinc-400">Unattempted</span>
                   <span className="text-zinc-600 font-bold">{stats.unattempted}</span>
                 </div>
               </div>
@@ -427,7 +320,11 @@ function QuestionAnalysisSection({ test, attempt }: { test: MockTest; attempt: M
 
         if (isAnswered && a.selectedAnswer) {
           isUnattempted = false;
-          if (a.selectedAnswer === q.correctAnswer) {
+          const isCorrectAnswer = q.type === 'NUMERICAL' 
+            ? parseFloat(a.selectedAnswer) === parseFloat(q.correctAnswer) 
+            : a.selectedAnswer.trim() === q.correctAnswer.trim();
+            
+          if (isCorrectAnswer) {
             isCorrect = true;
             statusLabel = 'Correct';
           } else {
@@ -452,15 +349,26 @@ function QuestionAnalysisSection({ test, attempt }: { test: MockTest; attempt: M
     return list;
   }, [test, attempt]);
 
+  const [visibleCount, setVisibleCount] = useState(10);
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setVisibleCount(10);
+  }, [questionFilter, subjectFilter]);
+
   const filteredQuestions = useMemo(() => {
-    return allQuestionsDetailed.filter(item => {
-      if (subjectFilter !== 'ALL' && item.sectionSubject !== subjectFilter) return false;
-      if (questionFilter === 'CORRECT' && !item.isCorrect) return false;
-      if (questionFilter === 'INCORRECT' && !item.isIncorrect) return false;
-      if (questionFilter === 'UNATTEMPTED' && !item.isUnattempted) return false;
+    return allQuestionsDetailed.filter(q => {
+      if (subjectFilter !== 'ALL' && q.sectionSubject !== subjectFilter) return false;
+      if (questionFilter === 'CORRECT') return q.isCorrect;
+      if (questionFilter === 'INCORRECT') return q.isIncorrect;
+      if (questionFilter === 'UNATTEMPTED') return q.isUnattempted;
       return true;
     });
-  }, [allQuestionsDetailed, subjectFilter, questionFilter]);
+  }, [allQuestionsDetailed, questionFilter, subjectFilter]);
+
+  const visibleQuestions = useMemo(() => {
+    return filteredQuestions.slice(0, visibleCount);
+  }, [filteredQuestions, visibleCount]);
 
   const toggleQuestionExpanded = (id: string) => {
     setExpandedQuestionIds(prev => ({ ...prev, [id]: !prev[id] }));
@@ -556,7 +464,7 @@ function QuestionAnalysisSection({ test, attempt }: { test: MockTest; attempt: M
 
         {/* Subject Filter Dropdown / Buttons */}
         <div className="flex items-center gap-2 border-t md:border-t-0 md:border-l border-zinc-800 pt-3 md:pt-0 md:pl-4">
-          <span className="text-xs font-mono text-zinc-500 uppercase tracking-wider">Subject:</span>
+          <span className="text-xs font-mono text-zinc-400 uppercase tracking-wider">Subject:</span>
           <div className="flex gap-1.5">
             {['ALL', ...test.sections.map(s => s.subject)].map(subj => (
               <button
@@ -565,7 +473,7 @@ function QuestionAnalysisSection({ test, attempt }: { test: MockTest; attempt: M
                 className={`px-2.5 py-1.5 rounded-lg text-xs font-bold font-mono uppercase transition-all ${
                   subjectFilter === subj
                     ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40'
-                    : 'bg-zinc-900 text-zinc-500 hover:text-zinc-300 border border-zinc-800'
+                    : 'bg-zinc-900 text-zinc-400 hover:text-zinc-300 border border-zinc-800'
                 }`}
               >
                 {subj}
@@ -579,7 +487,7 @@ function QuestionAnalysisSection({ test, attempt }: { test: MockTest; attempt: M
       <div className="space-y-4">
         {filteredQuestions.length === 0 ? (
           <div className="bg-[#121318] border border-zinc-800 rounded-2xl p-12 text-center">
-            <p className="text-zinc-500 font-mono text-sm">No questions match the selected filter criteria.</p>
+            <p className="text-zinc-400 font-mono text-sm">No questions match the selected filter criteria.</p>
           </div>
         ) : (
           filteredQuestions.map(({ question: q, attempt: a, isCorrect, isIncorrect, isUnattempted, statusLabel, sectionSubject, globalIndex }) => {
@@ -616,7 +524,7 @@ function QuestionAnalysisSection({ test, attempt }: { test: MockTest; attempt: M
                       </span>
                     )}
 
-                    <span className="text-xs font-mono text-zinc-500">
+                    <span className="text-xs font-mono text-zinc-400">
                       {q.type} • {q.difficulty}
                     </span>
                   </div>
@@ -643,12 +551,12 @@ function QuestionAnalysisSection({ test, attempt }: { test: MockTest; attempt: M
                       )}
                     </div>
 
-                    <span className="text-xs font-mono text-zinc-500 flex items-center gap-1">
+                    <span className="text-xs font-mono text-zinc-400 flex items-center gap-1">
                       <Clock className="w-3.5 h-3.5" />
                       {a.timeSpentSeconds || 0}s
                     </span>
 
-                    <div className="text-zinc-500 hover:text-white transition-colors">
+                    <div className="text-zinc-400 hover:text-white transition-colors">
                       {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
                     </div>
                   </div>
@@ -659,7 +567,7 @@ function QuestionAnalysisSection({ test, attempt }: { test: MockTest; attempt: M
                   <div className="p-5 md:p-6 border-t border-zinc-800/80 bg-zinc-950/40 space-y-6">
                     {/* Question Text */}
                     <div className="text-base text-zinc-200 leading-relaxed font-sans">
-                      {renderMathText(q.content)}
+                      <RichTextRenderer content={q.content} />
                     </div>
 
                     {/* Options or Numerical Output */}
@@ -667,8 +575,8 @@ function QuestionAnalysisSection({ test, attempt }: { test: MockTest; attempt: M
                       <div className="space-y-3 max-w-2xl">
                         {q.options.map((optText, optIdx) => {
                           const optIndexStr = optIdx.toString();
-                          const isUserSelected = a.selectedAnswer === optIndexStr;
-                          const isOfficialCorrect = q.correctAnswer === optIndexStr;
+                          const isUserSelected = a.selectedAnswer?.trim() === optIndexStr;
+                          const isOfficialCorrect = q.correctAnswer?.trim() === optIndexStr;
 
                           let optStyle = "bg-[#121318] border-zinc-800 text-zinc-400";
                           let badge = null;
@@ -698,7 +606,7 @@ function QuestionAnalysisSection({ test, attempt }: { test: MockTest; attempt: M
                               }`}>
                                 {optionLetters[optIdx]}
                               </span>
-                              <span className="flex-1">{renderMathText(optText)}</span>
+                              <span className="flex-1"><RichTextRenderer content={optText} /></span>
                               {badge}
                             </div>
                           );
@@ -709,13 +617,13 @@ function QuestionAnalysisSection({ test, attempt }: { test: MockTest; attempt: M
                     {q.type === 'NUMERICAL' && (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl">
                         <div className={`p-4 rounded-xl border ${isCorrect ? 'bg-emerald-500/10 border-emerald-500/40' : isIncorrect ? 'bg-rose-500/10 border-rose-500/40' : 'bg-zinc-900 border-zinc-800'}`}>
-                          <span className="text-xs font-mono text-zinc-500 block mb-1">Your Entered Response</span>
+                          <span className="text-xs font-mono text-zinc-400 block mb-1">Your Entered Response</span>
                           <span className={`text-lg font-mono font-bold ${isCorrect ? 'text-emerald-400' : isIncorrect ? 'text-rose-400' : 'text-zinc-400'}`}>
                             {a.selectedAnswer || 'Not Entered'}
                           </span>
                         </div>
                         <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/40">
-                          <span className="text-xs font-mono text-zinc-500 block mb-1">Official Correct Answer</span>
+                          <span className="text-xs font-mono text-zinc-400 block mb-1">Official Correct Answer</span>
                           <span className="text-lg font-mono font-bold text-emerald-400">
                             {q.correctAnswer}
                           </span>
@@ -731,7 +639,7 @@ function QuestionAnalysisSection({ test, attempt }: { test: MockTest; attempt: M
                           Step-by-Step Solution & Explanation
                         </div>
                         <div className="text-sm text-zinc-300 leading-relaxed font-sans pt-1">
-                          {renderMathText(q.explanation)}
+                          <RichTextRenderer content={q.explanation} />
                         </div>
                       </div>
                     )}
@@ -742,6 +650,17 @@ function QuestionAnalysisSection({ test, attempt }: { test: MockTest; attempt: M
           })
         )}
       </div>
+      
+      {visibleCount < filteredQuestions.length && (
+        <div className="flex justify-center mt-6">
+          <button
+            onClick={() => setVisibleCount(v => v + 15)}
+            className="px-6 py-3 bg-zinc-900 border border-zinc-700 text-zinc-300 rounded-xl hover:bg-zinc-800 transition-colors font-mono text-sm font-bold shadow-sm"
+          >
+            Load More Questions ({filteredQuestions.length - visibleCount} remaining)
+          </button>
+        </div>
+      )}
     </div>
   );
 }

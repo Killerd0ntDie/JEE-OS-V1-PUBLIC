@@ -21,11 +21,27 @@ export interface LevelCalculationResult {
  * Level 41-50: 2000 XP per level
  * Level 51+: 2500 XP per level
  */
+function getXpRequiredForLevel(level: number): number {
+  let xp = 0;
+  for (let i = 1; i < level; i++) {
+    if (i < 11) xp += 500;
+    else if (i < 21) xp += 750;
+    else if (i < 31) xp += 1000;
+    else if (i < 41) xp += 1500;
+    else if (i < 51) xp += 2000;
+    else xp += 2500;
+  }
+  return xp;
+}
+
 export function calculateLevelFromXP(totalXP: number): LevelCalculationResult {
-  const level = Math.floor(Math.sqrt(totalXP / 100)) + 1;
-  const xpForCurrentLevel = 100 * Math.pow(level - 1, 2);
-  const xpForNextLevel = 100 * Math.pow(level, 2);
+  let level = 1;
+  while (getXpRequiredForLevel(level + 1) <= totalXP) {
+    level++;
+  }
   
+  const xpForCurrentLevel = getXpRequiredForLevel(level);
+  const xpForNextLevel = getXpRequiredForLevel(level + 1);
   const currentLevelXP = totalXP - xpForCurrentLevel;
   const requiredForNextLevel = xpForNextLevel - xpForCurrentLevel;
   const progressPercent = Math.min(100, Math.max(0, (currentLevelXP / requiredForNextLevel) * 100));

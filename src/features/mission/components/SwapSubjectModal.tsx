@@ -93,7 +93,7 @@ export const SwapSubjectModal: React.FC<SwapSubjectModalProps> = ({
 
   return (
     <>
-    <Modal isOpen={isOpen} onClose={onClose} className="relative bg-[#09090b] border border-zinc-800 rounded-3xl max-w-lg w-full p-6 shadow-2xl z-50 text-left space-y-5">
+    <Modal isOpen={isOpen} onClose={onClose} zIndex={10000} className="relative bg-[#09090b] border border-zinc-800 rounded-3xl max-w-lg w-full p-6 shadow-2xl z-50 text-left space-y-5">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
             <div>
@@ -115,7 +115,7 @@ export const SwapSubjectModal: React.FC<SwapSubjectModalProps> = ({
 
           {/* Current Mission Info */}
           <div className="p-3.5 rounded-2xl bg-zinc-900/60 border border-zinc-800 text-xs font-mono space-y-1">
-            <span className="text-zinc-500 uppercase block text-[9px]">Currently Scheduled Task</span>
+            <span className="text-zinc-400 uppercase block text-[11px]">Currently Scheduled Task</span>
             <div className="font-bold text-white flex items-center justify-between">
               <span>{mission.taskName}</span>
               <span className="text-indigo-400 uppercase px-2 py-0.5 rounded bg-indigo-950/60 border border-indigo-800/60">
@@ -154,7 +154,7 @@ export const SwapSubjectModal: React.FC<SwapSubjectModalProps> = ({
           <div className="space-y-2">
             <label className="text-xs font-mono font-bold text-zinc-300 uppercase tracking-wider flex items-center justify-between">
               <span>Select Replacement Chapter</span>
-              <span className="text-zinc-500 font-normal text-[10px]">{subjectChapters.length} chapters available</span>
+              <span className="text-zinc-400 font-normal text-[10px]">{subjectChapters.length} chapters available</span>
             </label>
 
             <div className="max-h-56 overflow-y-auto space-y-1.5 pr-1 scrollbar">
@@ -175,14 +175,14 @@ export const SwapSubjectModal: React.FC<SwapSubjectModalProps> = ({
                       <div className="font-bold flex items-center gap-2">
                         <span>{chap.name}</span>
                         {isOnHold && (
-                          <span className="text-[9px] px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold uppercase">
+                          <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold uppercase">
                             {chap.chapterOnHold ? 'CHAPTER HOLD' : 'ON HOLD'}
                           </span>
                         )}
                       </div>
-                      <span className="text-[10px] text-zinc-500">{chap.unit || 'Core Module'} • {chap.completion}% Done</span>
+                      <span className="text-[10px] text-zinc-400">{chap.unit || 'Core Module'} • {chap.completion}% Done</span>
                     </div>
-                    <ArrowRightLeft className="w-4 h-4 text-zinc-500 hover:text-indigo-400" />
+                    <ArrowRightLeft className="w-4 h-4 text-zinc-400 hover:text-indigo-400" />
                   </button>
                 );
               })}

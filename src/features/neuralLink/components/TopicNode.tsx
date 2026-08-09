@@ -33,7 +33,7 @@ export const TopicNode = ({ data }: { data: any }) => {
   } else if (isInProgress) {
     stateClass = `bg-zinc-900 border-dashed border-2 ${colorClass.split(' ')[2]}`;
   } else {
-    stateClass = 'bg-zinc-950/80 border border-zinc-800 text-zinc-500';
+    stateClass = 'bg-zinc-950/80 border border-zinc-800 text-zinc-400';
   }
 
   return (
@@ -46,7 +46,7 @@ export const TopicNode = ({ data }: { data: any }) => {
       
       <div className="flex flex-col gap-2 relative z-10">
         <div className="flex items-center justify-between">
-          <span className="text-[9px] font-mono uppercase tracking-widest opacity-80">
+          <span className="text-[11px] font-mono uppercase tracking-widest opacity-80">
             {data.subject}
           </span>
           {isMastered && <CheckCircle2 className="w-3.5 h-3.5 opacity-80" />}

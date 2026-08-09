@@ -98,7 +98,7 @@ export function AddCustomChapterModal({ isOpen, onClose, defaultSubject, default
             <button
               type="button"
               onClick={onClose}
-              className="text-zinc-500 hover:text-white cursor-pointer p-1 rounded-lg hover:bg-zinc-800 transition-colors"
+              className="text-zinc-400 hover:text-white cursor-pointer p-1 rounded-lg hover:bg-zinc-800 transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
@@ -110,7 +110,7 @@ export function AddCustomChapterModal({ isOpen, onClose, defaultSubject, default
 
           <form onSubmit={handleSubmit} className="space-y-3 font-mono">
             <div>
-              <label className="text-[10px] text-zinc-500 block mb-1 uppercase font-bold tracking-wide">Chapter Name</label>
+              <label className="text-[10px] text-zinc-400 block mb-1 uppercase font-bold tracking-wide">Chapter Name</label>
               <input
                 type="text"
                 value={name}
@@ -123,7 +123,7 @@ export function AddCustomChapterModal({ isOpen, onClose, defaultSubject, default
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-[10px] text-zinc-500 block mb-1 uppercase font-bold tracking-wide">Subject</label>
+                <label className="text-[10px] text-zinc-400 block mb-1 uppercase font-bold tracking-wide">Subject</label>
                 <select
                   value={subject}
                   onChange={(e) => setSubject(e.target.value as SubjectId)}
@@ -135,7 +135,7 @@ export function AddCustomChapterModal({ isOpen, onClose, defaultSubject, default
                 </select>
               </div>
               <div>
-                <label className="text-[10px] text-zinc-500 block mb-1 uppercase font-bold tracking-wide">Difficulty</label>
+                <label className="text-[10px] text-zinc-400 block mb-1 uppercase font-bold tracking-wide">Difficulty</label>
                 <select
                   value={difficulty}
                   onChange={(e) => setDifficulty(e.target.value as 'Easy' | 'Medium' | 'Hard')}
@@ -149,7 +149,7 @@ export function AddCustomChapterModal({ isOpen, onClose, defaultSubject, default
             </div>
 
             <div>
-              <label className="text-[10px] text-zinc-500 block mb-1 uppercase font-bold tracking-wide">Unit</label>
+              <label className="text-[10px] text-zinc-400 block mb-1 uppercase font-bold tracking-wide">Unit</label>
               <input
                 type="text"
                 value={unit}
@@ -160,7 +160,7 @@ export function AddCustomChapterModal({ isOpen, onClose, defaultSubject, default
             </div>
 
             <div>
-              <label className="text-[10px] text-zinc-500 block mb-1 uppercase font-bold tracking-wide">Serial Number *</label>
+              <label className="text-[10px] text-zinc-400 block mb-1 uppercase font-bold tracking-wide">Serial Number *</label>
               <input
                 type="number"
                 value={serialNumber}
@@ -169,11 +169,11 @@ export function AddCustomChapterModal({ isOpen, onClose, defaultSubject, default
                 className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500"
                 required
               />
-              <p className="text-[9px] text-zinc-500 mt-1">Enter a number (will be prefixed with CH, e.g., 02 → CH02)</p>
+              <p className="text-[11px] text-zinc-400 mt-1">Enter a number (will be prefixed with CH, e.g., 02 → CH02)</p>
             </div>
 
             <div>
-              <label className="text-[10px] text-zinc-500 block mb-1 uppercase font-bold tracking-wide">
+              <label className="text-[10px] text-zinc-400 block mb-1 uppercase font-bold tracking-wide">
                 Estimated Lectures: <span className="text-indigo-400">{totalLectures}</span>
               </label>
               <input

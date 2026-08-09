@@ -119,7 +119,7 @@ export function MistakesPage() {
               <Icon name="CheckCircle" className="w-6 h-6" />
             </div>
             <h4 className="text-sm font-display font-bold text-white">No Mistakes Found</h4>
-            <p className="text-xs text-zinc-500 max-w-sm mx-auto">
+            <p className="text-xs text-zinc-400 max-w-sm mx-auto">
               No logged errors match the selected filters. Click 'Log New Mistake' to record a new problem.
             </p>
           </div>

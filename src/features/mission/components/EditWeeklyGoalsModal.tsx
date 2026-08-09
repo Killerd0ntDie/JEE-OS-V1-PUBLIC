@@ -69,7 +69,7 @@ export function EditWeeklyGoalsModal({ initialGoals, onClose, onSave }: EditWeek
           <button 
             onClick={onClose} 
             aria-label="Close modal"
-            className="p-2 hover:bg-zinc-900 rounded-full text-zinc-500 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
+            className="p-2 hover:bg-zinc-900 rounded-full text-zinc-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
           >
             <X className="w-5 h-5" aria-hidden="true" />
           </button>
@@ -93,7 +93,7 @@ export function EditWeeklyGoalsModal({ initialGoals, onClose, onSave }: EditWeek
               
               <div className="space-y-3">
                 <div>
-                  <label htmlFor={`goal-title-${i}`} className="text-[10px] font-mono text-zinc-500 uppercase font-bold tracking-widest mb-1.5 block">Milestone Title</label>
+                  <label htmlFor={`goal-title-${i}`} className="text-[10px] font-mono text-zinc-400 uppercase font-bold tracking-widest mb-1.5 block">Milestone Title</label>
                   <input
                     id={`goal-title-${i}`}
                     type="text"
@@ -104,7 +104,7 @@ export function EditWeeklyGoalsModal({ initialGoals, onClose, onSave }: EditWeek
                   />
                 </div>
                 <div>
-                  <label htmlFor={`goal-focus-${i}`} className="text-[10px] font-mono text-zinc-500 uppercase font-bold tracking-widest mb-1.5 block">Focus & Tasks</label>
+                  <label htmlFor={`goal-focus-${i}`} className="text-[10px] font-mono text-zinc-400 uppercase font-bold tracking-widest mb-1.5 block">Focus & Tasks</label>
                   <textarea
                     id={`goal-focus-${i}`}
                     value={goal.focus}

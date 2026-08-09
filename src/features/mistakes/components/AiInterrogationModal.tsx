@@ -54,7 +54,7 @@ export const AiInterrogationModal: React.FC<AiInterrogationModalProps> = ({
             {!exorcised && (
               <button 
                 onClick={handleClose}
-                className="text-[10px] font-mono text-zinc-500 hover:text-white uppercase tracking-wider transition-colors"
+                className="text-[10px] font-mono text-zinc-400 hover:text-white uppercase tracking-wider transition-colors"
               >
                 Flee Room
               </button>

@@ -55,8 +55,8 @@ describe('StudyBrainActions - Write Failure & Sync Error Handling', () => {
       revisionQueue: [],
       todayMissions: [],
       customMissions: [],
-      dashboardSummary: {},
-      completionPrediction: {},
+      dashboardSummary: null,
+      completionPrediction: null,
       subjectPriorities: [],
       syllabusProgress: {
         physics: { total: 0, completed: 0, percentage: 0 },

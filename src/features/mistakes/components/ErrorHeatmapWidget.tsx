@@ -42,13 +42,13 @@ export function ErrorHeatmapWidget({
             Top Error Root-Cause Heatmap
           </h3>
         </div>
-        <span className="text-[10px] font-mono text-zinc-500">
+        <span className="text-[10px] font-mono text-zinc-400">
           Categorized by Tag Type
         </span>
       </div>
 
       {causeStats.sorted.length === 0 ? (
-        <p className="text-xs text-zinc-500 font-mono py-2 text-center">
+        <p className="text-xs text-zinc-400 font-mono py-2 text-center">
           No categorized mistakes logged yet. Click 'Log New Mistake' to tag your errors.
         </p>
       ) : (
@@ -66,7 +66,7 @@ export function ErrorHeatmapWidget({
                 }`}
               >
                 <span className="truncate block font-semibold">{cat}</span>
-                <div className="flex items-center justify-between mt-1 text-[9px] text-zinc-400">
+                <div className="flex items-center justify-between mt-1 text-[11px] text-zinc-400">
                   <span className="font-bold text-indigo-400">{count} errors</span>
                   <span>{pct}%</span>
                 </div>

@@ -6,12 +6,13 @@ function sanitizeForFirestore(obj: any): any {
   if (obj === null || obj === undefined) return null;
   if (typeof obj === 'number' && Number.isNaN(obj)) return 0;
   if (Array.isArray(obj)) {
-    if (obj.some(item => Array.isArray(item))) {
-      const cleanedObj: Record<string, any> = {};
-      obj.forEach((item, idx) => {
-        cleanedObj[String(idx)] = sanitizeForFirestore(item);
+    const hasNestedArray = obj.some(item => Array.isArray(item));
+    if (hasNestedArray) {
+      const objRepresentation: Record<string, any> = {};
+      obj.forEach((item, index) => {
+        objRepresentation[index.toString()] = sanitizeForFirestore(item);
       });
-      return cleanedObj;
+      return objRepresentation;
     }
     return obj.map(sanitizeForFirestore);
   }

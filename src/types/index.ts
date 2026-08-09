@@ -2,7 +2,7 @@ export type PageId =
   | 'dashboard'
   | 'physics'
   | 'chemistry'
-  | 'mathematics'
+  | 'maths'
   | 'planner'
   | 'focus-vault'
   | 'revision'
@@ -49,7 +49,7 @@ export const PAGES: PageDefinition[] = [
     badge: '22 Ch',
   },
   {
-    id: 'mathematics',
+    id: 'maths',
     label: 'Mathematics',
     icon: 'Binary',
     description: 'Calculus, Algebra, Coordinate Geometry, and Vectors practice vaults and theorem boards.',
@@ -110,7 +110,7 @@ export const PAGES: PageDefinition[] = [
     icon: 'Sparkles',
     description: 'Converse with your dedicated JEE strategist for study planning and motivation.',
     category: 'intelligence',
-    badge: 'GPT-4',
+    badge: 'Gemini 1.5 Flash',
     badgeStyle: 'accent',
   },
   {
@@ -268,9 +268,14 @@ export interface TodayMission {
   chapter: string;
   chapterId?: string;
   chapterName?: string;
-  type: 'Watch Lecture' | 'Solve DPP' | 'Solve PYQs' | 'Revise Formulas' | 'Review Mistakes';
+  type: 'Watch Lecture' | 'Solve DPP' | 'Solve PYQs' | 'Revise Formulas' | 'Review Mistakes' | 'Break';
   taskName: string;
   duration: number;         // in minutes
+  date?: string;            // scheduled YYYY-MM-DD date
+  scheduledDate?: string;   // ISO YYYY-MM-DD date
+  scheduledTime?: string;   // HH:MM start time e.g. '07:00'
+  timeSlot?: string;        // timeSlot e.g. 'Morning (07:00 - 09:30)'
+  isManualOverride?: boolean;
   completed: boolean;
   xp: number;
   unlocked: boolean;
@@ -294,9 +299,10 @@ export interface TodayMission {
     rankingRationale: string;
     longTermImpact: string;
     postponeRisk: string;
-    estimatedStudyTimeMinutes: number;
-    confidenceLevel: 'Very High' | 'High' | 'Medium';
-    confidenceScorePercent: number;
+    targetAccuracy?: string;
+    estimatedStudyTimeMinutes?: number;
+    confidenceLevel?: 'Very High' | 'High' | 'Medium';
+    confidenceScorePercent?: number;
     factorsBreakdown?: Record<string, number>;
   };
 
@@ -631,6 +637,7 @@ export interface UserProfile {
     focus: string;
     status: 'Completed' | 'Active' | 'Upcoming';
   }[];
+  deletedMissionIds?: string[];
   settings: {
     targetYear: string;
     dreamIit: string;
@@ -644,5 +651,10 @@ export interface UserProfile {
     migratedToPristine?: boolean;
     revisionSettings?: RevisionSettings;
     enableGodMode?: boolean;
+    enableHardBedtimeCap?: boolean;
+    dayStartTime?: string;
+    dayEndTime?: string;
+    minStreakHours?: number;
+    enablePomodoroCasino?: boolean;
   };
 }

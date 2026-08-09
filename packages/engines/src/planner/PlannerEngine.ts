@@ -413,7 +413,7 @@ export class PlannerEngine {
         completion: rawProg.masteryScore || 0,
         currentLecture: rawProg.currentLecture || 0,
         totalLectures: rawProg.totalLectures || node.lectureCount || 12,
-        avgLectureDuration: rawProg.avgLectureDuration || rawProg.lectureProgress?.avgLectureDurationMinutes || 60,
+        avgLectureDuration: rawProg.avgLectureDuration || rawProg.lectureProgress?.avgLectureDurationMinutes || rawProg.estimatedDuration || undefined,
         theoryComplete: rawProg.theoryComplete || false,
         dppComplete: rawProg.dppComplete || false,
         pyqsComplete: rawProg.pyqsComplete || false,
@@ -422,6 +422,7 @@ export class PlannerEngine {
 
       if (!prog.theoryComplete) {
         const remainingLectures = Math.min(5, Math.max(1, (prog.totalLectures || 12) - prog.currentLecture));
+        // Use exact telemetry duration, falling back to 75 if completely missing, capped at 120
         const lecDuration = Math.min(prog.avgLectureDuration || 75, 120);
 
         for (let l = 0; l < remainingLectures; l++) {
@@ -887,6 +888,9 @@ export interface WeeklyBlock {
     postponeRisk: string;
     targetAccuracy: string;
   };
+  isManualOverride?: boolean;
+  scheduledDate?: string;
+  scheduledTime?: string;
 }
 
 const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -897,7 +901,11 @@ export function generateWeeklyMatrix(
   todayMissions: any[] | null = null,
   plannerWeekly: any[] | null = null,
   currentDayIndex: number = 0,
-  twoDaySplitConfig?: [SubjectId[], SubjectId[], SubjectId[]]
+  twoDaySplitConfig?: [SubjectId[], SubjectId[], SubjectId[]],
+  deletedMissionIds: string[] = [],
+  scheduleOverrides: Record<string, { dayIndex?: number; timeSlot?: string; scheduledDate?: string; scheduledTime?: string }> = {},
+  dayStartTime: string = "07:00",
+  dayEndTime: string = "22:30"
 ): WeeklyBlock[] {
   // Only schedule chapters the user has explicitly started and that are NOT on hold.
   // NEVER auto-schedule unstarted chapters.
@@ -911,27 +919,124 @@ export function generateWeeklyMatrix(
     return null;
   };
 
-  const blocks: WeeklyBlock[] = [];
+  let blocks: WeeklyBlock[] = [];
   let idCounter = 1;
 
   daysOfWeek.forEach((dayName, dayIndex) => {
     const isToday = dayIndex === currentDayIndex;
 
     if (isToday && todayMissions && todayMissions.length > 0) {
+      let currentHour = parseInt(dayStartTime.split(':')[0]) || 7;
+      let currentMinute = parseInt(dayStartTime.split(':')[1]) || 0;
+      let endHour = parseInt(dayEndTime.split(':')[0]) || 22;
+      let endMinute = parseInt(dayEndTime.split(':')[1]) || 30;
+      let endMinsTotal = endHour * 60 + endMinute;
+
+      let pushToTomorrow = false;
+
       todayMissions.forEach((m, mIdx) => {
         const chap = chapters.find(c => c.name.toLowerCase() === (m.chapter || '').toLowerCase());
+        
+        let pendingBreakBlock: any = null;
+        let timeSlot = m.timeSlot;
+        let duration = m.duration || 60;
+
+        // Force cascade for uncompleted, non-manual missions to prevent stale time slot clashes
+        if (!m.completed && !m.isManualOverride) {
+          timeSlot = null;
+        }
+        
+        if (!timeSlot || timeSlot.includes('Morning') || timeSlot.includes('Afternoon') || timeSlot.includes('Evening') || timeSlot.includes('Night')) {
+          let startMins = currentHour * 60 + currentMinute;
+          let newEndMins = startMins + duration;
+
+          if (newEndMins > endMinsTotal) {
+            pushToTomorrow = true;
+            // Next day starts at dayStartTime
+            currentHour = parseInt(dayStartTime.split(':')[0]) || 7;
+            currentMinute = parseInt(dayStartTime.split(':')[1]) || 0;
+            startMins = currentHour * 60 + currentMinute;
+            newEndMins = startMins + duration;
+          }
+
+          const startStr = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
+          
+          currentMinute += duration;
+          while (currentMinute >= 60) {
+            currentHour += 1;
+            currentMinute -= 60;
+          }
+          const endStr = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
+          timeSlot = `${startStr} - ${endStr}`;
+          
+          // Prepare 15 min break after if not overflowing
+          if (!pushToTomorrow) {
+            const breakStartStr = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
+            currentMinute += 15;
+            let tempHour = currentHour;
+            let tempMinute = currentMinute;
+            while (tempMinute >= 60) {
+              tempHour += 1;
+              tempMinute -= 60;
+            }
+            const breakEndStr = `${tempHour.toString().padStart(2, '0')}:${tempMinute.toString().padStart(2, '0')}`;
+            
+            pendingBreakBlock = {
+              id: `today-break-${m.id}`,
+              dayIndex: dayIndex,
+              dayName: dayName,
+              timeSlot: `${breakStartStr} - ${breakEndStr}`,
+              subject: 'break',
+              chapterId: 'break',
+              chapterName: 'Recharge',
+              unit: 'Break',
+              activity: '☕ 15m Break',
+              taskType: 'Break' as any,
+              durationMinutes: 15,
+              completed: false,
+              priorityScore: 0,
+              reasoning: {
+                whySelected: 'Pacing out your study blocks reduces cognitive fatigue and maximizes retention.',
+                dependentChapters: [],
+                rankingRationale: 'Scheduled rest interval.',
+                longTermImpact: 'Maintains stamina over long sessions.',
+                postponeRisk: 'Burnout risk increases.',
+                targetAccuracy: 'N/A'
+              }
+            };
+
+            currentHour = tempHour;
+            currentMinute = tempMinute;
+          }
+        } else {
+          // Time slot was preserved. We MUST update currentHour and currentMinute to the end of this slot
+          // so that subsequent tasks don't get scheduled on top of it (causing clashes).
+          const match = timeSlot.match(/- (\d{1,2}):(\d{2})/);
+          if (match) {
+            currentHour = parseInt(match[1], 10);
+            currentMinute = parseInt(match[2], 10);
+            
+            // Also add a 15-minute break offset logically, so the next un-timeslotted task starts after a break
+            currentMinute += 15;
+            while (currentMinute >= 60) {
+              currentHour += 1;
+              currentMinute -= 60;
+            }
+          }
+        }
+
         blocks.push({
           id: `today-${m.id}`,
-          dayIndex,
-          dayName,
-          timeSlot: mIdx === 0 ? 'Morning (07:00 - 09:30)' : mIdx === 1 ? 'Afternoon (14:00 - 16:00)' : mIdx === 2 ? 'Evening (17:30 - 19:30)' : 'Night (21:30 - 22:30)',
+          dayIndex: pushToTomorrow ? (dayIndex + 1) % 7 : dayIndex,
+          dayName: pushToTomorrow ? daysOfWeek[(dayIndex + 1) % 7] : dayName,
+          timeSlot: timeSlot,
           subject: m.subject || 'physics',
           chapterId: chap?.id || 'p1',
           chapterName: m.chapter || m.taskName,
           unit: chap?.unit || 'Core Module',
           activity: m.taskName,
           taskType: (m.type as any) || 'Solve PYQs',
-          durationMinutes: m.duration || 60,
+          durationMinutes: duration,
           completed: m.completed,
           priorityScore: m.priorityScore || 94,
           reasoning: {
@@ -943,6 +1048,10 @@ export function generateWeeklyMatrix(
             targetAccuracy: `${m.confidenceGainPercent || 85}% Target Benchmark`
           }
         });
+
+        if (pendingBreakBlock) {
+          blocks.push(pendingBreakBlock);
+        }
       });
     } else if (plannerWeekly && plannerWeekly[dayIndex] && plannerWeekly[dayIndex].length > 0) {
       plannerWeekly[dayIndex].forEach((t: any, tIdx: number) => {
@@ -1301,6 +1410,27 @@ export function generateWeeklyMatrix(
       }
     }
   });
+
+  // Apply deleted filters and schedule overrides
+  blocks = blocks.filter(b => !deletedMissionIds.includes(b.id) && !deletedMissionIds.includes(b.id.replace('today-', '')));
+
+  if (scheduleOverrides && Object.keys(scheduleOverrides).length > 0) {
+    blocks = blocks.map(b => {
+      const override = scheduleOverrides[b.id] || scheduleOverrides[b.id.replace('today-', '')] || scheduleOverrides[b.id.replace('plan-', '')];
+      if (override) {
+        return {
+          ...b,
+          dayIndex: override.dayIndex !== undefined ? override.dayIndex : b.dayIndex,
+          dayName: override.dayIndex !== undefined ? daysOfWeek[override.dayIndex] : b.dayName,
+          timeSlot: override.timeSlot || b.timeSlot,
+          scheduledDate: override.scheduledDate,
+          scheduledTime: override.scheduledTime,
+          isManualOverride: true
+        };
+      }
+      return b;
+    });
+  }
 
   return blocks;
 }

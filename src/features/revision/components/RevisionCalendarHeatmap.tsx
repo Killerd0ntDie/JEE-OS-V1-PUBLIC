@@ -33,7 +33,7 @@ export function RevisionCalendarHeatmap({ sessions }: RevisionCalendarHeatmapPro
             30-Day Spaced Revision Heatmap
           </h4>
         </div>
-        <span className="text-[10px] font-mono text-zinc-500">
+        <span className="text-[10px] font-mono text-zinc-400">
           Last 30 Days Activity
         </span>
       </div>
@@ -57,7 +57,7 @@ export function RevisionCalendarHeatmap({ sessions }: RevisionCalendarHeatmapPro
         })}
       </div>
 
-      <div className="flex justify-between items-center text-[9px] font-mono text-zinc-500 pt-1 border-t border-zinc-900">
+      <div className="flex justify-between items-center text-[11px] font-mono text-zinc-400 pt-1 border-t border-zinc-900">
         <span>Less Consistent</span>
         <div className="flex items-center gap-1">
           <span className="w-2.5 h-2.5 rounded bg-zinc-900 border border-zinc-850" />
