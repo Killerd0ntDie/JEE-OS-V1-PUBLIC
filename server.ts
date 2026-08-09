@@ -177,7 +177,7 @@ Valid Action examples (as payload):
       }
 
       const response = await ai.models.generateContent({
-        model: 'gemini-1.5-flash',
+        model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
           responseMimeType: "application/json",
@@ -221,7 +221,7 @@ Valid Action examples (as payload):
       res.json({ analysis, actions });
     } catch (error: any) {
       console.error("Coach API error:", error);
-      res.status(500).json({ error: "Internal server error during analysis." });
+      res.status(500).json({ error: "Internal server error during analysis: " + error.message });
     }
   });
 
@@ -292,7 +292,7 @@ Valid Action examples (as payload):
       }
       
       const response = await ai.models.generateContent({
-        model: 'gemini-1.5-flash',
+        model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
             responseMimeType: "application/json",
@@ -312,7 +312,7 @@ Valid Action examples (as payload):
       res.json({ questions: JSON.parse(jsonStr) });
     } catch (error: any) {
       console.error("Practice API error:", error);
-      res.status(500).json({ error: "Internal server error during practice generation." });
+      res.status(500).json({ error: "Internal server error during practice generation: " + error.message });
     }
   });
 
@@ -388,7 +388,7 @@ Valid Action examples (as payload):
       }
       
       const response = await ai.models.generateContent({
-        model: 'gemini-1.5-flash',
+        model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
             responseMimeType: "application/json",
@@ -422,7 +422,7 @@ Valid Action examples (as payload):
       res.json({ questions: parsed });
     } catch (error: any) {
       console.error("Mocktest API error:", error);
-      res.status(500).json({ error: "Internal server error during mock test generation." });
+      res.status(500).json({ error: "Internal server error during mock test generation: " + error.message });
     }
   });
 
@@ -507,7 +507,7 @@ Valid Action examples (as payload):
       }
 
       const response = await ai.models.generateContent({
-        model: 'gemini-1.5-flash',
+        model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
           responseMimeType: "application/json",
@@ -526,7 +526,7 @@ Valid Action examples (as payload):
       res.json({ plan: JSON.parse(jsonStr) });
     } catch (error: any) {
       console.error("Revision Plan API error:", error);
-      res.status(500).json({ error: "Internal server error during revision plan generation." });
+      res.status(500).json({ error: "Internal server error during revision plan generation: " + error.message });
     }
   });
 
