@@ -9,9 +9,10 @@ import { AlertTriangle, Clock, Skull, Zap } from 'lucide-react';
 interface ExamReadinessWidgetProps {
   targetYear: string;
   syllabusProgress: any; // We can use proper type if available, but for now matching the existing usage
+  studySessions?: { startTime: string }[];
 }
 
-export function ExamReadinessWidget({ targetYear, syllabusProgress }: ExamReadinessWidgetProps) {
+export function ExamReadinessWidget({ targetYear, syllabusProgress, studySessions = [] }: ExamReadinessWidgetProps) {
   const [selectedExamTab, setSelectedExamTab] = useState<'main' | 'adv'>('main');
 
   // Exam Countdown calculation
@@ -24,8 +25,17 @@ export function ExamReadinessWidget({ targetYear, syllabusProgress }: ExamReadin
   const masteredChapters = syllabusProgress.physics.masteredCount + syllabusProgress.chemistry.masteredCount + syllabusProgress.maths.masteredCount;
   const remainingChapters = totalChapters - masteredChapters;
   
-  // For V1 Prototype, we assume a baseline of 30 days of study time elapsed to calculate historical velocity.
-  const studyDaysElapsed = 30; 
+  // Real elapsed study days: from the earliest logged study session to today.
+  // Floored at 1 so a brand-new account doesn't divide by zero or get penalized
+  // with a fake 30-day history it hasn't actually studied for yet.
+  const earliestSessionMs = studySessions.reduce<number | null>((earliest, s) => {
+    const t = new Date(s.startTime).getTime();
+    if (isNaN(t)) return earliest;
+    return earliest === null ? t : Math.min(earliest, t);
+  }, null);
+  const studyDaysElapsed = earliestSessionMs
+    ? Math.max(1, Math.ceil((Date.now() - earliestSessionMs) / 86400000))
+    : 1;
   const currentVelocity = masteredChapters / studyDaysElapsed; // Chapters per day
   const requiredVelocity = daysRemaining > 0 ? remainingChapters / daysRemaining : 0;
   

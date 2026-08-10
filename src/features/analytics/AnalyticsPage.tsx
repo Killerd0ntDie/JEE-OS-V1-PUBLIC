@@ -18,6 +18,7 @@ export function AnalyticsPage() {
 
   const [activeSubject, setActiveSubject] = useState<'all' | 'physics' | 'chemistry' | 'maths'>('all');
   const [velocityView, setVelocityView] = useState<'time' | 'accuracy' | 'missions'>('time');
+  const [activeVelocityBar, setActiveVelocityBar] = useState<number | null>(null);
 
   // Compute live analytics metrics from StudyBrainState
   const chapterTelemetryList = (Object.values(chapterTelemetryMap || {}) as ChapterTelemetry[]);
@@ -365,8 +366,14 @@ export function AnalyticsPage() {
               const color = velocityView === 'time' ? 'bg-indigo-500' : velocityView === 'accuracy' ? 'bg-emerald-500' : 'bg-amber-500';
               
               return (
-                <div key={idx} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end group relative cursor-crosshair">
-                  <div className="absolute -top-6 bg-zinc-800 text-white text-[10px] font-mono px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-10 whitespace-nowrap">
+                <div
+                  key={idx}
+                  onClick={() => setActiveVelocityBar(prev => prev === idx ? null : idx)}
+                  className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end group relative cursor-pointer"
+                >
+                  <div className={`absolute -top-6 bg-zinc-800 text-white text-[10px] font-mono px-2 py-1 rounded pointer-events-none transition-opacity z-10 whitespace-nowrap ${
+                    activeVelocityBar === idx ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                  }`}>
                     {val} {velocityView === 'time' ? 'mins' : velocityView === 'accuracy' ? '%' : 'done'}
                   </div>
                   <div 

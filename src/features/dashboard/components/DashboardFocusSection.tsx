@@ -87,6 +87,7 @@ export function DashboardFocusSection({
           <ExamReadinessWidget
             targetYear={targetYear}
             syllabusProgress={syllabusProgress}
+            studySessions={studySessions}
           />
         </div>
       )}

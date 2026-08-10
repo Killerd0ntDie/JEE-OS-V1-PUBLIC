@@ -7,6 +7,8 @@ interface FocusHeatmapWidgetProps {
 }
 
 export const FocusHeatmapWidget: React.FC<FocusHeatmapWidgetProps> = ({ studySessions }) => {
+  const [activeTooltip, setActiveTooltip] = React.useState<string | null>(null);
+
   // Generate last 14 days dates (inclusive of today)
   const days = Array.from({ length: 14 }).map((_, i) => {
     const d = new Date();
@@ -75,7 +77,8 @@ export const FocusHeatmapWidget: React.FC<FocusHeatmapWidgetProps> = ({ studySes
           return (
             <div
               key={dateKey}
-              className="group relative flex flex-col items-center gap-1 cursor-default"
+              onClick={() => setActiveTooltip(prev => prev === dateKey ? null : dateKey)}
+              className="group relative flex flex-col items-center gap-1 cursor-pointer"
             >
               <div
                 className={`w-full aspect-square rounded-lg border transition-all duration-200 flex items-center justify-center text-[11px] font-mono ${getIntensity(mins)} ${
@@ -89,8 +92,10 @@ export const FocusHeatmapWidget: React.FC<FocusHeatmapWidgetProps> = ({ studySes
                 {getDayName(day)}
               </span>
 
-              {/* Tooltip on hover */}
-              <div className="absolute bottom-full mb-2 hidden group-hover:flex flex-col items-center pointer-events-none z-30">
+              {/* Tooltip on hover (desktop) or tap (touch) */}
+              <div className={`absolute bottom-full mb-2 flex-col items-center pointer-events-none z-30 ${
+                activeTooltip === dateKey ? 'flex' : 'hidden group-hover:flex'
+              }`}>
                 <div className="bg-zinc-900 border border-zinc-700 text-zinc-200 px-2 py-1 rounded text-[11px] font-mono whitespace-nowrap shadow-xl">
                   <span className="font-bold text-white">{formatDateLabel(day)}</span>: {hrs} hrs ({mins} mins)
                 </div>
