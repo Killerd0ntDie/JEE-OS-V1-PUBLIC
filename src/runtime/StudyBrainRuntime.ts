@@ -589,7 +589,7 @@ export class StudyBrainRuntime {
           unlocked: true,
           priorityScore: b.priorityScore,
           reasoning: b.reasoning,
-          dismissed: original ? original.dismissed : false,
+          dismissed: original?.dismissed ?? false,
           isManualOverride: (b as any).isManualOverride,
           scheduledDate: (b as any).scheduledDate,
           scheduledTime: (b as any).scheduledTime

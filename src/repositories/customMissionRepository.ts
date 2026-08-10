@@ -5,7 +5,14 @@ import { TodayMission } from '@/types/index';
 export class CustomMissionRepository {
   static async saveMission(userId: string, mission: TodayMission): Promise<void> {
     const missionRef = doc(db, 'users', userId, 'customMissions', mission.id);
-    await setDoc(missionRef, mission);
+    // Firestore's setDoc() rejects any field whose value is `undefined`.
+    // Strip such fields defensively so an undefined value anywhere in the
+    // mission object (e.g. an optional flag that was never initialized)
+    // can't throw a "Sync Error (completeTask)" and break the write.
+    const sanitized = Object.fromEntries(
+      Object.entries(mission).filter(([, v]) => v !== undefined)
+    ) as TodayMission;
+    await setDoc(missionRef, sanitized);
   }
 
   static async getMissions(userId: string): Promise<TodayMission[]> {

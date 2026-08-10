@@ -1789,7 +1789,7 @@ export class StudyBrainActions {
         unlocked: true,
         priorityScore: b.priorityScore,
         reasoning: b.reasoning,
-        dismissed: original ? original.dismissed : false,
+        dismissed: original?.dismissed ?? false,
         isManualOverride: false,
         scheduledDate: (b as any).scheduledDate,
         scheduledTime: (b as any).scheduledTime

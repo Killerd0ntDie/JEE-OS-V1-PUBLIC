@@ -425,23 +425,15 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
                   if (isTodayCol) {
                     if (a.completed && !b.completed) return -1;
                     if (!a.completed && b.completed) return 1;
-                    if (!a.completed && !b.completed) {
-                      const getNum = (blk: WeeklyBlock) => {
-                        let targetBlock = blk;
-                        if (blk.subject === 'break') {
-                          const mId = (blk.id || '').replace('-break-', '-');
-                          const parentBlock = dayBlocks.find(x => x.id === mId);
-                          if (parentBlock) targetBlock = parentBlock;
-                        }
-                        const m = (targetBlock.activity || targetBlock.chapterName || '').match(/(\d+)/);
-                        const baseNum = m ? parseInt(m[1], 10) : 999;
-                        return blk.subject === 'break' ? baseNum + 0.5 : baseNum;
-                      };
-                      const numA = getNum(a);
-                      const numB = getNum(b);
-                      if (numA !== numB) return numA - numB;
-                    }
                   }
+                  // Always order chronologically by each block's own scheduled timeSlot —
+                  // this must match DailyMissionTimeline's ordering (which drives the
+                  // Dashboard's "push to live" cascade) or the two views disagree about
+                  // which mission is actually live. Previously this fell back to parsing
+                  // a number out of the activity/chapter text (e.g. "Lecture 5/20") for
+                  // today's uncompleted blocks, which silently reordered missions whenever
+                  // the planner scheduled them out of lecture-number order, causing the
+                  // wrong lecture to be marked LIVE here vs. on the Dashboard.
                   const getMins = (blk: WeeklyBlock) => {
                     const match = (blk.timeSlot || '').match(/(\d{1,2}):(\d{2})/);
                     return match ? parseInt(match[1]) * 60 + parseInt(match[2]) : 9999;
