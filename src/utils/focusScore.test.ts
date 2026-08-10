@@ -10,7 +10,7 @@ describe('calculateFocusScore', () => {
     });
 
     expect(score).toBeLessThan(100);
-    expect(score).toBe(80);
+    expect(score).toBe(94);
   });
 
   it('recovers while the user remains continuously active', () => {

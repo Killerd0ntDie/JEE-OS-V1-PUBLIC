@@ -579,7 +579,7 @@ export function DailyMissionTimeline({
                                 className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-white font-mono text-xs font-bold rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.4)] flex items-center gap-2 cursor-pointer transition-all active:scale-95"
                               >
                                 <Icon name="Play" className="w-4 h-4 fill-white text-white" />
-                                <span>START MISSION</span>
+                                <span>{sessionStorage.getItem(`jeeos_mission_state_${mission.id}`) ? 'RESUME MISSION' : 'START MISSION'}</span>
                               </button>
                             )}
 
@@ -877,7 +877,7 @@ export function DailyMissionTimeline({
                   RESUME FOCUS COCKPIT ({formatTimer(secondsElapsed)})
                 </span>
               ) : (
-                'ARM FOCUS COCKPIT SESSION'
+                (activeMission?.id && sessionStorage.getItem(`jeeos_mission_state_${activeMission.id}`)) ? 'RESUME FOCUS COCKPIT SESSION' : 'ARM FOCUS COCKPIT SESSION'
               )}
             </Button>
           </div>

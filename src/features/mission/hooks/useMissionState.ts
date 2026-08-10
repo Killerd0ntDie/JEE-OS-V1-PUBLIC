@@ -37,23 +37,36 @@ export function useMissionState(props: MissionModeProps) {
   const settings = useStudyBrainStore(state => state.settings);
   const isCasinoEnabled = settings.enablePomodoroCasino ?? false;
 
-  const [isPaused, setIsPaused] = useState(initialPaused && isCasinoEnabled);
+  const storageKey = activeMissionId ? `jeeos_mission_state_${activeMissionId}` : null;
+  const savedStateStr = storageKey ? sessionStorage.getItem(storageKey) : null;
+  const savedState = savedStateStr ? JSON.parse(savedStateStr) : null;
+
+  const [isPaused, setIsPaused] = useState(savedState?.isPaused ?? (initialPaused && isCasinoEnabled));
   const [isPauseOverlayDismissed, setIsPauseOverlayDismissed] = useState(false);
-  const [isSettingUp, setIsSettingUp] = useState(initialSeconds === 0 && !skipSetup && isCasinoEnabled);
+  const [isSettingUp, setIsSettingUp] = useState(savedState ? false : (initialSeconds === 0 && !skipSetup && isCasinoEnabled));
   const [targetQuestions, setTargetQuestions] = useState(25);
   const [xpWager, setXpWager] = useState(50);
   const [missionFailed, setMissionFailed] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
-  const [seconds, setSeconds] = useState(initialSeconds);
-  const [focusScore, setFocusScore] = useState(100);
+  
+  const [seconds, setSeconds] = useState(savedState?.seconds ?? initialSeconds);
+  const [focusScore, setFocusScore] = useState(savedState?.focusScore ?? 100);
   const [lectureSpeed, setLectureSpeed] = useState(1.25);
   
-  const [idleTime, setIdleTime] = useState(0);
-  const [focusInterruptions, setFocusInterruptions] = useState(0);
+  const [idleTime, setIdleTime] = useState(savedState?.idleTime ?? 0);
+  const [focusInterruptions, setFocusInterruptions] = useState(savedState?.focusInterruptions ?? 0);
   const [extraTimeAdded, setExtraTimeAdded] = useState(0);
   const [isTimeUpModalOpen, setIsTimeUpModalOpen] = useState(false);
   const [hasTriggeredTimeUp, setHasTriggeredTimeUp] = useState(false);
   
+  useEffect(() => {
+    if (storageKey && !isSettingUp && !isCompleted && !missionFailed) {
+      sessionStorage.setItem(storageKey, JSON.stringify({
+        isPaused, seconds, focusScore, idleTime, focusInterruptions
+      }));
+    }
+  }, [storageKey, isSettingUp, isCompleted, missionFailed, isPaused, seconds, focusScore, idleTime, focusInterruptions]);
+
   const [isNotesOpen, setIsNotesOpen] = useState(false);
   const [isFormulaOpen, setIsFormulaOpen] = useState(false);
   const [formulaSearch, setFormulaSearch] = useState('');
@@ -88,6 +101,7 @@ export function useMissionState(props: MissionModeProps) {
   };
 
   const handleExit = () => {
+    if (storageKey) sessionStorage.removeItem(storageKey);
     onExit(secondsRef.current);
   };
 
@@ -542,6 +556,7 @@ export function useMissionState(props: MissionModeProps) {
   };
 
   const handleMissionComplete = async (data?: any) => {
+    if (storageKey) sessionStorage.removeItem(storageKey);
     if (activeSubjectMission?.id) {
       await actions.completeTask(activeSubjectMission.id, data?.duration ?? Math.max(60, seconds));
     } else {
