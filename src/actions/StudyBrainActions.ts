@@ -1818,10 +1818,18 @@ export class StudyBrainActions {
       (b.id === id || b.id === `mission-${baseId}`) ? { ...b, time: updates.timeSlot || b.time } : b
     );
 
-    await this.runtime.refresh('INIT', { 
-      scheduleOverrides: overrides,
-      timeline: updatedBlocks as any 
-    });
+    try {
+      await UserRepository.updateUserProfile(this.userId, {
+        scheduleOverrides: overrides
+      });
+      
+      await this.runtime.refresh('INIT', { 
+        scheduleOverrides: overrides,
+        timeline: updatedBlocks as any 
+      });
+    } catch (err) {
+      await this.handleWriteError(err, 'updateScheduleBlock');
+    }
   }
 
   async resetCustomMissions() {

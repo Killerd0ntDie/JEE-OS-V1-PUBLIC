@@ -640,6 +640,12 @@ export interface UserProfile {
     status: 'Completed' | 'Active' | 'Upcoming';
   }[];
   deletedMissionIds?: string[];
+  scheduleOverrides?: Record<string, { 
+    dayIndex?: number; 
+    timeSlot?: string; 
+    scheduledDate?: string; 
+    scheduledTime?: string 
+  }>;
   settings: {
     targetYear: string;
     dreamIit: string;

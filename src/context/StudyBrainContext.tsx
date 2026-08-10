@@ -243,7 +243,8 @@ export const StudyBrainProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             title: `JEE Prep Week ${i + 1}`,
             focus: i === 0 ? 'Diagnostic Tests and Foundation Building' : 'Syllabus Coverage and Practice',
             status: (i === 0 ? 'Active' : 'Upcoming') as "Completed" | "Upcoming" | "Active"
-          }))
+          })),
+          scheduleOverrides: {}
         };
         const seeds = await import('@/constants/initialSeeds');
         if (!active) return;
@@ -268,6 +269,7 @@ export const StudyBrainProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       // Restore the user's deleted-mission blocklist so planner-regenerated missions
       // that were previously dismissed don't reappear after a page reload.
       snapshotState.deletedMissionIds = profile.deletedMissionIds || [];
+      snapshotState.scheduleOverrides = profile.scheduleOverrides || {};
       
       loadedFlags.profile = true;
       checkAndInit();
