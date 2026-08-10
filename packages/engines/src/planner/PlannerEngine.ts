@@ -950,15 +950,26 @@ export function generateWeeklyMatrix(
 
       let pushToTomorrow = false;
 
+      const todayDateObj = new Date();
+      todayDateObj.setHours(0,0,0,0);
+      const todayDateStr = todayDateObj.toISOString().split('T')[0];
+
       todayMissions.forEach((m, mIdx) => {
         const chap = chapters.find(c => c.name.toLowerCase() === (m.chapter || '').toLowerCase());
         
         let pendingBreakBlock: any = null;
         let timeSlot = m.timeSlot;
         let duration = m.duration || 60;
+        let isManualOverride = m.isManualOverride;
+
+        // Strip timeSlot if pushed from yesterday
+        if (!m.completed && m.scheduledDate && m.scheduledDate < todayDateStr) {
+          timeSlot = null;
+          isManualOverride = false;
+        }
 
         // Force cascade for uncompleted, non-manual missions to prevent stale time slot clashes
-        if (!m.completed && !m.isManualOverride) {
+        if (!m.completed && !isManualOverride) {
           timeSlot = null;
         }
         
@@ -1434,8 +1445,18 @@ export function generateWeeklyMatrix(
   blocks = blocks.filter(b => !deletedMissionIds.includes(b.id) && !deletedMissionIds.includes(b.id.replace('today-', '')));
 
   if (scheduleOverrides && Object.keys(scheduleOverrides).length > 0) {
+    const todayDateObj = new Date();
+    todayDateObj.setHours(0,0,0,0);
+    const todayDateStr = todayDateObj.toISOString().split('T')[0];
+
     blocks = blocks.map(b => {
       const override = scheduleOverrides[b.id] || scheduleOverrides[b.id.replace('today-', '')] || scheduleOverrides[b.id.replace('plan-', '')];
+      
+      // Ignore overrides from past dates for uncompleted blocks to allow auto-cascade
+      if (override && override.scheduledDate && override.scheduledDate < todayDateStr && !b.completed) {
+        return b;
+      }
+
       if (override) {
         return {
           ...b,

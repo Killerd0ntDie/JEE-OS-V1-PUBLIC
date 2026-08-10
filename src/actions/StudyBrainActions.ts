@@ -353,19 +353,19 @@ export class StudyBrainActions {
       // Optimistic update - refresh UI immediately before saving
 
 
-      // Fire and forget heavy IO tasks to unblock the main thread instantly
-      Promise.all(savePromises).catch(err => console.error('[completeTask] Failed to save DB', err));
+      // Await heavy IO tasks so errors are caught by the outer try/catch
+      await Promise.all(savePromises);
 
-      // Fire and forget heavy matrix regeneration
+      // Trigger matrix regeneration
       // Use INIT instead of SESSION_UPDATE to trigger generateWeeklyMatrix
-      this.runtime.refresh('INIT', {
+      await this.runtime.refresh('INIT', {
         todayMissions: updatedMissions,
         customMissions: updatedCustomMissions,
         xp: newXp,
         chapters: updatedChapters,
         lastSyncError: null,
         levelUpData
-      }).catch(err => console.error('[completeTask] Failed to refresh matrix', err));
+      });
 
       // Trigger success toast for task completion if we just completed it
       if (isCompleting) {
@@ -685,7 +685,20 @@ export class StudyBrainActions {
       };
     }
 
-    await this.runtime.refresh('SESSION_UPDATE', { todayMissions: updatedMissions });
+    try {
+      const skippedMission = updatedMissions[missionIndex];
+      const savePromises = [];
+
+      // Save the skipped mission to database just like completeTask does
+      if (skippedMission.id.startsWith('mission-') || skippedMission.id.includes('custom')) {
+        savePromises.push(CustomMissionRepository.saveMission(this.userId, skippedMission));
+      }
+
+      await Promise.all(savePromises);
+      await this.runtime.refresh('SESSION_UPDATE', { todayMissions: updatedMissions });
+    } catch (err) {
+      await this.handleWriteError(err, 'skipTask');
+    }
   }
 
   async completeStudySession(sessionData: Partial<Omit<StudySession, 'id'>> & { focusTime?: number; questions?: number; correct?: number; idleTime?: number; focusInterruptions?: number; focusScore?: number; }) {

@@ -163,8 +163,8 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
     return { isLive, isPast, isUpcoming, startMins, endMins };
   };
 
-  const getSubjectColorClass = (subject: string, activity?: string) => {
-    const s = subject.toLowerCase();
+  const getSubjectColorClass = (subject: string | undefined, activity?: string) => {
+    const s = (subject || 'unknown').toLowerCase();
     const act = (activity || '').toLowerCase();
     if (act.includes('mock') || act.includes('paper') || s.includes('mock')) {
       return 'bg-[rgba(99,102,241,0.14)] border-l-2 border-[rgba(99,102,241,0.6)] hover:bg-[rgba(99,102,241,0.22)] text-indigo-200';
@@ -330,7 +330,7 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
                 const endM = totalEndMins % 60;
                 const endStr = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
 
-                const topPx = (snappedMinsFrom6 / 60) * 120;
+                const topPx = (snappedMinsFrom6 / 60) * 120 + 2;
                 const heightPx = Math.max(30, (duration / 60) * 120 - 4);
                 const timeSlotStr = `${startStr} - ${endStr}`;
 
@@ -352,15 +352,33 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
               }}
               onDrop={(e) => {
                 e.preventDefault();
-                const snap = dragSnapPreview;
                 setDragSnapPreview(null);
 
                 try {
                   const raw = e.dataTransfer.getData('text/plain');
                   if (raw) {
                     const data = JSON.parse(raw);
-                    if (data.blockId && state.handleMoveBlock && snap) {
-                      state.handleMoveBlock(data.blockId, dIndex, snap.timeSlotStr);
+                    
+                    // Recalculate snap dynamically to avoid stale state from React batching
+                    const colEl = e.currentTarget as HTMLElement;
+                    const rect = colEl.getBoundingClientRect();
+                    const offsetY = Math.max(0, e.clientY - rect.top);
+                    const minsFrom6 = Math.max(0, Math.min(24 * 60, (offsetY / 120) * 60));
+                    const snappedMinsFrom6 = Math.floor(minsFrom6 / 5) * 5;
+                    
+                    const startH = Math.floor(snappedMinsFrom6 / 60);
+                    const startM = snappedMinsFrom6 % 60;
+                    const startStr = `${String(startH).padStart(2, '0')}:${String(startM).padStart(2, '0')}`;
+                    
+                    const duration = data.duration || 75;
+                    const totalEndMins = snappedMinsFrom6 + duration;
+                    const endH = Math.floor(totalEndMins / 60) % 24;
+                    const endM = totalEndMins % 60;
+                    const endStr = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+                    const timeSlotStr = `${startStr} - ${endStr}`;
+
+                    if (data.blockId && state.handleMoveBlock) {
+                      state.handleMoveBlock(data.blockId, dIndex, timeSlotStr);
                     }
                   }
                 } catch (err) {
@@ -438,10 +456,15 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
                   let startMins = 0;
                   let endMins = 0;
                   if (block.timeSlot) {
-                    const match = block.timeSlot.match(/(\d{1,2}):(\d{2})\s*[-–]\s*(\d{1,2}):(\d{2})/);
-                    if (match) {
-                      startMins = parseInt(match[1]) * 60 + parseInt(match[2]);
-                      endMins = parseInt(match[3]) * 60 + parseInt(match[4]);
+                    const matchFull = block.timeSlot.match(/(\d{1,2}):(\d{2})\s*[-–]\s*(\d{1,2}):(\d{2})/);
+                    const matchStart = block.timeSlot.match(/(\d{1,2}):(\d{2})/);
+                    
+                    if (matchFull) {
+                      startMins = parseInt(matchFull[1]) * 60 + parseInt(matchFull[2]);
+                      endMins = parseInt(matchFull[3]) * 60 + parseInt(matchFull[4]);
+                    } else if (matchStart) {
+                      startMins = parseInt(matchStart[1]) * 60 + parseInt(matchStart[2]);
+                      endMins = startMins + duration;
                     }
                   }
 
@@ -450,7 +473,9 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
 
                   // If on TODAY and block is UNCOMPLETED: push forward sequentially to auto-balance breaks & tasks
                   if (isTodayCol && !block.completed) {
-                    if (startMins < runningPushMins) {
+                    const shouldSnapToLive = !block.isManualOverride || startMins < runningPushMins;
+                    
+                    if (shouldSnapToLive && startMins !== runningPushMins) {
                       startMins = runningPushMins;
                       endMins = startMins + duration;
                       topPx = (startMins / 60) * 120;
@@ -498,7 +523,11 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
                   let widthStyle = 'calc(100% - 6px)';
 
                   if (isTimeClashing) {
-                    const cluster = [item, ...timeOverlaps].sort((a, b) => a.block.id.localeCompare(b.block.id));
+                    const cluster = [item, ...timeOverlaps].sort((a, b) => {
+                      const idA = a.block.id ? String(a.block.id) : '';
+                      const idB = b.block.id ? String(b.block.id) : '';
+                      return idA.localeCompare(idB);
+                    });
                     const colIndex = cluster.findIndex(c => c.block.id === block.id) % 2;
                     leftStyle = colIndex === 0 ? '3px' : 'calc(50% + 2px)';
                     widthStyle = 'calc(50% - 5px)';

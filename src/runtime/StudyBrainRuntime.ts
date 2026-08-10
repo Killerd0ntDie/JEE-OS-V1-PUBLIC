@@ -300,7 +300,9 @@ export class StudyBrainRuntime {
       return;
     }
 
-    this.pendingReason = reason;
+    if (this.pendingReason !== 'INIT') {
+      this.pendingReason = reason;
+    }
 
     if (!this.pendingRefreshPromise) {
       this.pendingRefreshPromise = new Promise((resolve) => {
@@ -771,8 +773,9 @@ export class StudyBrainRuntime {
 
     // Clear levelUpData after it's been processed by subscribers
     if (this.state.levelUpData) {
+      if ((this as any).levelUpTimeout) clearTimeout((this as any).levelUpTimeout);
       // Keep it for one notification cycle, then clear
-      setTimeout(() => {
+      (this as any).levelUpTimeout = setTimeout(() => {
         this.state.levelUpData = null;
         this.notifySubscribers();
       }, 100);
