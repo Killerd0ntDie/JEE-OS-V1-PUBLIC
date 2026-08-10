@@ -73,6 +73,8 @@ export function Topbar({
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isBreadcrumbMenuOpen, setIsBreadcrumbMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isStreakOpen, setIsStreakOpen] = useState(false);
+  const [isTimeOpen, setIsTimeOpen] = useState(false);
   const [readNotificationIds, setReadNotificationIds] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem('jeeos_read_notifications');
@@ -93,6 +95,8 @@ export function Topbar({
   const notifRef = useRef<HTMLDivElement>(null);
   const breadcrumbRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
+  const streakRef = useRef<HTMLDivElement>(null);
+  const timeRef = useRef<HTMLDivElement>(null);
 
   // User details
   const displayName = user?.displayName || (user?.email ? user.email.split('@')[0] : 'Aspirant');
@@ -110,6 +114,12 @@ export function Topbar({
       }
       if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
         setIsProfileOpen(false);
+      }
+      if (streakRef.current && !streakRef.current.contains(e.target as Node)) {
+        setIsStreakOpen(false);
+      }
+      if (timeRef.current && !timeRef.current.contains(e.target as Node)) {
+        setIsTimeOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -302,11 +312,23 @@ export function Topbar({
         </button>
 
         {/* Quick Stat Pill: Streak */}
-        <button aria-haspopup="true" className="hidden md:flex group relative items-center gap-1 bg-zinc-900/60 hover:bg-zinc-850 border border-zinc-800 hover:border-zinc-700 px-2.5 py-1 rounded-full text-xs font-mono text-zinc-300 transition-all cursor-default focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50">
+        <div className="hidden md:block relative" ref={streakRef}>
+        <button
+          type="button"
+          aria-haspopup="true"
+          aria-expanded={isStreakOpen}
+          onClick={() => { setIsStreakOpen(o => !o); setIsTimeOpen(false); }}
+          className="group flex items-center gap-1 bg-zinc-900/60 hover:bg-zinc-850 border border-zinc-800 hover:border-zinc-700 px-2.5 py-1 rounded-full text-xs font-mono text-zinc-300 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
+          title="Study Streak"
+        >
           <Icon name="Zap" className="w-3 h-3 text-amber-400" />
           <span className="font-bold text-amber-400">{effectiveStreak}d</span>
           
-          <div className="absolute top-full right-0 mt-2 p-4 bg-[#0e0e11]/95 border border-zinc-800 rounded-2xl shadow-2xl opacity-0 invisible scale-95 -translate-y-2 group-hover:scale-100 group-hover:translate-y-0 group-hover:opacity-100 group-hover:visible group-focus-within:scale-100 group-focus-within:translate-y-0 group-focus-within:opacity-100 group-focus-within:visible transition-all duration-150 ease-out transform-gpu will-change-transform origin-top-right z-50 pointer-events-none group-hover:pointer-events-auto group-focus-within:pointer-events-auto">
+          <div className={`absolute top-full right-0 mt-2 p-4 bg-[#0e0e11]/95 border border-zinc-800 rounded-2xl shadow-2xl transition-all duration-150 ease-out transform-gpu will-change-transform origin-top-right z-50 ${
+            isStreakOpen
+              ? 'opacity-100 scale-100 translate-y-0 visible pointer-events-auto'
+              : 'opacity-0 invisible scale-95 -translate-y-2 pointer-events-none group-hover:scale-100 group-hover:translate-y-0 group-hover:opacity-100 group-hover:visible group-hover:pointer-events-auto group-focus-within:scale-100 group-focus-within:translate-y-0 group-focus-within:opacity-100 group-focus-within:visible group-focus-within:pointer-events-auto'
+          }`}>
             {(() => {
               const now = new Date();
               const currentMonthStr = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
@@ -391,13 +413,26 @@ export function Topbar({
             })()}
           </div>
         </button>
+        </div>
 
         {/* Quick Stat Pill: Study Time */}
-        <button aria-haspopup="true" className="hidden md:flex group relative items-center gap-1 bg-zinc-900/60 hover:bg-zinc-850 border border-zinc-800 hover:border-zinc-700 px-2.5 py-1 rounded-full text-xs font-mono text-zinc-300 transition-all cursor-default focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50">
+        <div className="hidden md:block relative" ref={timeRef}>
+        <button
+          type="button"
+          aria-haspopup="true"
+          aria-expanded={isTimeOpen}
+          onClick={() => { setIsTimeOpen(o => !o); setIsStreakOpen(false); }}
+          className="group flex items-center gap-1 bg-zinc-900/60 hover:bg-zinc-850 border border-zinc-800 hover:border-zinc-700 px-2.5 py-1 rounded-full text-xs font-mono text-zinc-300 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
+          title="Today's Study Time"
+        >
           <Icon name="Clock" className="w-3 h-3 text-indigo-400" />
           <span className="font-bold text-indigo-400">{todayHoursStr}</span>
           
-          <div className="absolute top-full right-0 mt-2 p-4 bg-[#0e0e11]/95 border border-zinc-800 rounded-2xl shadow-2xl opacity-0 invisible scale-95 -translate-y-2 group-hover:scale-100 group-hover:translate-y-0 group-hover:opacity-100 group-hover:visible group-focus-within:scale-100 group-focus-within:translate-y-0 group-focus-within:opacity-100 group-focus-within:visible transition-all duration-150 ease-out transform-gpu will-change-transform origin-top-right z-50 pointer-events-none group-hover:pointer-events-auto group-focus-within:pointer-events-auto">
+          <div className={`absolute top-full right-0 mt-2 p-4 bg-[#0e0e11]/95 border border-zinc-800 rounded-2xl shadow-2xl transition-all duration-150 ease-out transform-gpu will-change-transform origin-top-right z-50 ${
+            isTimeOpen
+              ? 'opacity-100 scale-100 translate-y-0 visible pointer-events-auto'
+              : 'opacity-0 invisible scale-95 -translate-y-2 pointer-events-none group-hover:scale-100 group-hover:translate-y-0 group-hover:opacity-100 group-hover:visible group-hover:pointer-events-auto group-focus-within:scale-100 group-focus-within:translate-y-0 group-focus-within:opacity-100 group-focus-within:visible group-focus-within:pointer-events-auto'
+          }`}>
             {(() => {
               const now = new Date();
               const currentMonthStr = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
@@ -458,6 +493,7 @@ export function Topbar({
             })()}
           </div>
         </button>
+        </div>
 
         {/* Keyboard Shortcuts Trigger Button */}
         {onOpenShortcutGuide && (

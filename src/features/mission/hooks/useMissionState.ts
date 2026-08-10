@@ -418,12 +418,31 @@ export function useMissionState(props: MissionModeProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [activeSubject, handleExit, isPaused, subjectsDetails]);
 
-  const handleToggleTask = (task: string) => {
+  const handleResetTimer = useCallback(() => {
+    setSeconds(0);
+    secondsRef.current = 0;
+    setIdleTime(0);
+    idleTimeRef.current = 0;
+    setFocusScore(100);
+    focusInterruptionsRef.current = 0;
+    uninterruptedSecondsRef.current = 0;
+    
+    // Clear session storage so it doesn't accidentally resume with old values
+    if (storageKey) {
+      try {
+        sessionStorage.removeItem(storageKey);
+      } catch (e) {
+        console.warn("Failed to clear session storage on reset:", e);
+      }
+    }
+  }, [storageKey]);
+
+  const handleToggleTask = useCallback((task: string) => {
     setChecklist(prev => ({
       ...prev,
       [task]: !prev[task]
     }));
-  };
+  }, []);
 
   const handleAddCustomTask = (task: string) => {
     setChecklist(prev => ({
@@ -655,6 +674,7 @@ export function useMissionState(props: MissionModeProps) {
     handlers: {
       incrementInterruption,
       handleExit,
+      handleResetTimer,
       handleToggleTask,
       handleAddCustomTask,
       handleRemoveTask,

@@ -99,6 +99,13 @@ export function MissionMode(props: MissionModeProps) {
               focusScore={state.focusScore}
               lectureSpeed={state.lectureSpeed}
               formatTime={handlers.formatTime}
+              onResetTimer={handlers.handleResetTimer}
+              onCycleSpeed={() => {
+                const currIdx = LECTURE_SPEEDS.indexOf(state.lectureSpeed);
+                const nextSpeed = LECTURE_SPEEDS[(currIdx + 1) % LECTURE_SPEEDS.length];
+                setters.setLectureSpeed(nextSpeed);
+                setters.setCoachTip(`Lecture speed calibrated to ${nextSpeed}x.`);
+              }}
             />
 
             {mode === 'learning' && (
