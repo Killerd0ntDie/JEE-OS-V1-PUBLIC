@@ -9,3 +9,7 @@ export function toLocalDateString(date: Date = new Date()): string {
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
+
+export function getLocalDateKey(date: Date = new Date()): string {
+  return toLocalDateString(date);
+}

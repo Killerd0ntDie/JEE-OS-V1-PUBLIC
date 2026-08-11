@@ -10,9 +10,11 @@ export type StudyBrainStoreState = StudyBrainState & {
 
 export const useStudyBrainStore = create<StudyBrainStoreState>((set) => {
   const runtime = StudyBrainRuntime.getInstance();
+  const actions = new StudyBrainActions(runtime, 'guest');
+  
   return {
     ...runtime.getState(),
-    actions: new StudyBrainActions(runtime, 'guest'),
+    actions,
     setState: (newState) => set((state) => ({ ...state, ...newState })),
     setActions: (actions) => set({ actions }),
   };

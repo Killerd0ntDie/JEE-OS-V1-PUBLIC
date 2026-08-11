@@ -13,7 +13,7 @@ let dbPromise: Promise<IDBDatabase> | null = null;
 function getDB(): Promise<IDBDatabase> {
   if (dbPromise) return dbPromise;
   
-  dbPromise = new Promise((resolve, reject) => {
+  dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
     
     request.onerror = () => reject(request.error);
@@ -25,6 +25,9 @@ function getDB(): Promise<IDBDatabase> {
         db.createObjectStore(STORE_NAME);
       }
     };
+  }).catch(err => {
+    dbPromise = null;
+    throw err;
   });
   
   return dbPromise;

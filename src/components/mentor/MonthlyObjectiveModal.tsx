@@ -5,6 +5,7 @@ import { Target, Sparkles, X, Check } from 'lucide-react';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { Modal } from '@/components/ui/Modal';
+import { toLocalDateString } from '@/utils/dateUtils';
 
 interface Props {
   isOpen: boolean;
@@ -45,7 +46,7 @@ export const MonthlyObjectiveModal: React.FC<Props> = ({ isOpen, onClose }) => {
         title: match ? match.title : selectedCat,
         category: selectedCat,
         description: customDescription.trim() || (match ? match.desc : selectedCat),
-        targetDate: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0]
+        targetDate: toLocalDateString(new Date(Date.now() + 30 * 86400000))
       };
 
       await actions.setMonthlyObjective(objective);

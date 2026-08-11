@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { Card } from '@/components/ui/Card';
+import { toLocalDateString } from '@/utils/dateUtils';
 import { Flame, Brain, Info, CheckCircle2 } from 'lucide-react';
 
 export function MonthlyCalendarWidget() {
@@ -12,7 +13,7 @@ export function MonthlyCalendarWidget() {
   const today = new Date();
   const year = today.getFullYear();
   const month = today.getMonth();
-  const todayStr = today.toISOString().split('T')[0];
+  const todayStr = toLocalDateString(today);
   
   const [hoveredDate, setHoveredDate] = useState<string | null>(null);
 
@@ -48,7 +49,7 @@ export function MonthlyCalendarWidget() {
 
     for (let d = 1; d <= daysInMonth; d++) {
       const cellDate = new Date(year, month, d);
-      const dateStr = cellDate.toISOString().split('T')[0];
+      const dateStr = toLocalDateString(cellDate);
       const isPast = cellDate < new Date(today.setHours(0,0,0,0));
       const isToday = dateStr === todayStr;
       

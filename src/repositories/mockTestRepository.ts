@@ -1,6 +1,7 @@
 import { collection, doc, getDocs, setDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/firebase';
 import { MockTest } from '@/types/mockTest';
+import { sanitizeForFirestore } from '@/utils/firestoreSanitizer';
 
 export const MockTestRepository = {
   async getCustomMockTests(userId: string): Promise<MockTest[]> {
@@ -11,7 +12,8 @@ export const MockTestRepository = {
 
   async saveCustomMockTest(userId: string, test: MockTest): Promise<void> {
     const mockDoc = doc(db, 'users', userId, 'customMockTests', test.id);
-    await setDoc(mockDoc, test, { merge: true });
+    const sanitized = sanitizeForFirestore(test);
+    await setDoc(mockDoc, sanitized, { merge: true });
   },
 
   async deleteCustomMockTest(userId: string, testId: string): Promise<void> {

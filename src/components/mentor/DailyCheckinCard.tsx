@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { CheckCircle2, Zap, Target, Sliders, ArrowRight } from 'lucide-react';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { DailyCheckin } from '@/types';
+import { toLocalDateString } from '@/utils/dateUtils';
 
 export function DailyCheckinCard() {
   const actions = useStudyBrainStore(state => state.actions);
@@ -10,7 +11,7 @@ export function DailyCheckinCard() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [showCustomizer, setShowCustomizer] = useState(false);
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = toLocalDateString();
 
   // Retrieve yesterday's checkin or fallback defaults
   const previousCheckin = mentorProfile?.dailyCheckins?.[mentorProfile.dailyCheckins.length - 1];

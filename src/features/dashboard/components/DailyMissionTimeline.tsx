@@ -88,7 +88,10 @@ export function DailyMissionTimeline({
   const selectedMission = todayMissions.find(m => m.id === selectedMissionId);
   const effectiveSelectedId = (selectedMission && !selectedMission.completed) ? selectedMissionId : null;
 
-  const activeMission = todayMissions.find(m => m.id === effectiveSelectedId) || incompleteMissions[0] || todayMissions[0];
+  // Safe mission selection with null checks to prevent crashes
+  const activeMission = todayMissions.find(m => m.id === effectiveSelectedId) || 
+                           (incompleteMissions.length > 0 ? incompleteMissions[0] : null) || 
+                           (todayMissions.length > 0 ? todayMissions[0] : null);
 
   // Strategy Radar data for active mission
   const activeChap = activeMission ? chapters.find(c => 

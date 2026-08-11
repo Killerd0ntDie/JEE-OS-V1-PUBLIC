@@ -1,6 +1,13 @@
 import { SubjectId } from '@/types/index';
 import { AnalyticsInput, AnalyticsOutput } from './types';
 
+function getLocalDateKey(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export class AnalyticsEngine {
   
   public generateAnalytics(input: AnalyticsInput): AnalyticsOutput {
@@ -37,7 +44,7 @@ export class AnalyticsEngine {
       const sessionDate = new Date(session.startTime);
       const diffDays = Math.floor((now.getTime() - sessionDate.getTime()) / msPerDay);
       
-      const dateStr = sessionDate.toISOString().split('T')[0];
+      const dateStr = getLocalDateKey(sessionDate);
       dailyStudyMins[dateStr] = (dailyStudyMins[dateStr] || 0) + session.duration;
       
       if (diffDays < 7 && diffDays >= 0) {
@@ -57,7 +64,7 @@ export class AnalyticsEngine {
     let currentStreak = 0;
     for (let i = 0; i < 365; i++) {
       const d = new Date(now.getTime() - i * msPerDay);
-      const dateStr = d.toISOString().split('T')[0];
+      const dateStr = getLocalDateKey(d);
       if (dailyStudyMins[dateStr] > 0) {
         currentStreak++;
       } else {

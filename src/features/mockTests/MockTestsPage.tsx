@@ -210,7 +210,7 @@ export function MockTestsPage({ onNavigate }: MockTestsPageProps) {
         id: uuidv4(),
         name: `AI Mini-Mock: ${chapterName}`,
         durationMinutes: 30,
-        totalMarks: mockQuestions.length * 4,
+        totalMarks: mockQuestions.reduce((sum, q) => sum + (q.marks?.correct ?? 4), 0),
         sections: [
           {
             subject: subject as import('../../types').SubjectId,

@@ -1,17 +1,22 @@
 import { useEffect, useRef } from 'react';
 
-// Global stack of callbacks
-const escapeHandlers: (() => void)[] = [];
+// Global stack of callbacks with unique IDs for reliable cleanup
+const escapeHandlers: Array<{ handler: () => void; id: number }> = [];
+let nextHandlerId = 0;
+let globalListenerAttached = false;
 
-// Attach a single global listener
-if (typeof document !== 'undefined') {
+// Attach a single global listener (lazily)
+function attachGlobalListener() {
+  if (typeof document === 'undefined' || globalListenerAttached) return;
+  
   document.addEventListener('keydown', (e: KeyboardEvent) => {
     if (e.key === 'Escape' && escapeHandlers.length > 0) {
       // Execute only the top-most modal callback.
-      const handler = escapeHandlers[escapeHandlers.length - 1];
+      const { handler } = escapeHandlers[escapeHandlers.length - 1];
       handler();
     }
   });
+  globalListenerAttached = true;
 }
 
 /**
@@ -23,6 +28,7 @@ if (typeof document !== 'undefined') {
  */
 export function useEscapeKey(callback: () => void, isActive: boolean = true) {
   const savedCallback = useRef(callback);
+  const handlerIdRef = useRef<number | null>(null);
 
   useEffect(() => {
     savedCallback.current = callback;
@@ -31,14 +37,19 @@ export function useEscapeKey(callback: () => void, isActive: boolean = true) {
   useEffect(() => {
     if (!isActive) return;
     
+    attachGlobalListener();
+    
     const handler = () => savedCallback.current();
-    escapeHandlers.push(handler);
+    const id = nextHandlerId++;
+    handlerIdRef.current = id;
+    escapeHandlers.push({ handler, id });
     
     return () => {
-      const index = escapeHandlers.lastIndexOf(handler);
+      const index = escapeHandlers.findIndex(h => h.id === id);
       if (index > -1) {
         escapeHandlers.splice(index, 1);
       }
+      handlerIdRef.current = null;
     };
   }, [isActive]);
 }

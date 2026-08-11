@@ -404,7 +404,8 @@ export function MockTestArena({ test, onComplete, onExit }: MockTestArenaProps) 
             <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-4">{currentSubject} Palette</h3>
             <div className="grid grid-cols-5 gap-2">
               {activeSection.questions.map((q, idx) => {
-                const status = attempt.questions[q.id].status;
+                const entry = attempt.questions[q.id];
+                const status = entry?.status ?? 'Not Visited';
                 const colorClass = getStatusColor(status);
                 const isCurrent = currentQIdx === idx;
                 

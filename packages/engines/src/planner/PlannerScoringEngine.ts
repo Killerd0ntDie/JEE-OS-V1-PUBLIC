@@ -482,7 +482,9 @@ export class PlannerScoringEngine {
     const taskDuration = context.taskType === 'Watch Lecture' ? 60 : (context.taskType === 'Revise Formulas' ? 30 : 45);
     const totalMins = context.globalInput.studyHours * 60;
     const userVelocityHours = context.globalInput.studyHours || 4;
-    let completionProbabilityScore = PLANNER_CONFIG.completionProbBase - (taskDuration / (totalMins || 1)) * PLANNER_CONFIG.completionProbPenaltyFactor + (userVelocityHours - 4) * PLANNER_CONFIG.completionProbVelocityBonus;
+    // Prevent division by zero and ensure denominator is at least 1
+    const safeTotalMins = Math.max(1, totalMins);
+    let completionProbabilityScore = PLANNER_CONFIG.completionProbBase - (taskDuration / safeTotalMins) * PLANNER_CONFIG.completionProbPenaltyFactor + (userVelocityHours - 4) * PLANNER_CONFIG.completionProbVelocityBonus;
     completionProbabilityScore = Math.max(PLANNER_CONFIG.completionProbMin, Math.min(PLANNER_CONFIG.completionProbMax, completionProbabilityScore));
 
     // -------------------------------------------------------------

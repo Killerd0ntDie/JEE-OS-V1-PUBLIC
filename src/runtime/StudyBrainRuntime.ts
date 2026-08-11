@@ -256,10 +256,14 @@ export class StudyBrainRuntime {
   }
 
   public dispose() {
-    if (this.refreshTimeout) {
-      clearTimeout(this.refreshTimeout);
-    }
+    this.isDisposed = true;
     this.subscribers.clear();
+    this.refreshQueue = [];
+    this.isProcessingRefresh = false;
+    if (this.levelUpTimeout) {
+      clearTimeout(this.levelUpTimeout);
+      this.levelUpTimeout = null;
+    }
   }
 
   private notifySubscribers() {
@@ -282,14 +286,19 @@ export class StudyBrainRuntime {
 
   // For optimistic updates, they can pass partial state
   
-  private refreshTimeout: NodeJS.Timeout | null = null;
-  private pendingRefreshPromise: Promise<void> | null = null;
-  private pendingRefreshResolve: (() => void) | null = null;
-  private pendingReason: RefreshTriggers = 'INIT';
+  private refreshQueue: Array<{ reason: RefreshTriggers; optimisticData?: Partial<StudyBrainState>; resolve: (value: void) => void }> = [];
+  private isProcessingRefresh: boolean = false;
+  private isDisposed: boolean = false;
+  private levelUpTimeout: NodeJS.Timeout | null = null;
 
 
 
   public async refresh(reason: RefreshTriggers, optimisticData?: Partial<StudyBrainState>) {
+    if (this.isDisposed) {
+      console.warn('[StudyBrainRuntime] Refresh called on disposed instance');
+      return Promise.resolve();
+    }
+
     if (optimisticData) {
       this.state = { ...this.state, ...optimisticData };
       this.notifySubscribers();
@@ -300,33 +309,35 @@ export class StudyBrainRuntime {
       return;
     }
 
-    if (this.pendingReason !== 'INIT') {
-      this.pendingReason = reason;
+    // Add to queue instead of using debounced timeout
+    return new Promise((resolve) => {
+      this.refreshQueue.push({ reason, optimisticData: null, resolve }); // Don't pass optimisticData to queue - already applied
+      this.processRefreshQueue();
+    });
+  }
+
+  private async processRefreshQueue() {
+    if (this.isDisposed || this.isProcessingRefresh || this.refreshQueue.length === 0) {
+      return;
     }
 
-    if (!this.pendingRefreshPromise) {
-      this.pendingRefreshPromise = new Promise((resolve) => {
-        this.pendingRefreshResolve = resolve;
-      });
-    }
+    this.isProcessingRefresh = true;
 
-    if (this.refreshTimeout) {
-      clearTimeout(this.refreshTimeout);
-    }
-
-    this.refreshTimeout = setTimeout(async () => {
-      this.refreshTimeout = null;
-      const reasonToExecute = this.pendingReason;
-      await this.executeRefresh(reasonToExecute);
+    while (this.refreshQueue.length > 0 && !this.isDisposed) {
+      const { reason, resolve } = this.refreshQueue.shift()!;
       
-      if (this.pendingRefreshResolve) {
-        this.pendingRefreshResolve();
-        this.pendingRefreshResolve = null;
+      try {
+        await this.executeRefresh(reason);
+        resolve();
+      } catch (error) {
+        console.error('[StudyBrainRuntime] Refresh failed:', error);
+        // Resolve anyway to prevent queue deadlock, but the error has been logged
+        // The caller should handle this gracefully - state may be stale but won't crash
+        resolve();
       }
-      this.pendingRefreshPromise = null;
-    }, 250);
+    }
 
-    return this.pendingRefreshPromise;
+    this.isProcessingRefresh = false;
   }
 
   private async executeRefresh(reason: RefreshTriggers) {
@@ -497,28 +508,24 @@ export class StudyBrainRuntime {
       this.state.optimizationResult = optResult;
       this.state.completionPrediction = optResult;
       
-      // Directly map planner output into today's missions and preserve local complete checkboxes
+      // Simplified mission state synchronization with clear priority order
       const existingMissionsMap = new Map(this.state.todayMissions.map(m => [m.id, m]));
       
-      // Retain all completed missions that are NOT persistent custom missions (those are handled below)
-      const completedPlannerMissions = this.state.todayMissions.filter(m => !m.id.startsWith('custom-') && m.completed);
-      
-      // Retain explicit AI assistant custom missions that are incomplete
-      const customAiMissions = this.state.todayMissions.filter(m => m.id.startsWith('mission-ai-') && !m.completed);
-
-      // Filter custom missions that are meant for today OR are overdue
+      // Priority 1: User's custom missions (highest priority - user explicit intent)
       const todayStr = toLocalDateString();
-      const activeCustomMissionsForToday = this.state.customMissions.filter(m => {
+      const userCustomMissions = this.state.customMissions.filter(m => {
         const mDate = m.scheduledDate || m.date;
         if (!mDate) return true; // if no date, assume today
         return mDate <= todayStr;
       });
 
-      this.state.todayMissions = [
-        ...activeCustomMissionsForToday, // User's persistent custom missions (active and completed for today)
-        ...completedPlannerMissions,  // Retain checked-off planner missions (lectures, DPPs, PYQs, AI missions)
-        ...customAiMissions,          // Retain explicit AI assistant custom missions
-        ...(this.state.plannerOutput?.todaysMission || []).map(t => ({
+      // Priority 2: AI-generated missions (medium priority)
+      const aiMissions = this.state.todayMissions.filter(m => 
+        m.id.startsWith('mission-ai-') && !userCustomMissions.some(uc => uc.id === m.id)
+      );
+
+      // Priority 3: Planner-generated missions (lowest priority - system suggestions)
+      const plannerMissions = (this.state.plannerOutput?.todaysMission || []).map(t => ({
         id: t.id,
         subject: t.subjectId as SubjectId,
         chapter: t.chapterName,
@@ -540,15 +547,21 @@ export class StudyBrainRuntime {
         expectedJeeImpact: t.reasoning?.longTermImpact || `+${t.expectedMarksGain} Marks`,
         confidenceGainPercent: t.reasoning?.confidenceScorePercent || 85,
         reasoning: t.reasoning
-      }))
+      })).filter(pm => !userCustomMissions.some(uc => uc.id === pm.id) && !aiMissions.some(ai => ai.id === pm.id));
+
+      // Combine missions in priority order (later entries override earlier ones if same ID)
+      const allMissions = [
+        ...plannerMissions,    // System suggestions (base layer)
+        ...aiMissions,         // AI suggestions (override planner)
+        ...userCustomMissions  // User explicit intent (highest priority)
       ];
 
-      // Remove duplicates by ID and filter out deleted IDs from planner (don't re-add them)
+      // Remove duplicates by ID and filter out deleted IDs
       const deletedIds = new Set(this.state.deletedMissionIds || []);
       const uniqueMissions = new Map<string, TodayMission>();
-      for (const m of this.state.todayMissions) {
-        if (!uniqueMissions.has(m.id) && !deletedIds.has(m.id)) {
-          uniqueMissions.set(m.id, m);
+      for (const m of allMissions) {
+        if (!deletedIds.has(m.id)) {
+          uniqueMissions.set(m.id, m); // Later entries override earlier ones
         }
       }
 
@@ -557,15 +570,27 @@ export class StudyBrainRuntime {
       const currentDayIndex = (new Date().getDay() + 6) % 7; // Monday = 0
       const splitStrategy = this.state.mentorProfile?.subjectSplitStrategy || '3_a_day';
       const { generateWeeklyMatrix } = await import('@jee-os/engines');
-      this.state.weeklySchedule = (generateWeeklyMatrix as any)(
+      // Type assertion needed due to dynamic import and type compatibility issues
+      this.state.weeklySchedule = (generateWeeklyMatrix as (
+        splitStrategy: string,
+        chapters: Chapter[],
+        todayMissions: TodayMission[],
+        weeklySchedule: any,
+        currentDayIndex: number,
+        twoDaySplitConfig: any,
+        deletedMissionIds: string[],
+        scheduleOverrides: any,
+        dayStartTime: string | undefined,
+        dayEndTime: string | undefined
+      ) => any)(
         splitStrategy,
         this.state.chapters,
         this.state.todayMissions,
-        this.state.plannerOutput?.weeklySchedule as any,
+        this.state.plannerOutput?.weeklySchedule,
         currentDayIndex,
         this.state.mentorProfile?.twoDaySplitConfig,
         this.state.deletedMissionIds || [],
-        this.state.scheduleOverrides as any,
+        this.state.scheduleOverrides,
         this.state.settings?.dayStartTime,
         this.state.settings?.dayEndTime
       );
@@ -590,9 +615,9 @@ export class StudyBrainRuntime {
           priorityScore: b.priorityScore,
           reasoning: b.reasoning,
           dismissed: original?.dismissed ?? false,
-          isManualOverride: (b as any).isManualOverride,
-          scheduledDate: (b as any).scheduledDate,
-          scheduledTime: (b as any).scheduledTime
+          isManualOverride: (b as typeof b & { isManualOverride?: boolean }).isManualOverride ?? false,
+          scheduledDate: (b as typeof b & { scheduledDate?: string }).scheduledDate,
+          scheduledTime: (b as typeof b & { scheduledTime?: string }).scheduledTime
         };
       });
 
@@ -614,7 +639,7 @@ export class StudyBrainRuntime {
         generatedBlocks.push({
           id: `mission-${mission.id}`,
           time: mission.timeSlot || `${startStr} - ${endStr}`,
-          subject: mission.subject as any,
+          subject: mission.subject as any, // TimelineBlock expects broader subject type - acceptable here as subject types are compatible
           chapter: mission.chapter,
           activity: `${mission.type}: ${mission.taskName}`,
           completed: mission.completed
@@ -773,9 +798,9 @@ export class StudyBrainRuntime {
 
     // Clear levelUpData after it's been processed by subscribers
     if (this.state.levelUpData) {
-      if ((this as any).levelUpTimeout) clearTimeout((this as any).levelUpTimeout);
+      if (this.levelUpTimeout) clearTimeout(this.levelUpTimeout);
       // Keep it for one notification cycle, then clear
-      (this as any).levelUpTimeout = setTimeout(() => {
+      this.levelUpTimeout = setTimeout(() => {
         this.state.levelUpData = null;
         this.notifySubscribers();
       }, 100);

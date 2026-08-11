@@ -70,7 +70,7 @@ export function useDashboardState() {
     }
 
     // 2. Check if this is the first visit of the day
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = new Date().toLocaleDateString('en-CA');
     const lastVisitDate = localStorage.getItem('jee_last_dashboard_expand_date');
     const isFirstVisitOfDay = lastVisitDate !== todayStr;
 

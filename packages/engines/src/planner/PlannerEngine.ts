@@ -3,6 +3,21 @@ import { PlannerInput, PlannerOutput, ScheduledTask, MissionReasoning, Reasoning
 import { PlannerScoringEngine, ScoringContext, PLANNER_CONFIG } from './PlannerScoringEngine';
 import { SubjectId, Chapter } from '@/types/index';
 
+function normalizeStageAlias(stage?: string): string | undefined {
+  if (!stage) return stage;
+  const normalized = stage.trim();
+  if (normalized === 'Never Started' || normalized === 'Unknown') return 'Not Started';
+  if (normalized === 'Doing Questions') return 'Solving DPPs';
+  return normalized;
+}
+
+function getLocalDateKey(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export class PlannerEngine {
   private knowledgeEngine: KnowledgeEngine;
   private scoringEngine: PlannerScoringEngine;
@@ -276,21 +291,19 @@ export class PlannerEngine {
     // =========================================================================
     // Evaluate revision backlog
     for (const rev of input.revisionBacklog) {
-      if (rev.daysOverdue > 0) {
-        const node = this.knowledgeEngine.getNode(rev.chapterId);
-        if (node) {
-          const rawProg: any = input.chapterTelemetryMap[node.id] || { masteryScore: 100, isMastered: true };
-          const todayStr = (input.currentDate || new Date().toISOString()).split('T')[0];
-          candidates.push(generateTask(
-            'Revise Formulas',
-            node,
-            { chapterId: node.id, completion: rawProg.masteryScore, isMastered: rawProg.isMastered },
-            30,
-            `rev-${rev.chapterId}-${todayStr}`,
-            `Revise ${node.name}`,
-            rev
-          ));
-        }
+      const node = this.knowledgeEngine.getNode(rev.chapterId);
+      if (node) {
+        const rawProg: any = input.chapterTelemetryMap[node.id] || { masteryScore: 100, isMastered: true };
+        const todayStr = (input.currentDate || new Date().toISOString()).split('T')[0];
+        candidates.push(generateTask(
+          'Revise Formulas',
+          node,
+          { chapterId: node.id, completion: rawProg.masteryScore, isMastered: rawProg.isMastered },
+          30,
+          `rev-${rev.chapterId}-${todayStr}`,
+          `Revise ${node.name}`,
+          rev
+        ));
       }
     }
 
@@ -356,12 +369,14 @@ export class PlannerEngine {
     const activeSubjects = new Set<string>();
     for (const node of recommendedChapters) {
       const rawProg: any = input.chapterTelemetryMap[node.id] || {};
+      const normalizedStatus = normalizeStageAlias(rawProg.status);
+      const normalizedStage = normalizeStageAlias(rawProg.syllabusStage);
       const isStarted = (rawProg.masteryScore && rawProg.masteryScore > 0) || 
                         (rawProg.rawCompletion && rawProg.rawCompletion > 0) ||
                         (rawProg.currentLecture && rawProg.currentLecture > 0) || 
                         rawProg.theoryComplete || 
-                        (rawProg.status && rawProg.status !== 'Not Started' && rawProg.status !== 'Never Started') ||
-                        (rawProg.syllabusStage && rawProg.syllabusStage !== 'Never Started' && rawProg.syllabusStage !== 'Not Started');
+                        (normalizedStatus && normalizedStatus !== 'Not Started') ||
+                        (normalizedStage && normalizedStage !== 'Not Started');
       if (isStarted) {
         activeSubjects.add(node.subject);
       }
@@ -481,17 +496,19 @@ export class PlannerEngine {
     // Give active in-progress chapters a heavy priority boost (+100) so active work strictly fills missions first, while unstarted chapters stay available if needed
     for (const task of candidates) {
       const prog: any = input.chapterTelemetryMap[task.chapterId] || {};
+      const normalizedStatus = normalizeStageAlias(prog.status);
+      const normalizedStage = normalizeStageAlias(prog.syllabusStage);
       const isStarted = prog && (
         (prog.masteryScore > 0 && prog.masteryScore < 100) ||
         (prog.rawCompletion > 0 && prog.rawCompletion < 100) ||
         (prog.currentLecture && prog.currentLecture > 0) ||
-        (prog.status && prog.status !== 'Not Started' && prog.status !== 'Never Started') ||
-        (prog.syllabusStage && prog.syllabusStage !== 'Never Started' && prog.syllabusStage !== 'Not Started')
+        (normalizedStatus && normalizedStatus !== 'Not Started') ||
+        (normalizedStage && normalizedStage !== 'Not Started')
       );
 
       const isUnstarted = (prog.currentLecture === 0) &&
                           !prog.theoryComplete &&
-                          (!prog.status || prog.status === 'Not Started' || prog.status === 'Never Started');
+                          (!normalizedStatus || normalizedStatus === 'Not Started');
 
       if (isStarted) {
         task.priorityScore += 100;
@@ -502,17 +519,37 @@ export class PlannerEngine {
 
     // Sort all candidates by priority score descending, with a tie-breaker for chronological lecture order
     candidates.sort((a, b) => {
+      const sameChapter =
+        (a.chapterId && b.chapterId && a.chapterId === b.chapterId) ||
+        ((a.chapterName || '') === (b.chapterName || ''));
+
+      const getLecNum = (name: string) => {
+        const match = name.match(/Lecture (\d+)/i);
+        return match ? parseInt(match[1]) : Number.MAX_SAFE_INTEGER;
+      };
+
+      const aIsLecture = a.type === 'Watch Lecture' || /Lecture \d+/i.test(a.taskName || '');
+      const bIsLecture = b.type === 'Watch Lecture' || /Lecture \d+/i.test(b.taskName || '');
+
+      if (sameChapter && aIsLecture && bIsLecture) {
+        const lecNumA = getLecNum(a.taskName);
+        const lecNumB = getLecNum(b.taskName);
+        if (lecNumA !== lecNumB) {
+          return lecNumA - lecNumB;
+        }
+      }
+
       if (b.priorityScore !== a.priorityScore) {
         return b.priorityScore - a.priorityScore;
       }
-      
-      // Tie-breaker: keep lectures for the same chapter in sequential order
-      const getLecNum = (name: string) => {
-        const match = name.match(/Lecture (\d+)/i);
-        return match ? parseInt(match[1]) : 0;
-      };
-      
-      return getLecNum(a.taskName) - getLecNum(b.taskName);
+
+      const lecNumA = getLecNum(a.taskName);
+      const lecNumB = getLecNum(b.taskName);
+      if (lecNumA !== lecNumB) {
+        return lecNumA - lecNumB;
+      }
+
+      return (a.chapterName || '').localeCompare(b.chapterName || '');
     });
 
     console.log('==== DEBUG PLANNER SORTING ====');
@@ -724,7 +761,7 @@ export class PlannerEngine {
       physics: candidates.filter(c => c.subjectId === 'physics'),
       chemistry: candidates.filter(c => c.subjectId === 'chemistry'),
       maths: candidates.filter(c => c.subjectId === 'maths'),
-      revision: candidates.filter(c => c.subjectId === ('revision' as any))
+      revision: candidates.filter(c => c.type === 'Revise Formulas' || c.type === 'Review Mistakes')
     };
 
     const subjectPointer: Record<string, number> = { physics: 0, chemistry: 0, maths: 0, revision: 0 };
@@ -789,6 +826,12 @@ export class PlannerEngine {
         const revTask = subjectCandidatesMap.revision[day % subjectCandidatesMap.revision.length];
         if (revTask && dayMins + revTask.duration <= availableMinutes + 30) {
           dayTasks.push({ ...revTask, id: `rev-${day}-${revTask.id}` });
+        }
+      } else if (dayMins < availableMinutes) {
+        // Fallback: add any revision task if no revision tasks in map
+        const anyRevTask = candidates.find(c => c.type === 'Revise Formulas' || c.type === 'Review Mistakes');
+        if (anyRevTask && dayMins + anyRevTask.duration <= availableMinutes + 30) {
+          dayTasks.push({ ...anyRevTask, id: `rev-${day}-${anyRevTask.id}` });
         }
       }
 
@@ -952,7 +995,7 @@ export function generateWeeklyMatrix(
 
       const todayDateObj = new Date();
       todayDateObj.setHours(0,0,0,0);
-      const todayDateStr = todayDateObj.toISOString().split('T')[0];
+      const todayDateStr = getLocalDateKey(todayDateObj);
 
       todayMissions.forEach((m, mIdx) => {
         const chap = chapters.find(c => c.name.toLowerCase() === (m.chapter || '').toLowerCase());
@@ -1447,7 +1490,7 @@ export function generateWeeklyMatrix(
   if (scheduleOverrides && Object.keys(scheduleOverrides).length > 0) {
     const todayDateObj = new Date();
     todayDateObj.setHours(0,0,0,0);
-    const todayDateStr = todayDateObj.toISOString().split('T')[0];
+    const todayDateStr = getLocalDateKey(todayDateObj);
 
     blocks = blocks.map(b => {
       const override = scheduleOverrides[b.id] || scheduleOverrides[b.id.replace('today-', '')] || scheduleOverrides[b.id.replace('plan-', '')];

@@ -51,7 +51,7 @@ export function Topbar({
 
   const minStreakMins = Math.round((settings?.minStreakHours ?? 0.5) * 60);
   const computedStreak = useMemo(() => calculateCurrentStreak(studySessions, minStreakMins), [studySessions, minStreakMins]);
-  const effectiveStreak = Math.max(computedStreak, xp?.streak || 0);
+  const effectiveStreak = computedStreak;
   const todayStudyMins = useMemo(() => getTodayStudyMinutes(studySessions), [studySessions]);
   
   const formatStudyTime = (hours: number): string => {

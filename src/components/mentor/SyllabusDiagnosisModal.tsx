@@ -33,7 +33,7 @@ export const SyllabusDiagnosisModal: React.FC<Props> = ({ isOpen, onClose }) => 
 
   // Local editing state for selected chapter
   const stageOptions: SyllabusDiagnosisStage[] = [
-    'Never Started',
+    'Not Started',
     'Watching Lectures',
     'Making Notes',
     'Doing Questions',
@@ -49,12 +49,12 @@ export const SyllabusDiagnosisModal: React.FC<Props> = ({ isOpen, onClose }) => 
     else if (stage === 'Doing Questions') completion = 65;
     else if (stage === 'Making Notes') completion = 45;
     else if (stage === 'Watching Lectures') completion = 25;
-    else if (stage === 'Never Started') completion = 0;
+    else if (stage === 'Not Started') completion = 0;
     else completion = 10;
 
     const mappedStatus = stage === 'Mastered' ? 'Mastered' 
       : stage === 'Revision' ? 'Revision Due' 
-      : stage === 'Never Started' ? 'Not Started' 
+      : stage === 'Not Started' ? 'Not Started' 
       : 'Learning';
 
     actions.updateChapter(chapId, {
@@ -228,7 +228,7 @@ export const SyllabusDiagnosisModal: React.FC<Props> = ({ isOpen, onClose }) => 
 
             {subjectChapters.map(chap => {
               const isSelected = selectedChapter?.id === chap.id;
-              const currentStage = chap.syllabusStage || (chap.completion >= 100 ? 'Mastered' : chap.completion > 0 ? 'Watching Lectures' : 'Never Started');
+              const currentStage = chap.syllabusStage || (chap.completion >= 100 ? 'Mastered' : chap.completion > 0 ? 'Watching Lectures' : 'Not Started');
 
               return (
                 <button
@@ -285,7 +285,7 @@ export const SyllabusDiagnosisModal: React.FC<Props> = ({ isOpen, onClose }) => 
                 <label className="text-xs font-mono uppercase tracking-wider text-zinc-400 block">Syllabus Diagnosis Stage</label>
                 <div className="flex flex-wrap gap-1.5">
                   {stageOptions.map(stg => {
-                    const active = (selectedChapter.syllabusStage || (selectedChapter.completion >= 100 ? 'Mastered' : selectedChapter.completion > 0 ? 'Watching Lectures' : 'Never Started')) === stg;
+                    const active = (selectedChapter.syllabusStage || (selectedChapter.completion >= 100 ? 'Mastered' : selectedChapter.completion > 0 ? 'Watching Lectures' : 'Not Started')) === stg;
                     return (
                       <button
                         key={stg}

@@ -45,11 +45,17 @@ export function MockTestResult({ test, attempt, onClose, onNavigate }: MockTestR
     test.sections.forEach(sec => {
       sec.questions.forEach(q => {
         const a = attempt.questions[q.id];
+        if (!a) {
+          unattempted++;
+          subjectStats[sec.subject].unattempted++;
+          return;
+        }
+
         const isAnswered = a.status === 'Answered' || a.status === 'Answered & Marked for Review';
         
         if (isAnswered && a.selectedAnswer) {
           const isCorrectAnswer = q.type === 'NUMERICAL' 
-            ? parseFloat(a.selectedAnswer) === parseFloat(q.correctAnswer) 
+            ? Math.abs(parseFloat(a.selectedAnswer) - parseFloat(q.correctAnswer)) < 1e-6
             : a.selectedAnswer.trim() === q.correctAnswer.trim();
             
           if (isCorrectAnswer) {
@@ -83,10 +89,11 @@ export function MockTestResult({ test, attempt, onClose, onNavigate }: MockTestR
     test.sections.forEach(sec => {
       sec.questions.forEach(q => {
         const a = attempt.questions[q.id];
+        if (!a) return;
         const isAnswered = a.status === 'Answered' || a.status === 'Answered & Marked for Review';
         if (isAnswered && a.selectedAnswer) {
           const isCorrectAnswer = q.type === 'NUMERICAL' 
-            ? parseFloat(a.selectedAnswer) === parseFloat(q.correctAnswer) 
+            ? Math.abs(parseFloat(a.selectedAnswer) - parseFloat(q.correctAnswer)) < 1e-6
             : a.selectedAnswer.trim() === q.correctAnswer.trim();
             
           if (!isCorrectAnswer) {
@@ -321,7 +328,7 @@ function QuestionAnalysisSection({ test, attempt }: { test: MockTest; attempt: M
         if (isAnswered && a.selectedAnswer) {
           isUnattempted = false;
           const isCorrectAnswer = q.type === 'NUMERICAL' 
-            ? parseFloat(a.selectedAnswer) === parseFloat(q.correctAnswer) 
+            ? Math.abs(parseFloat(a.selectedAnswer) - parseFloat(q.correctAnswer)) < 1e-6
             : a.selectedAnswer.trim() === q.correctAnswer.trim();
             
           if (isCorrectAnswer) {

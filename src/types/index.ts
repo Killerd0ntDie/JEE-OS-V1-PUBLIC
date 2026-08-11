@@ -145,7 +145,6 @@ export type ChapterStatus =
 
 export type SyllabusDiagnosisStage = 
   | 'Not Started'
-  | 'Never Started'
   | 'Watching Lectures' 
   | 'Making Notes' 
   | 'Doing Questions'

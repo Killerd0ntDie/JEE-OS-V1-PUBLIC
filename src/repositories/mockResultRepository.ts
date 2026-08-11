@@ -1,6 +1,7 @@
-import { collection, doc, getDocs, setDoc, updateDoc, writeBatch, deleteDoc, query, orderBy, limit } from 'firebase/firestore';
+import { collection, doc, getDocs, setDoc, writeBatch, deleteDoc, query, orderBy } from 'firebase/firestore';
 import { db } from '@/firebase';
 import { MockResult } from '@/types/index';
+import { sanitizeForFirestore } from '@/utils/firestoreSanitizer';
 
 export const MockResultRepository = {
   async getMockResults(userId: string): Promise<MockResult[]> {
@@ -12,7 +13,8 @@ export const MockResultRepository = {
 
   async saveMockResult(userId: string, result: MockResult): Promise<void> {
     const mockDoc = doc(db, 'users', userId, 'mockResults', result.id);
-    await setDoc(mockDoc, result, { merge: true });
+    const sanitized = sanitizeForFirestore(result);
+    await setDoc(mockDoc, sanitized, { merge: true });
   },
 
   async deleteMockResult(userId: string, resultId: string): Promise<void> {
@@ -24,7 +26,7 @@ export const MockResultRepository = {
     const batch = writeBatch(db);
     records.forEach(record => {
       const mockDoc = doc(db, 'users', userId, 'mockResults', record.id);
-      batch.set(mockDoc, record);
+      batch.set(mockDoc, sanitizeForFirestore(record));
     });
     await batch.commit();
   }

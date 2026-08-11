@@ -32,6 +32,7 @@ export function getTodayStudyMinutes(studySessions: StudySession[] = []): number
  * Resets to 0 if neither today nor yesterday met the minimum threshold.
  */
 export function calculateCurrentStreak(studySessions: StudySession[] = [], minStreakMinutes: number = 30): number {
+  const effectiveThreshold = Math.max(1, Number(minStreakMinutes) || 30);
   const map = getDailyMinutesMap(studySessions);
   const now = new Date();
   const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -40,24 +41,21 @@ export function calculateCurrentStreak(studySessions: StudySession[] = [], minSt
   const todayMins = map.get(todayKey) || 0;
   let checkDate = new Date(todayDate);
 
-  if (todayMins < minStreakMinutes) {
-    // Check if yesterday met threshold
+  if (todayMins < effectiveThreshold) {
     checkDate.setDate(checkDate.getDate() - 1);
     const yesterdayKey = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(checkDate.getDate()).padStart(2, '0')}`;
     const yesterdayMins = map.get(yesterdayKey) || 0;
-    
-    if (yesterdayMins < minStreakMinutes) {
-      // Both today and yesterday failed minimum study threshold -> streak broken
+
+    if (yesterdayMins < effectiveThreshold) {
       return 0;
     }
   }
 
-  // Count consecutive active days backward meeting minStreakMinutes
   let streak = 0;
   while (true) {
     const dateKey = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(checkDate.getDate()).padStart(2, '0')}`;
     const mins = map.get(dateKey) || 0;
-    if (mins >= minStreakMinutes) {
+    if (mins >= effectiveThreshold) {
       streak++;
       checkDate.setDate(checkDate.getDate() - 1);
     } else {

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { audioEngine } from '@/utils/audioEngine';
 import { calculateFocusScore } from '@/utils/focusScore';
+import { getCurrentSessionTimeSlot, formatTimeSlotDisplay } from '@/utils/timeSlotUtils';
 import { LECTURE_SPEEDS, FORMULAS } from '../constants/formulas';
 
 export interface MissionModeProps {
@@ -59,13 +60,35 @@ export function useMissionState(props: MissionModeProps) {
   const [isTimeUpModalOpen, setIsTimeUpModalOpen] = useState(false);
   const [hasTriggeredTimeUp, setHasTriggeredTimeUp] = useState(false);
   
+  // Enhanced session storage persistence for timer state
   useEffect(() => {
     if (storageKey && !isSettingUp && !isCompleted && !missionFailed) {
       sessionStorage.setItem(storageKey, JSON.stringify({
-        isPaused, seconds, focusScore, idleTime, focusInterruptions
+        isPaused, 
+        seconds, 
+        focusScore, 
+        idleTime, 
+        focusInterruptions,
+        timestamp: Date.now() // Add timestamp to detect stale sessions
       }));
     }
   }, [storageKey, isSettingUp, isCompleted, missionFailed, isPaused, seconds, focusScore, idleTime, focusInterruptions]);
+  
+  // Recover timer state on mount with staleness check
+  useEffect(() => {
+    if (savedState && savedState.timestamp) {
+      const sessionAge = Date.now() - savedState.timestamp;
+      // If session is older than 24 hours, consider it stale and reset
+      if (sessionAge > 24 * 60 * 60 * 1000) {
+        console.log('[useMissionState] Detected stale session state, resetting timer');
+        setSeconds(initialSeconds);
+        setFocusScore(100);
+        setIdleTime(0);
+        setFocusInterruptions(0);
+        if (storageKey) sessionStorage.removeItem(storageKey);
+      }
+    }
+  }, []);
 
   const [isNotesOpen, setIsNotesOpen] = useState(false);
   const [isFormulaOpen, setIsFormulaOpen] = useState(false);
@@ -102,6 +125,19 @@ export function useMissionState(props: MissionModeProps) {
 
   const handleExit = () => {
     if (storageKey) sessionStorage.removeItem(storageKey);
+    
+    // Update mission timeSlot to reflect actual end time when exiting early (using standardized calculation)
+    if (activeSubjectMission && secondsRef.current > 0) {
+      const durationMins = Math.ceil(secondsRef.current / 60);
+      const timeSlot = getCurrentSessionTimeSlot(durationMins);
+      
+      // Update the mission with actual time slot
+      actions?.updateMissionDetails(activeSubjectMission.id, {
+        timeSlot: formatTimeSlotDisplay(timeSlot),
+        scheduledTime: timeSlot.start
+      });
+    }
+    
     onExit(secondsRef.current);
   };
 

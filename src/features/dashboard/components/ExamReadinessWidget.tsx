@@ -3,13 +3,14 @@ import { Card } from '@/components/ui/Card';
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
 import { motion } from 'motion/react';
 import { StudyBrainService } from '@/services/studyBrainService';
+import { calculateRealisticDailyChapterVelocity } from '@/utils/chapterVelocity';
 
 import { AlertTriangle, Clock, Skull, Zap } from 'lucide-react';
 
 interface ExamReadinessWidgetProps {
   targetYear: string;
   syllabusProgress: any; // We can use proper type if available, but for now matching the existing usage
-  studySessions?: { startTime: string }[];
+  studySessions?: { startTime: string; duration?: number }[];
 }
 
 export function ExamReadinessWidget({ targetYear, syllabusProgress, studySessions = [] }: ExamReadinessWidgetProps) {
@@ -33,10 +34,22 @@ export function ExamReadinessWidget({ targetYear, syllabusProgress, studySession
     if (isNaN(t)) return earliest;
     return earliest === null ? t : Math.min(earliest, t);
   }, null);
+  const actualStudyMinutes = studySessions.reduce((sum, s) => sum + (typeof s.duration === 'number' ? s.duration : 0), 0);
+  const hasRealStudyHistory = studySessions.some(s => {
+    const t = new Date(s.startTime).getTime();
+    return !isNaN(t) && (s.duration ?? 0) > 0;
+  });
   const studyDaysElapsed = earliestSessionMs
     ? Math.max(1, Math.ceil((Date.now() - earliestSessionMs) / 86400000))
     : 1;
-  const currentVelocity = masteredChapters / studyDaysElapsed; // Chapters per day
+  const currentVelocity = calculateRealisticDailyChapterVelocity({
+    masteredChapters,
+    studyDaysElapsed,
+    cap: 1.5,
+    hasRealStudyHistory,
+    actualStudyMinutes,
+    minimumStudyMinutes: 30,
+  });
   const requiredVelocity = daysRemaining > 0 ? remainingChapters / daysRemaining : 0;
   
   const isDoomsday = currentVelocity < requiredVelocity && daysRemaining > 0;

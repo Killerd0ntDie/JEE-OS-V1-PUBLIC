@@ -198,7 +198,7 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
       setPyqOnHold(!!chapter.pyqOnHold);
       setChapterOnHold(!!chapter.chapterOnHold);
     }
-  }, [chapter, telemetry]);
+  }, [chapter?.id, telemetry?.weightagePercent]); // Use specific properties to prevent infinite loops
 
   const estimatedHours = Math.round(((Math.max(0, totalLectures - currentLecture)) * (avgLectureDuration || 0)) / 60);
 

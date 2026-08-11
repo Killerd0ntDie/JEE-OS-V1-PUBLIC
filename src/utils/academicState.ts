@@ -32,10 +32,10 @@ export function getAcademicState(chapter: Chapter): ChapterAcademicState {
     chapter.pyqsComplete ? 'Solving PYQs' :
     chapter.dppComplete ? 'Solving DPPs' :
     chapter.theoryComplete || chapter.currentLecture > 0 ? 'Watching Lectures' :
-    'Never Started'
+    'Not Started'
   );
   if (stage === 'Unknown') {
-    stage = 'Never Started';
+    stage = 'Not Started';
   }
 
   // 2. Lecture Progress
@@ -165,7 +165,7 @@ export function normalizeChapter(chapter: Chapter): Chapter {
   const mappedStatus: Chapter['status'] = 
     syllabusStage === 'Mastered' ? 'Mastered' :
     syllabusStage === 'Revision' ? 'Revision Due' :
-    syllabusStage === 'Not Started' || syllabusStage === 'Never Started' ? 'Not Started' : 'Learning';
+    syllabusStage === 'Not Started' ? 'Not Started' : 'Learning';
 
   const acad = getAcademicState({ ...chapter, syllabusStage, status: mappedStatus });
 
@@ -252,6 +252,14 @@ export function generateIntelligentFollowUpQuestions(
 /**
   Calculates aggregate syllabus metrics directly from centralized Academic States.
  */
+export function normalizeStageAlias(stage?: string): string {
+  if (!stage) return 'Not Started';
+  const normalized = stage.trim();
+  if (normalized === 'Never Started' || normalized === 'Unknown') return 'Not Started';
+  if (normalized === 'Doing Questions') return 'Solving DPPs';
+  return normalized;
+}
+
 export function computeCentralAcademicStateSummary(chapters: Chapter[]) {
   const normalized = chapters.map(c => getAcademicState(c));
 
@@ -295,9 +303,7 @@ export function computeCentralAcademicStateSummary(chapters: Chapter[]) {
   let missingInfoCount = 0;
 
   normalized.forEach(item => {
-    let stg = item.syllabusStage as string;
-    if (stg === 'Never Started' || stg === 'Unknown') stg = 'Not Started';
-    if (stg === 'Doing Questions') stg = 'Solving DPPs';
+    const stg = normalizeStageAlias(item.syllabusStage as string);
     
     if (stageCounts[stg] !== undefined) {
       stageCounts[stg]++;

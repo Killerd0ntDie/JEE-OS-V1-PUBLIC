@@ -31,20 +31,20 @@ export function CockpitPage() {
         initialPaused={locationState?.paused ?? false}
         initialSeconds={locationState?.seconds ?? 0}
         onExit={async (currentSecs) => {
-          if (currentSecs >= 60) {
-            const durationMinutes = Math.floor(currentSecs / 60);
-            await actions.completeStudySession({
-              duration: durationMinutes,
-              focusTime: durationMinutes,
-              questions: 0,
-              correct: 0,
-              type: 'Practice',
-              subjectId: activeSubject as any,
-              idleTime: 0,
-              focusInterruptions: 0,
-              focusScore: 100
-            });
-          }
+          // Record session of any duration to track elapsed time even if mission isn't completed
+          // Record sessions as low as 30 seconds (0.5 minutes) to capture meaningful study time
+          const durationMinutes = Math.max(0.5, currentSecs / 60);
+          await actions.completeStudySession({
+            duration: Math.round(durationMinutes * 10) / 10, // Round to 1 decimal place
+            focusTime: Math.round(durationMinutes * 10) / 10,
+            questions: 0,
+            correct: 0,
+            type: 'Practice',
+            subjectId: activeSubject as any,
+            idleTime: 0,
+            focusInterruptions: 0,
+            focusScore: 100
+          });
           navigate('/dashboard');
         }}
         onComplete={(stats) => {

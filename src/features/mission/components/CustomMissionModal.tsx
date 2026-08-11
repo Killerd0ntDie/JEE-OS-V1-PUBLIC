@@ -5,6 +5,7 @@ import { X, Plus, Clock, Sparkles, Trash2 } from 'lucide-react';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { SubjectId, TodayMission } from '@/types/index';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { toLocalDateString } from '@/utils/dateUtils';
 
 interface CustomMissionModalProps {
   isOpen: boolean;
@@ -22,7 +23,7 @@ export const CustomMissionModal: React.FC<CustomMissionModalProps> = ({ isOpen, 
   const [duration, setDuration] = useState(60);
   const [targetPYQs, setTargetPYQs] = useState<number | ''>('');
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = toLocalDateString();
   const [scheduledDate, setScheduledDate] = useState(todayStr);
 
   useEffect(() => {

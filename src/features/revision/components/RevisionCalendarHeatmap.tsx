@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { Icon } from '@/components/ui/Icon';
 import { StudySession } from '@/types/index';
+import { toLocalDateString } from '@/utils/dateUtils';
 
 interface RevisionCalendarHeatmapProps {
   sessions: StudySession[];
@@ -15,7 +16,7 @@ export function RevisionCalendarHeatmap({ sessions }: RevisionCalendarHeatmapPro
     for (let i = 29; i >= 0; i--) {
       const d = new Date();
       d.setDate(today.getDate() - i);
-      const dateStr = d.toISOString().split('T')[0];
+      const dateStr = toLocalDateString(d);
       
       const sessCount = sessions.filter(s => s.startTime.startsWith(dateStr)).length;
       days.push({ dateStr, count: sessCount });

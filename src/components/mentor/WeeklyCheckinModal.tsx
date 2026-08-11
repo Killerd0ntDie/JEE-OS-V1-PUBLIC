@@ -4,6 +4,7 @@ import { Sparkles, Calendar, RotateCcw, X, Check } from 'lucide-react';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { Modal } from '@/components/ui/Modal';
+import { toLocalDateString } from '@/utils/dateUtils';
 
 interface Props {
   isOpen: boolean;
@@ -30,7 +31,7 @@ export const WeeklyCheckinModal: React.FC<Props> = ({ isOpen, onClose }) => {
     setIsSubmitting(true);
     try {
       await actions.submitWeeklyCheckin({
-        date: new Date().toISOString().split('T')[0],
+        date: toLocalDateString(),
         completedChapters: completedChapters.split(',').map(s => s.trim()).filter(Boolean),
         newBacklogNotes,
         upcomingExams,

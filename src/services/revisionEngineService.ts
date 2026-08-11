@@ -68,7 +68,7 @@ export const RevisionEngineService = {
 
   // 3. Estimate memory retention using the Forgetting Curve (half-life model)
   estimateRetention(chapter: Chapter): { retention: number; status: 'Fresh' | 'Stable' | 'Fading' | 'Forgotten' } {
-    const daysSince = chapter.lastRevisionDaysAgo ?? 0;
+    const daysSince = Number.isFinite(chapter.lastRevisionDaysAgo) ? (chapter.lastRevisionDaysAgo ?? 999) : 999;
     const stability = this.getMemoryStability(chapter.revisionStage || this.inferCurrentStage(chapter));
     
     // Retention R = 100 * (0.5) ^ (t / S)
@@ -130,11 +130,13 @@ export const RevisionEngineService = {
     settings: RevisionSettings
   ): number {
     const w = settings.weights;
+    const confidence = Number.isFinite(chapter.confidence) ? (chapter.confidence ?? 0) : 0;
+    const priority = Number.isFinite(chapter.priority) ? (chapter.priority ?? 2) : 2;
     
     // Scale components between 0 and 100
     const overdueScore = Math.min(100, daysOverdue * 12);
-    const weaknessScore = 100 - chapter.confidence;
-    const importanceScore = (4 - chapter.priority) * 33.3; // 1 = 99.9, 2 = 66.6, 3 = 33.3
+    const weaknessScore = 100 - confidence;
+    const importanceScore = (4 - priority) * 33.3; // 1 = 99.9, 2 = 66.6, 3 = 33.3
     const depScore = Math.min(100, dependencyCount * 25);
     const mistakeScore = Math.min(100, mistakesCount * 20);
 
@@ -196,7 +198,7 @@ export const RevisionEngineService = {
       }
 
       // Calculate days overdue
-      const daysSinceLast = chapter.lastRevisionDaysAgo ?? 0;
+      const daysSinceLast = Number.isFinite(chapter.lastRevisionDaysAgo) ? (chapter.lastRevisionDaysAgo ?? 999) : 999;
       const daysOverdue = Math.max(0, daysSinceLast - intervalDays);
 
       // We revision is "due" if we are past the interval, OR if confidence is dangerously low (< 60)

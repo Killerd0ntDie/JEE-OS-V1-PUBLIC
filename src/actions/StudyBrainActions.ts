@@ -11,6 +11,9 @@ import { TodayMission, SubjectId, TimelineBlock, Mistake, Chapter, StudySession,
 import { MockTest } from '@/types/mockTest';
 import { normalizeChapter } from '@/utils/academicState';
 import { calculateLevelFromXP } from '@/utils/levelingCalculations';
+import { getCurrentSessionTimeSlot, formatTimeSlotDisplay } from '@/utils/timeSlotUtils';
+import { toLocalDateString } from '@/utils/dateUtils';
+import { calculateMockScorePercent } from '@/utils/mockScoring';
 import { collection, getDocs, writeBatch, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '@/firebase';
 
@@ -57,7 +60,7 @@ export class StudyBrainActions {
    */
   private getResetXpBase() {
     const xp = { ...this.state.xp };
-    const today = new Date().toISOString().split('T')[0];
+    const today = toLocalDateString();
     const lastActive = xp.lastActiveDate;
 
     if (lastActive && lastActive !== today) {
@@ -156,7 +159,7 @@ export class StudyBrainActions {
       unlocked: true
     };
 
-    // Adjust the scheduled time to match reality when completing
+    // Adjust the scheduled time to match reality when completing (using standardized time slot calculation)
     if (isCompleting) {
       let durationMins = 0;
       if (durationSecs !== undefined && durationSecs > 0) {
@@ -165,14 +168,9 @@ export class StudyBrainActions {
         durationMins = mission.duration || 60; // fallback to expected duration
       }
       
-      const now = new Date();
-      const start = new Date(now.getTime() - durationMins * 60000);
-      
-      const startStr = start.toTimeString().substring(0, 5); // "HH:MM"
-      const endStr = now.toTimeString().substring(0, 5); // "HH:MM"
-      
-      updatedMission.scheduledTime = startStr;
-      updatedMission.timeSlot = `${startStr} - ${endStr}`;
+      const timeSlot = getCurrentSessionTimeSlot(durationMins);
+      updatedMission.scheduledTime = timeSlot.start;
+      updatedMission.timeSlot = formatTimeSlotDisplay(timeSlot);
     }
 
     updatedMissions[missionIndex] = updatedMission;
@@ -209,26 +207,18 @@ export class StudyBrainActions {
     newXp.level = newLevelValue;
     newXp.nextLevelXP = xpNeededForNext;
 
-    // Streak Calculation (only when completing a task, not when unchecking)
+    // Streak is derived from actual study sessions and the configured daily threshold.
+    // Do not allow a single quick task completion to create a fake 1-day streak.
     if (isCompleting) {
-      const today = new Date().toISOString().split('T')[0];
-      const lastActive = this.state.xp.lastActiveDate;
-      
-      if (!lastActive) {
-        newXp.streak = 1;
-      } else if (lastActive !== today) {
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        const yesterdayStr = yesterday.toISOString().split('T')[0];
-        
-        if (lastActive === yesterdayStr) {
-          newXp.streak = (this.state.xp.streak || 0) + 1;
-        } else {
-          // Missed a day, streak resets to 1 for today's action
-          newXp.streak = 1;
-        }
+      const today = toLocalDateString();
+      const minThresholdMins = Math.round((this.state.settings?.minStreakHours ?? 0.5) * 60);
+      const todayMinutes = this.state.studySessions
+        .filter(s => toLocalDateString(new Date(s.startTime)) === today)
+        .reduce((sum, s) => sum + (typeof s.duration === 'number' ? s.duration : 0), 0);
+
+      if (todayMinutes >= minThresholdMins) {
+        newXp.lastActiveDate = today;
       }
-      newXp.lastActiveDate = today;
     }
 
     const chapter = this.state.chapters.find(c => 
@@ -337,14 +327,15 @@ export class StudyBrainActions {
       const isCustom = this.state.customMissions.some(cm => cm.id === taskId);
       const updatedCustomMission = updatedMissions[missionIndex];
       
-      // Always save to CustomMissionRepository to ensure persistence even for standard missions that were checked off
-      savePromises.push(CustomMissionRepository.saveMission(this.userId, updatedCustomMission));
-      
+      // Only save to CustomMissionRepository if it's truly a custom mission
+      // Planner missions should NOT pollute the custom missions collection
       if (isCustom) {
+        savePromises.push(CustomMissionRepository.saveMission(this.userId, updatedCustomMission));
         updatedCustomMissions = this.state.customMissions.map(cm => cm.id === taskId ? updatedCustomMission : cm);
       } else {
-        // If it wasn't custom before, we make it custom so its completed state persists across reloads
-        updatedCustomMissions = [...this.state.customMissions, updatedCustomMission];
+        // For planner missions, don't save to CustomMissionRepository
+        // Their completed state will be preserved through the runtime's mission mapping logic
+        updatedCustomMissions = this.state.customMissions;
       }
 
       // Trigger level-up event if applicable
@@ -489,14 +480,13 @@ export class StudyBrainActions {
     const isCustom = this.state.customMissions.some(cm => cm.id === taskId);
     
     try {
-      // Always save to CustomMissionRepository to ensure persistence even for standard missions that were edited
-      await CustomMissionRepository.saveMission(this.userId, updatedMission);
-      
+      // Only save to CustomMissionRepository if it's truly a custom mission
       if (isCustom) {
+        await CustomMissionRepository.saveMission(this.userId, updatedMission);
         updatedCustomMissions = this.state.customMissions.map(cm => cm.id === taskId ? updatedMission : cm);
       } else {
-        // If it wasn't custom before, we make it custom so it persists across reloads
-        updatedCustomMissions = [...this.state.customMissions, updatedMission];
+        // For planner missions, don't save to CustomMissionRepository
+        updatedCustomMissions = this.state.customMissions;
       }
       
       await this.runtime.refresh('SESSION_UPDATE', {
@@ -809,7 +799,7 @@ export class StudyBrainActions {
       
       let easeFactor = chapter.sm2EaseFactor ?? 2.5;
       let interval = chapter.sm2Interval ?? 0;
-      const revisionCount = (chapter.revisionCount || 0) + 1;
+      let revisionCount = chapter.revisionCount || 0;
       
       let quality = 0;
       if (confidence === 'High') quality = 5;
@@ -817,6 +807,7 @@ export class StudyBrainActions {
       else quality = 1;
       
       if (quality >= 3) {
+        revisionCount += 1;
         if (revisionCount === 1) {
           interval = 1;
         } else if (revisionCount === 2) {
@@ -825,6 +816,7 @@ export class StudyBrainActions {
           interval = Math.round(interval * easeFactor);
         }
       } else {
+        revisionCount = 0;
         interval = 1;
       }
       
@@ -899,9 +891,14 @@ export class StudyBrainActions {
     this.checkWriteBlock();
     const newMockResult = { ...result, id: Date.now().toString() };
 
-    // Award XP for mock test completion based on score
-    const scorePercent = (result.totalScore / (result.totalQuestions * 4)) * 100; // Assuming 4 marks per question
-    const baseMockXP = Math.round(200 + (scorePercent / 100) * 300); // Base 200 XP + up to 300 bonus for high scores
+    // Award XP for mock test completion using the actual mark total when available.
+    const scorePercent = calculateMockScorePercent({
+      totalScore: result.totalScore,
+      totalQuestions: result.totalQuestions,
+      totalMarks: result.testSnapshot?.totalMarks,
+      testSnapshot: result.testSnapshot,
+    });
+    const baseMockXP = Math.round(200 + (scorePercent / 100) * 300);
     const mockXP = this.isGodModeActive() ? Math.floor(baseMockXP * 1.5) : baseMockXP;
 
     const oldLevel = this.state.xp.level;
@@ -1177,11 +1174,16 @@ export class StudyBrainActions {
         const colRef = collection(db, 'users', this.userId, colName);
         const snapshot = await getDocs(colRef);
         if (snapshot.size > 0) {
-          const batch = writeBatch(db);
-          snapshot.docs.forEach(docSnap => {
-            batch.delete(docSnap.ref);
-          });
-          await batch.commit();
+          const CHUNK_SIZE = 450;
+          const docs = snapshot.docs;
+          for (let i = 0; i < docs.length; i += CHUNK_SIZE) {
+            const chunk = docs.slice(i, i + CHUNK_SIZE);
+            const batch = writeBatch(db);
+            chunk.forEach(docSnap => {
+              batch.delete(docSnap.ref);
+            });
+            await batch.commit();
+          }
         }
       } catch (err: any) {
         console.error(`Error deleting collection ${colName}:`, err);
@@ -1215,11 +1217,16 @@ export class StudyBrainActions {
         const colRef = collection(db, 'users', this.userId, colName);
         const snapshot = await getDocs(colRef);
         if (snapshot.size > 0) {
-          const batch = writeBatch(db);
-          snapshot.docs.forEach(docSnap => {
-            batch.delete(docSnap.ref);
-          });
-          await batch.commit();
+          const CHUNK_SIZE = 450;
+          const docs = snapshot.docs;
+          for (let i = 0; i < docs.length; i += CHUNK_SIZE) {
+            const chunk = docs.slice(i, i + CHUNK_SIZE);
+            const batch = writeBatch(db);
+            chunk.forEach(docSnap => {
+              batch.delete(docSnap.ref);
+            });
+            await batch.commit();
+          }
         }
       } catch (err) {
         console.error(`Error deleting collection ${colName}:`, err);
@@ -1248,8 +1255,6 @@ export class StudyBrainActions {
         migratedToPristine: true
       }
     };
-    await UserRepository.saveUserProfile(this.userId, initialProfile as any);
-
     await UserRepository.saveUserProfile(this.userId, initialProfile as any);
 
     // 3. Re-seed Chapters & Mistakes
@@ -1563,21 +1568,21 @@ export class StudyBrainActions {
         {
           id: 'ms-1',
           title: 'Chapter Reality Diagnostic & Baseline Sync',
-          targetDate: new Date().toISOString().split('T')[0],
+          targetDate: toLocalDateString(),
           description: 'Zero assumptions. Confirm all pending vs completed lecture modules.',
           status: 'achieved' as const
         },
         {
           id: 'ms-2',
           title: 'Full Syllabus Coverage Lock',
-          targetDate: opt?.predictedCompletionDate?.split('T')[0] || new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
+          targetDate: opt?.predictedCompletionDate?.split('T')[0] || toLocalDateString(new Date(Date.now() + 30 * 86400000)),
           description: 'Master Tier-1 weightage chapters across Physics, Chemistry, and Maths.',
           status: 'pending' as const
         },
         {
           id: 'ms-3',
           title: 'Full Mock Test Simulation & Percentile Audit',
-          targetDate: new Date(predTime + 15 * 86400000).toISOString().split('T')[0],
+          targetDate: toLocalDateString(new Date(predTime + 15 * 86400000)),
           description: `Targeting ${mentorData.targetPercentile} percentile benchmark on ${mentorData.targetExams?.[0] || 'JEE Main'}.`,
           status: 'pending' as const
         }
@@ -1736,7 +1741,7 @@ export class StudyBrainActions {
     const missions = [...(this.state.todayMissions || [])];
     
     const getSortKey = (m: any) => {
-      const match = (m.taskName || '').match(/(\d+)/);
+      const match = (m.taskName || '').match(/Lecture (\d+)/i);
       const num = match ? parseInt(match[1], 10) : 999;
       return (m.completed ? 0 : 1000) + num;
     };
@@ -1772,30 +1777,39 @@ export class StudyBrainActions {
 
     // 5. Map back to todayMissions
     const currentDayBlocks = updatedWeekly.filter((b: any) => b.dayIndex === currentDayIndex);
-    const updatedTodayMissions = currentDayBlocks.map((b: any) => {
-      const originalId = b.id.startsWith('today-') ? b.id.slice(6) : b.id;
-      const original = cleanedMissions.find(m => m.id === originalId);
-      return {
-        id: originalId,
-        subject: b.subject,
-        chapter: b.chapterName,
-        chapterId: b.chapterId,
-        type: b.taskType,
-        taskName: b.activity,
-        duration: b.durationMinutes,
-        timeSlot: b.timeSlot,
-        completed: original ? original.completed : b.completed,
-        xp: original ? original.xp : Math.round(b.priorityScore),
-        unlocked: true,
-        priorityScore: b.priorityScore,
-        reasoning: b.reasoning,
-        dismissed: original?.dismissed ?? false,
-        isManualOverride: false,
-        scheduledDate: (b as any).scheduledDate,
-        scheduledTime: (b as any).scheduledTime
-      };
-    });
+    
+    // If no blocks were generated but we have existing missions, preserve them
+    let updatedTodayMissions;
+    if (currentDayBlocks.length === 0 && cleanedMissions.length > 0) {
+      // Preserve existing missions if planner generated nothing
+      updatedTodayMissions = cleanedMissions;
+    } else {
+      updatedTodayMissions = currentDayBlocks.map((b: any) => {
+        const originalId = b.id.startsWith('today-') ? b.id.slice(6) : b.id;
+        const original = cleanedMissions.find(m => m.id === originalId);
+        return {
+          id: originalId,
+          subject: b.subject,
+          chapter: b.chapterName,
+          chapterId: b.chapterId,
+          type: b.taskType,
+          taskName: b.activity,
+          duration: b.durationMinutes,
+          timeSlot: b.timeSlot,
+          completed: original ? original.completed : b.completed,
+          xp: original ? original.xp : Math.round(b.priorityScore),
+          unlocked: true,
+          priorityScore: b.priorityScore,
+          reasoning: b.reasoning,
+          dismissed: original?.dismissed ?? false,
+          isManualOverride: false,
+          scheduledDate: (b as any).scheduledDate,
+          scheduledTime: (b as any).scheduledTime
+        };
+      });
+    }
 
+    // Don't update customMissions - planner missions should stay separate
     await this.runtime.refresh('INIT', {
       scheduleOverrides: emptyOverrides,
       todayMissions: updatedTodayMissions,

@@ -132,6 +132,23 @@ describe('SuperMemo-2 Spaced Repetition Integration Audit', () => {
     const chap = runtime.getState().chapters.find(c => c.id === 'chem-atomic');
     expect(chap?.sm2Interval).toBe(1);
     expect(chap?.sm2EaseFactor).toBeLessThan(2.5);
+    expect(chap?.revisionCount).toBe(0);
+
+    chapSaveSpy.mockRestore();
+  });
+
+  it('restarts the SM-2 schedule after a low-confidence recall', async () => {
+    const chapSaveSpy = vi.spyOn(ChapterRepository, 'saveChapter').mockResolvedValueOnce();
+
+    await actions.completeRevision('chem-atomic', 'High');
+    chapSaveSpy.mockResolvedValueOnce();
+    await actions.completeRevision('chem-atomic', 'Low');
+    chapSaveSpy.mockResolvedValueOnce();
+    await actions.completeRevision('chem-atomic', 'High');
+
+    const chap = runtime.getState().chapters.find(c => c.id === 'chem-atomic');
+    expect(chap?.revisionCount).toBe(1);
+    expect(chap?.sm2Interval).toBe(1);
 
     chapSaveSpy.mockRestore();
   });

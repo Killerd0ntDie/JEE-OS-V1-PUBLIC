@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Icon } from '@/components/ui/Icon';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
+import { toLocalDateString } from '@/utils/dateUtils';
 
 interface RoutineBreakModalProps {
   isOpen: boolean;
@@ -39,7 +40,7 @@ export function RoutineBreakModal({ isOpen, onClose }: RoutineBreakModalProps) {
     const endStr = `${endH}:${endM}`;
 
     const timeSlotStr = `${startStr} - ${endStr}`;
-    const todayDateStr = now.toISOString().split('T')[0];
+    const todayDateStr = toLocalDateString(now);
 
     const breakMission = {
       chapter: selectedOpt.label,

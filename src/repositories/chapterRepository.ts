@@ -1,27 +1,7 @@
 import { collection, doc, getDocs, setDoc, updateDoc, writeBatch, deleteDoc } from 'firebase/firestore';
 import { db } from '@/firebase';
 import { Chapter } from '@/types/index';
-
-/**
- * Recursively removes all undefined values from an object.
- * Firestore throws "Unsupported field value: undefined" if any nested field is undefined.
- */
-function sanitizeForFirestore(obj: any): any {
-  if (obj === null || obj === undefined) return null;
-  if (Array.isArray(obj)) {
-    return obj.map(sanitizeForFirestore);
-  }
-  if (typeof obj === 'object' && !(obj instanceof Date)) {
-    const cleaned: Record<string, any> = {};
-    for (const [key, value] of Object.entries(obj)) {
-      if (value !== undefined) {
-        cleaned[key] = sanitizeForFirestore(value);
-      }
-    }
-    return cleaned;
-  }
-  return obj;
-}
+import { sanitizeForFirestore } from '@/utils/firestoreSanitizer';
 
 export const ChapterRepository = {
   // Fetch chapters for a given user

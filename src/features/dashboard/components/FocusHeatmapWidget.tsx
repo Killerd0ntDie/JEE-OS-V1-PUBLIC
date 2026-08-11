@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card } from '@/components/ui/Card';
 import { StudySession } from '@/types';
+import { toLocalDateString } from '@/utils/dateUtils';
 
 interface FocusHeatmapWidgetProps {
   studySessions: StudySession[];
@@ -23,7 +24,7 @@ export const FocusHeatmapWidget: React.FC<FocusHeatmapWidgetProps> = ({ studySes
     if (!session.startTime) return;
     const sDate = new Date(session.startTime);
     sDate.setHours(0, 0, 0, 0);
-    const dateKey = sDate.toISOString().split('T')[0];
+    const dateKey = toLocalDateString(sDate);
     const existing = dailyMinutesMap.get(dateKey) || 0;
     dailyMinutesMap.set(dateKey, existing + (session.duration || 0));
   });
@@ -47,7 +48,7 @@ export const FocusHeatmapWidget: React.FC<FocusHeatmapWidgetProps> = ({ studySes
 
   // Active days count in 14-day window
   const activeDays = days.filter(d => {
-    const key = d.toISOString().split('T')[0];
+    const key = toLocalDateString(d);
     return (dailyMinutesMap.get(key) || 0) > 0;
   }).length;
 
@@ -69,7 +70,7 @@ export const FocusHeatmapWidget: React.FC<FocusHeatmapWidgetProps> = ({ studySes
       {/* Heatmap Grid */}
       <div className="grid grid-cols-7 sm:grid-cols-14 gap-1.5 pt-1">
         {days.map((day, idx) => {
-          const dateKey = day.toISOString().split('T')[0];
+          const dateKey = toLocalDateString(day);
           const mins = dailyMinutesMap.get(dateKey) || 0;
           const hrs = (mins / 60).toFixed(1);
           const isToday = idx === 13;
