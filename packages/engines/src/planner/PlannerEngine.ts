@@ -292,9 +292,10 @@ export class PlannerEngine {
     // Evaluate revision backlog
     for (const rev of input.revisionBacklog) {
       const node = this.knowledgeEngine.getNode(rev.chapterId);
-      if (node) {
+      const chapterMeta = input.chapters?.find(c => c.id === rev.chapterId);
+      if (node && !chapterMeta?.chapterOnHold && !chapterMeta?.revisionOnHold) {
         const rawProg: any = input.chapterTelemetryMap[node.id] || { masteryScore: 100, isMastered: true };
-        const todayStr = (input.currentDate || new Date().toISOString()).split('T')[0];
+        const todayStr = getLocalDateKey(input.currentDate ? new Date(input.currentDate) : new Date());
         candidates.push(generateTask(
           'Revise Formulas',
           node,
@@ -310,11 +311,11 @@ export class PlannerEngine {
     const existingRevChapterIds = new Set(input.revisionBacklog.map(r => r.chapterId));
     if (input.chapters) {
       for (const chap of input.chapters) {
-        if (chap.status === 'Revision Due' && !existingRevChapterIds.has(chap.id)) {
+        if (chap.status === 'Revision Due' && !existingRevChapterIds.has(chap.id) && !chap.chapterOnHold && !chap.revisionOnHold) {
           const node = this.knowledgeEngine.getNode(chap.id);
           if (node) {
             const rawProg: any = input.chapterTelemetryMap[node.id] || { masteryScore: chap.completion || 0, isMastered: false };
-            const todayStr = (input.currentDate || new Date().toISOString()).split('T')[0];
+            const todayStr = getLocalDateKey(input.currentDate ? new Date(input.currentDate) : new Date());
             candidates.push(generateTask(
               'Revise Formulas',
               node,
@@ -340,7 +341,7 @@ export class PlannerEngine {
         const node = this.knowledgeEngine.getNode(weakestChap.id);
         if (node) {
           const rawProg: any = input.chapterTelemetryMap[node.id] || { masteryScore: weakestChap.completion || 0, isMastered: false };
-          const todayStr = (input.currentDate || new Date().toISOString()).split('T')[0];
+          const todayStr = getLocalDateKey(input.currentDate ? new Date(input.currentDate) : new Date());
           candidates.push(generateTask(
             'Review Mistakes',
             node,
@@ -424,24 +425,26 @@ export class PlannerEngine {
       if (chapterMeta?.chapterOnHold) continue;
 
       const rawProg: any = input.chapterTelemetryMap[node.id] || {};
-      const prog = {
-        completion: rawProg.masteryScore || 0,
-        currentLecture: rawProg.currentLecture || 0,
-        totalLectures: rawProg.totalLectures || node.lectureCount || 12,
-        avgLectureDuration: rawProg.avgLectureDuration || rawProg.lectureProgress?.avgLectureDurationMinutes || rawProg.estimatedDuration || undefined,
-        theoryComplete: rawProg.theoryComplete || false,
-        dppComplete: rawProg.dppComplete || false,
-        pyqsComplete: rawProg.pyqsComplete || false,
-        isMastered: rawProg.isMastered || false
-      };
+        // Merge chapter manual overrides with telemetry fields
+        const prog = {
+          ...rawProg,
+          completion: rawProg.masteryScore || 0,
+          theoryComplete: chapterById.get(node.id)?.theoryComplete ?? rawProg.theoryComplete ?? false,
+          currentLecture: chapterById.get(node.id)?.currentLecture ?? rawProg.currentLecture ?? 0,
+          totalLectures: chapterById.get(node.id)?.totalLectures ?? rawProg.totalLectures ?? node.lectureCount ?? 12,
+          dppComplete: chapterById.get(node.id)?.dppComplete ?? rawProg.dppComplete ?? false,
+          pyqsComplete: chapterById.get(node.id)?.pyqsComplete ?? rawProg.pyqsComplete ?? false,
+          avgLectureDuration: rawProg.avgLectureDuration || rawProg.lectureProgress?.avgLectureDurationMinutes || rawProg.estimatedDuration || undefined,
+          isMastered: rawProg.isMastered || false
+        };
 
-      if (!prog.theoryComplete) {
-        const remainingLectures = Math.max(1, (prog.totalLectures || 12) - prog.currentLecture);
-        // Use exact telemetry duration, falling back to 75 if completely missing, capped at 120
-        const lecDuration = Math.min(prog.avgLectureDuration || 75, 120);
+        if (!prog.theoryComplete) {
+          const remainingLectures = Math.max(1, (prog.totalLectures || 12) - prog.currentLecture);
+          // Use exact telemetry duration, falling back to 75 if completely missing, capped at 120
+          const lecDuration = Math.min(prog.avgLectureDuration || 75, 120);
 
-        // Only generate next 3 lectures as candidates — earlier lectures MUST be completed first
-        for (let l = 0; l < Math.min(remainingLectures, 3); l++) {
+          // Only generate next 3 lectures as candidates — earlier lectures MUST be completed first
+          for (let l = 0; l < Math.min(remainingLectures, 3); l++) {
           const nextLec = prog.currentLecture + l + 1;
           candidates.push(generateTask(
             'Watch Lecture',
@@ -457,26 +460,29 @@ export class PlannerEngine {
 
       } else {
         const chapterMeta = chapterById.get(node.id);
-
-        if (!prog.dppComplete && !chapterMeta?.dppOnHold) {
-          candidates.push(generateTask(
-            'Solve DPP',
-            node,
-            { chapterId: node.id, completion: prog.completion, isMastered: prog.isMastered },
-            45,
-            `dpp-${node.id}`,
-            `Solve DPP: ${node.name}`
-          ));
-        }
-        if (!prog.pyqsComplete && !chapterMeta?.pyqOnHold) {
-          candidates.push(generateTask(
-            'Solve PYQs',
-            node,
-            { chapterId: node.id, completion: prog.completion, isMastered: prog.isMastered },
-            60,
-            `pyq-${node.id}`,
-            `Solve PYQs: ${node.name}`
-          ));
+        const hasStarted = prog.currentLecture > 0 || prog.completion >= 50 || prog.isMastered;
+        
+        if (hasStarted) {
+          if (!prog.dppComplete && !chapterMeta?.dppOnHold) {
+            candidates.push(generateTask(
+              'Solve DPP',
+              node,
+              { chapterId: node.id, completion: prog.completion, isMastered: prog.isMastered },
+              45,
+              `dpp-${node.id}`,
+              `Solve DPP: ${node.name}`
+            ));
+          }
+          if (!prog.pyqsComplete && !chapterMeta?.pyqOnHold) {
+            candidates.push(generateTask(
+              'Solve PYQs',
+              node,
+              { chapterId: node.id, completion: prog.completion, isMastered: prog.isMastered },
+              60,
+              `pyq-${node.id}`,
+              `Solve PYQs: ${node.name}`
+            ));
+          }
         }
       }
 
@@ -1128,10 +1134,19 @@ export function generateWeeklyMatrix(
         } else {
           // Time slot was preserved. We MUST update currentHour and currentMinute to the end of this slot
           // so that subsequent tasks don't get scheduled on top of it (causing clashes).
-          const match = timeSlot.match(/- (\d{1,2}):(\d{2})/);
+          const match = timeSlot.match(/[-–]\s*(\d{1,2}):(\d{2})\s*(am|pm|AM|PM)?/);
           if (match) {
-            currentHour = parseInt(match[1], 10);
-            currentMinute = parseInt(match[2], 10);
+            let h = parseInt(match[1], 10);
+            const parsedMin = parseInt(match[2], 10);
+            const ampm = match[3];
+            if (ampm) {
+              const isPM = ampm.toLowerCase() === 'pm';
+              if (isPM && h !== 12) h += 12;
+              if (!isPM && h === 12) h = 0;
+            }
+            
+            currentHour = h;
+            currentMinute = parsedMin;
             
             // Note: If the parsed time was after midnight (e.g. 00:37), currentHour becomes 0.
             // Our logical tracking above (logicalCurrentHour) will handle the +24 adjustment cleanly.

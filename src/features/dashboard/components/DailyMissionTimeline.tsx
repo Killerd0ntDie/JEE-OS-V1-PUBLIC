@@ -13,6 +13,7 @@ import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { ConfirmDeleteModal } from '@/components/ui/ConfirmDeleteModal';
 import { CustomMissionHistoryModal } from '@/features/mission/components/CustomMissionHistoryModal';
 import { audioEngine } from '@/utils/audioEngine';
+import { getStartMinutesFromTimeSlot, parseTimeSlotToRange } from '@/utils/timeSlotUtils';
 
 interface DailyMissionTimelineProps {
   sessionState: 'idle' | 'active' | 'paused';
@@ -28,18 +29,7 @@ interface DailyMissionTimelineProps {
   setSelectedMissionId?: (id: string | null) => void;
 }
 
-const getStartMinutesFromTimeSlot = (timeSlot?: string): number => {
-  if (!timeSlot) return 9999;
-  const match = timeSlot.match(/(\d{1,2}):(\d{2})/);
-  if (!match) return 9999;
-  let hours = parseInt(match[1], 10);
-  const minutes = parseInt(match[2], 10);
-  // If hours are between 00:00 and 05:59, treat as past-midnight (add 24h) for study day ordering
-  if (hours < 6) {
-    hours += 24;
-  }
-  return hours * 60 + minutes;
-};
+
 
 const getSubjectBadgeStyle = (subj: SubjectId) => {
   switch (subj) {
@@ -360,16 +350,17 @@ export function DailyMissionTimeline({
                 let isOriginalPushed = false;
                 
                 if (m.timeSlot) {
-                  const match = m.timeSlot.match(/(\d{1,2}):(\d{2})\s*[-–]\s*(\d{1,2}):(\d{2})/);
-                  if (match) {
-                    startMins = parseInt(match[1], 10) * 60 + parseInt(match[2], 10);
-                    endMins = parseInt(match[3], 10) * 60 + parseInt(match[4], 10);
+                  const range = parseTimeSlotToRange(m.timeSlot);
+                  if (range) {
+                    startMins = range.startMins;
+                    endMins = range.endMins;
                     if (endMins > startMins) duration = endMins - startMins;
                   }
                 }
 
-                // If scheduled start is in the past, push it to runningPushMins (sequential cascading)
-                if (m.timeSlot && startMins < runningPushMins) {
+                // If scheduled start is in the past, or if not manual override, snap to runningPushMins (sequential cascading)
+                const shouldSnapToLive = !m.isManualOverride || startMins < runningPushMins;
+                if (m.timeSlot && shouldSnapToLive && startMins !== runningPushMins) {
                   isOriginalPushed = true;
                   startMins = runningPushMins;
                   endMins = startMins + duration;

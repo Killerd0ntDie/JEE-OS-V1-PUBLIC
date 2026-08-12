@@ -83,3 +83,54 @@ export function getCurrentSessionTimeSlot(durationMinutes: number): TimeSlot {
   const now = new Date();
   return calculateTimeSlotFromEnd(now, durationMinutes);
 }
+
+/**
+ * Parse a single time string (e.g., "12:15" or "1:30 PM") into minutes since midnight.
+ * Automatically adds 24 hours to logical late-night times (00:00 - 05:59) to keep them at the end of the day.
+ */
+function parseSingleTimeToMinutes(hStr: string, mStr: string, ampm?: string): number {
+  let h = parseInt(hStr, 10);
+  const m = parseInt(mStr, 10);
+  if (ampm) {
+    const isPM = ampm.toLowerCase() === 'pm';
+    if (isPM && h !== 12) h += 12;
+    if (!isPM && h === 12) h = 0;
+  }
+  // Logical day mapping: Treat 00:00 to 05:59 as late night (add 24h)
+  if (h < 6) h += 24;
+  return h * 60 + m;
+}
+
+/**
+ * Extract the start time in minutes from a time slot string.
+ */
+export function getStartMinutesFromTimeSlot(timeSlot?: string): number {
+  if (!timeSlot) return 9999;
+  const singleMatch = timeSlot.match(/(\d{1,2}):(\d{2})\s*(am|pm|AM|PM)?/);
+  if (!singleMatch) return 9999;
+  return parseSingleTimeToMinutes(singleMatch[1], singleMatch[2], singleMatch[3]);
+}
+
+/**
+ * Parse a full time slot range string into start and end minutes.
+ */
+export function parseTimeSlotToRange(timeStr?: string): { startMins: number, endMins: number } | null {
+  if (!timeStr) return null;
+  // Match full range "HH:MM [AM/PM] - HH:MM [AM/PM]"
+  const rangeMatch = timeStr.match(/(\d{1,2}):(\d{2})\s*(am|pm|AM|PM)?\s*[-–]\s*(\d{1,2}):(\d{2})\s*(am|pm|AM|PM)?/);
+  if (rangeMatch) {
+    return {
+      startMins: parseSingleTimeToMinutes(rangeMatch[1], rangeMatch[2], rangeMatch[3]),
+      endMins: parseSingleTimeToMinutes(rangeMatch[4], rangeMatch[5], rangeMatch[6])
+    };
+  }
+  
+  // Try single time (fallback)
+  const singleMatch = timeStr.match(/(\d{1,2}):(\d{2})\s*(am|pm|AM|PM)?/);
+  if (singleMatch) {
+    const startMins = parseSingleTimeToMinutes(singleMatch[1], singleMatch[2], singleMatch[3]);
+    return { startMins, endMins: startMins + 60 };
+  }
+
+  return null;
+}

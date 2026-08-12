@@ -552,6 +552,7 @@ export class StudyBrainRuntime {
 
       // Combine missions in priority order (later entries override earlier ones if same ID)
       const allMissions = [
+        ...this.state.todayMissions.filter(m => m.completed || m.dismissed), // Preserved completed/dismissed missions
         ...plannerMissions,    // System suggestions (base layer)
         ...aiMissions,         // AI suggestions (override planner)
         ...userCustomMissions  // User explicit intent (highest priority)

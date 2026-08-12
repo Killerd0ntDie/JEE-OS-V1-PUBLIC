@@ -11,7 +11,7 @@ import { TodayMission, SubjectId, TimelineBlock, Mistake, Chapter, StudySession,
 import { MockTest } from '@/types/mockTest';
 import { normalizeChapter } from '@/utils/academicState';
 import { calculateLevelFromXP } from '@/utils/levelingCalculations';
-import { getCurrentSessionTimeSlot, formatTimeSlotDisplay } from '@/utils/timeSlotUtils';
+import { getCurrentSessionTimeSlot, formatTimeSlotDisplay, parseTimeSlotToRange } from '@/utils/timeSlotUtils';
 import { toLocalDateString } from '@/utils/dateUtils';
 import { calculateMockScorePercent } from '@/utils/mockScoring';
 import { collection, getDocs, writeBatch, deleteDoc, doc } from 'firebase/firestore';
@@ -203,17 +203,43 @@ export class StudyBrainActions {
     };
 
     // Adjust the scheduled time to match reality when completing (using standardized time slot calculation)
+    let studySessionDuration = 0;
+    
     if (isCompleting) {
+      // Save original values so we can restore them if un-completed
+      updatedMission.originalDuration = mission.duration;
+      updatedMission.originalTimeSlot = mission.timeSlot;
+
       let durationMins = 0;
       if (durationSecs !== undefined && durationSecs > 0) {
+        // Completed via cockpit timer
         durationMins = Math.ceil(durationSecs / 60);
+        studySessionDuration = durationMins;
       } else {
-        durationMins = mission.duration || 60; // fallback to expected duration
+        // Completed instantly via dashboard checkbox (offline completion)
+        // Shrink visual block to 1 minute to avoid massive fake calendar blocks
+        durationMins = 1;
+        // But give full credit for velocity calculations (amount of chapter completed)
+        studySessionDuration = mission.duration || 60;
       }
       
       const timeSlot = getCurrentSessionTimeSlot(durationMins);
       updatedMission.scheduledTime = timeSlot.start;
       updatedMission.timeSlot = formatTimeSlotDisplay(timeSlot);
+      updatedMission.duration = durationMins;
+      
+      // We will link the generated session ID once created
+      updatedMission.linkedSessionId = null; 
+    } else {
+      // Un-completing: restore original values
+      if (mission.originalDuration) {
+        updatedMission.duration = mission.originalDuration;
+        delete updatedMission.originalDuration;
+      }
+      if (mission.originalTimeSlot) {
+        updatedMission.timeSlot = mission.originalTimeSlot;
+        delete updatedMission.originalTimeSlot;
+      }
     }
 
     updatedMissions[missionIndex] = updatedMission;
@@ -295,12 +321,27 @@ export class StudyBrainActions {
             if (mission.type === 'Revise Formulas' || mission.type === 'Review Mistakes') {
               revisionCount += 1;
               lastRevisionDaysAgo = 0;
+              // Reset retention decay flag instantly (Bug 3.2)
+              c.status = 'Learning';
+              if (this.state.chapterTelemetryMap && this.state.chapterTelemetryMap[c.id]) {
+                this.state.chapterTelemetryMap[c.id].retentionConfidence = 'High';
+              }
             }
           } else {
             if (mission.type === 'Watch Lecture') {
-              currentLecture = Math.max(0, currentLecture - 1);
+              const lecMatch = (mission.taskName || '').match(/Lecture\s+(\d+)/i);
+              const uncheckedLecNum = lecMatch ? parseInt(lecMatch[1], 10) : null;
+              
+              if (uncheckedLecNum !== null && currentLecture === uncheckedLecNum) {
+                // Only decrement if we are unchecking the latest lecture (Bug 2.2)
+                currentLecture = Math.max(0, currentLecture - 1);
+              } else if (uncheckedLecNum === null) {
+                currentLecture = Math.max(0, currentLecture - 1);
+              }
               theoryComplete = false;
             }
+            if (mission.type === 'Solve DPP') dppComplete = false;
+            if (mission.type === 'Solve PYQs') pyqsComplete = false;
           }
 
           // Keep lectureProgress.completedLectures in sync with currentLecture so that
@@ -391,6 +432,29 @@ export class StudyBrainActions {
       // Trigger level-up event if applicable
       const levelUpData = oldLevel !== newLevel && isCompleting ? { oldLevel, newLevel, xp: newXp } : null;
 
+      // Create a StudySession to ensure Doomsday velocity gets updated
+      if (isCompleting && studySessionDuration > 0) {
+        const sessionId = `session-${Date.now()}`;
+        updatedMission.linkedSessionId = sessionId;
+        const endTime = new Date();
+        const startTime = new Date(endTime.getTime() - studySessionDuration * 60000);
+        const sessionPayload: StudySession = {
+          id: sessionId,
+          startTime: startTime.toISOString(),
+          endTime: endTime.toISOString(),
+          duration: studySessionDuration,
+          type: mission.type === 'Solve Mock' ? 'Mock' : (mission.type === 'Solve DPP' || mission.type === 'Solve PYQs' ? 'Practice' : (mission.type === 'Revise Formulas' || mission.type === 'Review Mistakes' ? 'Revision' : 'Lecture')),
+          subjectId: mission.subject as SubjectId,
+          chapterId: chapter?.id,
+          xpEarned: deltaXp
+        };
+        savePromises.push(this.safeDbCall(() => StudySessionRepository.saveStudySession(this.userId, sessionPayload), 'saveStudySession'));
+      } else if (!isCompleting && mission.linkedSessionId) {
+        // Delete the associated study session when un-completing
+        savePromises.push(this.safeDbCall(() => StudySessionRepository.deleteStudySession(this.userId, mission.linkedSessionId), 'deleteStudySession'));
+        updatedMission.linkedSessionId = undefined;
+      }
+
       // Optimistic update - refresh UI immediately before saving
 
 
@@ -460,7 +524,7 @@ export class StudyBrainActions {
     this.checkWriteBlock();
     const newMission: TodayMission = {
       ...missionData,
-      id: `custom-${Date.now()}`,
+      id: `user-custom-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       completed: false,
       unlocked: true,
       xp: Math.round((missionData.duration || 60) * 0.5), // Reduced from 1.5 to 0.5
@@ -986,7 +1050,7 @@ export class StudyBrainActions {
 
   async addCustomMockTest(testData: MockTest) {
     this.checkWriteBlock();
-    const newTest = { ...testData, id: testData.id || `custom-${Date.now()}` };
+    const newTest = { ...testData, id: testData.id || `user-custom-${Date.now()}-${Math.random().toString(36).substring(2, 7)}` };
     try {
       await MockTestRepository.saveCustomMockTest(this.userId, newTest);
       const updatedTests = [...this.state.customMockTests, newTest];
@@ -1354,7 +1418,7 @@ export class StudyBrainActions {
     let newBlock: TimelineBlock;
     if (typeof block === 'string') {
       newBlock = {
-        id: `custom-${Date.now()}`,
+        id: `user-custom-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
         subject: block as any,
         chapter: (arg1 || '').trim().substring(0, 80),
         activity: (arg2 || '').trim().substring(0, 150),
@@ -1364,7 +1428,7 @@ export class StudyBrainActions {
     } else {
       newBlock = {
         ...block,
-        id: `custom-${Date.now()}`,
+        id: `user-custom-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
         chapter: (block.chapter || '').trim().substring(0, 80),
         activity: (block.activity || '').trim().substring(0, 150),
         time: (block.time || '').trim().substring(0, 25),

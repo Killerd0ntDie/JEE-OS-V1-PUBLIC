@@ -236,6 +236,7 @@ export interface Chapter {
   chapterOnHold?: boolean;
   dppOnHold?: boolean;
   pyqOnHold?: boolean;
+  revisionOnHold?: boolean;
 
   // True for chapters the student added themselves rather than the system's
   // built-in JEE syllabus (surfaced with a badge, no scheduling difference).

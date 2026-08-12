@@ -1,5 +1,6 @@
 import React from 'react';
 import { ArrowRight, Check } from 'lucide-react';
+import { getValidTargetYears } from '@/utils/dateUtils';
 import { ExamOption } from '../hooks/useMentorInterviewForm';
 
 interface Props {
@@ -67,7 +68,7 @@ export const AcademicTargetsStep: React.FC<Props> = ({
       <div className="space-y-2">
         <label className="text-xs font-mono uppercase tracking-wider text-zinc-400 block font-semibold">Target Exam Year</label>
         <div className="grid grid-cols-4 gap-3">
-          {['2025', '2026', '2027', '2028'].map(yr => (
+          {getValidTargetYears(4).map(yr => (
             <button
               key={yr}
               type="button"

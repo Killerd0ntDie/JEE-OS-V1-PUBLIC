@@ -1,6 +1,6 @@
 import React, { ReactNode, useEffect } from 'react';
 import ReactDOM from 'react-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 
 export interface DrawerProps {
   isOpen: boolean;

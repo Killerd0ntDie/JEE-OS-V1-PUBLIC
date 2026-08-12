@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { Zap, Volume2, RotateCcw } from 'lucide-react';
 
 export interface MissionTimerWidgetProps {

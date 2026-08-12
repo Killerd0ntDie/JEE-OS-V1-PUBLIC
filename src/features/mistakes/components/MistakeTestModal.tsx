@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { X, ChevronRight, CheckCircle2, XCircle, RefreshCw, AlertCircle, Eye } from 'lucide-react';
 import { Mistake } from '@/types';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';

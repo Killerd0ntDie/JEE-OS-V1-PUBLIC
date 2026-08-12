@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { SubjectId, Chapter } from '@/types/index';
+import { getValidTargetYears } from '@/utils/dateUtils';
 
 export type ExamOption = 'JEE Main' | 'JEE Advanced' | 'Boards' | 'MHT CET' | 'BITSAT' | 'Others';
 
@@ -15,7 +16,7 @@ export const useMentorInterviewForm = (onClose?: () => void) => {
     mentorProfile?.targetExams as ExamOption[] || ['JEE Main', 'JEE Advanced']
   );
   const [targetYear, setTargetYear] = useState<string>(
-    mentorProfile?.targetYear || settings.targetYear || '2026'
+    mentorProfile?.targetYear || settings.targetYear || getValidTargetYears()[0]
   );
   const [targetPercentile, setTargetPercentile] = useState<string>(
     mentorProfile?.targetPercentile || '99.5+'

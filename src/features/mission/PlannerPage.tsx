@@ -16,7 +16,7 @@ import { AiRevisionPlanModal } from '@/components/shared/AiRevisionPlanModal';
 import { ConfirmDeleteModal } from '@/components/ui/ConfirmDeleteModal';
 import { SwapSubjectModal } from './components/SwapSubjectModal';
 
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 
 export function PlannerPage() {
   const state = usePlannerState();

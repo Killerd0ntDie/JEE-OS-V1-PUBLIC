@@ -208,9 +208,16 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
 
   const calculateBlockPos = (block: WeeklyBlock, blockIndex: number) => {
     // Extract first HH:MM from timeSlot like 'Morning (07:00 - 09:30)' or '07:00 - 09:30'
-    const timeMatch = (block.timeSlot || '').match(/(\d{1,2}):(\d{2})/);
-    const startHour = timeMatch ? parseInt(timeMatch[1], 10) : 8;
+    const timeMatch = (block.timeSlot || '').match(/(\d{1,2}):(\d{2})\s*(am|pm|AM|PM)?/);
+    let startHour = timeMatch ? parseInt(timeMatch[1], 10) : 8;
     const startMin = timeMatch ? parseInt(timeMatch[2], 10) : 0;
+    const ampm = timeMatch ? timeMatch[3] : undefined;
+    if (ampm) {
+      const isPM = ampm.toLowerCase() === 'pm';
+      if (isPM && startHour !== 12) startHour += 12;
+      if (!isPM && startHour === 12) startHour = 0;
+    }
+    if (startHour < 6) startHour += 24; // midnight shift
 
     const totalStartMins = startHour * 60 + startMin;
     const offsetMins = Math.max(0, totalStartMins - 0);
@@ -224,7 +231,7 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
 
   // Extract clean time range from timeSlot like 'Morning (07:00 - 09:30)' -> '07:00 – 09:30'
   const getCleanTimeRange = (timeSlot: string): string => {
-    const matches = timeSlot.match(/(\d{1,2}:\d{2})/g);
+    const matches = timeSlot.match(/(\d{1,2}:\d{2}\s*(?:am|pm|AM|PM)?)/g);
     if (matches && matches.length >= 2) return `${matches[0]} – ${matches[1]}`;
     if (matches && matches.length === 1) return matches[0];
     return timeSlot;
@@ -448,14 +455,29 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
                   let startMins = 0;
                   let endMins = 0;
                   if (block.timeSlot) {
-                    const matchFull = block.timeSlot.match(/(\d{1,2}):(\d{2})\s*[-–]\s*(\d{1,2}):(\d{2})/);
-                    const matchStart = block.timeSlot.match(/(\d{1,2}):(\d{2})/);
+                    const matchFull = block.timeSlot.match(/(\d{1,2}):(\d{2})\s*(am|pm|AM|PM)?\s*[-–]\s*(\d{1,2}):(\d{2})\s*(am|pm|AM|PM)?/);
+                    const matchStart = block.timeSlot.match(/(\d{1,2}):(\d{2})\s*(am|pm|AM|PM)?/);
                     
                     if (matchFull) {
-                      startMins = parseInt(matchFull[1]) * 60 + parseInt(matchFull[2]);
-                      endMins = parseInt(matchFull[3]) * 60 + parseInt(matchFull[4]);
+                      let sH = parseInt(matchFull[1]);
+                      if (matchFull[3]?.toLowerCase() === 'pm' && sH !== 12) sH += 12;
+                      if (matchFull[3]?.toLowerCase() === 'am' && sH === 12) sH = 0;
+                      if (sH < 6) sH += 24;
+                      
+                      let eH = parseInt(matchFull[4]);
+                      if (matchFull[6]?.toLowerCase() === 'pm' && eH !== 12) eH += 12;
+                      if (matchFull[6]?.toLowerCase() === 'am' && eH === 12) eH = 0;
+                      if (eH < 6) eH += 24;
+
+                      startMins = sH * 60 + parseInt(matchFull[2]);
+                      endMins = eH * 60 + parseInt(matchFull[5]);
                     } else if (matchStart) {
-                      startMins = parseInt(matchStart[1]) * 60 + parseInt(matchStart[2]);
+                      let sH = parseInt(matchStart[1]);
+                      if (matchStart[3]?.toLowerCase() === 'pm' && sH !== 12) sH += 12;
+                      if (matchStart[3]?.toLowerCase() === 'am' && sH === 12) sH = 0;
+                      if (sH < 6) sH += 24;
+
+                      startMins = sH * 60 + parseInt(matchStart[2]);
                       endMins = startMins + duration;
                     }
                   }

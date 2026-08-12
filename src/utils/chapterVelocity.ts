@@ -39,10 +39,21 @@ export function calculateRealisticDailyChapterVelocity({
     return 0;
   }
 
-  if (Number.isFinite(actualStudyMinutes) && hasRealStudyHistory && totalStudyMinutes < safeMinimumStudyMinutes) {
+  if (hasRealStudyHistory && totalStudyMinutes < safeMinimumStudyMinutes) {
     return 0;
   }
 
-  const rawVelocity = effectiveMasteredChapters / studyDaysElapsed;
+  // A realistic chapter takes about 15 hours (900 minutes) to master completely.
+  // By calculating velocity based on actual study time, we achieve two things:
+  // 1. We smoothly award velocity for partial chapter progress (like doing 1 lecture).
+  // 2. We completely ignore massive syllabus progress imports that would otherwise cause a 1.5x spike.
+  const ASSUMED_MINUTES_PER_CHAPTER = 900;
+  const inAppChaptersProgressed = totalStudyMinutes / ASSUMED_MINUTES_PER_CHAPTER;
+
+  if (!hasRealStudyHistory) {
+    return 0;
+  }
+
+  const rawVelocity = inAppChaptersProgressed / studyDaysElapsed;
   return Math.min(Math.max(rawVelocity, 0), cap);
 }

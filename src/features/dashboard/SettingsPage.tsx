@@ -4,6 +4,7 @@ import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { useAuth } from '@/features/auth';
 import { Icon } from '@/components/ui/Icon';
 import { soundSystem } from '@/utils/audioEffects';
+import { getValidTargetYears } from '@/utils/dateUtils';
 import { SubjectId } from '@/types';
 import { 
   Target, Clock, Volume2, VolumeX, Bell, BellOff, ShieldCheck, 
@@ -160,6 +161,7 @@ export function SettingsPage() {
     try {
       await actions.purgeUserData();
       localStorage.clear();
+      sessionStorage.clear(); // Ensure onboarding_dismissed is cleared
       setShowResetConfirm(false);
       setShowResetSuccess(true);
       setTimeout(() => {
@@ -237,9 +239,13 @@ export function SettingsPage() {
                 onChange={(e) => handleChange('targetYear', e.target.value)}
                 className="w-full bg-zinc-900/90 border border-zinc-800 text-zinc-100 rounded-xl px-3.5 py-2.5 text-xs font-mono focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500 cursor-pointer"
               >
-                <option value="2026">JEE 2026 (Class 12 / Dropper)</option>
-                <option value="2027">JEE 2027 (Class 11 / Target)</option>
-                <option value="2028">JEE 2028 (Foundation)</option>
+                {getValidTargetYears(4).map((yr, index) => {
+                  let label = `JEE ${yr}`;
+                  if (index === 0) label += " (Class 12 / Dropper)";
+                  else if (index === 1) label += " (Class 11 / Target)";
+                  else label += " (Foundation)";
+                  return <option key={yr} value={yr}>{label}</option>;
+                })}
               </select>
             </div>
 

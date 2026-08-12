@@ -90,8 +90,12 @@ export function usePlannerState() {
   };
 
   const selectedDayBlocks = useMemo(() => {
-    return weeklyMatrix.filter(b => b.dayIndex === selectedDayIndex);
-  }, [weeklyMatrix, selectedDayIndex]);
+    return weeklyMatrix.filter(b => {
+      // In weeklyMatrix, today's blocks might have 'today-' prefix in their ID
+      const originalId = b.id.startsWith('today-') ? b.id.slice(6) : b.id;
+      return b.dayIndex === selectedDayIndex && !deletedMissionIds.includes(originalId);
+    });
+  }, [weeklyMatrix, selectedDayIndex, deletedMissionIds]);
 
   const getSubjectStyle = (subject: string) => {
     switch (subject.toLowerCase()) {
@@ -125,7 +129,7 @@ export function usePlannerState() {
 
 
   const handleMoveBlock = (blockId: string, targetDayIndex: number, newTimeSlot: string) => {
-    const timeMatch = newTimeSlot.match(/(\d{1,2}:\d{2})/);
+    const timeMatch = newTimeSlot.match(/(\d{1,2}:\d{2}\s*(am|pm|AM|PM)?)/);
     const scheduledTime = timeMatch ? timeMatch[1] : undefined;
     const scheduledDate = getDayDateString(targetDayIndex);
 
