@@ -611,6 +611,7 @@ export class StudyBrainRuntime {
         const originalId = b.id.startsWith('today-') ? b.id.slice(6) : b.id;
         const original = uniqueMissions.get(originalId);
         return {
+          ...(original || {}),
           id: originalId,
           subject: b.subject as SubjectId,
           chapter: b.chapterName,

@@ -1,8 +1,10 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Sparkles, RefreshCw, PenTool, SlidersHorizontal, ChevronDown, Calendar, UserCheck, Check, CalendarDays, LayoutGrid, BarChart2 } from 'lucide-react';
 import { OnHoldReminderBanner } from '@/features/dashboard/components/OnHoldReminderBanner';
 
 export function PlannerHeader({ state }: { state: any }) {
+  const navigate = useNavigate();
   const {
     dailyCapHours,
     mentorProfile,
@@ -15,7 +17,6 @@ export function PlannerHeader({ state }: { state: any }) {
     isAuditDropdownOpen,
     setIsAuditDropdownOpen,
     setIsWeeklyCheckinModalOpen,
-    setIsInterviewModalOpen,
     viewMode,
     setViewMode,
     chapters,
@@ -199,7 +200,7 @@ export function PlannerHeader({ state }: { state: any }) {
                 <div className="border-t border-zinc-900 my-1"></div>
 
                 <button
-                  onClick={() => setIsInterviewModalOpen(true)}
+                  onClick={() => navigate('/diagnostic')}
                   className="w-full text-left px-4 py-3 rounded-xl hover:bg-zinc-900 text-zinc-300 flex items-center gap-3 cursor-pointer border border-transparent hover:border-zinc-800 transition-all"
                 >
                   <UserCheck className="w-5 h-5 text-zinc-400" />

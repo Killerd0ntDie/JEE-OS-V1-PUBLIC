@@ -48,7 +48,7 @@ export function RoutineBreakModal({ isOpen, onClose }: RoutineBreakModalProps) {
       chapterId: `break-${selectedBreakId}`,
       subject: 'break' as any,
       taskName: `${duration}m ${selectedOpt.label}`,
-      type: 'Review Mistakes' as any,
+      type: 'Break' as any,
       duration,
       completed: false,
       scheduledTime: startStr,

@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { WeeklyBlock } from '@jee-os/engines';
 import { Sparkles, RefreshCw, PenTool, SlidersHorizontal, ChevronDown, Calendar, UserCheck, Check, Target } from 'lucide-react';
 import { OnHoldReminderBanner } from '@/features/dashboard/components/OnHoldReminderBanner';
@@ -8,6 +9,7 @@ export interface PlannerStickySidebarProps {
 }
 
 export function PlannerStickySidebar({ state }: PlannerStickySidebarProps) {
+  const navigate = useNavigate();
   const {
     viewMode,
     weeklyMatrix,
@@ -25,7 +27,6 @@ export function PlannerStickySidebar({ state }: PlannerStickySidebarProps) {
     isAuditDropdownOpen,
     setIsAuditDropdownOpen,
     setIsWeeklyCheckinModalOpen,
-    setIsInterviewModalOpen,
     activeBottlenecks
   } = state;
 
@@ -182,7 +183,7 @@ export function PlannerStickySidebar({ state }: PlannerStickySidebarProps) {
               </button>
               <div className="border-t border-zinc-800 my-1"></div>
               <button
-                onClick={() => setIsInterviewModalOpen(true)}
+                onClick={() => navigate('/diagnostic')}
                 className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-zinc-900 text-zinc-200 flex items-center gap-2 cursor-pointer"
               >
                 <UserCheck className="w-4 h-4 text-zinc-400 shrink-0" />

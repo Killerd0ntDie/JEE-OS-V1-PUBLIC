@@ -26,8 +26,7 @@ const CoachHistoryPage = lazy(() => import('./features/coach/CoachHistoryPage').
 const SettingsPage = lazy(() => import('./features/dashboard/SettingsPage').then(m => ({ default: m.SettingsPage })));
 const MockTestsPage = lazy(() => import('./features/mockTests/MockTestsPage').then(m => ({ default: m.MockTestsPage })));
 const NeuralGraphPage = lazy(() => import('./features/neuralLink/NeuralGraphPage').then(m => ({ default: m.NeuralGraphPage })));
-
-import { MentorInterviewModal } from './components/mentor/MentorInterviewModal';
+const DiagnosticPage = lazy(() => import('./features/onboarding/DiagnosticPage').then(m => ({ default: m.DiagnosticPage })));
 import { ChapterEditModal } from './components/shared/ChapterEditModal';
 import { ShortcutGuideModal } from './components/ui/ShortcutGuideModal';
 import { LevelUpCelebration } from './components/ui/LevelUpCelebration';
@@ -56,7 +55,6 @@ function AppLayout() {
 
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isSidebarMobileOpen, setIsSidebarMobileOpen] = useState(false);
-  const [isMentorInterviewOpen, setIsMentorInterviewOpen] = useState(false);
   const [isResetCacheConfirmOpen, setIsResetCacheConfirmOpen] = useState(false);
   const [isShortcutGuideOpen, setIsShortcutGuideOpen] = useState(false);
   const [levelUpCelebration, setLevelUpCelebration] = useState<{ oldLevel: number; newLevel: number } | null>(null);
@@ -77,9 +75,11 @@ function AppLayout() {
   useEffect(() => {
     const hasDismissed = sessionStorage.getItem('onboarding_dismissed');
     if (!loading && !mentorProfile?.interviewCompleted && !hasDismissed) {
-      setIsMentorInterviewOpen(true);
+      if (location.pathname !== '/diagnostic') {
+        navigate('/diagnostic', { replace: true });
+      }
     }
-  }, [loading, mentorProfile?.interviewCompleted]);
+  }, [loading, mentorProfile?.interviewCompleted, location.pathname, navigate]);
 
   // Global Key Listener for Cmd+K / Ctrl+K, Cmd+B / Ctrl+B, and ?
   useEffect(() => {
@@ -197,17 +197,19 @@ function AppLayout() {
   return (
     <div className={`flex min-h-screen bg-zinc-950 text-zinc-400 font-sans antialiased overflow-x-hidden selection:bg-indigo-500/30 selection:text-zinc-100 ${themeClass}`}>
       {/* Sidebar Navigation */}
-      <Sidebar
-        isOpenMobile={isSidebarMobileOpen}
-        onCloseMobile={() => setIsSidebarMobileOpen(false)}
-        isCollapsed={isSidebarCollapsed}
-        onToggleCollapse={toggleSidebarCollapse}
-      />
+      {!location.pathname.startsWith('/diagnostic') && (
+        <Sidebar
+          isOpenMobile={isSidebarMobileOpen}
+          onCloseMobile={() => setIsSidebarMobileOpen(false)}
+          isCollapsed={isSidebarCollapsed}
+          onToggleCollapse={toggleSidebarCollapse}
+        />
+      )}
 
       {/* Main Workspace Frame */}
       <div className="flex-1 flex flex-col min-w-0 h-[100dvh] overflow-hidden">
-        {/* Topbar Nav (Disabled for Planner and Cockpit pages) */}
-        {!location.pathname.startsWith('/planner') && !location.pathname.startsWith('/cockpit') && (
+        {/* Topbar Nav (Disabled for Planner, Cockpit, and Diagnostic pages) */}
+        {!location.pathname.startsWith('/planner') && !location.pathname.startsWith('/cockpit') && !location.pathname.startsWith('/diagnostic') && (
           <Topbar
             onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
             onOpenShortcutGuide={() => setIsShortcutGuideOpen(true)}
@@ -218,7 +220,7 @@ function AppLayout() {
         )}
 
         {/* Central Router Stage with Smooth Framer Motion Transition */}
-        <main id="main-content" className="flex-1 flex flex-col overflow-y-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 md:py-6 pb-12 scrollbar relative">
+        <main id="main-content" className={`flex-1 flex flex-col overflow-y-auto scrollbar relative ${location.pathname.startsWith('/diagnostic') ? '' : 'px-3 sm:px-4 md:px-6 lg:px-8 py-4 md:py-6 pb-12'}`}>
           {!isOnline && (
             <div className="bg-amber-500/10 border border-amber-500/30 text-amber-300 px-4 py-3 rounded-xl mb-4 flex items-center justify-center font-mono text-xs shadow-lg animate-fade-in shrink-0">
               <div className="flex items-center gap-2">
@@ -269,6 +271,7 @@ function AppLayout() {
                       <Route path="/mock-tests" element={<ErrorBoundary><MockTestsPage /></ErrorBoundary>} />
                       <Route path="/neural-link" element={<ErrorBoundary><NeuralGraphPage /></ErrorBoundary>} />
                       <Route path="/settings" element={<ErrorBoundary><SettingsPage /></ErrorBoundary>} />
+                      <Route path="/diagnostic" element={<ErrorBoundary><DiagnosticPage /></ErrorBoundary>} />
                       <Route path="*" element={<Navigate to="/dashboard" replace />} />
                     </Routes>
                   </Suspense>
@@ -288,16 +291,6 @@ function AppLayout() {
       <CommandPalette
         isOpen={isCommandPaletteOpen}
         onClose={() => setIsCommandPaletteOpen(false)}
-      />
-
-      {/* Global AI Mentor Onboarding & Reality Interview Modal */}
-      <MentorInterviewModal
-        isOpen={isMentorInterviewOpen}
-        onClose={() => {
-          setIsMentorInterviewOpen(false);
-          sessionStorage.setItem('onboarding_dismissed', 'true');
-        }}
-        isMandatory={false}
       />
 
       {/* Global Chapter Edit & Telemetry Modal */}

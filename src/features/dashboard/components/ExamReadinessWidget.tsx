@@ -34,7 +34,7 @@ export function ExamReadinessWidget({ targetYear, syllabusProgress, studySession
     if (isNaN(t)) return earliest;
     return earliest === null ? t : Math.min(earliest, t);
   }, null);
-  const actualStudyMinutes = studySessions.reduce((sum, s) => sum + (typeof s.duration === 'number' ? s.duration : 0), 0);
+  const actualStudyMinutes = studySessions.reduce((sum, s) => sum + (typeof s.duration === 'number' && (s.type as any) !== 'Break' ? s.duration : 0), 0);
   const hasRealStudyHistory = studySessions.some(s => {
     const t = new Date(s.startTime).getTime();
     return !isNaN(t) && (s.duration ?? 0) > 0;

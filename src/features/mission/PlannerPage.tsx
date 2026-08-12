@@ -5,8 +5,6 @@ import { usePlannerState } from './hooks/usePlannerState';
 import { PlannerCalendarGrid } from './components/PlannerCalendarGrid';
 import { PlannerStickySidebar } from './components/PlannerStickySidebar';
 import { PlannerRoadmapTab } from './components/PlannerRoadmapTab';
-
-import { MentorInterviewModal } from '@/components/mentor/MentorInterviewModal';
 import { SyllabusDiagnosisModal } from '@/components/mentor/SyllabusDiagnosisModal';
 import { WeeklyCheckinModal } from '@/components/mentor/WeeklyCheckinModal';
 import { MonthlyObjectiveModal } from '@/components/mentor/MonthlyObjectiveModal';
@@ -32,8 +30,6 @@ export function PlannerPage() {
     setIsRationaleExpanded,
     activeInspectorTelemetry,
     getBadgeStyle,
-    isInterviewModalOpen,
-    setIsInterviewModalOpen,
     isDiagnosisModalOpen,
     setIsDiagnosisModalOpen,
     isWeeklyCheckinModalOpen,
@@ -225,12 +221,6 @@ export function PlannerPage() {
       </AnimatePresence>
 
       {/* AUXILIARY SYSTEM MODALS */}
-      <MentorInterviewModal
-        isOpen={isInterviewModalOpen}
-        onClose={() => setIsInterviewModalOpen(false)}
-        isMandatory={false}
-      />
-
       <SyllabusDiagnosisModal
         isOpen={isDiagnosisModalOpen}
         onClose={() => setIsDiagnosisModalOpen(false)}

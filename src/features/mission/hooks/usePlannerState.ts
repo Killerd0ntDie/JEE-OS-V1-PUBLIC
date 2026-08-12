@@ -27,8 +27,6 @@ export function usePlannerState() {
   }, []);
 
   const [selectedDayIndex, setSelectedDayIndex] = useState<number>(currentDayIndex);
-
-  const [isInterviewModalOpen, setIsInterviewModalOpen] = useState(false);
   const [isDiagnosisModalOpen, setIsDiagnosisModalOpen] = useState(false);
   const [isWeeklyCheckinModalOpen, setIsWeeklyCheckinModalOpen] = useState(false);
   const [isMonthlyObjectiveModalOpen, setIsMonthlyObjectiveModalOpen] = useState(false);
@@ -163,7 +161,6 @@ export function usePlannerState() {
     currentDayIndex,
     selectedDayIndex, setSelectedDayIndex,
 
-    isInterviewModalOpen, setIsInterviewModalOpen,
     isDiagnosisModalOpen, setIsDiagnosisModalOpen,
     isWeeklyCheckinModalOpen, setIsWeeklyCheckinModalOpen,
     isMonthlyObjectiveModalOpen, setIsMonthlyObjectiveModalOpen,

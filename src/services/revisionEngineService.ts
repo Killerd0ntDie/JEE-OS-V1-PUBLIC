@@ -176,6 +176,9 @@ export const RevisionEngineService = {
     });
 
     chapters.forEach(chapter => {
+      // Skip chapters that are on hold or whose revision is on hold
+      if (chapter.chapterOnHold || chapter.revisionOnHold) return;
+
       // Check if eligible for spaced repetition revision
       // Must be at least Theory Complete or DPP Complete
       if (!chapter.theoryComplete && chapter.completion < 30) return;

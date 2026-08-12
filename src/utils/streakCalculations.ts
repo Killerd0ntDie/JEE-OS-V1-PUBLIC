@@ -7,6 +7,7 @@ export function getDailyMinutesMap(studySessions: StudySession[] = []): Map<stri
   const map = new Map<string, number>();
   (studySessions || []).forEach(session => {
     if (!session.startTime) return;
+    if (session.type === 'Break' as any) return;
     const d = new Date(session.startTime);
     if (isNaN(d.getTime())) return;
     const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;

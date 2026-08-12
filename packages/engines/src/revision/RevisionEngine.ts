@@ -25,6 +25,8 @@ export class RevisionEngine {
 
     // Process chapters & formula cards
     chapters.forEach(chap => {
+      if (chap.chapterOnHold || chap.revisionOnHold) return;
+
       const telemetry = (chapterTelemetryMap || {})[chap.id];
       const isStartedOrMastered = telemetry 
         ? (telemetry.syllabusStage === 'In Progress' || telemetry.syllabusStage === 'Mastered')

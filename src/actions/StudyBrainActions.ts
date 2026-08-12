@@ -433,7 +433,7 @@ export class StudyBrainActions {
       const levelUpData = oldLevel !== newLevel && isCompleting ? { oldLevel, newLevel, xp: newXp } : null;
 
       // Create a StudySession to ensure Doomsday velocity gets updated
-      if (isCompleting && studySessionDuration > 0) {
+      if (isCompleting && studySessionDuration > 0 && mission.type !== 'Break') {
         const sessionId = `session-${Date.now()}`;
         updatedMission.linkedSessionId = sessionId;
         const endTime = new Date();
@@ -449,9 +449,15 @@ export class StudyBrainActions {
           xpEarned: deltaXp
         };
         savePromises.push(this.safeDbCall(() => StudySessionRepository.saveStudySession(this.userId, sessionPayload), 'saveStudySession'));
+        
+        // Optimistically add to state
+        this.state.studySessions = [sessionPayload, ...this.state.studySessions];
       } else if (!isCompleting && mission.linkedSessionId) {
         // Delete the associated study session when un-completing
         savePromises.push(this.safeDbCall(() => StudySessionRepository.deleteStudySession(this.userId, mission.linkedSessionId), 'deleteStudySession'));
+        
+        // Optimistically remove from state
+        this.state.studySessions = this.state.studySessions.filter(s => s.id !== mission.linkedSessionId);
         updatedMission.linkedSessionId = undefined;
       }
 
