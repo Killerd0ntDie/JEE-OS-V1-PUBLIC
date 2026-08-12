@@ -41,6 +41,10 @@ export function AiCoachPage({ isActive }: { isActive?: boolean }) {
   const navigate = useNavigate();
   
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const sessionIdRef = useRef(sessionId);
+  useEffect(() => {
+    sessionIdRef.current = sessionId;
+  }, [sessionId]);
   const [isRevisionModalOpen, setIsRevisionModalOpen] = useState(false);
 
   const handleApplyAction = async (msgIndex: number, actionIndex: number, action: any) => {
@@ -160,7 +164,7 @@ export function AiCoachPage({ isActive }: { isActive?: boolean }) {
   }, [isActive]);
 
   const saveSession = (messages: ChatMessage[]) => {
-    let currentId = sessionId;
+    let currentId = sessionIdRef.current;
     if (!currentId) {
       currentId = `chat_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
       setSessionId(currentId);

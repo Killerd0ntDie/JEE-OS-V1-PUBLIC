@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { Sparkles, Calendar, Clock, Check, Loader2, X, ArrowRight, Zap, Target } from 'lucide-react';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
+import { auth } from '@/firebase';
 import { ChapterTelemetry } from '@jee-os/engines';
 import { Modal } from '@/components/ui/Modal';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
@@ -44,8 +45,7 @@ export function AiRevisionPlanModal({ isOpen, onClose }: AiRevisionPlanModalProp
     setImportedTaskIds([]);
 
     try {
-      const userStr = localStorage.getItem('auth_user');
-      const token = userStr ? JSON.parse(userStr).token : '';
+      const token = await auth.currentUser?.getIdToken();
 
       const res = await fetch('/api/planner/generate-plan', {
         method: 'POST',
@@ -83,7 +83,6 @@ export function AiRevisionPlanModal({ isOpen, onClose }: AiRevisionPlanModalProp
       setIsGenerating(false);
     }
   };
-
   const handleImportDayTasks = async (day: any) => {
     const tasksToImport = day.tasks || [];
     for (const t of tasksToImport) {

@@ -287,7 +287,7 @@ export function FocusVaultPage() {
           {/* Using highly stable Synthwave VOD instead of live stream */}
           <iframe 
             ref={youtubeRef}
-            src={`https://www.youtube.com/embed/${LOFI_STATIONS[stationIndex].id}?autoplay=1&mute=${isMuted ? 1 : 0}&controls=0&disablekb=1&fs=0&loop=1&playlist=${LOFI_STATIONS[stationIndex].id}&modestbranding=1&playsinline=1&iv_load_policy=3`} 
+            src={`https://www.youtube.com/embed/${LOFI_STATIONS[stationIndex].id}?autoplay=1&enablejsapi=1&controls=0&disablekb=1&fs=0&loop=1&playlist=${LOFI_STATIONS[stationIndex].id}&modestbranding=1&playsinline=1&iv_load_policy=3`} 
             title="Lofi Stream" 
             className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300%] h-[300%] pointer-events-none opacity-80"
             allow="autoplay; encrypted-media"
@@ -307,7 +307,13 @@ export function FocusVaultPage() {
             <RefreshCw className="w-3.5 h-3.5" />
           </button>
           <button
-            onClick={() => setIsMuted(!isMuted)}
+            onClick={() => {
+              const newMuted = !isMuted;
+              setIsMuted(newMuted);
+              if (youtubeRef.current && youtubeRef.current.contentWindow) {
+                youtubeRef.current.contentWindow.postMessage(`{"event":"command","func":"${newMuted ? 'mute' : 'unMute'}","args":""}`, '*');
+              }
+            }}
             className="p-2 rounded-xl bg-zinc-800/50 text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors"
             aria-label={isMuted ? "Unmute Lofi Audio" : "Mute Lofi Audio"}
           >

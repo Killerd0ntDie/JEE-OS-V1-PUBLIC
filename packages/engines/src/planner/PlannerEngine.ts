@@ -11,12 +11,12 @@ function normalizeStageAlias(stage?: string): string | undefined {
   return normalized;
 }
 
-function getLocalDateKey(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
+export const getLocalDateKey = (d: Date) => {
+  const y = d.getFullYear();
+  const m = (d.getMonth() + 1).toString().padStart(2, '0');
+  const d2 = d.getDate().toString().padStart(2, '0');
+  return `${y}-${m}-${d2}`;
+};
 
 export class PlannerEngine {
   private knowledgeEngine: KnowledgeEngine;
@@ -440,7 +440,8 @@ export class PlannerEngine {
         // Use exact telemetry duration, falling back to 75 if completely missing, capped at 120
         const lecDuration = Math.min(prog.avgLectureDuration || 75, 120);
 
-        for (let l = 0; l < remainingLectures; l++) {
+        // Only generate next 3 lectures as candidates — earlier lectures MUST be completed first
+        for (let l = 0; l < Math.min(remainingLectures, 3); l++) {
           const nextLec = prog.currentLecture + l + 1;
           candidates.push(generateTask(
             'Watch Lecture',
@@ -964,7 +965,8 @@ export function generateWeeklyMatrix(
   deletedMissionIds: string[] = [],
   scheduleOverrides: Record<string, { dayIndex?: number; timeSlot?: string; scheduledDate?: string; scheduledTime?: string }> = {},
   dayStartTime: string = "07:00",
-  dayEndTime: string = "22:30"
+  dayEndTime: string = "22:30",
+  settings?: any
 ): WeeklyBlock[] {
   // Only schedule chapters the user has explicitly started and that are NOT on hold.
   // NEVER auto-schedule unstarted chapters.
@@ -985,19 +987,57 @@ export function generateWeeklyMatrix(
     const isToday = dayIndex === currentDayIndex;
 
     if (isToday && todayMissions && todayMissions.length > 0) {
-      let currentHour = parseInt(dayStartTime.split(':')[0]) || 7;
-      let currentMinute = parseInt(dayStartTime.split(':')[1]) || 0;
-      let endHour = parseInt(dayEndTime.split(':')[0]) || 22;
-      let endMinute = parseInt(dayEndTime.split(':')[1]) || 30;
-      let endMinsTotal = endHour * 60 + endMinute;
-
-      let pushToTomorrow = false;
-
       const todayDateObj = new Date();
       todayDateObj.setHours(0,0,0,0);
       const todayDateStr = getLocalDateKey(todayDateObj);
 
-      todayMissions.forEach((m, mIdx) => {
+      let effectiveEndTime = dayEndTime;
+      if (settings?.sessionExtensionDate === todayDateStr && settings?.sessionExtensionEnd) {
+        effectiveEndTime = settings.sessionExtensionEnd;
+      }
+
+      let currentHour = parseInt(dayStartTime.split(':')[0]) || 7;
+      let currentMinute = parseInt(dayStartTime.split(':')[1]) || 0;
+      let endHour = parseInt(effectiveEndTime.split(':')[0]) || 22;
+      let endMinute = parseInt(effectiveEndTime.split(':')[1]) || 30;
+      let logicalEndHour = endHour;
+      if (logicalEndHour < currentHour) {
+        logicalEndHour += 24; // Crosses midnight
+      }
+      let endMinsTotal = logicalEndHour * 60 + endMinute;
+
+      let pushToTomorrow = false;
+      
+      const now = new Date();
+      let logicalRealCurrentHour = now.getHours();
+      if (logicalRealCurrentHour < (parseInt(dayStartTime.split(':')[0]) || 7)) {
+        logicalRealCurrentHour += 24;
+      }
+      let forcePushToTomorrow = (logicalRealCurrentHour * 60 + now.getMinutes()) > endMinsTotal;
+
+      // Sort todayMissions to enforce sequential lecture order within the same chapter.
+      // This prevents lectures 7/8 from appearing before 5/6 when the input array is scrambled.
+      const getLecNum = (name: string): number => {
+        const match = (name || '').match(/Lecture\s+(\d+)/i);
+        return match ? parseInt(match[1], 10) : Number.MAX_SAFE_INTEGER;
+      };
+      const sortedTodayMissions = [...todayMissions].sort((a, b) => {
+        // Completed tasks stay first (preserve their actual completed time slots)
+        if (a.completed !== b.completed) return a.completed ? -1 : 1;
+        // Manual overrides with explicit timeSlots keep their position
+        if (a.isManualOverride && !b.isManualOverride) return -1;
+        if (!a.isManualOverride && b.isManualOverride) return 1;
+        // For same-chapter lecture tasks, sort by lecture number ascending
+        const sameChapter = (a.chapter || '').toLowerCase() === (b.chapter || '').toLowerCase();
+        const aIsLec = (a.type === 'Watch Lecture' || /Lecture\s+\d+/i.test(a.taskName || ''));
+        const bIsLec = (b.type === 'Watch Lecture' || /Lecture\s+\d+/i.test(b.taskName || ''));
+        if (sameChapter && aIsLec && bIsLec) {
+          return getLecNum(a.taskName) - getLecNum(b.taskName);
+        }
+        return 0; // Preserve original order for everything else
+      });
+
+      sortedTodayMissions.forEach((m, mIdx) => {
         const chap = chapters.find(c => c.name.toLowerCase() === (m.chapter || '').toLowerCase());
         
         let pendingBreakBlock: any = null;
@@ -1017,11 +1057,16 @@ export function generateWeeklyMatrix(
         }
         
         if (!timeSlot || timeSlot.includes('Morning') || timeSlot.includes('Afternoon') || timeSlot.includes('Evening') || timeSlot.includes('Night')) {
-          let startMins = currentHour * 60 + currentMinute;
+          let logicalCurrentHour = currentHour;
+          if (logicalCurrentHour < (parseInt(dayStartTime.split(':')[0]) || 7)) {
+            logicalCurrentHour += 24;
+          }
+          let startMins = logicalCurrentHour * 60 + currentMinute;
           let newEndMins = startMins + duration;
 
-          if (newEndMins > endMinsTotal) {
+          if (newEndMins > endMinsTotal || forcePushToTomorrow) {
             pushToTomorrow = true;
+            forcePushToTomorrow = false;
             // Next day starts at dayStartTime
             currentHour = parseInt(dayStartTime.split(':')[0]) || 7;
             currentMinute = parseInt(dayStartTime.split(':')[1]) || 0;
@@ -1029,20 +1074,20 @@ export function generateWeeklyMatrix(
             newEndMins = startMins + duration;
           }
 
-          const startStr = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
+          const startStr = `${(currentHour % 24).toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
           
           currentMinute += duration;
           while (currentMinute >= 60) {
             currentHour += 1;
             currentMinute -= 60;
           }
-          const endStr = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
+          const endStr = `${(currentHour % 24).toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
           timeSlot = `${startStr} - ${endStr}`;
           
-          // Prepare 15 min break after if not overflowing
           const hasExistingBreak = todayMissions.some(tm => tm.id === `break-${m.id}` || tm.id === `today-break-${m.id}`);
-          if (!pushToTomorrow && m.subject !== 'break' && !hasExistingBreak) {
-            const breakStartStr = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
+
+          if (m.subject !== 'break' && !hasExistingBreak) {
+            const breakStartStr = `${(currentHour % 24).toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
             currentMinute += 15;
             let tempHour = currentHour;
             let tempMinute = currentMinute;
@@ -1050,12 +1095,13 @@ export function generateWeeklyMatrix(
               tempHour += 1;
               tempMinute -= 60;
             }
-            const breakEndStr = `${tempHour.toString().padStart(2, '0')}:${tempMinute.toString().padStart(2, '0')}`;
+            const breakEndStr = `${(tempHour % 24).toString().padStart(2, '0')}:${tempMinute.toString().padStart(2, '0')}`;
             
+            const isPushedBreak = pushToTomorrow && !m.completed && !isManualOverride;
             pendingBreakBlock = {
               id: `today-break-${m.id}`,
-              dayIndex: dayIndex,
-              dayName: dayName,
+              dayIndex: isPushedBreak ? (dayIndex + 1) % 7 : dayIndex,
+              dayName: isPushedBreak ? daysOfWeek[(dayIndex + 1) % 7] : dayName,
               timeSlot: `${breakStartStr} - ${breakEndStr}`,
               subject: 'break',
               chapterId: 'break',
@@ -1087,6 +1133,9 @@ export function generateWeeklyMatrix(
             currentHour = parseInt(match[1], 10);
             currentMinute = parseInt(match[2], 10);
             
+            // Note: If the parsed time was after midnight (e.g. 00:37), currentHour becomes 0.
+            // Our logical tracking above (logicalCurrentHour) will handle the +24 adjustment cleanly.
+            
             // Also add a 15-minute break offset logically, so the next un-timeslotted task starts after a break
             if (m.subject !== 'break') {
               currentMinute += 15;
@@ -1098,10 +1147,12 @@ export function generateWeeklyMatrix(
           }
         }
 
+        const isPushed = pushToTomorrow && !m.completed && !isManualOverride;
+
         blocks.push({
           id: `today-${m.id}`,
-          dayIndex: pushToTomorrow ? (dayIndex + 1) % 7 : dayIndex,
-          dayName: pushToTomorrow ? daysOfWeek[(dayIndex + 1) % 7] : dayName,
+          dayIndex: isPushed ? (dayIndex + 1) % 7 : dayIndex,
+          dayName: isPushed ? daysOfWeek[(dayIndex + 1) % 7] : dayName,
           timeSlot: timeSlot,
           subject: m.subject || 'physics',
           chapterId: chap?.id || 'p1',
@@ -1127,6 +1178,12 @@ export function generateWeeklyMatrix(
         }
       });
     } else if (plannerWeekly && plannerWeekly[dayIndex] && plannerWeekly[dayIndex].length > 0) {
+      // Avoid visual clashing: If we pushed tasks from today to this day, don't overlay the default lookahead slots!
+      const existingBlocksForDay = blocks.filter(b => b.dayIndex === dayIndex);
+      if (existingBlocksForDay.length > 0) {
+        return;
+      }
+      
       plannerWeekly[dayIndex].forEach((t: any, tIdx: number) => {
         const chap = chapters.find(c => c.id === t.chapterId);
         blocks.push({

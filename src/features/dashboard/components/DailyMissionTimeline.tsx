@@ -76,6 +76,7 @@ export function DailyMissionTimeline({
   const targetFinishTime = useStudyBrainStore(s => s.targetFinishTime);
   const chapters = useStudyBrainStore(s => s.chapters);
   const chapterTelemetryMap = useStudyBrainStore(s => s.chapterTelemetryMap);
+  const settings = useStudyBrainStore(s => s.settings);
   const [missionToDelete, setMissionToDelete] = useState<string | null>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
 
@@ -88,6 +89,41 @@ export function DailyMissionTimeline({
   const selectedMission = todayMissions.find(m => m.id === selectedMissionId);
   const effectiveSelectedId = (selectedMission && !selectedMission.completed) ? selectedMissionId : null;
 
+  // Calculate if it's past end time
+  const now = new Date();
+  const dayStartTime = settings?.dayStartTime || '07:00';
+  const dayEndTime = settings?.dayEndTime || '22:30';
+  let logicalRealCurrentHour = now.getHours();
+  if (logicalRealCurrentHour < (parseInt(dayStartTime.split(':')[0]) || 7)) {
+    logicalRealCurrentHour += 24;
+  }
+  const realMinsTotal = logicalRealCurrentHour * 60 + now.getMinutes();
+
+  const getLocalDateKey = (d: Date) => {
+    const y = d.getFullYear();
+    const m = (d.getMonth() + 1).toString().padStart(2, '0');
+    const d2 = d.getDate().toString().padStart(2, '0');
+    return `${y}-${m}-${d2}`;
+  };
+  const todayDateObj = new Date();
+  todayDateObj.setHours(0,0,0,0);
+  const todayDateStr = getLocalDateKey(todayDateObj);
+
+  let effectiveEndTime = dayEndTime;
+  if ((settings as any)?.sessionExtensionDate === todayDateStr && (settings as any)?.sessionExtensionEnd) {
+    effectiveEndTime = (settings as any).sessionExtensionEnd;
+  }
+
+  let endHour = parseInt(effectiveEndTime.split(':')[0]) || 22;
+  let endMinute = parseInt(effectiveEndTime.split(':')[1]) || 30;
+  let logicalEndHour = endHour;
+  if (logicalEndHour < (parseInt(dayStartTime.split(':')[0]) || 7)) {
+    logicalEndHour += 24;
+  }
+  const endMinsTotal = logicalEndHour * 60 + endMinute;
+
+  const isPastDayEnd = realMinsTotal > endMinsTotal;
+  
   // Safe mission selection with null checks to prevent crashes
   const activeMission = todayMissions.find(m => m.id === effectiveSelectedId) || 
                            (incompleteMissions.length > 0 ? incompleteMissions[0] : null) || 
@@ -195,53 +231,91 @@ export function DailyMissionTimeline({
           {/* Checklist Items */}
           <div className="space-y-2.5">
             {todayMissions.length === 0 ? (
-              <div className="p-8 flex flex-col items-center gap-4 text-center border border-dashed border-zinc-800 rounded-xl bg-zinc-950/30">
-                <div className="text-zinc-300 font-display font-medium text-base">Execution Queue is Empty</div>
-                <div className="text-zinc-400 text-xs max-w-sm">
-                  You have no active chapters in progress. Pick a foundational module to start your journey.
+              isPastDayEnd ? (
+                <div className="p-8 flex flex-col items-center gap-5 text-center border border-indigo-900/30 rounded-xl bg-gradient-to-b from-indigo-950/20 to-zinc-950/50 shadow-inner">
+                  <div className="w-12 h-12 rounded-full bg-indigo-950/50 border border-indigo-900/50 flex items-center justify-center shadow-lg shadow-indigo-900/20 mb-2">
+                    <Icon name="Moon" className="w-6 h-6 text-indigo-400" />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="text-zinc-200 font-display font-medium text-lg tracking-wide">Time to rest.</div>
+                    <div className="text-zinc-400 text-xs max-w-sm leading-relaxed">
+                      You've passed your scheduled bedtime ({effectiveEndTime}). Your remaining missions have been securely pushed to tomorrow. Let your brain consolidate memories.
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-3 justify-center mt-4">
+                    <button
+                      type="button"
+                      className="px-5 py-2.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-lg text-zinc-300 text-xs font-mono transition-colors shadow-lg cursor-pointer flex items-center gap-2"
+                    >
+                      <Icon name="Check" className="w-3.5 h-3.5" /> Sleep Now
+                    </button>
+                    
+                    <div className="relative group">
+                      <button
+                        type="button"
+                        className="px-5 py-2.5 bg-indigo-950/40 hover:bg-indigo-900/60 border border-indigo-900/50 rounded-lg text-indigo-300 text-xs font-mono transition-colors shadow-lg cursor-pointer flex items-center gap-2"
+                      >
+                        <Icon name="Clock" className="w-3.5 h-3.5" /> Extend Session
+                      </button>
+                      
+                      {/* Dropdown for extension */}
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-32 bg-zinc-900 border border-zinc-800 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 overflow-hidden flex flex-col">
+                        <button onClick={() => actions.extendSession(0.5)} className="px-4 py-2 text-xs text-zinc-300 hover:bg-indigo-950/40 hover:text-indigo-300 text-left cursor-pointer transition-colors border-b border-zinc-800/50">+30 mins</button>
+                        <button onClick={() => actions.extendSession(1)} className="px-4 py-2 text-xs text-zinc-300 hover:bg-indigo-950/40 hover:text-indigo-300 text-left cursor-pointer transition-colors border-b border-zinc-800/50">+1 hour</button>
+                        <button onClick={() => actions.extendSession(2)} className="px-4 py-2 text-xs text-zinc-300 hover:bg-indigo-950/40 hover:text-indigo-300 text-left cursor-pointer transition-colors">+2 hours</button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-3 justify-center mt-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const c = chapters.find(ch => ch.name.includes("General Organic"));
-                      if (c) {
-                        actions.updateChapterData(c.id, { status: "Learning", currentLecture: 1 });
-                        actions.setEnergyLevel("High");
-                      }
-                    }}
-                    className="px-4 py-2.5 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-900/50 rounded-lg text-rose-300 text-xs font-mono transition-colors shadow-lg cursor-pointer"
-                  >
-                    Start GOC (Chem)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const c = chapters.find(ch => ch.name.includes("Sets"));
-                      if (c) {
-                        actions.updateChapterData(c.id, { status: "Learning", currentLecture: 1 });
-                        actions.setEnergyLevel("High");
-                      }
-                    }}
-                    className="px-4 py-2.5 bg-indigo-950/40 hover:bg-indigo-900/60 border border-indigo-900/50 rounded-lg text-indigo-300 text-xs font-mono transition-colors shadow-lg cursor-pointer"
-                  >
-                    Start Sets (Maths)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const c = chapters.find(ch => ch.name.includes("Units") || ch.name.includes("Kinematics"));
-                      if (c) {
-                        actions.updateChapterData(c.id, { status: "Learning", currentLecture: 1 });
-                        actions.setEnergyLevel("High");
-                      }
-                    }}
-                    className="px-4 py-2.5 bg-cyan-950/40 hover:bg-cyan-900/60 border border-cyan-900/50 rounded-lg text-cyan-300 text-xs font-mono transition-colors shadow-lg cursor-pointer"
-                  >
-                    Start Physics
-                  </button>
+              ) : (
+                <div className="p-8 flex flex-col items-center gap-4 text-center border border-dashed border-zinc-800 rounded-xl bg-zinc-950/30">
+                  <div className="text-zinc-300 font-display font-medium text-base">Execution Queue is Empty</div>
+                  <div className="text-zinc-400 text-xs max-w-sm">
+                    You have no active chapters in progress. Pick a foundational module to start your journey.
+                  </div>
+                  <div className="flex flex-wrap gap-3 justify-center mt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const c = chapters.find(ch => ch.name.includes("General Organic"));
+                        if (c) {
+                          actions.updateChapterData(c.id, { status: "Learning", currentLecture: 1 });
+                          actions.setEnergyLevel("High");
+                        }
+                      }}
+                      className="px-4 py-2.5 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-900/50 rounded-lg text-rose-300 text-xs font-mono transition-colors shadow-lg cursor-pointer"
+                    >
+                      Start GOC (Chem)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const c = chapters.find(ch => ch.name.includes("Sets"));
+                        if (c) {
+                          actions.updateChapterData(c.id, { status: "Learning", currentLecture: 1 });
+                          actions.setEnergyLevel("High");
+                        }
+                      }}
+                      className="px-4 py-2.5 bg-indigo-950/40 hover:bg-indigo-900/60 border border-indigo-900/50 rounded-lg text-indigo-300 text-xs font-mono transition-colors shadow-lg cursor-pointer"
+                    >
+                      Start Sets (Maths)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const c = chapters.find(ch => ch.name.includes("Units") || ch.name.includes("Kinematics"));
+                        if (c) {
+                          actions.updateChapterData(c.id, { status: "Learning", currentLecture: 1 });
+                          actions.setEnergyLevel("High");
+                        }
+                      }}
+                      className="px-4 py-2.5 bg-cyan-950/40 hover:bg-cyan-900/60 border border-cyan-900/50 rounded-lg text-cyan-300 text-xs font-mono transition-colors shadow-lg cursor-pointer"
+                    >
+                      Start Physics
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )
             ) : (() => {
               const sortedMissions = [...todayMissions].sort((a, b) => {
                 // Sort order: active → completed → dismissed
@@ -252,7 +326,20 @@ export function DailyMissionTimeline({
                 // Secondary sort by chronological timeSlot if available to sync with Planner's Single Source of Truth
                 const minA = getStartMinutesFromTimeSlot(a.timeSlot);
                 const minB = getStartMinutesFromTimeSlot(b.timeSlot);
-                return minA - minB;
+                if (minA !== minB) return minA - minB;
+
+                // Tertiary sort: same-chapter lectures must be in sequential order (Lecture 5 before Lecture 7)
+                const sameChapter = (a.chapter || '').toLowerCase() === (b.chapter || '').toLowerCase();
+                const extractLecNum = (name: string): number => {
+                  const match = (name || '').match(/Lecture\s+(\d+)/i);
+                  return match ? parseInt(match[1], 10) : Number.MAX_SAFE_INTEGER;
+                };
+                const aIsLec = (a.type === 'Watch Lecture' || /Lecture\s+\d+/i.test(a.taskName || ''));
+                const bIsLec = (b.type === 'Watch Lecture' || /Lecture\s+\d+/i.test(b.taskName || ''));
+                if (sameChapter && aIsLec && bIsLec) {
+                  return extractLecNum(a.taskName) - extractLecNum(b.taskName);
+                }
+                return 0;
               });
 
               const uncompletedMissions = sortedMissions.filter(m => !m.completed && !m.dismissed);
@@ -282,7 +369,7 @@ export function DailyMissionTimeline({
                 }
 
                 // If scheduled start is in the past, push it to runningPushMins (sequential cascading)
-                if (startMins < runningPushMins) {
+                if (m.timeSlot && startMins < runningPushMins) {
                   isOriginalPushed = true;
                   startMins = runningPushMins;
                   endMins = startMins + duration;

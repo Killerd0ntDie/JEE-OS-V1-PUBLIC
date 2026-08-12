@@ -366,7 +366,7 @@ export class PlannerScoringEngine {
     // For lecture progression: prioritize low mastery (100 - completion)
     // For practice: bell-curve around target point (e.g. 60%) to ensure readiness
     // -------------------------------------------------------------
-    const completion = context.progress.completion || 0;
+    const completion = Math.min(100, Math.max(0, context.progress.completion || 0));
     const masteryFactor = Math.max(0, 100 - completion);
     let masteryScore = 0;
     if (context.taskType === 'Watch Lecture') {

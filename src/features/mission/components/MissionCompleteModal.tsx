@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Modal } from '@/components/ui/Modal';
 import { Award, Flame } from 'lucide-react';
 import { SubjectDetail } from './MissionSubjectSwitcherWidget';
-import { useEscapeKey } from '@/hooks/useEscapeKey';
+
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 
 export interface MissionCompleteModalProps {
@@ -31,17 +31,7 @@ export function MissionCompleteModal({
 }: MissionCompleteModalProps) {
   useLockBodyScroll(true);
 
-  useEscapeKey(() => {
-    onComplete({
-      duration: seconds,
-      questions: 0,
-      xp: Math.floor(seconds / 60) * 5,
-      streak: streak,
-      idleTime: idleTime,
-      focusInterruptions: focusInterruptions,
-      focusScore: focusScore
-    });
-  }, isCompleted);
+
 
   return (
     <Modal 

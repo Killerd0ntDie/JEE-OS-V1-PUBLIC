@@ -639,6 +639,7 @@ export interface UserProfile {
     status: 'Completed' | 'Active' | 'Upcoming';
   }[];
   deletedMissionIds?: string[];
+  completedPlannerMissionIds?: string[];
   scheduleOverrides?: Record<string, { 
     dayIndex?: number; 
     timeSlot?: string; 
@@ -663,5 +664,7 @@ export interface UserProfile {
     dayEndTime?: string;
     minStreakHours?: number;
     enablePomodoroCasino?: boolean;
+    sessionExtensionDate?: string;
+    sessionExtensionEnd?: string;
   };
 }

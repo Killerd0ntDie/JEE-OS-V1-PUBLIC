@@ -314,12 +314,12 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
                 const offsetY = Math.max(0, e.clientY - rect.top);
 
                 // 120px = 1 hour (60 mins). Column starts at 00:00 AM (0 mins)
-                const minsFrom6 = Math.max(0, Math.min(24 * 60, (offsetY / 120) * 60));
+                const minsFromMidnight = Math.max(0, Math.min(24 * 60, (offsetY / 120) * 60));
 
                 // SNAP TO 5 MINUTES!
-                const snappedMinsFrom6 = Math.floor(minsFrom6 / 5) * 5;
+                const snappedMinsFromMidnight = Math.floor(minsFromMidnight / 5) * 5;
 
-                const totalStartMins = snappedMinsFrom6;
+                const totalStartMins = snappedMinsFromMidnight;
                 const startH = Math.floor(totalStartMins / 60);
                 const startM = totalStartMins % 60;
                 const startStr = `${String(startH).padStart(2, '0')}:${String(startM).padStart(2, '0')}`;
@@ -330,7 +330,7 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
                 const endM = totalEndMins % 60;
                 const endStr = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
 
-                const topPx = (snappedMinsFrom6 / 60) * 120 + 2;
+                const topPx = (snappedMinsFromMidnight / 60) * 120 + 2;
                 const heightPx = Math.max(30, (duration / 60) * 120 - 4);
                 const timeSlotStr = `${startStr} - ${endStr}`;
 
@@ -363,15 +363,15 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
                     const colEl = e.currentTarget as HTMLElement;
                     const rect = colEl.getBoundingClientRect();
                     const offsetY = Math.max(0, e.clientY - rect.top);
-                    const minsFrom6 = Math.max(0, Math.min(24 * 60, (offsetY / 120) * 60));
-                    const snappedMinsFrom6 = Math.floor(minsFrom6 / 5) * 5;
+                    const minsFromMidnight = Math.max(0, Math.min(24 * 60, (offsetY / 120) * 60));
+                    const snappedMinsFromMidnight = Math.floor(minsFromMidnight / 5) * 5;
                     
-                    const startH = Math.floor(snappedMinsFrom6 / 60);
-                    const startM = snappedMinsFrom6 % 60;
+                    const startH = Math.floor(snappedMinsFromMidnight / 60);
+                    const startM = snappedMinsFromMidnight % 60;
                     const startStr = `${String(startH).padStart(2, '0')}:${String(startM).padStart(2, '0')}`;
                     
                     const duration = data.duration || 75;
-                    const totalEndMins = snappedMinsFrom6 + duration;
+                    const totalEndMins = snappedMinsFromMidnight + duration;
                     const endH = Math.floor(totalEndMins / 60) % 24;
                     const endM = totalEndMins % 60;
                     const endStr = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;

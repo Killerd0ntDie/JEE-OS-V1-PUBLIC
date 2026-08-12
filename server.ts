@@ -104,7 +104,7 @@ async function startServer() {
     targetCollege: z.string().optional(),
     coachingType: z.string().optional(),
     mockHistory: z.array(z.any()).optional()
-  }).strict();
+  });
 
   const validateCoach = (req: any, res: any, next: any) => {
     const parsedBody = CoachSchema.safeParse(req.body);

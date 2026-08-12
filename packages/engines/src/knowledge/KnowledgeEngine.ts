@@ -167,7 +167,7 @@ export class KnowledgeEngine {
       const completion = prog ? prog.completion : 0;
       if (completion < 100) {
         const remainingPct = (100 - completion) / 100;
-        remaining += node.estimatedHours * remainingPct;
+        remaining += (node.estimatedHours || 0) * remainingPct;
       }
     }
 

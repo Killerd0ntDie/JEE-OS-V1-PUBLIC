@@ -16,6 +16,11 @@ import { toLocalDateString } from '@/utils/dateUtils';
 import { calculateMockScorePercent } from '@/utils/mockScoring';
 import { collection, getDocs, writeBatch, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '@/firebase';
+import { 
+  XPLevelConfig,
+  XPState,
+  getLocalDateKey
+} from '@jee-os/engines';
 
 export class StudyBrainActions {
   private runtime: StudyBrainRuntime;
@@ -44,6 +49,14 @@ export class StudyBrainActions {
     this.triggerToast('Sync Error', errorMsg, 'error');
     await this.runtime.refresh('SETTINGS_UPDATE', { lastSyncError: errorMsg });
     throw new Error(errorMsg);
+  }
+
+  private async safeDbCall<T>(operation: () => Promise<T>, actionName: string): Promise<T | void> {
+    try {
+      return await operation();
+    } catch (err: any) {
+      await this.handleWriteError(err, actionName);
+    }
   }
 
   private triggerToast(title: string, message?: string, type: 'success' | 'info' | 'warning' | 'error' = 'success') {
@@ -95,6 +108,36 @@ export class StudyBrainActions {
 
   private isGodModeActive(): boolean {
     return (this.state.xp?.streak || 0) >= 7 && (this.state.settings?.enableGodMode !== false);
+  }
+
+  private evaluateAndUpdateStreak(xp: any, updatedSessions: StudySession[]) {
+    const today = toLocalDateString();
+    const minThresholdMins = Math.round((this.state.settings?.minStreakHours ?? 0.5) * 60);
+    
+    const todayMinutes = updatedSessions
+      .filter(s => toLocalDateString(new Date(s.startTime)) === today)
+      .reduce((sum, s) => sum + (typeof s.duration === 'number' ? s.duration : 0), 0);
+
+    if (todayMinutes >= minThresholdMins) {
+      const prevDate = xp.lastActiveDate;
+      if (prevDate !== today) {
+        if (prevDate) {
+          const last = new Date(`${prevDate}T00:00:00`);
+          const curr = new Date(`${today}T00:00:00`);
+          const diffDays = Math.round((curr.getTime() - last.getTime()) / (1000 * 60 * 60 * 24));
+          if (diffDays === 1) {
+            xp.streak = (xp.streak || 0) + 1;
+          } else {
+            xp.streak = 1;
+          }
+        } else {
+          xp.streak = 1;
+        }
+        xp.lastActiveDate = today;
+      }
+      if (!xp.streak) xp.streak = 1;
+    }
+    return xp;
   }
 
   async clearSyncError() {
@@ -153,7 +196,7 @@ export class StudyBrainActions {
     const isCompleting = !mission.completed;
 
     const updatedMissions = [...this.state.todayMissions];
-    const updatedMission = {
+    const updatedMission: any = {
       ...mission,
       completed: isCompleting,
       unlocked: true
@@ -186,10 +229,15 @@ export class StudyBrainActions {
     const baseXp = 50;
     const gainedXp = mission.xp || baseXp;
 
-    // Apply God Mode XP Multiplier (1.5x) if active and enabled
-    const finalGainedXp = this.isGodModeActive() ? Math.floor(gainedXp * 1.5) : gainedXp;
-    
-    const deltaXp = isCompleting ? finalGainedXp : -finalGainedXp;
+    let deltaXp = 0;
+    if (isCompleting) {
+      const finalGainedXp = this.isGodModeActive() ? Math.floor(gainedXp * 1.5) : gainedXp;
+      updatedMission.xpEarned = finalGainedXp;
+      deltaXp = finalGainedXp;
+    } else {
+      deltaXp = -( (mission as any).xpEarned || (this.isGodModeActive() ? Math.floor(gainedXp * 1.5) : gainedXp) );
+      updatedMission.xpEarned = 0;
+    }
     
     const oldLevel = this.state.xp.level;
     const baseXpState = this.getResetXpBase();
@@ -208,18 +256,7 @@ export class StudyBrainActions {
     newXp.nextLevelXP = xpNeededForNext;
 
     // Streak is derived from actual study sessions and the configured daily threshold.
-    // Do not allow a single quick task completion to create a fake 1-day streak.
-    if (isCompleting) {
-      const today = toLocalDateString();
-      const minThresholdMins = Math.round((this.state.settings?.minStreakHours ?? 0.5) * 60);
-      const todayMinutes = this.state.studySessions
-        .filter(s => toLocalDateString(new Date(s.startTime)) === today)
-        .reduce((sum, s) => sum + (typeof s.duration === 'number' ? s.duration : 0), 0);
-
-      if (todayMinutes >= minThresholdMins) {
-        newXp.lastActiveDate = today;
-      }
-    }
+    this.evaluateAndUpdateStreak(newXp, this.state.studySessions);
 
     const chapter = this.state.chapters.find(c => 
       (mission.chapterId && c.id === mission.chapterId) ||
@@ -245,10 +282,14 @@ export class StudyBrainActions {
           const totalLectures = c.totalLectures || 12;
           
           if (isCompleting) {
-            if (mission.type === 'Watch Lecture') {
-              currentLecture = Math.min(totalLectures, currentLecture + 1);
-              theoryComplete = currentLecture >= totalLectures;
-            }
+             if (mission.type === 'Watch Lecture') {
+               // Extract the actual lecture number from taskName (e.g. 'Lecture 7/20: Chemical Bonding' → 7)
+               // to avoid blindly incrementing when out-of-order lectures are completed.
+               const lecMatch = (mission.taskName || '').match(/Lecture\s+(\d+)/i);
+               const completedLecNum = lecMatch ? parseInt(lecMatch[1], 10) : currentLecture + 1;
+               currentLecture = Math.min(totalLectures, Math.max(currentLecture, completedLecNum));
+               theoryComplete = currentLecture >= totalLectures;
+             }
             if (mission.type === 'Solve DPP') dppComplete = true;
             if (mission.type === 'Solve PYQs') pyqsComplete = true;
             if (mission.type === 'Revise Formulas' || mission.type === 'Review Mistakes') {
@@ -313,13 +354,13 @@ export class StudyBrainActions {
 
     try {
       const savePromises: Promise<any>[] = [
-        UserRepository.updateUserProfile(this.userId, { xp: newXp })
+        this.safeDbCall(() => UserRepository.updateUserProfile(this.userId, { xp: newXp }), 'updateUserProfile')
       ];
 
       if (chapter) {
         const updatedChap = updatedChapters.find(c => c.id === chapter.id);
         if (updatedChap) {
-          savePromises.push(ChapterRepository.saveChapter(this.userId, updatedChap));
+          savePromises.push(this.safeDbCall(() => ChapterRepository.saveChapter(this.userId, updatedChap), 'saveChapter'));
         }
       }
 
@@ -329,13 +370,22 @@ export class StudyBrainActions {
       
       // Only save to CustomMissionRepository if it's truly a custom mission
       // Planner missions should NOT pollute the custom missions collection
+      let updatedCompletedPlannerMissionIds = this.state.completedPlannerMissionIds || [];
       if (isCustom) {
-        savePromises.push(CustomMissionRepository.saveMission(this.userId, updatedCustomMission));
+        savePromises.push(this.safeDbCall(() => CustomMissionRepository.saveMission(this.userId, updatedCustomMission), 'saveMission'));
         updatedCustomMissions = this.state.customMissions.map(cm => cm.id === taskId ? updatedCustomMission : cm);
       } else {
         // For planner missions, don't save to CustomMissionRepository
         // Their completed state will be preserved through the runtime's mission mapping logic
         updatedCustomMissions = this.state.customMissions;
+        
+        if (isCompleting) {
+          updatedCompletedPlannerMissionIds = Array.from(new Set([...updatedCompletedPlannerMissionIds, taskId]));
+          savePromises.push(this.safeDbCall(() => UserRepository.updateUserProfile(this.userId, { completedPlannerMissionIds: updatedCompletedPlannerMissionIds }), 'updateUserProfile'));
+        } else {
+          updatedCompletedPlannerMissionIds = updatedCompletedPlannerMissionIds.filter((id: string) => id !== taskId);
+          savePromises.push(this.safeDbCall(() => UserRepository.updateUserProfile(this.userId, { completedPlannerMissionIds: updatedCompletedPlannerMissionIds }), 'updateUserProfile'));
+        }
       }
 
       // Trigger level-up event if applicable
@@ -352,6 +402,7 @@ export class StudyBrainActions {
       await this.runtime.refresh('INIT', {
         todayMissions: updatedMissions,
         customMissions: updatedCustomMissions,
+        completedPlannerMissionIds: updatedCompletedPlannerMissionIds,
         xp: newXp,
         chapters: updatedChapters,
         lastSyncError: null,
@@ -392,7 +443,7 @@ export class StudyBrainActions {
       // Persist the deleted-mission blocklist to Firestore so it survives reloads.
       // AI-planner missions regenerate every session with deterministic IDs, so without
       // this they'd reappear every time the page is refreshed.
-      await UserRepository.updateUserProfile(this.userId, { deletedMissionIds: updatedDeletedMissionIds } as any);
+      await UserRepository.updateUserProfile(this.userId, { deletedMissionIds: updatedDeletedMissionIds });
       await this.runtime.refresh('SESSION_UPDATE', {
         todayMissions: updatedTodayMissions,
         customMissions: updatedCustomMissions,
@@ -681,7 +732,7 @@ export class StudyBrainActions {
 
       // Save the skipped mission to database just like completeTask does
       if (skippedMission.id.startsWith('mission-') || skippedMission.id.includes('custom')) {
-        savePromises.push(CustomMissionRepository.saveMission(this.userId, skippedMission));
+        savePromises.push(this.safeDbCall(() => CustomMissionRepository.saveMission(this.userId, skippedMission), 'saveMission'));
       }
 
       await Promise.all(savePromises);
@@ -693,7 +744,8 @@ export class StudyBrainActions {
 
   async completeStudySession(sessionData: Partial<Omit<StudySession, 'id'>> & { focusTime?: number; questions?: number; correct?: number; idleTime?: number; focusInterruptions?: number; focusScore?: number; }) {
     this.checkWriteBlock();
-    const duration = sessionData.duration ?? sessionData.focusTime ?? 0;
+    let duration = sessionData.duration ?? sessionData.focusTime ?? 0;
+    if (Number.isNaN(duration)) duration = 0;
     const questionsSolved = sessionData.questionsSolved ?? sessionData.questions ?? 0;
     const correct = sessionData.correct ?? questionsSolved;
     const accuracy = sessionData.accuracy ?? (questionsSolved > 0 ? Math.round((correct / questionsSolved) * 100) : 100);
@@ -754,6 +806,8 @@ export class StudyBrainActions {
       const { level: newLevel, nextLevelXP: xpNeededForNext } = calculateLevelFromXP(newXp.total);
       newXp.level = newLevel;
       newXp.nextLevelXP = xpNeededForNext;
+      
+      this.evaluateAndUpdateStreak(newXp, updatedSessions);
       
       // Save analytics and XP back to user profile
       await UserRepository.updateUserProfile(this.userId, { analytics: updatedAnalytics, xp: newXp });
@@ -946,7 +1000,7 @@ export class StudyBrainActions {
 
   async addMistake(mistake: Omit<Mistake, 'id' | 'createdAt'>) {
     this.checkWriteBlock();
-    const newMistake = { ...mistake, id: Date.now().toString(), createdAt: new Date().toISOString() };
+    const newMistake = { ...mistake, id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2), createdAt: new Date().toISOString() };
     try {
       await MistakeRepository.saveMistake(this.userId, newMistake);
       const updatedMistakes = [...this.state.mistakes, newMistake];
@@ -1128,7 +1182,7 @@ export class StudyBrainActions {
   async resetHiddenMissions() {
     this.checkWriteBlock();
     try {
-      await UserRepository.updateUserProfile(this.userId, { deletedMissionIds: [] } as any);
+      await UserRepository.updateUserProfile(this.userId, { deletedMissionIds: [] });
       await this.runtime.refresh('SESSION_UPDATE', {
         deletedMissionIds: [],
         lastSyncError: null
@@ -1146,7 +1200,7 @@ export class StudyBrainActions {
       total: 0,
       level: 1,
       streak: 0,
-      nextLevelXP: 500,
+      nextLevelXP: calculateLevelFromXP(0).nextLevelXP,
       lastActiveDate: ''
     };
     try {
@@ -1235,7 +1289,7 @@ export class StudyBrainActions {
 
     // 2. Reset user document
     const initialProfile = {
-      xp: { daily: 0, weekly: 0, total: 0, level: 1, streak: 0, nextLevelXP: 1000 },
+      xp: { daily: 0, weekly: 0, total: 0, level: 1, streak: 0, nextLevelXP: calculateLevelFromXP(0).nextLevelXP },
       analytics: { studyTime: 0, focusTime: 0, idleTime: 0, breakTime: 0, questionsSolved: 0, accuracy: 0, tasksCompleted: 0, xpEarned: 0 },
       energyLevel: 'Medium' as const,
       activeSubject: 'physics' as const,
@@ -1771,17 +1825,18 @@ export class StudyBrainActions {
       this.state.mentorProfile?.twoDaySplitConfig,
       this.state.deletedMissionIds || [],
       emptyOverrides,
-      dayStartTime,
-      this.state.settings?.dayEndTime || "22:30"
+      this.state.settings?.dayStartTime || "07:00",
+      this.state.settings?.dayEndTime || "22:30",
+      this.state.settings
     );
 
     // 5. Map back to todayMissions
     const currentDayBlocks = updatedWeekly.filter((b: any) => b.dayIndex === currentDayIndex);
     
-    // If no blocks were generated but we have existing missions, preserve them
+    // If no blocks were generated at all, preserve existing missions to prevent clearing out the dashboard on error
     let updatedTodayMissions;
-    if (currentDayBlocks.length === 0 && cleanedMissions.length > 0) {
-      // Preserve existing missions if planner generated nothing
+    if (updatedWeekly.length === 0 && cleanedMissions.length > 0) {
+      // Preserve existing missions if planner generated NOTHING AT ALL
       updatedTodayMissions = cleanedMissions;
     } else {
       updatedTodayMissions = currentDayBlocks.map((b: any) => {
@@ -1849,5 +1904,43 @@ export class StudyBrainActions {
   async resetCustomMissions() {
     this.checkWriteBlock();
     await this.runtime.refresh('INIT', { todayMissions: [] });
+  }
+
+  async extendSession(hours: number) {
+    this.checkWriteBlock();
+    const state = this.runtime.getState();
+    if (!state.settings) return;
+
+    const now = new Date();
+    // Calculate new end time logically
+    let currentHour = now.getHours();
+    let currentMinute = now.getMinutes();
+
+    let additionalMinutes = hours * 60;
+    currentMinute += additionalMinutes;
+    while (currentMinute >= 60) {
+      currentHour += 1;
+      currentMinute -= 60;
+    }
+
+    const newEndTime = `${(currentHour % 24).toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
+    
+    now.setHours(0,0,0,0);
+    const todayDateStr = getLocalDateKey(now);
+
+    const updatedSettings = {
+      ...state.settings,
+      sessionExtensionDate: todayDateStr,
+      sessionExtensionEnd: newEndTime
+    };
+
+    try {
+      await UserRepository.updateUserProfile(this.userId, {
+        settings: updatedSettings
+      });
+      await this.runtime.refresh('INIT', { settings: updatedSettings });
+    } catch (err) {
+      await this.handleWriteError(err, 'extendSession');
+    }
   }
 }

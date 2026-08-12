@@ -119,10 +119,10 @@ export class AnalyticsEngine {
     
     for (const sub of ['physics', 'chemistry', 'maths'] as SubjectId[]) {
       const tot = subjectTotals[sub].total;
-      subjectBalance[sub].completionPercentage = tot > 0 ? Math.round((subjectTotals[sub].completed / tot) * 100) : 0;
+      subjectBalance[sub].completionPercentage = tot > 0 ? Math.min(100, Math.round((subjectTotals[sub].completed / tot) * 100)) : 0;
     }
     
-    const overallLectureCompletion = totalLectures > 0 ? Math.round((totalCompleted / totalLectures) * 100) : 0;
+    const overallLectureCompletion = totalLectures > 0 ? Math.min(100, Math.round((totalCompleted / totalLectures) * 100)) : 0;
     
     // 4. Revision Health
     let resolvedMistakes = 0;
@@ -144,7 +144,7 @@ export class AnalyticsEngine {
     
     // 6. Predicted Completion
     let predictedDate: string | null = null;
-    const remainingLectures = totalLectures - totalCompleted;
+    const remainingLectures = Math.max(0, totalLectures - totalCompleted);
     if (studyVelocity > 0 && remainingLectures > 0) {
       // rough heuristic: 1.5 hours per lecture
       const remainingHours = remainingLectures * 1.5;

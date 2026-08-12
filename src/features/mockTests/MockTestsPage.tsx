@@ -78,6 +78,7 @@ export function MockTestsPage({ onNavigate }: MockTestsPageProps) {
       let incorrect = 0;
       let totalTimeSpent = 0;
       const subjectStats: Record<string, { correct: number; incorrect: number; attempted: number; score: number }> = {};
+      const mistakesToLog: any[] = [];
       
       selectedTest.sections.forEach(sec => {
         subjectStats[sec.subject] = { correct: 0, incorrect: 0, attempted: 0, score: 0 };
@@ -88,7 +89,15 @@ export function MockTestsPage({ onNavigate }: MockTestsPageProps) {
             const isAnswered = a.status === 'Answered' || a.status === 'Answered & Marked for Review';
             if (isAnswered && a.selectedAnswer) {
               subjectStats[sec.subject].attempted++;
-              if (a.selectedAnswer === q.correctAnswer) {
+              
+              let isCorrect = false;
+              if (q.type === 'NUMERICAL') {
+                isCorrect = Math.abs(parseFloat(a.selectedAnswer) - parseFloat(q.correctAnswer)) < 0.01;
+              } else {
+                isCorrect = a.selectedAnswer === q.correctAnswer;
+              }
+
+              if (isCorrect) {
                 totalScore += q.marks.correct;
                 correct++;
                 subjectStats[sec.subject].correct++;
@@ -98,6 +107,32 @@ export function MockTestsPage({ onNavigate }: MockTestsPageProps) {
                 incorrect++;
                 subjectStats[sec.subject].incorrect++;
                 subjectStats[sec.subject].score += q.marks.incorrect;
+
+                mistakesToLog.push({
+                  questionText: q.content || 'Question content not found',
+                  correctSolution: q.correctAnswer || '',
+                  chapter: q.chapter || 'Unknown',
+                  topic: q.topic || 'General',
+                  subtopic: 'General',
+                  subject: sec.subject,
+                  mistakeTypes: ['Test Error'],
+                  difficulty: q.difficulty || 'Medium',
+                  source: selectedTest.name,
+                  timeTaken: Math.max(1, Math.round((a.timeSpentSeconds || 0) / 60)),
+                  correctMethod: q.explanation || 'Refer to solution',
+                  studentMethod: a.selectedAnswer,
+                  confidence: 20,
+                  revisionSchedule: '1_day',
+                  masteryImpact: 'High',
+                  attemptNumber: 1,
+                  revisionStatus: 'New',
+                  recoveryScore: 0,
+                  teacherNotes: 'Auto-logged from mock test',
+                  personalNotes: `Student answered: ${a.selectedAnswer}, Correct: ${q.correctAnswer}`,
+                  aiAdvice: 'Review this concept carefully.',
+                  priority: 'High',
+                  dateLogged: new Date().toISOString(),
+                });
               }
             }
           }
@@ -127,8 +162,11 @@ export function MockTestsPage({ onNavigate }: MockTestsPageProps) {
 
       try {
         await actions.addMockResult(mockResultData);
+        for (const mistake of mistakesToLog) {
+          await actions.addMistake(mistake);
+        }
       } catch (err) {
-        console.error("Failed to save completed mock test result to Firestore:", err);
+        console.error("Failed to save completed mock test result or mistakes to Firestore:", err);
       }
     }
   };

@@ -6,6 +6,7 @@ import { ConfirmDeleteModal } from '@/components/ui/ConfirmDeleteModal';
 import { MockTest, MockTestAttempt, MockTestAttemptQuestion, QuestionStatus } from '../../types/mockTest';
 import { MissionMode } from '../mission/MissionMode';
 import { RichTextRenderer } from '@/components/MathRenderer';
+import { useAuth } from '@/features/auth';
 
 interface MockTestArenaProps {
   test: MockTest;
@@ -14,6 +15,8 @@ interface MockTestArenaProps {
 }
 
 export function MockTestArena({ test, onComplete, onExit }: MockTestArenaProps) {
+  const { user } = useAuth();
+  const userId = user?.uid || 'guest';
   const [currentSubject, setCurrentSubject] = useState<SubjectId>(test.sections[0].subject);
   const [currentQIdx, setCurrentQIdx] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -21,11 +24,11 @@ export function MockTestArena({ test, onComplete, onExit }: MockTestArenaProps) 
 
   const [targetEndTime] = useState(() => {
     try {
-      const saved = localStorage.getItem(`jeeos_mock_end_${test.id}`);
+      const saved = localStorage.getItem(`jeeos_mock_end_${userId}_${test.id}`);
       if (saved) return parseInt(saved, 10);
     } catch(e) {}
     const end = Date.now() + test.durationMinutes * 60000;
-    localStorage.setItem(`jeeos_mock_end_${test.id}`, end.toString());
+    localStorage.setItem(`jeeos_mock_end_${userId}_${test.id}`, end.toString());
     return end;
   });
 
@@ -36,7 +39,7 @@ export function MockTestArena({ test, onComplete, onExit }: MockTestArenaProps) 
   // Initialize attempt state
   const [attempt, setAttempt] = useState<MockTestAttempt>(() => {
     try {
-      const saved = localStorage.getItem(`jeeos_mock_attempt_${test.id}`);
+      const saved = localStorage.getItem(`jeeos_mock_attempt_${userId}_${test.id}`);
       if (saved) return JSON.parse(saved);
     } catch(e) {
       console.error('Failed to load mock attempt', e);
@@ -61,8 +64,8 @@ export function MockTestArena({ test, onComplete, onExit }: MockTestArenaProps) 
   });
 
   useEffect(() => {
-    localStorage.setItem(`jeeos_mock_attempt_${test.id}`, JSON.stringify(attempt));
-  }, [attempt, test.id]);
+    localStorage.setItem(`jeeos_mock_attempt_${userId}_${test.id}`, JSON.stringify(attempt));
+  }, [attempt, test.id, userId]);
 
   const [currentAnswer, setCurrentAnswer] = useState<string>('');
 
@@ -210,8 +213,8 @@ export function MockTestArena({ test, onComplete, onExit }: MockTestArenaProps) 
         finalAttempt.questions[activeQuestion.id].timeSpentSeconds += timeSpent;
     }
 
-    localStorage.removeItem(`jeeos_mock_attempt_${test.id}`);
-    localStorage.removeItem(`jeeos_mock_end_${test.id}`);
+    localStorage.removeItem(`jeeos_mock_attempt_${userId}_${test.id}`);
+    localStorage.removeItem(`jeeos_mock_end_${userId}_${test.id}`);
 
     // Let animation play for a split second
     setTimeout(() => {
@@ -498,8 +501,8 @@ export function MockTestArena({ test, onComplete, onExit }: MockTestArenaProps) 
             <button
               onClick={() => {
                 setIsConfirmExitOpen(false);
-                localStorage.removeItem(`jeeos_mock_attempt_${test.id}`);
-                localStorage.removeItem(`jeeos_mock_end_${test.id}`);
+                localStorage.removeItem(`jeeos_mock_attempt_${userId}_${test.id}`);
+                localStorage.removeItem(`jeeos_mock_end_${userId}_${test.id}`);
                 onExit();
               }}
               className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-mono font-bold transition-colors shadow-lg cursor-pointer"

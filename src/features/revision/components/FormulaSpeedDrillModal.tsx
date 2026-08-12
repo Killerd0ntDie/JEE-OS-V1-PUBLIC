@@ -25,6 +25,10 @@ export const FormulaSpeedDrillModal: React.FC<FormulaSpeedDrillModalProps> = ({
   const [streak, setStreak] = useState(0);
   const [scoreCount, setScoreCount] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
+  const [reviewedCount, setReviewedCount] = useState(0);
+
+  const sessionFeedbackRef = React.useRef<Map<string, number[]>>(new Map());
+  const lastInputTimeRef = React.useRef<number>(0);
 
   // 30-Second Countdown Timer Effect
   useEffect(() => {
@@ -44,6 +48,17 @@ export const FormulaSpeedDrillModal: React.FC<FormulaSpeedDrillModalProps> = ({
     return () => clearInterval(timer);
   }, [isOpen, isFinished]);
 
+  // Submit batch feedback on finish
+  useEffect(() => {
+    if (isFinished) {
+      sessionFeedbackRef.current.forEach((scores, chapterId) => {
+        const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+        const confidence = avg >= 4 ? 'High' : avg >= 2 ? 'Medium' : 'Low';
+        actions.completeRevision(chapterId, confidence);
+      });
+    }
+  }, [isFinished, actions]);
+
   // Keyboard Shortcuts (Space = Reveal, 1 = Hard, 2 = Medium, 3 = Easy)
   useEffect(() => {
     if (!isOpen || isFinished) return;
@@ -61,7 +76,7 @@ export const FormulaSpeedDrillModal: React.FC<FormulaSpeedDrillModalProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, isFlipped, isFinished, currentIndex]);
+  }, [isOpen, isFlipped, isFinished, currentIndex, reviewedCount]);
 
   useLockBodyScroll(isOpen);
   useEscapeKey(onClose, isOpen);
@@ -71,9 +86,20 @@ export const FormulaSpeedDrillModal: React.FC<FormulaSpeedDrillModalProps> = ({
   const currentCard = cards[currentIndex % (cards.length || 1)];
 
   const handleRecall = (difficulty: 'High' | 'Medium' | 'Low') => {
-    if (!currentCard) return;
+    if (!currentCard || isFinished) return;
 
-    actions.completeRevision(currentCard.chapterId, difficulty);
+    // Debounce rapid-fire (300ms)
+    const now = Date.now();
+    if (now - lastInputTimeRef.current < 300) return;
+    lastInputTimeRef.current = now;
+
+    // Accumulate score instead of immediate update
+    const map = sessionFeedbackRef.current;
+    if (!map.has(currentCard.chapterId)) {
+      map.set(currentCard.chapterId, []);
+    }
+    const numericScore = difficulty === 'High' ? 5 : difficulty === 'Medium' ? 2 : 0;
+    map.get(currentCard.chapterId)!.push(numericScore);
 
     if (difficulty !== 'Low') {
       setStreak(prev => prev + 1);
@@ -83,6 +109,14 @@ export const FormulaSpeedDrillModal: React.FC<FormulaSpeedDrillModalProps> = ({
     }
 
     setIsFlipped(false);
+    
+    setReviewedCount(prev => {
+      const nextCount = prev + 1;
+      if (nextCount >= cards.length) {
+        setIsFinished(true);
+      }
+      return nextCount;
+    });
     setCurrentIndex(prev => prev + 1);
   };
 

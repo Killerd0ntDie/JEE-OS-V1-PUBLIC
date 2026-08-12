@@ -194,10 +194,16 @@ export const StudyBrainProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           const offlineQueue = JSON.parse(localStorage.getItem('jeeos_offline_mocks') || '[]');
           if (offlineQueue.length > 0) {
             console.log(`Syncing ${offlineQueue.length} offline mock results...`);
-            offlineQueue.forEach((mock: any) => {
-              actions.addMockResult(mock).catch(e => console.error("Offline sync failed for mock:", e));
-            });
-            localStorage.removeItem('jeeos_offline_mocks');
+            (async () => {
+              for (const mock of offlineQueue) {
+                try {
+                  await actions.addMockResult(mock);
+                } catch (e) {
+                  console.error("Offline sync failed for mock:", e);
+                }
+              }
+              localStorage.removeItem('jeeos_offline_mocks');
+            })();
           }
         } catch (e) {
           console.error("Error processing offline mocks:", e);

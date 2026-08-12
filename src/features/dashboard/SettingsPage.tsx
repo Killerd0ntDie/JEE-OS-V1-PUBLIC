@@ -11,8 +11,6 @@ import {
 } from 'lucide-react';
 
 import { normalizeTwoDaySplitConfig } from '@jee-os/engines';
-import { AcademicSettingsSection } from './components/AcademicSettingsSection';
-import { AudioSettingsSection } from './components/AudioSettingsSection';
 import { DangerZoneSection } from './components/DangerZoneSection';
 
 export function SettingsPage() {
@@ -20,7 +18,6 @@ export function SettingsPage() {
   const settings = useStudyBrainStore(state => state.settings);
   const mentorProfile = useStudyBrainStore(state => state.mentorProfile);
   const xp = useStudyBrainStore(state => state.xp);
-  const deletedMissionIds = useStudyBrainStore(state => state.deletedMissionIds);
   const { user, loginWithGoogle, loginWithEmail, registerWithEmail, logout } = useAuth();
   
     // Settings Form States
@@ -563,11 +560,14 @@ export function SettingsPage() {
               <div className="flex items-center gap-2">
                 <input
                   type="number"
-                  min="0.1"
+                  min="0"
                   max="10"
                   step="0.1"
-                  value={minStreakHours || 0.5}
-                  onChange={(e) => handleChange('minStreakHours', parseFloat(e.target.value) || 0.5)}
+                  value={minStreakHours}
+                  onChange={(e) => {
+                    const val = parseFloat(e.target.value);
+                    handleChange('minStreakHours', Number.isNaN(val) ? 0.5 : val);
+                  }}
                   className="w-20 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-1.5 text-white font-mono text-sm text-center focus:outline-none focus:border-amber-500/50"
                 />
                 <span className="text-xs font-mono text-zinc-400">hours</span>

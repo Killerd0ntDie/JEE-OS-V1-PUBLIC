@@ -38,7 +38,7 @@ export class RevisionEngine {
         ? (telemetry?.retentionConfidence || 'High')
         : 'Not Started';
       const retentionScore: number | undefined = isStartedOrMastered
-        ? (telemetry?.strategyRadar?.retentionConfidenceScore ?? 90)
+        ? (telemetry?.strategyRadar?.retentionConfidenceScore ?? 0)
         : undefined;
 
       // Find matching formulas from FORMULA_BANK
@@ -87,7 +87,7 @@ export class RevisionEngine {
         
         // Dynamic Urgency Rank: Instead of hardcoded values, we weight it by the ratio of interval days vs current decay
         // Wait, for simplicity we'll keep the base rank logic but inject real interval days
-        const urgencyRank = retentionConfidence === 'Low' ? 100 - (retentionScore ?? 90) : retentionConfidence === 'Medium' ? 60 - (retentionScore ?? 90) : 20 - (retentionScore ?? 90);
+        const urgencyRank = retentionConfidence === 'Low' ? 100 - (retentionScore ?? 0) : retentionConfidence === 'Medium' ? 60 - (retentionScore ?? 0) : 20 - (retentionScore ?? 0);
         
         const intervalStage = `${sm2State.interval}d`;
         const nextReviewDays = sm2State.interval;
@@ -98,7 +98,7 @@ export class RevisionEngine {
           chapterName: chap.name,
           subject: chap.subject,
           retentionConfidence: retentionConfidence as 'High' | 'Medium' | 'Low',
-          retentionScore: retentionScore ?? 90,
+          retentionScore: retentionScore ?? 0,
           title: f.title,
           concept: f.concept,
           formula: f.formula,

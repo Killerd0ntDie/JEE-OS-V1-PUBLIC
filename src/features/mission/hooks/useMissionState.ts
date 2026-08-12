@@ -181,10 +181,14 @@ export function useMissionState(props: MissionModeProps) {
   }, [todayMissions, activeSubject]);
 
   const [checklist, setChecklist] = useState<Record<string, boolean>>(dynamicChecklist);
+  const checklistInitializedRef = useRef<string | null>(null);
 
   useEffect(() => {
-    setChecklist(dynamicChecklist);
-  }, [dynamicChecklist]);
+    if (activeMissionId && activeMissionId !== checklistInitializedRef.current) {
+      setChecklist(dynamicChecklist);
+      checklistInitializedRef.current = activeMissionId;
+    }
+  }, [activeMissionId, dynamicChecklist]);
 
   const subjectsDetails = useMemo(() => {
     const getActiveChapterInfo = (subj: 'physics' | 'chemistry' | 'maths') => {
@@ -505,9 +509,8 @@ export function useMissionState(props: MissionModeProps) {
   useEffect(() => {
     if (checklistProgressPercent === 100 && !isCompleted) {
       if (!activeSubjectMission) {
-        console.warn(`[MissionMode] Checklist completed for ${activeSubject} but no pending mission exists for this subject — skipping auto-completion.`);
+        console.warn(`[MissionMode] Checklist completed for ${activeSubject} but no pending mission exists for this subject.`);
         setCoachTip(`No pending ${subjectsDetails[activeSubject].name} mission right now — switch subject or check your Daily Missions list.`);
-        return;
       }
       setTimeout(() => {
         setIsCompleted(true);
@@ -569,7 +572,8 @@ export function useMissionState(props: MissionModeProps) {
       console.warn(`[MissionMode] "Next subject" pressed for ${activeSubject} but no matching mission was found — nothing was marked complete.`);
     }
     
-    const allIncompleteMissions = todayMissions.filter(m => !m.completed);
+    const latestTodayMissions = useStudyBrainStore.getState().todayMissions;
+    const allIncompleteMissions = latestTodayMissions.filter(m => !m.completed);
     const currentMissionIdx = allIncompleteMissions.findIndex(m => m.subject === activeSubject);
     const nextMission = allIncompleteMissions[currentMissionIdx + 1] || allIncompleteMissions[0];
     

@@ -11,5 +11,5 @@ export function calculateMockScorePercent(input: {
     return 0;
   }
 
-  return Math.round((input.totalScore / denominator) * 100);
+  return Math.max(0, Math.round((input.totalScore / denominator) * 100));
 }

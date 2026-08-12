@@ -8,9 +8,13 @@ const DB_NAME = 'JeeOS_Storage';
 const STORE_NAME = 'keyval';
 const DB_VERSION = 1;
 
-let dbPromise: Promise<IDBDatabase> | null = null;
+let dbPromise: Promise<IDBDatabase | null> | null = null;
 
-function getDB(): Promise<IDBDatabase> {
+function getDB(): Promise<IDBDatabase | null> {
+  if (typeof indexedDB === 'undefined') {
+    console.warn('IndexedDB not available');
+    return Promise.resolve(null);
+  }
   if (dbPromise) return dbPromise;
   
   dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
@@ -35,6 +39,7 @@ function getDB(): Promise<IDBDatabase> {
 
 export async function idbSet(key: string, value: any): Promise<void> {
   const db = await getDB();
+  if (!db) return;
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readwrite');
     const store = tx.objectStore(STORE_NAME);
@@ -47,6 +52,7 @@ export async function idbSet(key: string, value: any): Promise<void> {
 
 export async function idbGet<T>(key: string): Promise<T | null> {
   const db = await getDB();
+  if (!db) return null;
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readonly');
     const store = tx.objectStore(STORE_NAME);
@@ -59,6 +65,7 @@ export async function idbGet<T>(key: string): Promise<T | null> {
 
 export async function idbRemove(key: string): Promise<void> {
   const db = await getDB();
+  if (!db) return;
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readwrite');
     const store = tx.objectStore(STORE_NAME);

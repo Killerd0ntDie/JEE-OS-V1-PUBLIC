@@ -165,7 +165,7 @@ export function MissionMode(props: MissionModeProps) {
                   onExitPractice={() => {
                     setIsClosing(true);
                     setTimeout(() => {
-                      props.onComplete({
+                      props.onComplete?.({
                         missionId: state.activeSubjectMission?.id,
                         duration: Math.max(60, state.seconds),
                         questions: 0,

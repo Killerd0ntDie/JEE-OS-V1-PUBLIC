@@ -52,14 +52,14 @@ export function PlannerStickySidebar({ state }: PlannerStickySidebarProps) {
       }
     });
 
-    const plannedHours = Math.round((totalMinutes / 60) * 10) / 10 || 42;
-    const completedHours = Math.round((completedMinutes / 60) * 10) / 10 || 18.5;
-    const estimatedQuestions = Math.round(completedHours * 22 + 80);
+    const plannedHours = Math.round((totalMinutes / 60) * 10) / 10;
+    const completedHours = Math.round((completedMinutes / 60) * 10) / 10;
+    const estimatedQuestions = Math.round(completedHours * 22);
 
     return {
       plannedHours,
       completedHours,
-      mockCount: mockCount || 3,
+      mockCount,
       estimatedQuestions,
     };
   }, [weeklyMatrix, viewMode, selectedDayIndex]);

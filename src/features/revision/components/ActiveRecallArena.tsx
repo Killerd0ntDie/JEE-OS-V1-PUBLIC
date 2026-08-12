@@ -23,6 +23,7 @@ export function ActiveRecallArena({ cards, onExit }: ActiveRecallArenaProps) {
   
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef<string>(new Date().toISOString());
+  const sessionFeedbackRef = useRef<Map<string, number[]>>(new Map());
 
   const currentCard = cards[currentIndex];
   const isFinished = currentIndex >= cards.length || cards.length === 0;
@@ -79,8 +80,15 @@ export function ActiveRecallArena({ cards, onExit }: ActiveRecallArenaProps) {
         accuracy: cards.length > 0 ? Math.round((successCount / cards.length) * 100) : 0,
         xpEarned: totalXp,
       }).catch(() => {});
+
+      // Submit batched SM-2 updates
+      sessionFeedbackRef.current.forEach((scores, chapterId) => {
+        const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+        const confidence = avg >= 4 ? 'High' : avg >= 2 ? 'Medium' : 'Low';
+        actions.completeRevision(chapterId, confidence);
+      });
     }
-  }, [isFinished, sessionLogged]);
+  }, [isFinished, sessionLogged, cards.length, sessionResults, actions]);
 
   const showFeedback = useCallback((type: 'correct' | 'wrong', xp: number) => {
     setFeedbackFlash(type);
@@ -94,7 +102,12 @@ export function ActiveRecallArena({ cards, onExit }: ActiveRecallArenaProps) {
   const handleTimeUp = () => {
     setIsRevealed(true);
     if (currentCard) {
-      actions.completeRevision(currentCard.chapterId, 'Low'); // Fallback for telemetry
+      const map = sessionFeedbackRef.current;
+      if (!map.has(currentCard.chapterId)) {
+        map.set(currentCard.chapterId, []);
+      }
+      map.get(currentCard.chapterId)!.push(0);
+
       setSessionResults(prev => [...prev, { id: currentCard.id, success: false }]);
       showFeedback('wrong', 0);
     }
@@ -104,9 +117,11 @@ export function ActiveRecallArena({ cards, onExit }: ActiveRecallArenaProps) {
     if (!currentCard || isRevealed) return;
     setIsRevealed(true);
     
-    // Map quality to legacy chapter confidence for the store
-    const confidence = quality >= 4 ? 'High' : quality >= 2 ? 'Medium' : 'Low';
-    actions.completeRevision(currentCard.chapterId, confidence);
+    const map = sessionFeedbackRef.current;
+    if (!map.has(currentCard.chapterId)) {
+      map.set(currentCard.chapterId, []);
+    }
+    map.get(currentCard.chapterId)!.push(quality);
     
     const isSuccess = quality >= 3;
     setSessionResults(prev => [...prev, { id: currentCard.id, success: isSuccess }]);

@@ -77,7 +77,7 @@ export function EditWeeklyGoalsModal({ initialGoals, onClose, onSave }: EditWeek
 
         <div className="flex flex-col gap-6">
           {goals.map((goal, i) => (
-            <div key={i} className="p-5 rounded-xl border border-zinc-800/80 bg-zinc-900/20 space-y-4">
+            <div key={goal.weekIndex} className="p-5 rounded-xl border border-zinc-800/80 bg-zinc-900/20 space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-mono font-bold text-indigo-400">WEEK {i + 1}</span>
                 <select

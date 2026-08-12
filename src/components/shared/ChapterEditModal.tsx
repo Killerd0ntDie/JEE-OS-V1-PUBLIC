@@ -703,13 +703,18 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
       confirmLabel="Yes, Delete Chapter"
       onConfirm={async () => {
         if (chapter) {
-          if ('deleteChapter' in actions && typeof (actions as any).deleteChapter === 'function') {
-            await (actions as any).deleteChapter(chapter.id);
-          } else {
-            await actions.updateChapter(chapter.id, { chapterOnHold: true });
+          try {
+            if ('deleteChapter' in actions && typeof (actions as any).deleteChapter === 'function') {
+              await (actions as any).deleteChapter(chapter.id);
+            } else {
+              await actions.updateChapter(chapter.id, { chapterOnHold: true });
+            }
+            setShowDeleteConfirm(false);
+            handleClose();
+          } catch (error) {
+            console.error('Failed to delete chapter:', error);
+            // Ideally a toast would be used here if available
           }
-          setShowDeleteConfirm(false);
-          handleClose();
         }
       }}
       onClose={() => setShowDeleteConfirm(false)}

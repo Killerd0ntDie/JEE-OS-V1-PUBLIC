@@ -127,8 +127,8 @@ export class PyqGeneratorEngine {
           content: rq.content,
           options: rq.options,
           solution: {
-            text: rq.solution.text,
-            correctOptionIds: rq.solution.correctOptionIds
+            text: rq.solution?.text || 'Solution not available',
+            correctOptionIds: rq.solution?.correctOptionIds || []
           },
           source: 'AI Generated'
         }));

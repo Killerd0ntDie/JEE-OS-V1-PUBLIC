@@ -99,6 +99,7 @@ export interface StudyBrainState {
   initializationError?: string | null;
   lastSyncError?: string | null;
   deletedMissionIds?: string[];
+  completedPlannerMissionIds?: string[];
   writeBlocked?: boolean;
   lastRefresh: string | null;
   levelUpData?: { oldLevel: number; newLevel: number; xp: XPState } | null;
@@ -567,26 +568,34 @@ export class StudyBrainRuntime {
 
       this.state.todayMissions = Array.from(uniqueMissions.values());
 
+      // Enforce sequential lecture order: same-chapter lectures must be in ascending order.
+      // This prevents the Map insertion order from scrambling lecture sequences (e.g. L7 before L5).
+      this.state.todayMissions.sort((a, b) => {
+        // Completed tasks first
+        if (a.completed !== b.completed) return a.completed ? -1 : 1;
+        // For same-chapter lecture tasks, sort by lecture number
+        const sameChapter = (a.chapter || '').toLowerCase() === (b.chapter || '').toLowerCase();
+        const extractLecNum = (name: string): number => {
+          const match = (name || '').match(/Lecture\s+(\d+)/i);
+          return match ? parseInt(match[1], 10) : Number.MAX_SAFE_INTEGER;
+        };
+        const aIsLec = (a.type === 'Watch Lecture' || /Lecture\s+\d+/i.test(a.taskName || ''));
+        const bIsLec = (b.type === 'Watch Lecture' || /Lecture\s+\d+/i.test(b.taskName || ''));
+        if (sameChapter && aIsLec && bIsLec) {
+          return extractLecNum(a.taskName) - extractLecNum(b.taskName);
+        }
+        return 0;
+      });
+
       const currentDayIndex = (new Date().getDay() + 6) % 7; // Monday = 0
       const splitStrategy = this.state.mentorProfile?.subjectSplitStrategy || '3_a_day';
       const { generateWeeklyMatrix } = await import('@jee-os/engines');
       // Type assertion needed due to dynamic import and type compatibility issues
-      this.state.weeklySchedule = (generateWeeklyMatrix as (
-        splitStrategy: string,
-        chapters: Chapter[],
-        todayMissions: TodayMission[],
-        weeklySchedule: any,
-        currentDayIndex: number,
-        twoDaySplitConfig: any,
-        deletedMissionIds: string[],
-        scheduleOverrides: any,
-        dayStartTime: string | undefined,
-        dayEndTime: string | undefined
-      ) => any)(
+      this.state.weeklySchedule = (generateWeeklyMatrix as any)(
         splitStrategy,
         this.state.chapters,
         this.state.todayMissions,
-        this.state.plannerOutput?.weeklySchedule,
+        this.state.weeklySchedule,
         currentDayIndex,
         this.state.mentorProfile?.twoDaySplitConfig,
         this.state.deletedMissionIds || [],
@@ -621,6 +630,33 @@ export class StudyBrainRuntime {
         };
       });
 
+      // Post-sort: Enforce sequential lecture order after rebuilding from weekly matrix.
+      // Without this, the weeklySchedule block order can place Lecture 7 before Lecture 5.
+      this.state.todayMissions.sort((a, b) => {
+        // Keep completed/dismissed at their current relative position
+        const rankA = a.dismissed ? 2 : a.completed ? 1 : 0;
+        const rankB = b.dismissed ? 2 : b.completed ? 1 : 0;
+        if (rankA !== rankB) return rankA - rankB;
+        // For same-chapter lectures among pending tasks, enforce lecture number order
+        const sameChapter = (a.chapter || '').toLowerCase() === (b.chapter || '').toLowerCase();
+        const extractLecNum = (name: string): number => {
+          const match = (name || '').match(/Lecture\s+(\d+)/i);
+          return match ? parseInt(match[1], 10) : Number.MAX_SAFE_INTEGER;
+        };
+        const aIsLec = (a.type === 'Watch Lecture' || /Lecture\s+\d+/i.test(a.taskName || ''));
+        const bIsLec = (b.type === 'Watch Lecture' || /Lecture\s+\d+/i.test(b.taskName || ''));
+        if (sameChapter && aIsLec && bIsLec) {
+          return extractLecNum(a.taskName) - extractLecNum(b.taskName);
+        }
+        // Otherwise sort by timeSlot to preserve scheduled order
+        const getSlotMins = (slot: string | undefined): number => {
+          if (!slot) return Number.MAX_SAFE_INTEGER;
+          const match = slot.match(/(\d{1,2}):(\d{2})/);
+          return match ? parseInt(match[1], 10) * 60 + parseInt(match[2], 10) : Number.MAX_SAFE_INTEGER;
+        };
+        return getSlotMins(a.timeSlot) - getSlotMins(b.timeSlot);
+      });
+
       // Update timeline based on the newly synchronized todayMissions
       let currentHour = 9;
       let currentMinute = 0;
@@ -639,7 +675,7 @@ export class StudyBrainRuntime {
         generatedBlocks.push({
           id: `mission-${mission.id}`,
           time: mission.timeSlot || `${startStr} - ${endStr}`,
-          subject: mission.subject as any, // TimelineBlock expects broader subject type - acceptable here as subject types are compatible
+          subject: mission.subject as SubjectId, // TimelineBlock expects broader subject type - acceptable here as subject types are compatible
           chapter: mission.chapter,
           activity: `${mission.type}: ${mission.taskName}`,
           completed: mission.completed
