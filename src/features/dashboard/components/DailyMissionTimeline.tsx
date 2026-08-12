@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { 
@@ -57,6 +58,7 @@ export function DailyMissionTimeline({
   selectedMissionId,
   setSelectedMissionId
 }: DailyMissionTimelineProps) {
+  const navigate = useNavigate();
   
   const actions = useStudyBrainStore(state => state.actions);
   const todayMissions = useStudyBrainStore(s => s.todayMissions);
@@ -82,7 +84,7 @@ export function DailyMissionTimeline({
   // Calculate if it's past end time
   const now = new Date();
   const dayStartTime = settings?.dayStartTime || '07:00';
-  const dayEndTime = settings?.dayEndTime || '22:30';
+  const dayEndTime = settings?.dayEndTime || '23:00';
   let logicalRealCurrentHour = now.getHours();
   if (logicalRealCurrentHour < (parseInt(dayStartTime.split(':')[0]) || 7)) {
     logicalRealCurrentHour += 24;
@@ -99,18 +101,30 @@ export function DailyMissionTimeline({
   todayDateObj.setHours(0,0,0,0);
   const todayDateStr = getLocalDateKey(todayDateObj);
 
+  const parseTimeVal = (val: string | undefined, fallback: number) => {
+    const p = parseInt(val || '', 10);
+    return isNaN(p) ? fallback : p;
+  };
+
+  const startHourVal = parseTimeVal(dayStartTime.split(':')[0], 7);
+
+  const getTimeMins = (tStr: string) => {
+    const parts = (tStr || '').split(':');
+    let h = parseTimeVal(parts[0], 23);
+    const m = parseTimeVal(parts[1], 0);
+    if (h < startHourVal) h += 24;
+    return h * 60 + m;
+  };
+
   let effectiveEndTime = dayEndTime;
   if ((settings as any)?.sessionExtensionDate === todayDateStr && (settings as any)?.sessionExtensionEnd) {
-    effectiveEndTime = (settings as any).sessionExtensionEnd;
+    const extEnd = (settings as any).sessionExtensionEnd;
+    if (getTimeMins(extEnd) > getTimeMins(dayEndTime)) {
+      effectiveEndTime = extEnd;
+    }
   }
 
-  let endHour = parseInt(effectiveEndTime.split(':')[0]) || 22;
-  let endMinute = parseInt(effectiveEndTime.split(':')[1]) || 30;
-  let logicalEndHour = endHour;
-  if (logicalEndHour < (parseInt(dayStartTime.split(':')[0]) || 7)) {
-    logicalEndHour += 24;
-  }
-  const endMinsTotal = logicalEndHour * 60 + endMinute;
+  const endMinsTotal = getTimeMins(effectiveEndTime);
 
   const isPastDayEnd = realMinsTotal > endMinsTotal;
   
@@ -208,7 +222,7 @@ export function DailyMissionTimeline({
                   href="#planner"
                   onClick={(e) => {
                     e.preventDefault();
-                    window.dispatchEvent(new CustomEvent('navigate-page', { detail: 'planner' }));
+                    navigate('/planner');
                   }}
                   className="text-xs font-mono text-indigo-400 hover:text-indigo-300 font-semibold hover:bg-indigo-950/30 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 cursor-pointer whitespace-nowrap shrink-0"
                 >
@@ -334,34 +348,35 @@ export function DailyMissionTimeline({
 
               const uncompletedMissions = sortedMissions.filter(m => !m.completed && !m.dismissed);
               
-              const now = new Date();
-              const nowMins = now.getHours() * 60 + now.getMinutes();
+              const nowMins = realMinsTotal;
 
               let liveMissionId: string | null = null;
               let nextUpMissionId: string | null = null;
               const pushedSlotsMap = new Map<string, { slot: string; isPushed: boolean }>();
+              const overBudgetMissionIds = new Set<string>();
               
               let runningPushMins = nowMins;
 
               uncompletedMissions.forEach((m, idx) => {
                 let duration = m.duration || 60;
-                let startMins = 0;
-                let endMins = 0;
-                let isOriginalPushed = false;
+                let startMins = runningPushMins;
+                let endMins = startMins + duration;
                 
                 if (m.timeSlot) {
                   const range = parseTimeSlotToRange(m.timeSlot);
                   if (range) {
-                    startMins = range.startMins;
-                    endMins = range.endMins;
-                    if (endMins > startMins) duration = endMins - startMins;
+                    const origStart = range.startMins;
+                    const origEnd = range.endMins;
+                    if (origEnd > origStart) duration = origEnd - origStart;
+                    if (m.isManualOverride && origStart >= runningPushMins) {
+                      startMins = origStart;
+                      endMins = startMins + duration;
+                    }
                   }
                 }
 
-                // If scheduled start is in the past, or if not manual override, snap to runningPushMins (sequential cascading)
                 const shouldSnapToLive = !m.isManualOverride || startMins < runningPushMins;
-                if (m.timeSlot && shouldSnapToLive && startMins !== runningPushMins) {
-                  isOriginalPushed = true;
+                if (shouldSnapToLive) {
                   startMins = runningPushMins;
                   endMins = startMins + duration;
                   
@@ -376,7 +391,12 @@ export function DailyMissionTimeline({
                   });
                 }
 
-                if (nowMins >= startMins && nowMins < endMins) {
+                // If this uncompleted mission's cascaded start time reaches bedtime or spills past bedtime (and it's not the live mission), mark as over budget
+                if (startMins >= endMinsTotal || (endMins > endMinsTotal && idx > 0)) {
+                  overBudgetMissionIds.add(m.id);
+                }
+
+                if (nowMins >= startMins && nowMins < endMins && startMins < endMinsTotal) {
                   if (!liveMissionId) {
                     liveMissionId = m.id;
                   }
@@ -385,12 +405,7 @@ export function DailyMissionTimeline({
                 runningPushMins = endMins;
               });
 
-              // Fallback: If no mission window is currently live (e.g. gap between slots), 
-              // but we have uncompleted missions, don't just assign the first one unless it's past its start time.
-              // Actually, to match PlannerCalendarGrid, we only mark it LIVE if nowMins is within start/end.
-              // If it's a gap, nothing is LIVE.
-              
-              // 2. Find Next Up Mission
+              // Find Next Up Mission
               if (liveMissionId) {
                 const liveIdx = uncompletedMissions.findIndex(m => m.id === liveMissionId);
                 nextUpMissionId = uncompletedMissions[liveIdx + 1]?.id || null;
@@ -398,7 +413,9 @@ export function DailyMissionTimeline({
                 nextUpMissionId = uncompletedMissions[0].id;
               }
 
-              return sortedMissions.map((mission, idx) => {
+              const visibleMissions = sortedMissions;
+
+              return visibleMissions.map((mission, idx) => {
                   const isDismissed = !!mission.dismissed;
                   const badgeStyle = getSubjectBadgeStyle(mission.subject);
                   const isExpanded = expandedMission === mission.id;
@@ -611,6 +628,11 @@ export function DailyMissionTimeline({
                                 <Icon name="Clock" className="w-3 h-3 text-emerald-400" /> {pushedSlotsMap.get(mission.id)?.slot} (Pushed to Live)
                               </span>
                             )}
+                            {!mission.completed && !isDismissed && overBudgetMissionIds.has(mission.id) && (
+                              <span className="text-amber-400 bg-amber-950/40 border border-amber-800/60 font-mono text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-1">
+                                <Icon name="Moon" className="w-3 h-3 text-amber-400" /> Over Bedtime
+                              </span>
+                            )}
                           </div>
 
                           {/* Title */}
@@ -660,7 +682,7 @@ export function DailyMissionTimeline({
                                 className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-white font-mono text-xs font-bold rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.4)] flex items-center gap-2 cursor-pointer transition-all active:scale-95"
                               >
                                 <Icon name="Play" className="w-4 h-4 fill-white text-white" />
-                                <span>{sessionStorage.getItem(`jeeos_mission_state_${mission.id}`) ? 'RESUME MISSION' : 'START MISSION'}</span>
+                                <span>{localStorage.getItem(`jeeos_mission_state_${mission.id}`) ? 'RESUME MISSION' : 'START MISSION'}</span>
                               </button>
                             )}
 
@@ -958,7 +980,7 @@ export function DailyMissionTimeline({
                   RESUME FOCUS COCKPIT ({formatTimer(secondsElapsed)})
                 </span>
               ) : (
-                (activeMission?.id && sessionStorage.getItem(`jeeos_mission_state_${activeMission.id}`)) ? 'RESUME FOCUS COCKPIT SESSION' : 'ARM FOCUS COCKPIT SESSION'
+                (activeMission?.id && localStorage.getItem(`jeeos_mission_state_${activeMission.id}`)) ? 'RESUME FOCUS COCKPIT SESSION' : 'ARM FOCUS COCKPIT SESSION'
               )}
             </Button>
           </div>

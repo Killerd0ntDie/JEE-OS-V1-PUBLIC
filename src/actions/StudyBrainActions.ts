@@ -167,13 +167,72 @@ export class StudyBrainActions {
 
   async setEnergyLevel(level: 'High' | 'Medium' | 'Low') {
     this.checkWriteBlock();
-    // Optimistic Update
-    await this.runtime.refresh('INIT', { energyLevel: level, plannerOutput: null, todayMissions: [], lastSyncError: null });
+    await this.runtime.refresh('SETTINGS_UPDATE', { energyLevel: level, lastSyncError: null });
     try {
       await UserRepository.updateUserProfile(this.userId, { energyLevel: level });
     } catch (err) {
       await this.handleWriteError(err, 'setEnergyLevel');
     }
+  }
+
+  async awardPartialXP(missionId: string, elapsedSecs: number, focusScore: number) {
+    this.checkWriteBlock();
+    const mission = this.state.todayMissions.find(m => m.id === missionId);
+    if (!mission || mission.completed) return;
+
+    const missionDurationSecs = (mission.duration || 60) * 60;
+    const timeRatio = Math.min(0.95, elapsedSecs / missionDurationSecs);
+    const focusMultiplier = Math.max(0.1, Math.min(1, focusScore / 100));
+    const baseXp = mission.xp || 50;
+    let partialXP = Math.max(5, Math.floor(baseXp * timeRatio * focusMultiplier));
+
+    if (this.isGodModeActive()) {
+      partialXP = Math.floor(partialXP * 1.5);
+    }
+
+    // Tag the mission with partial XP so completeTask can deduct it later
+    const updatedMissions = this.state.todayMissions.map(m =>
+      m.id === missionId ? { ...m, partialXpAwarded: partialXP } : m
+    );
+
+    const oldLevel = this.state.xp.level;
+    const baseXpState = this.getResetXpBase();
+    const newXp = {
+      ...baseXpState,
+      daily: Math.max(0, baseXpState.daily + partialXP),
+      weekly: Math.max(0, baseXpState.weekly + partialXP),
+      monthly: Math.max(0, (baseXpState.monthly || 0) + partialXP),
+      total: Math.max(0, baseXpState.total + partialXP)
+    };
+
+    const { level: newLevel, nextLevelXP: xpNeededForNext } = calculateLevelFromXP(newXp.total);
+    newXp.level = newLevel;
+    newXp.nextLevelXP = xpNeededForNext;
+    this.evaluateAndUpdateStreak(newXp, this.state.studySessions);
+
+    await this.runtime.refresh('SESSION_UPDATE', {
+      todayMissions: updatedMissions,
+      xp: newXp,
+      lastSyncError: null
+    });
+
+    try {
+      await UserRepository.updateUserProfile(this.userId, {
+        todayMissions: updatedMissions,
+        xp: newXp
+      });
+    } catch (err) {
+      await this.handleWriteError(err, 'awardPartialXP');
+    }
+
+    if (newLevel > oldLevel) {
+      await this.runtime.refresh('SETTINGS_UPDATE', {
+        showLevelUpCelebration: { oldLevel, newLevel },
+        lastSyncError: null
+      });
+    }
+
+    console.log(`[PartialXP] Awarded ${partialXP} XP for ${Math.round(elapsedSecs/60)}m work on mission ${missionId} (focus: ${focusScore}%)`);
   }
 
   async setMissionModeActive(active: boolean) {
@@ -258,8 +317,12 @@ export class StudyBrainActions {
     let deltaXp = 0;
     if (isCompleting) {
       const finalGainedXp = this.isGodModeActive() ? Math.floor(gainedXp * 1.5) : gainedXp;
+      // Deduct any partial XP already awarded during early exits to prevent double-dipping
+      const previousPartialXp = (mission as any).partialXpAwarded || 0;
       updatedMission.xpEarned = finalGainedXp;
-      deltaXp = finalGainedXp;
+      deltaXp = finalGainedXp - previousPartialXp;
+      // Clear partial XP flag since mission is now fully completed
+      delete (updatedMission as any).partialXpAwarded;
     } else {
       deltaXp = -( (mission as any).xpEarned || (this.isGodModeActive() ? Math.floor(gainedXp * 1.5) : gainedXp) );
       updatedMission.xpEarned = 0;
@@ -535,7 +598,9 @@ export class StudyBrainActions {
       unlocked: true,
       xp: Math.round((missionData.duration || 60) * 0.5), // Reduced from 1.5 to 0.5
       priorityScore: 1.0,
-      selectionReason: "Manually added by student"
+      selectionReason: "Manually added by student",
+      isManualOverride: true,
+      timeSlot: 'Manual (Ad Hoc)'
     };
 
     const updatedMissions = [...this.state.todayMissions, newMission];
@@ -1981,19 +2046,34 @@ export class StudyBrainActions {
     const state = this.runtime.getState();
     if (!state.settings) return;
 
-    const now = new Date();
-    // Calculate new end time logically
-    let currentHour = now.getHours();
-    let currentMinute = now.getMinutes();
+    const dayStartTime = state.settings?.dayStartTime || '07:00';
+    const dayEndTime = state.settings?.dayEndTime || '23:00';
 
-    let additionalMinutes = hours * 60;
-    currentMinute += additionalMinutes;
-    while (currentMinute >= 60) {
-      currentHour += 1;
-      currentMinute -= 60;
-    }
+    const parseTimeVal = (val: string | undefined, fallback: number) => {
+      const p = parseInt(val || '', 10);
+      return isNaN(p) ? fallback : p;
+    };
+    const startHourVal = parseTimeVal(dayStartTime.split(':')[0], 7);
 
-    const newEndTime = `${(currentHour % 24).toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
+    const getTimeMins = (tStr: string) => {
+      const parts = (tStr || '').split(':');
+      let h = parseTimeVal(parts[0], 23);
+      const m = parseTimeVal(parts[1], 0);
+      if (h < startHourVal) h += 24;
+      return h * 60 + m;
+    };
+
+    const baseMins = getTimeMins(dayEndTime);
+    let realNowHour = now.getHours();
+    if (realNowHour < startHourVal) realNowHour += 24;
+    const realNowMins = realNowHour * 60 + now.getMinutes();
+
+    const targetStartMins = Math.max(baseMins, realNowMins);
+    const newEndMins = targetStartMins + Math.round(hours * 60);
+
+    const newEndHour = Math.floor((newEndMins % 1440) / 60);
+    const newEndMin = newEndMins % 60;
+    const newEndTime = `${newEndHour.toString().padStart(2, '0')}:${newEndMin.toString().padStart(2, '0')}`;
     
     now.setHours(0,0,0,0);
     const todayDateStr = getLocalDateKey(now);

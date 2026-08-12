@@ -563,7 +563,19 @@ export class StudyBrainRuntime {
       const uniqueMissions = new Map<string, TodayMission>();
       for (const m of allMissions) {
         if (!deletedIds.has(m.id)) {
-          uniqueMissions.set(m.id, m); // Later entries override earlier ones
+          const existing = uniqueMissions.get(m.id);
+          const isCompletedInState = m.completed || 
+            existing?.completed || 
+            existingMissionsMap.get(m.id)?.completed || 
+            (this.state.completedPlannerMissionIds || []).includes(m.id);
+
+          // Never let an uncompleted candidate overwrite a completed task
+          if (existing && existing.completed && !m.completed) {
+            continue;
+          }
+
+          const finalMission = isCompletedInState ? { ...m, completed: true } : m;
+          uniqueMissions.set(m.id, finalMission);
         }
       }
 
@@ -620,7 +632,9 @@ export class StudyBrainRuntime {
           taskName: b.activity,
           duration: b.durationMinutes,
           timeSlot: b.timeSlot,
-          completed: original ? original.completed : b.completed,
+          completed: (original ? original.completed : b.completed) || 
+                     (this.state.completedPlannerMissionIds || []).includes(originalId) || 
+                     (this.state.completedPlannerMissionIds || []).includes(b.id),
           xp: original ? original.xp : Math.round(b.priorityScore),
           unlocked: true,
           priorityScore: b.priorityScore,
@@ -631,6 +645,14 @@ export class StudyBrainRuntime {
           scheduledTime: (b as typeof b & { scheduledTime?: string }).scheduledTime
         };
       });
+
+      // Safety check: Unconditionally preserve all completed or dismissed missions from uniqueMissions
+      const currentMissionIds = new Set(this.state.todayMissions.map(m => m.id));
+      for (const [id, m] of uniqueMissions.entries()) {
+        if ((m.completed || m.dismissed) && !currentMissionIds.has(id)) {
+          this.state.todayMissions.push(m);
+        }
+      }
 
       // Post-sort: Enforce sequential lecture order after rebuilding from weekly matrix.
       // Without this, the weeklySchedule block order can place Lecture 7 before Lecture 5.
@@ -796,18 +818,55 @@ export class StudyBrainRuntime {
 
     // Compute remaining study hours and questions
     const incompleteMissions = this.state.todayMissions.filter(m => !m.completed);
-    const totalMins = incompleteMissions.reduce((acc, curr) => acc + (curr.duration || 0), 0);
-    this.state.estimatedRemainingHours = (totalMins / 60).toFixed(1);
 
-    this.state.plannedQuestions = incompleteMissions.reduce((acc, curr) => {
+    const dayStartTime = this.state.settings?.dayStartTime || '07:00';
+    const dayEndTime = this.state.settings?.dayEndTime || '23:00';
+    const parseTimeVal = (val: string | undefined, fallback: number) => {
+      const p = parseInt(val || '', 10);
+      return isNaN(p) ? fallback : p;
+    };
+    let endHour = parseTimeVal(dayEndTime.split(':')[0], 23);
+    let endMinute = parseTimeVal(dayEndTime.split(':')[1], 0);
+    let logicalEndHour = endHour;
+    const startHourVal = parseTimeVal(dayStartTime.split(':')[0], 7);
+    if (logicalEndHour < startHourVal) {
+      logicalEndHour += 24;
+    }
+    const endMinsTotal = logicalEndHour * 60 + endMinute;
+
+    const now = new Date();
+    let logicalRealCurrentHour = now.getHours();
+    if (logicalRealCurrentHour < (parseInt(dayStartTime.split(':')[0]) || 7)) {
+      logicalRealCurrentHour += 24;
+    }
+    const nowMins = logicalRealCurrentHour * 60 + now.getMinutes();
+
+    let curPushMins = nowMins;
+    const validIncomplete = incompleteMissions.filter(m => {
+      const duration = m.duration || 60;
+      const start = curPushMins;
+      curPushMins += duration;
+      return start < endMinsTotal;
+    });
+    
+    const studyMins = validIncomplete
+      .filter(m => m.type !== 'Break' && m.subject !== 'break')
+      .reduce((acc, curr) => acc + (curr.duration || 0), 0);
+      
+    const totalMinsIncludingBreaks = validIncomplete.reduce((acc, curr) => acc + (curr.duration || 0), 0);
+      
+    this.state.estimatedRemainingHours = (studyMins / 60).toFixed(1);
+
+    this.state.plannedQuestions = validIncomplete.reduce((acc, curr) => {
       if (curr.type === 'Solve PYQs') return acc + 15;
       if (curr.type === 'Solve DPP') return acc + 10;
       return acc;
     }, 0);
 
-    const now = new Date();
-    now.setMinutes(now.getMinutes() + totalMins + (incompleteMissions.length * 15)); // padding
-    this.state.targetFinishTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const finishDate = new Date();
+    // Add 5 min buffer per mission for transitions, breaks are already included in totalMinsIncludingBreaks
+    finishDate.setMinutes(finishDate.getMinutes() + totalMinsIncludingBreaks + (validIncomplete.length * 5)); 
+    this.state.targetFinishTime = finishDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
     // Compute Chapter Data for UI
     this.state.chaptersWithData = this.state.chapters.map(chapter => {

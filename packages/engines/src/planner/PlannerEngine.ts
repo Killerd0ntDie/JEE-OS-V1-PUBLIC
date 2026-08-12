@@ -974,6 +974,14 @@ export function generateWeeklyMatrix(
   dayEndTime: string = "22:30",
   settings?: any
 ): WeeklyBlock[] {
+  // Dynamic break duration based on preceding session length
+  const getBreakDuration = (sessionDurationMins: number): number => {
+    if (sessionDurationMins <= 30) return 5;
+    if (sessionDurationMins <= 60) return 10;
+    if (sessionDurationMins <= 90) return 15;
+    return 20;
+  };
+
   // Only schedule chapters the user has explicitly started and that are NOT on hold.
   // NEVER auto-schedule unstarted chapters.
   const activeChaps = chapters.filter(c => !c.chapterOnHold && c.completion > 0 && c.completion < 100);
@@ -997,29 +1005,47 @@ export function generateWeeklyMatrix(
       todayDateObj.setHours(0,0,0,0);
       const todayDateStr = getLocalDateKey(todayDateObj);
 
+      const parseTimeVal = (val: string | undefined, fallback: number) => {
+        const p = parseInt(val || '', 10);
+        return isNaN(p) ? fallback : p;
+      };
+
+      const dayStartHour = parseTimeVal(dayStartTime.split(':')[0], 7);
+      const dayStartMin = parseTimeVal(dayStartTime.split(':')[1], 0);
+      const dayStartMins = dayStartHour * 60 + dayStartMin;
+
+      const getTimeMins = (tStr: string) => {
+        const parts = (tStr || '').split(':');
+        let h = parseTimeVal(parts[0], 23);
+        const m = parseTimeVal(parts[1], 0);
+        if (h < dayStartHour) h += 24;
+        return h * 60 + m;
+      };
+
       let effectiveEndTime = dayEndTime;
       if (settings?.sessionExtensionDate === todayDateStr && settings?.sessionExtensionEnd) {
-        effectiveEndTime = settings.sessionExtensionEnd;
+        const extEnd = settings.sessionExtensionEnd;
+        if (getTimeMins(extEnd) > getTimeMins(dayEndTime)) {
+          effectiveEndTime = extEnd;
+        }
       }
 
-      let currentHour = parseInt(dayStartTime.split(':')[0]) || 7;
-      let currentMinute = parseInt(dayStartTime.split(':')[1]) || 0;
-      let endHour = parseInt(effectiveEndTime.split(':')[0]) || 22;
-      let endMinute = parseInt(effectiveEndTime.split(':')[1]) || 30;
-      let logicalEndHour = endHour;
-      if (logicalEndHour < currentHour) {
-        logicalEndHour += 24; // Crosses midnight
-      }
-      let endMinsTotal = logicalEndHour * 60 + endMinute;
-
-      let pushToTomorrow = false;
-      
       const now = new Date();
       let logicalRealCurrentHour = now.getHours();
-      if (logicalRealCurrentHour < (parseInt(dayStartTime.split(':')[0]) || 7)) {
+      if (logicalRealCurrentHour < dayStartHour) {
         logicalRealCurrentHour += 24;
       }
-      let forcePushToTomorrow = (logicalRealCurrentHour * 60 + now.getMinutes()) > endMinsTotal;
+      const realNowMins = logicalRealCurrentHour * 60 + now.getMinutes();
+
+      // Start today's uncompleted schedule from whichever is later: normal day start or current real time
+      const effectiveStartMins = Math.max(dayStartMins, realNowMins);
+      let currentHour = Math.floor((effectiveStartMins % 1440) / 60);
+      let currentMinute = effectiveStartMins % 60;
+
+      let endMinsTotal = getTimeMins(effectiveEndTime);
+
+      let pushToTomorrow = false;
+      let forcePushToTomorrow = realNowMins > endMinsTotal;
 
       // Sort todayMissions to enforce sequential lecture order within the same chapter.
       // This prevents lectures 7/8 from appearing before 5/6 when the input array is scrambled.
@@ -1094,7 +1120,8 @@ export function generateWeeklyMatrix(
 
           if (m.subject !== 'break' && !hasExistingBreak) {
             const breakStartStr = `${(currentHour % 24).toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
-            currentMinute += 15;
+            const breakDuration = getBreakDuration(duration);
+            currentMinute += breakDuration;
             let tempHour = currentHour;
             let tempMinute = currentMinute;
             while (tempMinute >= 60) {
@@ -1113,9 +1140,9 @@ export function generateWeeklyMatrix(
               chapterId: 'break',
               chapterName: 'Recharge',
               unit: 'Break',
-              activity: '☕ 15m Break',
+              activity: `☕ ${breakDuration}m Break`,
               taskType: 'Break' as any,
-              durationMinutes: 15,
+              durationMinutes: breakDuration,
               completed: false,
               priorityScore: 0,
               reasoning: {
@@ -1153,11 +1180,48 @@ export function generateWeeklyMatrix(
             
             // Also add a 15-minute break offset logically, so the next un-timeslotted task starts after a break
             if (m.subject !== 'break') {
-              currentMinute += 15;
-              while (currentMinute >= 60) {
-                currentHour += 1;
-                currentMinute -= 60;
+              const breakStartStr = `${(currentHour % 24).toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
+              
+              const breakDuration = getBreakDuration(duration);
+              currentMinute += breakDuration;
+              let tempHour = currentHour;
+              let tempMinute = currentMinute;
+              while (tempMinute >= 60) {
+                tempHour += 1;
+                tempMinute -= 60;
               }
+              const breakEndStr = `${(tempHour % 24).toString().padStart(2, '0')}:${tempMinute.toString().padStart(2, '0')}`;
+              
+              const hasExistingBreak = todayMissions.some(tm => tm.id === `break-${m.id}` || tm.id === `today-break-${m.id}`);
+              
+              if (!hasExistingBreak) {
+                pendingBreakBlock = {
+                  id: `today-break-${m.id}`,
+                  dayIndex: dayIndex,
+                  dayName: dayName,
+                  timeSlot: `${breakStartStr} - ${breakEndStr}`,
+                  subject: 'break',
+                  chapterId: 'break',
+                  chapterName: 'Recharge',
+                  unit: 'Break',
+                  activity: `☕ ${breakDuration}m Break`,
+                  taskType: 'Break' as any,
+                  durationMinutes: breakDuration,
+                  completed: false,
+                  priorityScore: 0,
+                  reasoning: {
+                    whySelected: 'Pacing out your study blocks reduces cognitive fatigue and maximizes retention.',
+                    dependentChapters: [],
+                    rankingRationale: 'Scheduled rest interval.',
+                    longTermImpact: 'Maintains stamina over long sessions.',
+                    postponeRisk: 'Burnout risk increases.',
+                    targetAccuracy: 'N/A'
+                  }
+                };
+              }
+              
+              currentHour = tempHour;
+              currentMinute = tempMinute;
             }
           }
         }

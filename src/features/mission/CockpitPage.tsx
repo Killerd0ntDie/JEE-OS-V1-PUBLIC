@@ -35,6 +35,19 @@ export function CockpitPage() {
             // Record session of any duration to track elapsed time even if mission isn't completed
             // Record sessions as low as 30 seconds (0.5 minutes) to capture meaningful study time
             const durationMinutes = Math.max(0.5, currentSecs / 60);
+
+            // Read focus metrics from localStorage for partial XP calculation
+            let exitFocusScore = 100;
+            if (missionId) {
+              try {
+                const savedState = localStorage.getItem(`jeeos_mission_state_${missionId}`);
+                if (savedState) {
+                  const parsed = JSON.parse(savedState);
+                  exitFocusScore = parsed.focusScore ?? 100;
+                }
+              } catch { /* ignore parse errors */ }
+            }
+
             await actions.completeStudySession({
               duration: Math.round(durationMinutes * 10) / 10, // Round to 1 decimal place
               focusTime: Math.round(durationMinutes * 10) / 10,
@@ -44,8 +57,13 @@ export function CockpitPage() {
               subjectId: activeSubject as any,
               idleTime: 0,
               focusInterruptions: 0,
-              focusScore: 100
+              focusScore: exitFocusScore
             });
+
+            // Award proportional partial XP for meaningful early exits (>=1 minute)
+            if (missionId && currentSecs >= 60) {
+              await actions.awardPartialXP(missionId, currentSecs, exitFocusScore);
+            }
           }
           navigate('/dashboard');
         }}

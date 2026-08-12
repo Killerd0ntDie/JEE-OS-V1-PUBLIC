@@ -448,7 +448,22 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
                   return getMins(a) - getMins(b);
                 });
 
-                const blockMetrics = sortedDayBlocks.map((block: WeeklyBlock, bIdx: number) => {
+                 const dayStartTime = state?.settings?.dayStartTime || '07:00';
+                 const dayEndTime = state?.settings?.dayEndTime || '23:00';
+                  const parseTimeVal = (val: string | undefined, fallback: number) => {
+                    const p = parseInt(val || '', 10);
+                    return isNaN(p) ? fallback : p;
+                  };
+                  let endHour = parseTimeVal(dayEndTime.split(':')[0], 23);
+                  let endMinute = parseTimeVal(dayEndTime.split(':')[1], 0);
+                  let logicalEndHour = endHour;
+                  const startHourVal = parseTimeVal(dayStartTime.split(':')[0], 7);
+                  if (logicalEndHour < startHourVal) {
+                    logicalEndHour += 24;
+                  }
+                  const endMinsTotal = logicalEndHour * 60 + endMinute;
+
+                 const blockMetrics = sortedDayBlocks.map((block: WeeklyBlock, bIdx: number) => {
                   let { topPx, heightPx } = calculateBlockPos(block, bIdx);
                   const duration = getBlockDuration(block);
 
@@ -501,18 +516,23 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
                       effectiveSlot = `${sH}:${sM} - ${eH}:${eM}`;
                     }
 
-                    if (nowMins >= startMins && nowMins < endMins) {
+                    if (nowMins >= startMins && nowMins < endMins && startMins < endMinsTotal) {
                       isPushedLive = true;
                     }
 
                     runningPushMins = endMins;
+
+                    // Omit uncompleted blocks on today's grid column when pushed past bedtime (dayEndTime)
+                    if (startMins >= endMinsTotal) {
+                      return null;
+                    }
                   }
 
                   const startPx = topPx;
                   const endPx = topPx + heightPx;
 
                   return { block, bIdx, topPx, heightPx, startPx, endPx, startMins, endMins, isPushedLive, effectiveSlot };
-                });
+                }).filter((item): item is NonNullable<typeof item> => item !== null);
 
                 return blockMetrics.map((item) => {
                   const { block, bIdx, topPx, heightPx, startPx, endPx, startMins, endMins } = item;

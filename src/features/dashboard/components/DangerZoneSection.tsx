@@ -1,11 +1,12 @@
 import React from 'react';
-import { AlertTriangle, RefreshCw, Trash2 } from 'lucide-react';
+import { AlertTriangle, RefreshCw, Trash2, RotateCcw } from 'lucide-react';
 
 interface DangerZoneSectionProps {
   onOpenResetXP: () => void;
   onOpenResetMissions: () => void;
   onOpenResetHidden: () => void;
   onOpenPurgeWorkspace: () => void;
+  onUndoMissionBug: () => void;
 }
 
 export const DangerZoneSection: React.FC<DangerZoneSectionProps> = ({
@@ -13,6 +14,7 @@ export const DangerZoneSection: React.FC<DangerZoneSectionProps> = ({
   onOpenResetMissions,
   onOpenResetHidden,
   onOpenPurgeWorkspace,
+  onUndoMissionBug,
 }) => {
   return (
     <div className="bg-red-950/20 border border-red-900/40 rounded-2xl p-6 backdrop-blur-xl shadow-xl space-y-4">
@@ -26,7 +28,7 @@ export const DangerZoneSection: React.FC<DangerZoneSectionProps> = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-2">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4 pt-2">
         <button
           type="button"
           onClick={onOpenResetXP}
@@ -73,6 +75,18 @@ export const DangerZoneSection: React.FC<DangerZoneSectionProps> = ({
             <Trash2 className="w-4 h-4 text-red-400" />
           </div>
           <p className="text-[10px] text-red-300/70 leading-relaxed">Nuclear option: Wipe all local cache, telemetry, and reset workspace.</p>
+        </button>
+
+        <button
+          type="button"
+          onClick={onUndoMissionBug}
+          className="p-4 rounded-xl bg-orange-950/40 border border-orange-800/50 hover:bg-orange-900/50 text-left transition-all group cursor-pointer"
+        >
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-mono font-bold text-orange-300">Fix Time/Score Bug</span>
+            <RotateCcw className="w-4 h-4 text-orange-400" />
+          </div>
+          <p className="text-[10px] text-orange-300/70 leading-relaxed">Decreases total time by 75m and score by 50 XP (1 mission) to fix the permanent increase.</p>
         </button>
       </div>
     </div>

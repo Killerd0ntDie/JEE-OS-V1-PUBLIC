@@ -167,7 +167,7 @@ async function startServer() {
     targetCollege: import_zod.z.string().optional(),
     coachingType: import_zod.z.string().optional(),
     mockHistory: import_zod.z.array(import_zod.z.any()).optional()
-  }).strict();
+  });
   const validateCoach = (req, res, next) => {
     const parsedBody = CoachSchema.safeParse(req.body);
     if (!parsedBody.success) {

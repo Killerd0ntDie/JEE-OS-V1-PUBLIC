@@ -39,7 +39,7 @@ export function useMissionState(props: MissionModeProps) {
   const isCasinoEnabled = settings.enablePomodoroCasino ?? false;
 
   const storageKey = activeMissionId ? `jeeos_mission_state_${activeMissionId}` : null;
-  const savedStateStr = storageKey ? sessionStorage.getItem(storageKey) : null;
+  const savedStateStr = storageKey ? localStorage.getItem(storageKey) : null;
   const savedState = savedStateStr ? JSON.parse(savedStateStr) : null;
 
   const [isPaused, setIsPaused] = useState(savedState?.isPaused ?? (initialPaused && isCasinoEnabled));
@@ -63,7 +63,7 @@ export function useMissionState(props: MissionModeProps) {
   // Enhanced session storage persistence for timer state
   useEffect(() => {
     if (storageKey && !isSettingUp && !isCompleted && !missionFailed) {
-      sessionStorage.setItem(storageKey, JSON.stringify({
+      localStorage.setItem(storageKey, JSON.stringify({
         isPaused, 
         seconds, 
         focusScore, 
@@ -77,16 +77,6 @@ export function useMissionState(props: MissionModeProps) {
   // Recover timer state on mount with staleness check
   useEffect(() => {
     if (savedState && savedState.timestamp) {
-      const sessionAge = Date.now() - savedState.timestamp;
-      // If session is older than 24 hours, consider it stale and reset
-      if (sessionAge > 24 * 60 * 60 * 1000) {
-        console.log('[useMissionState] Detected stale session state, resetting timer');
-        setSeconds(initialSeconds);
-        setFocusScore(100);
-        setIdleTime(0);
-        setFocusInterruptions(0);
-        if (storageKey) sessionStorage.removeItem(storageKey);
-      }
     }
   }, []);
 
@@ -124,7 +114,6 @@ export function useMissionState(props: MissionModeProps) {
   };
 
   const handleExit = () => {
-    if (storageKey) sessionStorage.removeItem(storageKey);
     
     // Update mission timeSlot to reflect actual end time when exiting early (using standardized calculation)
     if (activeSubjectMission && secondsRef.current > 0) {
@@ -470,7 +459,7 @@ export function useMissionState(props: MissionModeProps) {
     // Clear session storage so it doesn't accidentally resume with old values
     if (storageKey) {
       try {
-        sessionStorage.removeItem(storageKey);
+        localStorage.removeItem(storageKey);
       } catch (e) {
         console.warn("Failed to clear session storage on reset:", e);
       }
@@ -615,7 +604,6 @@ export function useMissionState(props: MissionModeProps) {
   };
 
   const handleMissionComplete = async (data?: any) => {
-    if (storageKey) sessionStorage.removeItem(storageKey);
     if (activeSubjectMission?.id) {
       await actions.completeTask(activeSubjectMission.id, data?.duration ?? Math.max(60, seconds));
     } else {

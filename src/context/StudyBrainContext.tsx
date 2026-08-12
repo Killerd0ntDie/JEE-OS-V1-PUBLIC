@@ -275,6 +275,7 @@ export const StudyBrainProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       // Restore the user's deleted-mission blocklist so planner-regenerated missions
       // that were previously dismissed don't reappear after a page reload.
       snapshotState.deletedMissionIds = profile.deletedMissionIds || [];
+      snapshotState.completedPlannerMissionIds = profile.completedPlannerMissionIds || [];
       snapshotState.scheduleOverrides = profile.scheduleOverrides || {};
       
       loadedFlags.profile = true;

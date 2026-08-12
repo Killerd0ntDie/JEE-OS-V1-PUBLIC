@@ -13,6 +13,8 @@ import {
 
 import { normalizeTwoDaySplitConfig } from '@jee-os/engines';
 import { DangerZoneSection } from './components/DangerZoneSection';
+import { UserRepository } from '@/repositories/userRepository';
+import { StudySessionRepository } from '@/repositories/studySessionRepository';
 
 export function SettingsPage() {
   const actions = useStudyBrainStore(state => state.actions);
@@ -61,6 +63,7 @@ export function SettingsPage() {
   const [showHiddenMissionsSuccess, setShowHiddenMissionsSuccess] = useState(false);
   const [showCustomMissionsConfirm, setShowCustomMissionsConfirm] = useState(false);
   const [showCustomMissionsSuccess, setShowCustomMissionsSuccess] = useState(false);
+  const [showUndoConfirm, setShowUndoConfirm] = useState(false);
 
   // Auth Form States
   const [email, setEmail] = useState('');
@@ -68,6 +71,41 @@ export function SettingsPage() {
   const [displayName, setDisplayName] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+
+  const handleUndoMissionBug = async () => {
+    try {
+      // Decrease XP by 50 (base XP for 1 mission)
+      const currentXp = xp;
+      const newXp = {
+        ...currentXp,
+        daily: Math.max(0, currentXp.daily - 50),
+        weekly: Math.max(0, currentXp.weekly - 50),
+        monthly: Math.max(0, (currentXp.monthly || 0) - 50),
+        total: Math.max(0, currentXp.total - 50)
+      };
+      
+      // Decrease time by exactly 75m by deleting the most recent study session
+      const sessions = useStudyBrainStore.getState().studySessions || [];
+      const latestSession = sessions[0];
+      
+      if (latestSession) {
+         await actions.safeDbCall(() => StudySessionRepository.deleteStudySession(actions.userId, latestSession.id), 'deleteStudySession');
+      }
+      
+      await actions.safeDbCall(() => UserRepository.updateUserProfile(actions.userId, { xp: newXp }), 'updateUserProfile');
+      
+      // Update local state directly so it reflects before refresh
+      const newSessions = sessions.filter(s => s.id !== latestSession?.id);
+      useStudyBrainStore.setState({ xp: newXp, studySessions: newSessions });
+      await actions.runtime.refresh('INIT');
+      
+      actions.triggerToast('Bug Fixed', 'Decreased 75m and 1 mission score', 'success');
+      setShowUndoConfirm(false);
+    } catch (e) {
+      console.error(e);
+      actions.triggerToast('Error', 'Failed to undo mission', 'error');
+    }
+  };
 
     useEffect(() => {
     setFormData({
@@ -826,7 +864,41 @@ export function SettingsPage() {
         onOpenResetMissions={() => setShowCustomMissionsConfirm(true)}
         onOpenResetHidden={() => setShowHiddenMissionsConfirm(true)}
         onOpenPurgeWorkspace={() => setShowResetConfirm(true)}
+        onUndoMissionBug={() => setShowUndoConfirm(true)}
       />
+
+        {/* Undo Mission Bug Modal */}
+        <Modal
+          isOpen={showUndoConfirm}
+          onClose={() => setShowUndoConfirm(false)}
+          zIndex={9999}
+          backdropClassName="bg-black/80 backdrop-blur-md"
+          className="bg-zinc-950 border border-orange-900/50 p-6 rounded-2xl max-w-md w-full space-y-4 text-left shadow-2xl animate-in fade-in zoom-in-95 duration-200"
+        >
+              <div className="flex items-center gap-3 text-orange-400">
+                <RotateCcw className="w-6 h-6 shrink-0" />
+                <h4 className="text-base font-display font-bold text-white">Fix Time/Score Bug?</h4>
+              </div>
+              <p className="text-xs text-zinc-300 leading-relaxed font-mono">
+                This will delete your most recent study session to deduct 75 minutes of total time and decrease your score by 50 XP (1 standard mission). Use this ONLY if your time/score was permanently increased due to modifying chapter telemetry after completing a mission.
+              </p>
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowUndoConfirm(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-mono text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleUndoMissionBug}
+                  className="px-4 py-2 rounded-xl text-xs font-bold font-mono bg-orange-600 hover:bg-orange-500 text-white shadow-lg shadow-orange-900/20 transition-all cursor-pointer"
+                >
+                  Fix Time/Score
+                </button>
+              </div>
+        </Modal>
 
         {/* XP Reset Confirmation Modal */}
         <Modal
