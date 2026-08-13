@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { X, History, Trash2, Calendar, RotateCcw } from 'lucide-react';
 import { TodayMission, SubjectId } from '@/types/index';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
+import { audioEngine } from '@/utils/audioEngine';
 
 interface CustomMissionHistoryModalProps {
   isOpen: boolean;
@@ -108,14 +109,20 @@ export function CustomMissionHistoryModal({ isOpen, onClose }: CustomMissionHist
                 {/* Actions */}
                 <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button
-                    onClick={() => actions.completeTask(mission.id)}
+                    onClick={() => {
+                      actions.completeTask(mission.id);
+                      audioEngine.playAlert();
+                    }}
                     className="w-9 h-9 rounded-xl bg-zinc-950 border border-zinc-800 text-zinc-400 hover:text-indigo-400 hover:bg-indigo-500/10 hover:border-indigo-500/30 flex items-center justify-center transition-colors cursor-pointer relative z-10"
                     title="Restore to Queue"
                   >
                     <RotateCcw className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => actions.deleteMission(mission.id)}
+                    onClick={() => {
+                      actions.deleteMission(mission.id);
+                      audioEngine.playAlert();
+                    }}
                     className="w-9 h-9 rounded-xl bg-zinc-950 border border-zinc-800 text-zinc-400 hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/30 flex items-center justify-center transition-colors cursor-pointer relative z-10"
                     title="Permanently Delete"
                   >

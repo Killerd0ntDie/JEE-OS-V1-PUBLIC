@@ -57,6 +57,24 @@ export function MissionMode(props: MissionModeProps) {
     }, 250);
   };
 
+  // Keyboard Shortcuts
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't intercept if user is typing in an input/textarea
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+      
+      if (e.code === 'Space') {
+        e.preventDefault();
+        setters.setIsPaused(!state.isPaused);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [state.isPaused, setters]);
+
   return (
     <Modal
       isOpen={!isClosing}

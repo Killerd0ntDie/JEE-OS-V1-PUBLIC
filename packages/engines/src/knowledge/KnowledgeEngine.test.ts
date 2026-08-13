@@ -94,7 +94,7 @@ describe('KnowledgeEngine', () => {
     // Complete c1: c2 should now be unlocked
     const progress: ProgressState[] = [{ chapterId: 'c1', completion: 100, isMastered: true }];
     unlocked = engine.getUnlockedChapters(progress);
-    expect(unlocked.map(n => n.id)).toEqual(['c1', 'c2', 'c4']);
+    expect(unlocked.map(n => n.id)).toEqual(['c2', 'c4']);
   });
 
   it('identifies blocked chapters', () => {

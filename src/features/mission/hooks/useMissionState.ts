@@ -293,7 +293,7 @@ export function useMissionState(props: MissionModeProps) {
   const [hasPlayedStartChime, setHasPlayedStartChime] = useState(false);
   useEffect(() => {
     if (!hasPlayedStartChime && settings.soundEffects) {
-      audioEngine.playStartChime(settings.volume / 100);
+      audioEngine.playStartChime();
       setHasPlayedStartChime(true);
     }
   }, [hasPlayedStartChime, settings]);
@@ -504,7 +504,7 @@ export function useMissionState(props: MissionModeProps) {
       setTimeout(() => {
         setIsCompleted(true);
         if (settings.soundEffects) {
-          audioEngine.playSuccessChime(settings.volume / 100);
+          audioEngine.playSuccessChime();
         }
       }, 300);
     }

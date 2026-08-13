@@ -34,7 +34,7 @@ export function ShortcutGuideModal({ isOpen, onClose }: ShortcutGuideModalProps)
       isOpen={isOpen}
       onClose={onClose}
       zIndex={999}
-      backdropClassName="bg-[#070708]/80 backdrop-blur-md"
+      backdropClassName="bg-black/40"
       className="relative w-full max-w-lg bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]"
     >
               {/* Header */}

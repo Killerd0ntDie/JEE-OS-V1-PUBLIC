@@ -3,7 +3,7 @@ import { Modal } from '@/components/ui/Modal';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { useAuth } from '@/features/auth';
 import { Icon } from '@/components/ui/Icon';
-import { soundSystem } from '@/utils/audioEffects';
+import { audioEngine as soundSystem } from '@/utils/audioEngine';
 import { getValidTargetYears } from '@/utils/dateUtils';
 import { SubjectId } from '@/types';
 import { 

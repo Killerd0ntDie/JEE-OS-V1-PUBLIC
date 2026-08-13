@@ -32,7 +32,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
     // 1. Play Sound
     if (settings.soundEffects) {
-      audioEngine.playAlertPop(settings.volume / 100);
+      audioEngine.playAlertPop();
     }
 
     // 2. Dispatch Desktop Push Notification
@@ -70,33 +70,50 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     <ToastContext.Provider value={{ toast }}>
       {children}
       
-      {/* Toast UI Container */}
-      <div className="fixed top-6 right-6 z-[100] flex flex-col gap-3 pointer-events-none max-w-sm w-full">
+      {/* Background Blur Overlay */}
+      {toasts.length > 0 && (
+        <div 
+          className="fixed inset-x-0 top-0 z-[90] pointer-events-none h-64 glass-panel"
+          style={{
+            WebkitMaskImage: 'linear-gradient(to bottom, black 0%, transparent 100%)',
+            maskImage: 'linear-gradient(to bottom, black 0%, transparent 100%)',
+          }}
+        />
+      )}
+
+      {/* Modern Dynamic Island Style Toast UI Container */}
+      <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center gap-3 pointer-events-none max-w-md w-full px-4">
         <AnimatePresence>
           {toasts.map((t) => (
             <motion.div
               key={t.id}
-              initial={{ opacity: 0, x: 50, scale: 0.95 }}
-              animate={{ opacity: 1, x: 0, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95, filter: 'blur(4px)' }}
-              transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-              className="bg-[#0c0c0e] border border-zinc-800 shadow-2xl p-4 rounded-xl flex items-start gap-3 pointer-events-auto"
+              initial={{ opacity: 0, y: -40, scale: 0.8, filter: 'blur(10px)' }}
+              animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+              exit={{ opacity: 0, y: -20, scale: 0.9, filter: 'blur(4px)' }}
+              transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+              className="shadow-[0_30px_60px_-15px_rgba(0,0,0,1)] p-3 pr-11 rounded-2xl flex items-center gap-3.5 pointer-events-auto relative overflow-hidden group w-auto border bg-[#09090b] border-white/5"
             >
-              <div className="mt-0.5 shrink-0">
-                {t.type === 'success' && <Icon name="CheckCircle2" className="w-5 h-5 text-emerald-400" />}
-                {t.type === 'warning' && <Icon name="AlertTriangle" className="w-5 h-5 text-amber-400" />}
-                {t.type === 'error' && <Icon name="XCircle" className="w-5 h-5 text-red-400" />}
-                {(!t.type || t.type === 'info') && <Icon name="Bell" className="w-5 h-5 text-indigo-400" />}
+              {/* Subtle Glass Highlights */}
+              <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
+              <div className="absolute inset-x-0 top-0 h-px bg-white/10 pointer-events-none" />
+              
+              <div className="shrink-0 flex items-center justify-center relative z-10">
+                {t.type === 'success' && <div className="w-8 h-8 rounded-full bg-zinc-900 text-zinc-300 flex items-center justify-center border border-white/10 shadow-inner"><Icon name="Check" className="w-4 h-4 stroke-[3]" /></div>}
+                {t.type === 'error' && <div className="w-8 h-8 rounded-full bg-zinc-900 text-zinc-300 flex items-center justify-center border border-white/10 shadow-inner"><Icon name="X" className="w-4 h-4 stroke-[3]" /></div>}
+                {t.type === 'warning' && <div className="w-8 h-8 rounded-full bg-zinc-900 text-zinc-300 flex items-center justify-center border border-white/10 shadow-inner"><Icon name="AlertTriangle" className="w-4 h-4 stroke-[2]" /></div>}
+                {(!t.type || t.type === 'info') && <div className="w-8 h-8 rounded-full bg-zinc-900 text-zinc-300 flex items-center justify-center border border-white/10 shadow-inner"><Icon name="Bell" className="w-4 h-4 stroke-[2]" /></div>}
               </div>
-              <div className="flex-1">
-                <h4 className="text-sm font-bold text-zinc-100">{t.title}</h4>
-                {t.message && <p className="text-xs text-zinc-400 mt-1 leading-relaxed">{t.message}</p>}
+              
+              <div className="flex-1 relative z-10 py-0.5 min-w-[200px]">
+                <h4 className="text-sm font-semibold text-white tracking-tight">{t.title}</h4>
+                {t.message && <p className="text-[11px] text-zinc-400 mt-0.5 leading-snug">{t.message}</p>}
               </div>
+              
               <button 
                 onClick={() => removeToast(t.id)}
-                className="text-zinc-400 hover:text-white transition-colors p-1"
+                className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-zinc-800/50 hover:bg-zinc-700 flex items-center justify-center text-zinc-400 hover:text-white transition-colors z-10"
               >
-                <Icon name="X" className="w-4 h-4" />
+                <Icon name="X" className="w-3 h-3" />
               </button>
             </motion.div>
           ))}

@@ -268,9 +268,11 @@ export interface TodayMission {
   chapter: string;
   chapterId?: string;
   chapterName?: string;
-  type: 'Watch Lecture' | 'Solve DPP' | 'Solve PYQs' | 'Revise Formulas' | 'Review Mistakes' | 'Break';
+  type: 'Watch Lecture' | 'Solve DPP' | 'Solve PYQs' | 'Revise Formulas' | 'Review Mistakes' | 'Break' | 'Solve Mock';
   taskName: string;
   duration: number;         // in minutes
+  originalDuration?: number; // original estimated minutes
+  linkedSessionId?: string;  // reference to active or completed study session
   date?: string;            // scheduled YYYY-MM-DD date
   scheduledDate?: string;   // ISO YYYY-MM-DD date
   scheduledTime?: string;   // HH:MM start time e.g. '07:00'

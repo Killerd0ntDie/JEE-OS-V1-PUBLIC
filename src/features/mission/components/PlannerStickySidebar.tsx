@@ -105,11 +105,21 @@ export function PlannerStickySidebar({ state }: PlannerStickySidebarProps) {
         </div>
       </div>
 
-      {/* AI RECOMMENDATION */}
-      <div className="p-3.5 rounded-lg bg-orange-500/10 border border-orange-500/20">
-        <div className="text-[11px] text-zinc-300 leading-relaxed font-sans">
-          <span className="text-orange-400 font-semibold mb-1 block">AI Guidance:</span> 
-          {aiRecommendationText}
+      {/* AI RECOMMENDATION - PREMIUM REDESIGN */}
+      <div className="relative group rounded-xl p-[1px] overflow-hidden shrink-0 mt-4">
+        {/* Animated ambient glow */}
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/30 via-purple-500/10 to-transparent opacity-60 group-hover:opacity-100 transition-opacity duration-700" />
+        
+        <div className="relative p-4 rounded-xl glass-card bg-[#09090b]/80 border border-white/5 backdrop-blur-md">
+          <div className="flex items-center gap-2 mb-2.5">
+            <Sparkles className="w-4 h-4 text-indigo-400" />
+            <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">
+              AI Insight
+            </span>
+          </div>
+          <div className="text-xs text-zinc-300 leading-relaxed font-sans font-medium">
+            {aiRecommendationText}
+          </div>
         </div>
       </div>
 

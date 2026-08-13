@@ -58,8 +58,7 @@ export const FeynmanSandboxModal: React.FC<FeynmanSandboxModalProps> = ({
       <div
         role="dialog"
         aria-modal="true"
-        aria-labelledby="feynman-sandbox-modal-title"
-        className="relative w-full h-full max-h-[600px] flex-1 bg-[#0e0e11]/80 backdrop-blur-md rounded-2xl overflow-hidden flex flex-col p-6 space-y-4 text-left"
+        className="relative w-full h-full max-h-[600px] flex-1 glass-panel rounded-2xl overflow-hidden flex flex-col p-6 space-y-4 text-left"
       >
         
         {/* Header */}

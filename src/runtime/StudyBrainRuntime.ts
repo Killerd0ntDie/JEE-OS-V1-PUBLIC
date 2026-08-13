@@ -47,6 +47,7 @@ export interface StudyBrainState {
     pauseOnTabChange?: boolean;
     revisionSettings?: RevisionSettings;
     migratedToPristine?: boolean;
+    prerequisiteEnforcementStrategy?: 'strict' | 'parallel';
     enableGodMode?: boolean;
     dayStartTime?: string;
     dayEndTime?: string;
@@ -594,7 +595,12 @@ export class StudyBrainRuntime {
             continue;
           }
 
-          const finalMission = isCompletedInState ? { ...m, completed: true } : m;
+          const isUnlockedInState = m.unlocked || existing?.unlocked || existingMissionsMap.get(m.id)?.unlocked;
+          const finalMission = { 
+            ...m, 
+            ...(isCompletedInState && { completed: true }),
+            ...(isUnlockedInState && { unlocked: true })
+          };
           uniqueMissions.set(m.id, finalMission);
         }
       }
@@ -666,10 +672,11 @@ export class StudyBrainRuntime {
         };
       });
 
-      // Safety check: Unconditionally preserve all completed or dismissed missions from uniqueMissions
+      // Safety check: Unconditionally preserve all completed, dismissed, or custom missions
       const currentMissionIds = new Set(this.state.todayMissions.map(m => m.id));
+      const userCustomMissionIds = new Set(userCustomMissions.map(m => m.id));
       for (const [id, m] of uniqueMissions.entries()) {
-        if ((m.completed || m.dismissed) && !currentMissionIds.has(id)) {
+        if ((m.completed || m.dismissed || userCustomMissionIds.has(id)) && !currentMissionIds.has(id)) {
           this.state.todayMissions.push(m);
         }
       }
@@ -878,7 +885,7 @@ export class StudyBrainRuntime {
     });
     
     const studyMins = validIncomplete
-      .filter(m => m.type !== 'Break' && m.subject !== 'break')
+      .filter(m => m.type !== 'Break' && (m.subject as string) !== 'break')
       .reduce((acc, curr) => acc + (curr.duration || 0), 0);
       
     const totalMinsIncludingBreaks = validIncomplete.reduce((acc, curr) => acc + (curr.duration || 0), 0);

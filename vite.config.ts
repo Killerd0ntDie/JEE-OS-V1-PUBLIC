@@ -31,6 +31,22 @@ export default defineConfig(() => {
       hmr: process.env.DISABLE_HMR === 'true' ? false : true,
       // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
+      headers: {
+        'Cross-Origin-Opener-Policy': 'unsafe-none',
+        'Cross-Origin-Embedder-Policy': 'unsafe-none',
+      },
+    },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+            'vendor-firebase': ['firebase/app', 'firebase/auth', 'firebase/firestore'],
+            'vendor-math': ['katex', 'react-katex'],
+            'vendor-motion': ['motion', 'motion/react'],
+          }
+        }
+      }
     },
     test: {
       globals: true,

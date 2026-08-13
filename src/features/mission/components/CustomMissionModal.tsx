@@ -116,8 +116,8 @@ export const CustomMissionModal: React.FC<CustomMissionModalProps> = ({ isOpen, 
 
   return (
     <ModalPortal>
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-      <div className="relative w-full max-w-lg bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 animate-fade-in">
+      <div className="relative w-full max-w-lg glass-panel rounded-2xl shadow-2xl overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-white/5">
           <div className="flex items-center gap-3">

@@ -133,8 +133,7 @@ export const FormulaSpeedDrillModal: React.FC<FormulaSpeedDrillModalProps> = ({
       <div
         role="dialog"
         aria-modal="true"
-        aria-labelledby="formula-speed-drill-modal-title"
-        className="relative w-full h-full max-h-[600px] flex-1 bg-[#0e0e11]/80 backdrop-blur-md rounded-2xl overflow-hidden flex flex-col p-6 space-y-5 text-left"
+        className="relative w-full h-full max-h-[600px] flex-1 glass-panel rounded-2xl overflow-hidden flex flex-col p-6 space-y-5 text-left"
       >
         
         {/* Header Bar */}

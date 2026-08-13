@@ -37,6 +37,7 @@ import { ProtectedRoute } from '@/features/auth/components/ProtectedRoute';
 
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { Icon } from '@/components/ui/Icon';
+import { audioEngine } from './utils/audioEngine';
 
 function AppLayout() {
   const { user, loading: authLoading } = useAuth();
@@ -109,8 +110,11 @@ function AppLayout() {
         oldLevel: levelUpData.oldLevel,
         newLevel: levelUpData.newLevel
       });
+      audioEngine.playSuccess();
     }
   }, [levelUpData]);
+
+
 
   if (loading) {
     return (
@@ -207,7 +211,7 @@ function AppLayout() {
       )}
 
       {/* Main Workspace Frame */}
-      <div className="flex-1 flex flex-col min-w-0 h-[100dvh] overflow-hidden">
+      <div className={`flex-1 flex flex-col min-w-0 h-[100dvh] ${location.pathname.startsWith('/planner') || location.pathname.startsWith('/cockpit') || location.pathname.startsWith('/diagnostic') ? 'overflow-hidden' : 'overflow-y-auto scrollbar'} relative`}>
         {/* Topbar Nav (Disabled for Planner, Cockpit, and Diagnostic pages) */}
         {!location.pathname.startsWith('/planner') && !location.pathname.startsWith('/cockpit') && !location.pathname.startsWith('/diagnostic') && (
           <Topbar
@@ -220,7 +224,7 @@ function AppLayout() {
         )}
 
         {/* Central Router Stage with Smooth Framer Motion Transition */}
-        <main id="main-content" className={`flex-1 flex flex-col overflow-y-auto scrollbar relative ${location.pathname.startsWith('/diagnostic') ? '' : 'px-3 sm:px-4 md:px-6 lg:px-8 py-4 md:py-6 pb-12'}`}>
+        <main id="main-content" className={`flex-1 flex flex-col relative min-h-0 ${location.pathname.startsWith('/diagnostic') ? '' : 'px-3 sm:px-4 md:px-6 lg:px-8 py-4 md:py-6 pb-12'}`}>
           {!isOnline && (
             <div className="bg-amber-500/10 border border-amber-500/30 text-amber-300 px-4 py-3 rounded-xl mb-4 flex items-center justify-center font-mono text-xs shadow-lg animate-fade-in shrink-0">
               <div className="flex items-center gap-2">

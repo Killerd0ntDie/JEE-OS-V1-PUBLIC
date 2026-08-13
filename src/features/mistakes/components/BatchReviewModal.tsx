@@ -80,10 +80,8 @@ export const BatchReviewModal: React.FC<BatchReviewModalProps> = ({
       <div
         role="dialog"
         aria-modal="true"
-        aria-labelledby="batch-review-modal-title"
-        className="w-full max-w-3xl h-full max-h-[85vh] bg-[#0e0e11]/80 backdrop-blur-md border border-zinc-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden text-left"
+        className="w-full max-w-3xl h-full max-h-[85vh] glass-panel rounded-2xl shadow-2xl flex flex-col overflow-hidden text-left"
       >
-        {/* Header */}
         <div className="p-5 border-b border-zinc-900 flex justify-between items-center bg-zinc-900/30">
           <div className="flex items-center gap-2">
             <div className="p-1.5 rounded-lg bg-red-950/40 text-red-400 border border-red-900/40">

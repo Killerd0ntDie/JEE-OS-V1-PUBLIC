@@ -114,18 +114,23 @@ body {
 }
 
 .glass-panel {
-  background: rgba(12, 12, 16, 0.92);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.45) !important;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
 }
 
 .text-gradient-indigo {
   background: linear-gradient(135deg, #c7d2fe 0%, #818cf8 50%, #6366f1 100%);
+  background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
 .text-gradient-emerald {
   background: linear-gradient(135deg, #a7f3d0 0%, #34d399 50%, #10b981 100%);
+  background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }

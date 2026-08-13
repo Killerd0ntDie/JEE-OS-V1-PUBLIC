@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { X, ChevronRight, CheckCircle2, XCircle, RefreshCw, AlertCircle, Eye } from 'lucide-react';
 import { Mistake } from '@/types';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
-import { soundSystem } from '@/utils/audioEffects';
+import { audioEngine as soundSystem } from '@/utils/audioEngine';
 import { BlockMath, InlineMath } from '@/components/MathRenderer';
 import { Modal } from '@/components/ui/Modal';
 import { RichTextRenderer } from '@/components/MathRenderer';

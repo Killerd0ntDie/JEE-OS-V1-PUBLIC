@@ -17,14 +17,12 @@ import { calculateMockScorePercent } from '@/utils/mockScoring';
 import { collection, getDocs, writeBatch, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '@/firebase';
 import { 
-  XPLevelConfig,
-  XPState,
   getLocalDateKey
 } from '@jee-os/engines';
 
 export class StudyBrainActions {
-  private runtime: StudyBrainRuntime;
-  private userId: string;
+  public runtime: StudyBrainRuntime;
+  public userId: string;
 
   constructor(runtime: StudyBrainRuntime, userId: string) {
     this.runtime = runtime;
@@ -51,7 +49,7 @@ export class StudyBrainActions {
     throw new Error(errorMsg);
   }
 
-  private async safeDbCall<T>(operation: () => Promise<T>, actionName: string): Promise<T | void> {
+  public async safeDbCall<T>(operation: () => Promise<T>, actionName: string): Promise<T | void> {
     try {
       return await operation();
     } catch (err: any) {
@@ -59,7 +57,7 @@ export class StudyBrainActions {
     }
   }
 
-  private triggerToast(title: string, message?: string, type: 'success' | 'info' | 'warning' | 'error' = 'success') {
+  public triggerToast(title: string, message?: string, type: 'success' | 'info' | 'warning' | 'error' = 'success') {
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('global-toast', {
         detail: { title, message, type }
@@ -224,7 +222,6 @@ export class StudyBrainActions {
 
     try {
       await UserRepository.updateUserProfile(this.userId, {
-        todayMissions: updatedMissions,
         xp: newXp
       });
     } catch (err) {
@@ -233,7 +230,7 @@ export class StudyBrainActions {
 
     if (newLevel > oldLevel) {
       await this.runtime.refresh('SETTINGS_UPDATE', {
-        showLevelUpCelebration: { oldLevel, newLevel },
+        levelUpData: { oldLevel, newLevel, xp: newXp },
         lastSyncError: null
       });
     }
@@ -341,11 +338,21 @@ export class StudyBrainActions {
       }
     }
 
-    if (isCompleting && missionIndex + 1 < updatedMissions.length) {
-      updatedMissions[missionIndex + 1] = {
-        ...updatedMissions[missionIndex + 1],
-        unlocked: true
-      };
+    const updatedCustomMissions = [...this.state.customMissions];
+    if (isCompleting) {
+      let nextIdx = missionIndex + 1;
+      while (nextIdx < updatedMissions.length) {
+        updatedMissions[nextIdx] = {
+          ...updatedMissions[nextIdx],
+          unlocked: true
+        };
+        const customIdx = updatedCustomMissions.findIndex(cm => cm.id === updatedMissions[nextIdx].id);
+        if (customIdx !== -1) {
+          updatedCustomMissions[customIdx] = { ...updatedCustomMissions[customIdx], unlocked: true };
+        }
+        if (updatedMissions[nextIdx].type !== 'Break') break;
+        nextIdx++;
+      }
     }
 
     // Base mission XP: 50 (slower progression)
@@ -496,7 +503,6 @@ export class StudyBrainActions {
         }
       }
 
-      let updatedCustomMissions = this.state.customMissions;
       const isCustom = this.state.customMissions.some(cm => cm.id === taskId);
       const updatedCustomMission = updatedMissions[missionIndex];
       
@@ -505,11 +511,11 @@ export class StudyBrainActions {
       let updatedCompletedPlannerMissionIds = this.state.completedPlannerMissionIds || [];
       if (isCustom) {
         savePromises.push(this.safeDbCall(() => CustomMissionRepository.saveMission(this.userId, updatedCustomMission), 'saveMission'));
-        updatedCustomMissions = this.state.customMissions.map(cm => cm.id === taskId ? updatedCustomMission : cm);
+        const cIdx = updatedCustomMissions.findIndex(cm => cm.id === taskId);
+        if (cIdx !== -1) updatedCustomMissions[cIdx] = updatedCustomMission;
       } else {
         // For planner missions, don't save to CustomMissionRepository
         // Their completed state will be preserved through the runtime's mission mapping logic
-        updatedCustomMissions = this.state.customMissions;
         
         if (isCompleting) {
           updatedCompletedPlannerMissionIds = Array.from(new Set([...updatedCompletedPlannerMissionIds, taskId]));
@@ -574,11 +580,8 @@ export class StudyBrainActions {
         levelUpData
       });
 
-      // Trigger success toast for task completion if we just completed it
       if (isCompleting) {
         this.triggerToast('Mission Accomplished', `${mission.taskName} finished successfully!`, 'success');
-      } else {
-        this.triggerToast('Mission Restored', `${mission.taskName} added back to queue.`, 'info');
       }
     } catch (err) {
       await this.handleWriteError(err, 'completeTask');
@@ -615,7 +618,7 @@ export class StudyBrainActions {
         deletedMissionIds: updatedDeletedMissionIds,
         lastSyncError: null
       });
-      this.triggerToast('Mission Removed', 'Task successfully removed from your queue.', 'info');
+      // Toast removed to prevent notification spam
     } catch (err) {
       await this.handleWriteError(err, 'deleteMission');
     }
@@ -645,7 +648,7 @@ export class StudyBrainActions {
         customMissions: updatedCustomMissions,
         lastSyncError: null
       });
-      this.triggerToast('Mission Created', `Custom mission "${newMission.taskName}" added to queue.`, 'success');
+      // Toast removed to prevent notification spam
     } catch (err) {
       await this.handleWriteError(err, 'addCustomMission');
     }
@@ -2096,6 +2099,7 @@ export class StudyBrainActions {
     };
 
     const baseMins = getTimeMins(dayEndTime);
+    const now = new Date();
     let realNowHour = now.getHours();
     if (realNowHour < startHourVal) realNowHour += 24;
     const realNowMins = realNowHour * 60 + now.getMinutes();

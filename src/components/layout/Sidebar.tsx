@@ -111,13 +111,13 @@ export function Sidebar({
 
   const renderSidebarContent = (collapsed: boolean) => (
     <div
-      className={`h-full bg-zinc-950/98 backdrop-blur-md transform-gpu flex flex-col justify-between border-r border-zinc-850/80 select-none transition-[width] duration-250 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-[width] ${
+      className={`h-full glass-panel border-r-0 flex flex-col justify-between select-none transition-[width] duration-250 ease-[cubic-bezier(0.16,1,0.3,1)] ${
         collapsed ? 'w-16 group-hover:w-64 shadow-2xl z-50' : 'w-64'
       }`}
     >
       {/* Sidebar Header / Brand */}
       <div
-        className={`h-14 border-b border-zinc-850/80 flex items-center justify-between shrink-0 bg-zinc-950 transition-colors group/brand overflow-hidden px-2`}
+        className={`h-14 border-b border-zinc-850/30 flex items-center justify-between shrink-0 bg-transparent transition-colors group/brand overflow-hidden px-2`}
       >
         <button 
           onClick={() => {
@@ -156,7 +156,7 @@ export function Sidebar({
       </div>
 
       {/* Navigation Body */}
-      <nav aria-label="Main Navigation" className="flex-1 overflow-y-auto overflow-x-hidden [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden px-0 py-1 flex flex-col justify-between bg-zinc-950">
+      <nav aria-label="Main Navigation" className="flex-1 overflow-y-auto overflow-x-hidden [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden px-0 py-1 flex flex-col justify-between bg-transparent">
         {categories.core.length > 0 && renderNavGroup('Core Console', categories.core, collapsed)}
         {categories.subjects.length > 0 && renderNavGroup('Subject Trackers', categories.subjects, collapsed)}
         {categories.utilities.length > 0 && renderNavGroup('Practice Vault', categories.utilities, collapsed)}
@@ -165,7 +165,7 @@ export function Sidebar({
       </nav>
 
       {/* Footer / Leveling & User Profile */}
-      <div className={`shrink-0 border-t border-zinc-850/80 bg-zinc-950 px-2 py-2 space-y-1.5`}>
+      <div className={`shrink-0 border-t border-zinc-850/30 bg-transparent px-2 py-2 space-y-1.5`}>
         {/* Level Progress Bar */}
         <div className={`transition-all duration-300 overflow-hidden ${collapsed ? 'h-0 opacity-0 group-hover:h-auto group-hover:opacity-100 group-hover:mb-1.5' : 'h-auto opacity-100 mb-1.5'}`}>
           <LevelProgress totalXP={xp?.total || 0} />
@@ -206,7 +206,7 @@ export function Sidebar({
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className={`group hidden md:block h-screen shrink-0 sticky top-0 z-40 transition-all duration-300 ease-in-out ${isCollapsed ? 'w-16' : 'w-64'}`}>
+      <aside className={`group hidden md:block h-screen shrink-0 sticky top-0 z-40 transition-[width] duration-300 ease-in-out ${isCollapsed ? 'w-16' : 'w-64'}`}>
         <div className={`h-full ${isCollapsed ? 'absolute top-0 left-0 h-screen z-50' : ''}`}>
           {renderSidebarContent(isCollapsed)}
         </div>

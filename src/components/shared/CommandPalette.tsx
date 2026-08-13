@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { PAGES, PageId, PageDefinition } from '@/types/index';
 import { Icon } from '@/components/ui/Icon';
-
+import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import { useNavigate } from 'react-router-dom';
 
 interface CommandPaletteProps {
@@ -23,6 +24,9 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
     page.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  useLockBodyScroll(isOpen);
+  useEscapeKey(onClose, isOpen);
+
   // Hotkey listener for closing and arrow navigation
   useEffect(() => {
     if (!isOpen) return;
@@ -31,10 +35,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
     setTimeout(() => inputRef.current?.focus(), 50);
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        onClose();
-      } else if (e.key === 'ArrowDown') {
+      if (e.key === 'ArrowDown') {
         e.preventDefault();
         setSelectedIndex(prev => (prev + 1) % Math.max(1, filteredPages.length));
       } else if (e.key === 'ArrowUp') {
@@ -71,7 +72,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
   return createPortal(
     <div
       className={`fixed inset-0 z-[999] flex items-start justify-center p-4 pt-[12vh] transition-all duration-200 ${
-        isOpen ? 'bg-black/75 backdrop-blur-md visible pointer-events-auto' : 'bg-transparent backdrop-blur-none invisible pointer-events-none'
+        isOpen ? 'bg-black/50 backdrop-blur-sm visible pointer-events-auto' : 'bg-transparent backdrop-blur-none invisible pointer-events-none'
       }`}
       onClick={onClose}
       aria-label="Command Palette Overlay"
@@ -81,13 +82,13 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
         role="dialog"
         aria-modal="true"
         aria-label="Command Palette"
-        className={`w-full max-w-xl bg-zinc-950/95 border border-zinc-800/80 rounded-2xl shadow-2xl overflow-hidden flex flex-col relative transition-all duration-200 ${
+        className={`w-full max-w-xl glass-panel rounded-2xl shadow-2xl overflow-hidden flex flex-col relative transition-all duration-200 ease-out ${
           isOpen ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 -translate-y-4'
         }`}
         onClick={e => e.stopPropagation()}
       >
         {/* Search header */}
-        <div className="flex items-center gap-3 px-4 py-4 border-b border-zinc-800/50 bg-zinc-950">
+        <div className="flex items-center gap-3 px-4 py-4 border-b border-zinc-800/30 bg-transparent">
           <Icon name="Search" aria-hidden="true" className="w-5 h-5 text-indigo-400 shrink-0" />
           <input
             ref={inputRef}
@@ -106,7 +107,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
         </div>
 
         {/* Results list */}
-        <div ref={listRef} className="max-h-[340px] overflow-y-auto p-2 space-y-1 divide-y divide-zinc-950 scrollbar">
+        <div ref={listRef} className="max-h-[340px] overflow-y-auto p-2 space-y-1 scrollbar">
           {filteredPages.length === 0 ? (
             <div className="p-8 text-center text-xs text-zinc-400">
               No pages or modules found matching "{searchQuery}"
@@ -123,12 +124,12 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
                   }}
                   className={`w-full text-left px-3.5 py-2.5 rounded-xl transition-all flex items-center gap-3.5 cursor-pointer border ${
                     isSelected
-                      ? 'bg-zinc-900 border-zinc-800 text-white'
-                      : 'bg-transparent border-transparent text-zinc-400 hover:bg-zinc-900/40 hover:text-zinc-200'
+                      ? 'bg-white/10 border-white/10 text-white'
+                      : 'bg-transparent border-transparent text-zinc-400 hover:bg-white/5 hover:text-zinc-200'
                   }`}
                 >
                   <div className={`p-1.5 rounded-lg border ${
-                    isSelected ? 'bg-zinc-950 border-zinc-700 text-zinc-100' : 'bg-zinc-900/60 border-zinc-850 text-zinc-400'
+                    isSelected ? 'bg-white/10 border-white/20 text-zinc-100' : 'bg-transparent border-white/5 text-zinc-400'
                   }`}>
                     <Icon name={page.icon} className="w-4 h-4" />
                   </div>
@@ -158,7 +159,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
         </div>
 
         {/* Footer */}
-        <div className="px-4 py-2 bg-zinc-900/40 border-t border-zinc-900 flex justify-between items-center text-[10px] text-zinc-400 font-mono">
+        <div className="bg-transparent border-t border-zinc-800/30 px-4 py-3 flex items-center justify-between text-[10px] text-zinc-400 font-mono">
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1">
               <span className="bg-zinc-900 px-1 py-0.2 rounded border border-zinc-850">↑↓</span> Navigate

@@ -199,7 +199,7 @@ export function Topbar({
   };
 
   return (
-    <header className="h-14 border-b border-white/10 bg-zinc-950/95 backdrop-blur-md transform-gpu flex items-center justify-between px-4 sticky top-0 z-30 select-none shadow-xl">
+    <header className="h-14 shrink-0 glass-panel border-b-0 border-white/10 flex items-center justify-between px-4 sticky top-0 z-30 select-none shadow-xl">
       {/* Ambient background glow */}
       <div className="absolute top-0 left-1/4 w-96 h-12 bg-indigo-600/10 filter blur-3xl pointer-events-none" />
       
@@ -364,8 +364,10 @@ export function Topbar({
 
               // Ensure current active streak days are highlighted in the current month
               if (effectiveStreak > 0) {
+                const todayMet = todayStudyMins >= minStreakMins;
+                const startIndex = todayMet ? todayDate - 1 : todayDate - 2;
                 for (let k = 0; k < effectiveStreak; k++) {
-                  const dayIdx = todayDate - 1 - k;
+                  const dayIdx = startIndex - k;
                   if (dayIdx >= 0 && dayIdx < daysInMonth) {
                     activeDaysSet.add(dayIdx);
                   }
@@ -403,7 +405,7 @@ export function Topbar({
                           } ${isToday ? 'ring-1 ring-white/30 ring-offset-1 ring-offset-zinc-950' : ''}`}
                           title={isFuture ? `${currentMonthStr} ${day}` : `${currentMonthStr} ${day} - ${hours > 0 ? formatStudyTime(hours) : (active ? 'Active' : 'Missed')}`}
                         >
-                          {active ? '⚡' : (!isFuture ? '·' : '')}
+                          {active ? <Icon name="Zap" className="w-3 h-3 text-amber-400 fill-amber-400" /> : (!isFuture ? '·' : '')}
                         </div>
                       );
                     })}
@@ -455,7 +457,7 @@ export function Topbar({
               const totalMonthHours = monthlyHours.reduce((a, b) => a + b, 0);
 
               return (
-                <div className="w-[240px]">
+                <div className="w-[320px]">
                   <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-3 flex items-center justify-between">
                     <span>{currentMonthStr} Log</span>
                     <span className="text-indigo-400">{formatStudyTime(totalMonthHours)} Total</span>
@@ -465,7 +467,7 @@ export function Topbar({
                   </div>
                   <div className="grid grid-cols-7 gap-1.5">
                     {Array.from({ length: firstDayOfWeek }).map((_, i) => (
-                      <div key={`empty-${i}`} className="w-8 h-6" />
+                      <div key={`empty-${i}`} className="w-full h-7" />
                     ))}
                     {monthlyHours.map((hours, i) => {
                       const day = i + 1;
@@ -476,9 +478,9 @@ export function Topbar({
                       return (
                         <div 
                           key={day} 
-                          className={`w-8 h-6 rounded-md flex items-center justify-center text-[11px] font-bold relative transition-colors ${
+                          className={`w-full h-7 rounded-md flex items-center justify-center text-[10px] whitespace-nowrap tracking-tight font-bold relative transition-colors ${
                             isFuture ? 'bg-zinc-800/20 border border-zinc-800/60 text-transparent' :
-                            active ? 'bg-indigo-950/40 border border-indigo-900/50 text-indigo-400 shadow-[0_0_8px_rgba(99,102,241,0.15)]' : 
+                            active ? 'bg-indigo-900/40 border border-indigo-500/50 text-indigo-300 shadow-[0_0_12px_rgba(99,102,241,0.4)]' : 
                             'bg-zinc-800/50 border border-zinc-700/60 text-zinc-400' // Break days in brighter grey
                           } ${isToday ? 'ring-1 ring-white/30 ring-offset-1 ring-offset-zinc-950' : ''}`}
                           title={`${currentMonthStr} ${day}`}

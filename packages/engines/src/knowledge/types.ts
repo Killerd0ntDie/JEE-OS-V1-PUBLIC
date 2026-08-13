@@ -20,6 +20,8 @@ export interface SyllabusNode {
   importance?: 'High' | 'Medium' | 'Low';
   estimatedStudyHours?: number;
   estimatedLectures?: number;
+  totalLectures?: number;
+  avgLectureDuration?: number;
   revisionDefaults?: {
     intervals: number[];
   };

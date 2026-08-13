@@ -1,11 +1,24 @@
 import React from 'react';
-import { Target, X } from 'lucide-react';
+import { Target, X, Volume2, VolumeX } from 'lucide-react';
+import { audioEngine } from '@/utils/audioEngine';
 
 interface MissionHeaderProps {
   onExit: () => void;
 }
 
 export function MissionHeader({ onExit }: MissionHeaderProps) {
+  const [isMuted, setIsMuted] = React.useState(audioEngine.getVolume() === 0);
+
+  const toggleMute = () => {
+    if (isMuted) {
+      audioEngine.setVolume(0.6);
+      setIsMuted(false);
+    } else {
+      audioEngine.setVolume(0);
+      setIsMuted(true);
+    }
+  };
+
   return (
     <div className="absolute top-0 left-0 w-full z-50 flex justify-between items-center p-5 md:p-6 pointer-events-auto">
       <div className="flex items-center gap-3">
@@ -28,6 +41,14 @@ export function MissionHeader({ onExit }: MissionHeaderProps) {
       </div>
 
       <div className="flex items-center gap-3">
+        <button 
+          type="button"
+          onClick={toggleMute}
+          className="w-10 h-10 rounded-xl border border-zinc-800 hover:bg-zinc-800/50 hover:border-zinc-700 hover:text-white transition-all flex items-center justify-center bg-zinc-950 text-zinc-400 cursor-pointer"
+          title={isMuted ? "Unmute Audio (m)" : "Mute Audio (m)"}
+        >
+          {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+        </button>
         <button 
           type="button"
           onClick={onExit}

@@ -195,14 +195,20 @@ export const StudyBrainProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           if (offlineQueue.length > 0) {
             console.log(`Syncing ${offlineQueue.length} offline mock results...`);
             (async () => {
+              const remainingQueue = [];
               for (const mock of offlineQueue) {
                 try {
                   await actions.addMockResult(mock);
                 } catch (e) {
                   console.error("Offline sync failed for mock:", e);
+                  remainingQueue.push(mock); // keep it for next time
                 }
               }
-              localStorage.removeItem('jeeos_offline_mocks');
+              if (remainingQueue.length === 0) {
+                localStorage.removeItem('jeeos_offline_mocks');
+              } else {
+                localStorage.setItem('jeeos_offline_mocks', JSON.stringify(remainingQueue));
+              }
             })();
           }
         } catch (e) {

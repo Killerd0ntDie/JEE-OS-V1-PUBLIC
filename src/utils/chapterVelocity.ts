@@ -51,9 +51,15 @@ export function calculateRealisticDailyChapterVelocity({
   const inAppChaptersProgressed = totalStudyMinutes / ASSUMED_MINUTES_PER_CHAPTER;
 
   if (!hasRealStudyHistory) {
-    return 0;
+    const rawVelocity = effectiveMasteredChapters / studyDaysElapsed;
+    return Math.min(Math.max(rawVelocity, 0), cap);
   }
 
-  const rawVelocity = inAppChaptersProgressed / studyDaysElapsed;
+  let rawVelocity = 0;
+  if (actualStudyMinutes === undefined) {
+    rawVelocity = effectiveMasteredChapters / studyDaysElapsed;
+  } else {
+    rawVelocity = inAppChaptersProgressed / studyDaysElapsed;
+  }
   return Math.min(Math.max(rawVelocity, 0), cap);
 }

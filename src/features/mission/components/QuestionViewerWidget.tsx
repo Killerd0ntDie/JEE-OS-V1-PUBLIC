@@ -147,7 +147,7 @@ export function QuestionViewerWidget({ chapterId, subject, onExitPractice, onCor
       
       setIsCorrect(isAnsCorrect);
       if (isAnsCorrect) {
-        audioEngine.playSuccessChime(0.5);
+        audioEngine.playSuccessChime();
         if (onCorrectAnswer) onCorrectAnswer();
       }
     } else if (activeQuestion.type === 'NUMERICAL') {
@@ -159,7 +159,7 @@ export function QuestionViewerWidget({ chapterId, subject, onExitPractice, onCor
         const isAnsCorrect = Math.abs(val - target) <= tol;
         setIsCorrect(isAnsCorrect);
         if (isAnsCorrect) {
-          audioEngine.playSuccessChime(0.5);
+          audioEngine.playSuccessChime();
           if (onCorrectAnswer) onCorrectAnswer();
         }
       } else {

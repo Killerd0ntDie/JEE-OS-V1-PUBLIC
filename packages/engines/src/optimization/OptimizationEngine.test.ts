@@ -62,7 +62,7 @@ describe('OptimizationEngine', () => {
     expect(result.isOverloaded).toBe(true);
     expect(result.recommendedDailyStudyHours).toBe(37.5);
     expect(result.optimizedPlannerInput.studyHours).toBe(12); // capped at 12
-    expect(result.scheduleStatus).toBe('At Risk');
+    expect(result.scheduleStatus).toBe('Behind Schedule');
   });
 
   it('identifies schedule status as On Track', () => {

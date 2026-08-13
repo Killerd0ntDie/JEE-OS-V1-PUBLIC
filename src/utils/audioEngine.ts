@@ -1,70 +1,223 @@
 /**
- * Web Audio API based sound synthesizer.
- * Generates lightweight, procedural sound effects without needing external audio files.
+ * Advanced UI Audio Engine
+ * Generates organic, high-fidelity UI sounds using the Web Audio API.
+ * Replaces raw sine waves with complex envelopes, filtered noise, and layered oscillators
+ * to achieve a minimalist, premium aesthetic (e.g. wood blocks, glass ticks).
  */
 
 class AudioEngine {
-  private audioContext: AudioContext | null = null;
+  private ctx: AudioContext | null = null;
+  private masterGain: GainNode | null = null;
+  private noiseBuffer: AudioBuffer | null = null;
 
-  private init() {
-    if (!this.audioContext) {
-      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+  public async init() {
+    if (typeof window === 'undefined') return;
+    if (!this.ctx) {
+      this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      this.masterGain = this.ctx.createGain();
+      // Set global volume to a tasteful, subtle level
+      this.masterGain.gain.value = 0.6;
+      this.masterGain.connect(this.ctx.destination);
+      this.createNoiseBuffer();
     }
-    if (this.audioContext.state === 'suspended') {
-      this.audioContext.resume();
+    if (this.ctx.state === 'suspended') {
+      await this.ctx.resume().catch(() => {});
+    }
+  }
+
+  public setVolume(vol: number) {
+    if (this.masterGain) {
+      this.masterGain.gain.value = Math.max(0, Math.min(1, vol));
+    }
+  }
+
+  public getVolume(): number {
+    return this.masterGain ? this.masterGain.gain.value : 0.6;
+  }
+
+  private createNoiseBuffer() {
+    if (!this.ctx) return;
+    const bufferSize = this.ctx.sampleRate * 2; // 2 seconds of noise
+    this.noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const output = this.noiseBuffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      output[i] = Math.random() * 2 - 1;
     }
   }
 
   /**
-   * Plays a sequence of synthesized notes.
-   * @param notes Array of frequencies in Hz
-   * @param type Oscillator type
-   * @param duration Duration of each note in seconds
-   * @param volume Volume (0.0 to 1.0)
+   * Subtle organic hover tick (like a muted wood block)
    */
-  private playSequence(notes: number[], type: OscillatorType = 'sine', duration: number = 0.1, volume: number = 0.5) {
-    if (!window.AudioContext && !(window as any).webkitAudioContext) return;
-    this.init();
-    if (!this.audioContext) return;
+  public async playHover() {
+    await this.init();
+    if (!this.ctx || !this.masterGain) return;
+    const t = this.ctx.currentTime;
 
-    const t = this.audioContext.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    
+    // Very low frequency thud
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(150, t);
+    osc.frequency.exponentialRampToValueAtTime(40, t + 0.03);
 
-    notes.forEach((freq, index) => {
-      if (!this.audioContext) return;
-      const osc = this.audioContext.createOscillator();
-      const gain = this.audioContext.createGain();
+    gain.gain.setValueAtTime(0.001, t);
+    gain.gain.linearRampToValueAtTime(0.15, t + 0.005);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.03);
 
-      osc.type = type;
-      osc.frequency.setValueAtTime(freq, t + index * duration);
+    osc.connect(gain);
+    gain.connect(this.masterGain);
 
-      // Envelope: quick attack, smooth release
-      gain.gain.setValueAtTime(0, t + index * duration);
-      gain.gain.linearRampToValueAtTime(volume, t + index * duration + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + (index + 1) * duration);
-
-      osc.connect(gain);
-      gain.connect(this.audioContext.destination);
-
-      osc.start(t + index * duration);
-      osc.stop(t + (index + 1) * duration);
-    });
+    osc.start(t);
+    osc.stop(t + 0.035);
   }
 
-  // Common UI Sounds
-  public playStartChime(volume: number = 0.5) {
-    // Rising futuristic chord (C4, E4, G4)
-    this.playSequence([261.63, 329.63, 392.00], 'sine', 0.15, volume);
+  /**
+   * Premium UI Click (Crisp glass/wood hybrid)
+   */
+  public async playClick() {
+    await this.init();
+    if (!this.ctx || !this.masterGain || !this.noiseBuffer) return;
+    const t = this.ctx.currentTime;
+
+    // Layer 1: The transient "snap" (Filtered White Noise)
+    const noiseSrc = this.ctx.createBufferSource();
+    noiseSrc.buffer = this.noiseBuffer;
+    
+    const noiseFilter = this.ctx.createBiquadFilter();
+    noiseFilter.type = 'highpass';
+    noiseFilter.frequency.value = 4000;
+
+    const noiseGain = this.ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.001, t);
+    noiseGain.gain.linearRampToValueAtTime(0.3, t + 0.002);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 0.02);
+
+    noiseSrc.connect(noiseFilter);
+    noiseFilter.connect(noiseGain);
+    noiseGain.connect(this.masterGain);
+    
+    noiseSrc.start(t);
+    noiseSrc.stop(t + 0.03);
+
+    // Layer 2: The body "thock"
+    const osc = this.ctx.createOscillator();
+    const oscGain = this.ctx.createGain();
+    
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(800, t);
+    osc.frequency.exponentialRampToValueAtTime(200, t + 0.02);
+
+    oscGain.gain.setValueAtTime(0.001, t);
+    oscGain.gain.linearRampToValueAtTime(0.4, t + 0.002);
+    oscGain.gain.exponentialRampToValueAtTime(0.001, t + 0.03);
+
+    osc.connect(oscGain);
+    oscGain.connect(this.masterGain);
+
+    osc.start(t);
+    osc.stop(t + 0.035);
   }
 
-  public playSuccessChime(volume: number = 0.5) {
-    // Success melody (C4, G4, C5)
-    this.playSequence([261.63, 392.00, 523.25], 'triangle', 0.2, volume);
+  /**
+   * Modern Mission Complete (Sleek Double-Pop / Bubble)
+   */
+  public async playSuccess() {
+    await this.init();
+    if (!this.ctx || !this.masterGain) return;
+    const t = this.ctx.currentTime;
+
+    // First Pop
+    const osc1 = this.ctx.createOscillator();
+    const gain1 = this.ctx.createGain();
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(500, t);
+    osc1.frequency.exponentialRampToValueAtTime(1000, t + 0.1);
+
+    gain1.gain.setValueAtTime(0.001, t);
+    gain1.gain.linearRampToValueAtTime(0.3, t + 0.02);
+    gain1.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+
+    osc1.connect(gain1);
+    gain1.connect(this.masterGain);
+    osc1.start(t);
+    osc1.stop(t + 0.2);
+
+    // Second Pop (Higher, 100ms later)
+    const t2 = t + 0.12;
+    const osc2 = this.ctx.createOscillator();
+    const gain2 = this.ctx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(700, t2);
+    osc2.frequency.exponentialRampToValueAtTime(1400, t2 + 0.1);
+
+    gain2.gain.setValueAtTime(0.001, t2);
+    gain2.gain.linearRampToValueAtTime(0.3, t2 + 0.02);
+    gain2.gain.exponentialRampToValueAtTime(0.001, t2 + 0.2);
+
+    osc2.connect(gain2);
+    gain2.connect(this.masterGain);
+    osc2.start(t2);
+    osc2.stop(t2 + 0.25);
   }
 
-  public playAlertPop(volume: number = 0.5) {
-    // Quick pop for notifications (High pitch, very short)
-    this.playSequence([880, 1760], 'sine', 0.05, volume * 0.7);
+  /**
+   * Modern Power-On / Enter Cockpit (Sleek Rising Sweep)
+   */
+  public async playStartChime() {
+    await this.init();
+    if (!this.ctx || !this.masterGain) return;
+    const t = this.ctx.currentTime;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    
+    osc.type = 'sine';
+    // Sleek upward sweep
+    osc.frequency.setValueAtTime(200, t);
+    osc.frequency.exponentialRampToValueAtTime(800, t + 0.3);
+
+    gain.gain.setValueAtTime(0.001, t);
+    gain.gain.linearRampToValueAtTime(0.3, t + 0.1);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+
+    osc.start(t);
+    osc.stop(t + 0.5);
   }
+
+  /**
+   * Subtle alert/notification pop (Soft bubble sound)
+   */
+  public async playAlert() {
+    await this.init();
+    if (!this.ctx || !this.masterGain) return;
+    const t = this.ctx.currentTime;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    
+    osc.type = 'sine';
+    // Bubble up frequency curve
+    osc.frequency.setValueAtTime(400, t);
+    osc.frequency.exponentialRampToValueAtTime(800, t + 0.1);
+
+    gain.gain.setValueAtTime(0.001, t);
+    gain.gain.linearRampToValueAtTime(0.3, t + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+
+    osc.start(t);
+    osc.stop(t + 0.2);
+  }
+
+  // Backwards compatibility for legacy imports during transition
+  public async playSuccessChime() { await this.playSuccess(); }
+  public async playAlertPop() { await this.playAlert(); }
 }
 
 export const audioEngine = new AudioEngine();

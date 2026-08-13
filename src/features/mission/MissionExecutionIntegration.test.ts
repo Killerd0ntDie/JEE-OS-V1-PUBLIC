@@ -23,6 +23,13 @@ vi.mock('../../repositories/customMissionRepository', () => ({
   }
 }));
 
+vi.mock('../../repositories/studySessionRepository', () => ({
+  StudySessionRepository: {
+    saveStudySession: vi.fn().mockResolvedValue(undefined),
+    deleteStudySession: vi.fn().mockResolvedValue(undefined)
+  }
+}));
+
 describe('Mission Execution & Chapter State Flow Integration Audit', () => {
   let runtime: StudyBrainRuntime;
   let actions: StudyBrainActions;
@@ -113,7 +120,7 @@ describe('Mission Execution & Chapter State Flow Integration Audit', () => {
       revisionTelemetry: null,
       revisionQueue: [],
       todayMissions: initialMissions,
-      customMissions: [],
+      customMissions: initialMissions,
       dashboardSummary: null,
       completionPrediction: null,
       subjectPriorities: [],
@@ -183,7 +190,7 @@ describe('Mission Execution & Chapter State Flow Integration Audit', () => {
   it('reverts local state change and surfaces sync error if repository write fails', async () => {
     const userSaveSpy = vi.spyOn(UserRepository, 'updateUserProfile').mockRejectedValueOnce(new Error('Network error'));
 
-    await expect(actions.completeTask('custom-m-1')).rejects.toThrow('Sync Error (completeTask): Network error');
+    await expect(actions.completeTask('custom-m-1')).rejects.toThrow('Sync Error (completeTask): Sync Error (updateUserProfile): Network error');
 
     // Local state should NOT be mutated? Actually, optimistic updates are not reverted automatically here.
     const m1 = runtime.getState().todayMissions.find(m => m.id === 'custom-m-1');

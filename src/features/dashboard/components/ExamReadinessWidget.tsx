@@ -10,7 +10,7 @@ import { AlertTriangle, Clock, Skull, Zap } from 'lucide-react';
 interface ExamReadinessWidgetProps {
   targetYear: string;
   syllabusProgress: any; // We can use proper type if available, but for now matching the existing usage
-  studySessions?: { startTime: string; duration?: number }[];
+  studySessions?: { startTime: string; duration?: number; type?: string }[];
 }
 
 export function ExamReadinessWidget({ targetYear, syllabusProgress, studySessions = [] }: ExamReadinessWidgetProps) {

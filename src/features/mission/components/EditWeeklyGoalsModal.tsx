@@ -44,7 +44,7 @@ export function EditWeeklyGoalsModal({ initialGoals, onClose, onSave }: EditWeek
 
   return createPortal(
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} role="presentation" />
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} role="presentation" />
       <motion.div
         ref={modalRef}
         role="dialog"
@@ -54,7 +54,7 @@ export function EditWeeklyGoalsModal({ initialGoals, onClose, onSave }: EditWeek
         initial={{ opacity: 0, scale: 0.95, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 10 }}
-        className="relative w-full max-w-2xl bg-[#0a0a0c] border border-zinc-800 rounded-3xl p-6 md:p-8 shadow-2xl overflow-y-auto max-h-[90vh] hide-scrollbar flex flex-col gap-6 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
+        className="relative w-full max-w-2xl glass-panel rounded-3xl p-6 md:p-8 shadow-2xl overflow-y-auto max-h-[90vh] hide-scrollbar flex flex-col gap-6 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
       >
         <div className="flex justify-between items-center border-b border-zinc-900 pb-4">
           <div>

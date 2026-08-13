@@ -159,16 +159,7 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
   const [showSuccessToast, setShowSuccessToast] = useState<boolean>(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
 
-  // Global ESC listener
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        handleClose();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleClose]);
+
 
   useEffect(() => {
     if (chapter) {

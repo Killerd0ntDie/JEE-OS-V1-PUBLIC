@@ -20,7 +20,7 @@ export function Drawer({
   className = '',
   position = 'right',
   hideBackdrop = false,
-  backdropClassName = 'bg-black/60 backdrop-blur-sm',
+  backdropClassName = 'bg-black/40',
   zIndex = 110,
 }: DrawerProps) {
   useEffect(() => {
@@ -71,7 +71,7 @@ export function Drawer({
             animate={slideVariants[position].animate}
             exit={slideVariants[position].exit}
             transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className={`absolute ${getPositionClasses()} flex flex-col shadow-2xl will-change-transform transform-gpu ${className}`}
+            className={`absolute ${getPositionClasses()} flex flex-col shadow-2xl glass-panel ${className}`}
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"

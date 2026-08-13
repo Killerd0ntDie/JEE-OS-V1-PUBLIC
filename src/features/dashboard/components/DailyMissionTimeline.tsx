@@ -15,6 +15,7 @@ import { ConfirmDeleteModal } from '@/components/ui/ConfirmDeleteModal';
 import { CustomMissionHistoryModal } from '@/features/mission/components/CustomMissionHistoryModal';
 import { audioEngine } from '@/utils/audioEngine';
 import { getStartMinutesFromTimeSlot, parseTimeSlotToRange } from '@/utils/timeSlotUtils';
+import { useToast } from '@/components/ui/ToastProvider';
 
 interface DailyMissionTimelineProps {
   sessionState: 'idle' | 'active' | 'paused';
@@ -71,6 +72,7 @@ export function DailyMissionTimeline({
   const settings = useStudyBrainStore(s => s.settings);
   const [missionToDelete, setMissionToDelete] = useState<string | null>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const { toast } = useToast();
 
   const completedCount = todayMissions.filter(m => m.completed && !m.dismissed).length;
   const totalCount = todayMissions.filter(m => !m.dismissed).length;
@@ -210,6 +212,7 @@ export function DailyMissionTimeline({
                   <History className="w-3.5 h-3.5" />
                   History
                 </button>
+
                 <button
                   type="button"
                   onClick={onOpenCustomMission}
@@ -482,6 +485,11 @@ export function DailyMissionTimeline({
                              onClick={(e) => {
                                e.stopPropagation();
                                actions.completeTask(mission.id);
+                               if (!mission.completed) {
+                                 audioEngine.playSuccess();
+                               } else {
+                                 audioEngine.playAlert();
+                               }
                              }}
                              className={`rounded-full border flex items-center justify-center transition-all cursor-pointer ${
                                mission.completed
@@ -588,6 +596,11 @@ export function DailyMissionTimeline({
                           onClick={(e) => {
                             e.stopPropagation();
                             actions.completeTask(mission.id);
+                            if (!mission.completed) {
+                              audioEngine.playSuccess();
+                            } else {
+                              audioEngine.playAlert();
+                            }
                           }}
                           className={`rounded-full border flex items-center justify-center shrink-0 transition-all duration-100 cursor-pointer ${
                             isLive ? 'w-6 h-6 mt-0.5' : 'w-5 h-5'
@@ -785,10 +798,10 @@ export function DailyMissionTimeline({
                                   onClick={() => {
                                     actions.completeTask(mission.id);
                                     if (!mission.completed) {
-                                      audioEngine.playSuccessChime();
+                                      audioEngine.playSuccess();
                                       setExpandedMission(null);
                                     } else {
-                                      audioEngine.playAlertPop();
+                                      audioEngine.playAlert();
                                     }
                                   }}
                                   className={`text-[10px] font-bold py-1.5 px-3 rounded-md transition-all cursor-pointer border active:scale-[0.98] hover:scale-[1.02] ${
