@@ -178,7 +178,7 @@ class AudioEngine {
     osc.frequency.exponentialRampToValueAtTime(800, t + 0.3);
 
     gain.gain.setValueAtTime(0.001, t);
-    gain.gain.linearRampToValueAtTime(0.3, t + 0.1);
+    gain.gain.linearRampToValueAtTime(0.85, t + 0.1);
     gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
 
     osc.connect(gain);

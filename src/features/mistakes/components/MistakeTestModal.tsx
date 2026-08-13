@@ -51,7 +51,7 @@ export function MistakeTestModal({ isOpen, onClose, mistakes }: MistakeTestModal
   const handleReveal = () => {
     setIsRevealed(true);
     if (settings.soundEffects) {
-      soundSystem.playSuccess(true, settings.volume);
+      soundSystem.playSuccess();
     }
   };
 

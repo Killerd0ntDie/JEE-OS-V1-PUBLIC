@@ -126,6 +126,7 @@ export function SettingsPage() {
       enableGodMode: settings.enableGodMode ?? true,
       minStreakHours: settings.minStreakHours ?? 0.5,
       enablePomodoroCasino: settings.enablePomodoroCasino ?? false,
+      prerequisiteEnforcementStrategy: settings.prerequisiteEnforcementStrategy || 'parallel',
     });
   }, [settings, mentorProfile]);
 
@@ -137,7 +138,7 @@ export function SettingsPage() {
     try {
       // Sound test click
     if (soundEffects) {
-      soundSystem.playSuccess(true, volume);
+      soundSystem.playSuccess();
     }
 
     // Desktop notification permission check
@@ -694,7 +695,11 @@ export function SettingsPage() {
                     />
                     <button
                       type="button"
-                      onClick={() => soundSystem.playSuccess(true, volume)}
+                      onClick={() => {
+                        if (soundEffects) {
+                          soundSystem.playSuccess();
+                        }
+                      }}
                       className="text-[10px] font-mono bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 px-2 py-1 rounded cursor-pointer shrink-0"
                     >
                       Test Chime
