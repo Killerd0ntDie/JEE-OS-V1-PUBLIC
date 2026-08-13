@@ -9,6 +9,12 @@ import { BrowserRouter } from 'react-router-dom';
 import 'katex/dist/katex.min.css';
 import './index.css';
 
+// Automatically reload if a dynamic import fails (usually means a new deployment happened)
+window.addEventListener('vite:preloadError', (event) => {
+  console.warn('Vite preload error (likely due to new deployment). Reloading page...');
+  window.location.reload();
+});
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ThemeProvider>

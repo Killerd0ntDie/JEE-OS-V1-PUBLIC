@@ -562,6 +562,13 @@ Valid Action examples (as payload):
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
+
+    // Return 404 for missing static assets instead of serving index.html
+    // This prevents MIME type errors ("Expected a JavaScript module... responded with a MIME type of text/html")
+    app.use('/assets', (req, res) => {
+      res.status(404).send('Asset not found');
+    });
+
     app.get('*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
