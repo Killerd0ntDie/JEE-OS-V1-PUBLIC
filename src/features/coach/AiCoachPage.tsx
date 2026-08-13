@@ -77,7 +77,7 @@ export function AiCoachPage({ isActive }: { isActive?: boolean }) {
           break;
       }
       
-      const newHistory = [...chatHistory];
+      const newHistory = [...chatHistoryRef.current];
       const msg = { ...newHistory[msgIndex] };
       msg.appliedActionIndices = [...(msg.appliedActionIndices || []), actionIndex];
       newHistory[msgIndex] = msg;
@@ -117,6 +117,11 @@ export function AiCoachPage({ isActive }: { isActive?: boolean }) {
   };
 
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([initialMessage]);
+  const chatHistoryRef = useRef(chatHistory);
+  useEffect(() => {
+    chatHistoryRef.current = chatHistory;
+  }, [chatHistory]);
+  
   const [customInput, setCustomInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -210,7 +215,7 @@ export function AiCoachPage({ isActive }: { isActive?: boolean }) {
     const timeStr = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
     const userMsg = { role: 'user' as const, text: messageText, time: timeStr };
 
-    const newHistoryUser = [...chatHistory, userMsg];
+    const newHistoryUser = [...chatHistoryRef.current, userMsg];
     setChatHistory(newHistoryUser);
     saveSession(newHistoryUser);
     

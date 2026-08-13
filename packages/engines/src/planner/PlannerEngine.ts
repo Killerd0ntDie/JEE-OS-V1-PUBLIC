@@ -179,7 +179,8 @@ export class PlannerEngine {
     const progressStates: ProgressState[] = Object.entries(input.chapterTelemetryMap).map(([chapterId, data]) => ({
       chapterId,
       completion: data.masteryScore,
-      isMastered: data.isMastered
+      isMastered: data.isMastered,
+      theoryComplete: data.theoryComplete || false
     }));
 
     const availableMinutes = input.studyHours * 60;
@@ -357,7 +358,9 @@ export class PlannerEngine {
           if (injectedTask.reasoning) {
             injectedTask.reasoning.whySelected = mockRemediationReason;
             injectedTask.reasoning.rankingRationale = "Ranked extremely high to immediately patch mock exam failure points.";
-            injectedTask.priorityScore = Math.max(injectedTask.priorityScore, 95); // Ensure it's very high priority
+            // Bug 2.3: Use an absolute priority anchor (999) rather than a borderline score (95) 
+            // to guarantee this task ignores standard sorting modifiers and stays at the very top.
+            injectedTask.priorityScore = 999;
           }
         }
       }
@@ -404,9 +407,44 @@ export class PlannerEngine {
 
         activeNotOnHoldChapters.forEach(activeChap => {
           const n = this.knowledgeEngine.getNode(activeChap.id);
-          if (n) targetNodesMap.set(n.id, n);
+          if (n) {
+             const prereqs = n.prerequisites || [];
+             const uncompletedPrereqs: string[] = [];
+             for (const reqId of prereqs) {
+                const reqNode = this.knowledgeEngine.getNode(reqId);
+                const p = progressStates.find(ps => ps.chapterId === reqId);
+                const isPassed = p && (p.isMastered || p.completion >= 50 || p.theoryComplete);
+                if (reqNode && !isPassed) {
+                   uncompletedPrereqs.push(reqId);
+                }
+             }
+
+             const strategy = input.userPreferences?.prerequisiteEnforcementStrategy || 'parallel';
+             
+             if (uncompletedPrereqs.length > 0) {
+                if (strategy === 'strict') {
+                   // Strict: Force prereqs first, block current chapter
+                   uncompletedPrereqs.forEach(reqId => {
+                      const reqNode = this.knowledgeEngine.getNode(reqId);
+                      if (reqNode) targetNodesMap.set(reqId, reqNode);
+                   });
+                } else {
+                   // Parallel: Schedule current chapter AND prereqs
+                   targetNodesMap.set(n.id, n);
+                   uncompletedPrereqs.forEach(reqId => {
+                      const reqNode = this.knowledgeEngine.getNode(reqId);
+                      if (reqNode) targetNodesMap.set(reqId, reqNode);
+                   });
+                }
+             } else {
+                // All prereqs met
+                targetNodesMap.set(n.id, n);
+             }
+          }
         });
-        // If no active in-progress non-on-hold chapter exists, schedule nothing for this subject.
+
+        // Bug 2.1 Reverted: We no longer auto-schedule unstarted chapters blindly.
+        // The user strictly prefers syncing manually with their coaching classes.
       });
     } else {
       // Fallback when input.chapters is not provided
@@ -443,7 +481,8 @@ export class PlannerEngine {
           // Use exact telemetry duration, falling back to 75 if completely missing, capped at 120
           const lecDuration = Math.min(prog.avgLectureDuration || 75, 120);
 
-          // Only generate next 3 lectures as candidates — earlier lectures MUST be completed first
+          // Generate up to 3 upcoming lectures so the queue doesn't look completely empty,
+          // but we will apply a progressive priority penalty later so they don't flood the schedule.
           for (let l = 0; l < Math.min(remainingLectures, 3); l++) {
           const nextLec = prog.currentLecture + l + 1;
           candidates.push(generateTask(
@@ -500,8 +539,20 @@ export class PlannerEngine {
       }
     }
 
-    // Give active in-progress chapters a heavy priority boost (+100) so active work strictly fills missions first, while unstarted chapters stay available if needed
+    // Sunk Cost Momentum: Give active in-progress chapters a minor priority boost (+10) 
+    // to encourage finishing what was started without overriding the main scoring logic.
+    // Also, apply a Progressive Lecture Penalty to subsequent lectures of the same chapter.
+    const lectureCountPerChapter = new Map<string, number>();
+
     for (const task of candidates) {
+      if (task.type === 'Watch Lecture') {
+        const count = lectureCountPerChapter.get(task.chapterId) || 0;
+        if (count > 0) {
+           task.priorityScore -= (count * 15);
+        }
+        lectureCountPerChapter.set(task.chapterId, count + 1);
+      }
+
       const prog: any = input.chapterTelemetryMap[task.chapterId] || {};
       const normalizedStatus = normalizeStageAlias(prog.status);
       const normalizedStage = normalizeStageAlias(prog.syllabusStage);
@@ -513,14 +564,11 @@ export class PlannerEngine {
         (normalizedStage && normalizedStage !== 'Not Started')
       );
 
-      const isUnstarted = (prog.currentLecture === 0) &&
-                          !prog.theoryComplete &&
-                          (!normalizedStatus || normalizedStatus === 'Not Started');
-
       if (isStarted) {
-        task.priorityScore += 100;
-      } else if (isUnstarted) {
-        task.priorityScore = Math.max(10, task.priorityScore - 40);
+        // Bug 2.2: Proportional sunk-cost momentum curve instead of a flat +10
+        const completionPct = prog.masteryScore || prog.rawCompletion || (prog.currentLecture / (prog.totalLectures || 12) * 100) || 10;
+        const momentumBoost = Math.max(2, Math.round(completionPct / 5)); // Up to +20 points for 99% complete
+        task.priorityScore += momentumBoost;
       }
     }
 
@@ -794,13 +842,15 @@ export class PlannerEngine {
         let subjMins = 0;
         let ptr = subjectPointer[subj] || 0;
         let attempts = 0;
+        const usedTasksInDay = new Set<string>();
 
         while (subjMins + 40 <= perSubjBudget && attempts < 8) {
           attempts++;
           const baseTask = subjCands[ptr % subjCands.length];
           ptr++;
 
-          if (!baseTask) continue;
+          if (!baseTask || usedTasksInDay.has(baseTask.id)) continue;
+          usedTasksInDay.add(baseTask.id);
 
           let taskToPush = { ...baseTask, id: `plan-${day}-${baseTask.id}-${ptr}` };
           if (taskToPush.type === 'Watch Lecture') {
@@ -1140,7 +1190,7 @@ export function generateWeeklyMatrix(
               chapterId: 'break',
               chapterName: 'Recharge',
               unit: 'Break',
-              activity: `☕ ${breakDuration}m Break`,
+              activity: `${breakDuration}m Break`,
               taskType: 'Break' as any,
               durationMinutes: breakDuration,
               completed: false,
@@ -1204,7 +1254,7 @@ export function generateWeeklyMatrix(
                   chapterId: 'break',
                   chapterName: 'Recharge',
                   unit: 'Break',
-                  activity: `☕ ${breakDuration}m Break`,
+                  activity: `${breakDuration}m Break`,
                   taskType: 'Break' as any,
                   durationMinutes: breakDuration,
                   completed: false,

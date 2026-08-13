@@ -40,6 +40,7 @@ export function SettingsPage() {
     enableGodMode: settings.enableGodMode ?? true,
     minStreakHours: settings.minStreakHours ?? 0.5,
     enablePomodoroCasino: settings.enablePomodoroCasino ?? false,
+    prerequisiteEnforcementStrategy: settings.prerequisiteEnforcementStrategy || 'parallel',
   });
 
   const handleChange = (key, value) => {
@@ -49,7 +50,8 @@ export function SettingsPage() {
   const {
     targetYear, dreamIit, targetBranch, dailyQuota, subjectSplitStrategy,
     dayStartTime, dayEndTime, twoDaySplitConfig, soundEffects, desktopNotifications,
-    volume, pauseOnTabChange, enableGodMode, minStreakHours, enablePomodoroCasino
+    volume, pauseOnTabChange, enableGodMode, minStreakHours, enablePomodoroCasino,
+    prerequisiteEnforcementStrategy
   } = formData;
 
   const [isSaving, setIsSaving] = useState(false);
@@ -159,7 +161,8 @@ export function SettingsPage() {
       dayStartTime,
       dayEndTime,
       minStreakHours,
-      enablePomodoroCasino
+      enablePomodoroCasino,
+      prerequisiteEnforcementStrategy
     });
 
     if (mentorProfile) {
@@ -387,6 +390,24 @@ export function SettingsPage() {
               </select>
               <p className="text-[10px] text-zinc-400 font-mono">
                 Configures the 7-day Weekly Master Matrix layout in the Planner.
+              </p>
+            </div>
+
+            {/* Prerequisite Enforcement Strategy */}
+            <div className="space-y-2">
+              <label className="text-xs font-mono font-medium text-zinc-300 block">
+                Prerequisite Enforcement
+              </label>
+              <select
+                value={prerequisiteEnforcementStrategy}
+                onChange={(e) => handleChange('prerequisiteEnforcementStrategy', e.target.value)}
+                className="w-full bg-zinc-900/90 border border-zinc-800 text-zinc-100 rounded-xl px-3.5 py-2.5 text-xs font-mono focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500 cursor-pointer"
+              >
+                <option value="parallel">Parallel (Bypass & Learn Together)</option>
+                <option value="strict">Strict (Force Foundations First)</option>
+              </select>
+              <p className="text-[10px] text-zinc-400 font-mono">
+                How should the AI handle started chapters that have missing prerequisites?
               </p>
             </div>
           </div>

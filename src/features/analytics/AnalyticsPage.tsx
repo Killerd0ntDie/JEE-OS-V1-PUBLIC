@@ -32,7 +32,11 @@ export function AnalyticsPage() {
   // Top 5 Highest Risk / Vulnerability Chapters
   const highestRiskChapters = useMemo(() => {
     return [...filteredTelemetry]
-      .sort((a, b) => (b.isBottleneck ? 50 : 0) + (100 - a.masteryScore) - ((100 - b.masteryScore)))
+      .sort((a, b) => {
+        const riskA = (a.isBottleneck ? 50 : 0) + (100 - a.masteryScore);
+        const riskB = (b.isBottleneck ? 50 : 0) + (100 - b.masteryScore);
+        return riskB - riskA; // Sort descending (highest risk first)
+      })
       .slice(0, 5);
   }, [filteredTelemetry]);
 
@@ -86,36 +90,60 @@ export function AnalyticsPage() {
     };
   }, [studySessions]);
 
-  // 7-Day Velocity Aggregation
+  // 7-Day Velocity Aggregation (Optimized O(N))
   const sevenDayVelocity = useMemo(() => {
     const now = new Date();
     now.setHours(0, 0, 0, 0);
+    const startOfToday = now.getTime();
+    const dayMs = 24 * 60 * 60 * 1000;
 
+    // Initialize 7 buckets for the last 7 days (index 0 is today, index 6 is 6 days ago)
+    const dayBuckets = Array.from({ length: 7 }, () => ({
+      minutes: 0,
+      missions: 0,
+      accuracySum: 0,
+      accuracyCount: 0
+    }));
+
+    // Single pass over all study sessions O(N)
+    studySessions.forEach(s => {
+      const sTime = new Date(s.startTime).getTime();
+      
+      let daysAgo = -1;
+      if (sTime >= startOfToday) {
+        daysAgo = 0; // Today
+      } else {
+        const diffMs = startOfToday - sTime;
+        daysAgo = Math.floor(diffMs / dayMs) + 1;
+      }
+
+      if (daysAgo >= 0 && daysAgo < 7) {
+        const bucket = dayBuckets[daysAgo];
+        bucket.minutes += (s.duration || 0);
+        bucket.missions += 1;
+        if (s.accuracy !== undefined) {
+          bucket.accuracySum += s.accuracy;
+          bucket.accuracyCount += 1;
+        }
+      }
+    });
+
+    // Format output to match UI expectation, reversing so older days come first (D-6 to Today)
     const days = [];
     for (let i = 6; i >= 0; i--) {
-      const d = new Date(now);
-      d.setDate(d.getDate() - i);
-      const startOfDay = d.getTime();
-      const endOfDay = startOfDay + 24 * 60 * 60 * 1000;
-
-      const sessionsForDay = studySessions.filter(s => {
-        const sTime = new Date(s.startTime).getTime();
-        return sTime >= startOfDay && sTime < endOfDay;
-      });
-
-      const minutes = sessionsForDay.reduce((acc, s) => acc + s.duration, 0);
-      const accSessions = sessionsForDay.filter(s => s.accuracy !== undefined);
-      const accuracy = accSessions.length > 0 
-        ? Math.round(accSessions.reduce((acc, s) => acc + (s.accuracy || 0), 0) / accSessions.length)
+      const bucket = dayBuckets[i];
+      const accuracy = bucket.accuracyCount > 0 
+        ? Math.round(bucket.accuracySum / bucket.accuracyCount)
         : 0;
 
       days.push({
         label: i === 0 ? 'Today' : `D-${i}`,
-        minutes,
+        minutes: bucket.minutes,
         accuracy,
-        missions: sessionsForDay.length
+        missions: bucket.missions
       });
     }
+
     return days;
   }, [studySessions]);
 

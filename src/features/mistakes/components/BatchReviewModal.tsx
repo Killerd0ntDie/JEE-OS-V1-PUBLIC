@@ -32,6 +32,19 @@ export const BatchReviewModal: React.FC<BatchReviewModalProps> = ({
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
+  const [reviewQueue, setReviewQueue] = useState<Mistake[]>([]);
+  const hasInitializedRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (isOpen && !hasInitializedRef.current) {
+      setReviewQueue(activeMistakes);
+      setCurrentIndex(0);
+      setShowAnswer(false);
+      hasInitializedRef.current = true;
+    } else if (!isOpen) {
+      hasInitializedRef.current = false;
+    }
+  }, [isOpen, activeMistakes]);
 
   useLockBodyScroll(isOpen);
   useEscapeKey(onClose, isOpen);
@@ -39,11 +52,11 @@ export const BatchReviewModal: React.FC<BatchReviewModalProps> = ({
 
   if (!isOpen) return null;
 
-  const currentItem = activeMistakes[currentIndex];
+  const currentItem = reviewQueue[currentIndex];
 
   const handleNext = () => {
     setShowAnswer(false);
-    if (currentIndex < activeMistakes.length - 1) {
+    if (currentIndex < reviewQueue.length - 1) {
       setCurrentIndex(prev => prev + 1);
     }
   };
@@ -83,9 +96,9 @@ export const BatchReviewModal: React.FC<BatchReviewModalProps> = ({
           </div>
 
           <div className="flex items-center gap-3">
-            {activeMistakes.length > 0 && (
+            {reviewQueue.length > 0 && (
               <span className="text-xs font-mono text-zinc-400 bg-zinc-900 px-3 py-1 rounded-full border border-zinc-800">
-                {currentIndex + 1} / {activeMistakes.length}
+                {currentIndex + 1} / {reviewQueue.length}
               </span>
             )}
             <button
@@ -100,7 +113,7 @@ export const BatchReviewModal: React.FC<BatchReviewModalProps> = ({
 
         {/* Modal Content */}
         <div className="p-6 space-y-5 flex-1 overflow-y-auto">
-          {activeMistakes.length === 0 ? (
+          {reviewQueue.length === 0 ? (
             <div className="py-12 text-center space-y-3">
               <Award className="w-12 h-12 text-emerald-400 mx-auto opacity-80" />
               <h3 className="text-sm font-bold text-zinc-200">No Active Errors Pending Review!</h3>
@@ -202,6 +215,8 @@ export const BatchReviewModal: React.FC<BatchReviewModalProps> = ({
                         <button
                           onClick={() => {
                             onUpdateStatus(currentItem.id, 'Reviewed');
+                            // Update local snapshot state so the UI reflects the new status
+                            setReviewQueue(prev => prev.map(m => m.id === currentItem.id ? { ...m, revisionStatus: 'Reviewed' } : m));
                             triggerToast('Marked as Reviewed (40% Recovery)', 'info');
                           }}
                           className={`px-3 py-1.5 rounded-lg text-2xs font-bold border transition-all cursor-pointer ${
@@ -215,6 +230,7 @@ export const BatchReviewModal: React.FC<BatchReviewModalProps> = ({
                         <button
                           onClick={() => {
                             onUpdateStatus(currentItem.id, 'Solved Again');
+                            setReviewQueue(prev => prev.map(m => m.id === currentItem.id ? { ...m, revisionStatus: 'Solved Again' } : m));
                             triggerToast('Marked as Re-Attempted (70% Recovery)', 'info');
                           }}
                           className={`px-3 py-1.5 rounded-lg text-2xs font-bold border transition-all cursor-pointer ${
@@ -228,6 +244,7 @@ export const BatchReviewModal: React.FC<BatchReviewModalProps> = ({
                         <button
                           onClick={() => {
                             onUpdateStatus(currentItem.id, 'Mastered');
+                            setReviewQueue(prev => prev.map(m => m.id === currentItem.id ? { ...m, revisionStatus: 'Mastered' } : m));
                             triggerToast('Marked as Mastered (100% Recovery)!', 'success');
                           }}
                           className={`px-3 py-1.5 rounded-lg text-2xs font-bold border transition-all cursor-pointer ${

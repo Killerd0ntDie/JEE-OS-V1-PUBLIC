@@ -156,11 +156,11 @@ STUDENT TELEMETRY:
 - Target: ${targetCollege} (${targetYear})
 - Remaining Days for Exam: ${remainingDays}
 - Today's Scheduled Mission: ${JSON.stringify(mission, null, 2)}
-- Active Unresolved Mistakes: ${JSON.stringify(weakTopics, null, 2)}
-- Revision Backlog / Due Queue: ${JSON.stringify(revisionQueue, null, 2)}
-- Planner Engine Outputs: ${JSON.stringify(plannerDecisions, null, 2)}
-- Filtered Active Chapters: ${JSON.stringify(chapters, null, 2)}
-- Mock Test History: ${JSON.stringify(mockHistory, null, 2)}
+- Active Unresolved Mistakes: ${JSON.stringify(weakTopics?.slice(0, 5) || [], null, 2)}
+- Revision Backlog / Due Queue: ${JSON.stringify(revisionQueue?.slice(0, 5).map(r => ({ name: r.chapterName, daysOverdue: r.daysOverdue })) || [], null, 2)}
+- Planner Engine Outputs: ${JSON.stringify(plannerDecisions?.slice(0, 5).map(p => ({ task: p.taskName, chapter: p.chapterName, priority: p.priorityScore })) || [], null, 2)}
+- Filtered Active Chapters: ${JSON.stringify(chapters?.filter(c => c.completion > 0 && c.completion < 100).map(c => ({ name: c.name, subject: c.subject, completion: c.completion, priority: c.priorityScore })) || [], null, 2)}
+- Mock Test History: ${JSON.stringify(mockHistory?.slice(0, 3) || [], null, 2)}
 - Recent Performance Analytics: ${JSON.stringify(analyticsSummary, null, 2)}
 
 ${question ? `

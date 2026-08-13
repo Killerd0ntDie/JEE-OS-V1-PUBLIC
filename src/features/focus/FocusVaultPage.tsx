@@ -18,7 +18,7 @@ export function FocusVaultPage() {
   const { user } = useAuth();
   
   const [selectedSubject, setSelectedSubject] = useState<SubjectId>('physics');
-  const [inputMinutes, setInputMinutes] = useState(DEFAULT_MINUTES);
+  const [inputMinutes, setInputMinutes] = useState<number | ''>(DEFAULT_MINUTES);
   const [timeLeft, setTimeLeft] = useState(DEFAULT_MINUTES * 60);
   const [isActive, setIsActive] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
@@ -30,18 +30,27 @@ export function FocusVaultPage() {
   const lastTickTime = useRef<number>(Date.now());
   const youtubeRef = useRef<HTMLIFrameElement>(null);
 
+  const activeStateRef = useRef({ isActive, timeLeft, sessionDuration, isCompleted });
+
+  useEffect(() => {
+    activeStateRef.current = { isActive, timeLeft, sessionDuration, isCompleted };
+  }, [isActive, timeLeft, sessionDuration, isCompleted]);
+
   // Sync active state to session storage to block navigation in App.tsx
-  // And use native beforeunload to prevent accidental tab closing/refresh
   useEffect(() => {
     const isVaultActive = isActive || (timeLeft > 0 && sessionDuration > 0 && !isCompleted);
-    
     if (isVaultActive) {
       sessionStorage.setItem('vault-active', 'true');
     } else {
       sessionStorage.removeItem('vault-active');
     }
+  }, [isActive, timeLeft, sessionDuration, isCompleted]);
 
+  // Use native beforeunload to prevent accidental tab closing/refresh
+  useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      const state = activeStateRef.current;
+      const isVaultActive = state.isActive || (state.timeLeft > 0 && state.sessionDuration > 0 && !state.isCompleted);
       if (isVaultActive) {
         e.preventDefault();
         e.returnValue = ''; // Required for Chrome
@@ -53,8 +62,15 @@ export function FocusVaultPage() {
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [isActive, timeLeft, sessionDuration, isCompleted]);
+  }, []); // Run once on mount
 
+  // Check for completion in a dedicated effect to avoid stale closures in setInterval
+  useEffect(() => {
+    if (timeLeft <= 0 && isActive && !isCompleted) {
+      if (timerRef.current) clearInterval(timerRef.current);
+      handleComplete();
+    }
+  }, [timeLeft, isActive, isCompleted]);
 
   // Timer tick logic
   useEffect(() => {
@@ -68,12 +84,7 @@ export function FocusVaultPage() {
         if (deltaSecs > 0) {
           lastTickTime.current += deltaSecs * 1000;
           setTimeLeft(prev => {
-            const nextTime = prev - deltaSecs;
-            if (nextTime <= 0) {
-              clearInterval(timerRef.current!);
-              handleComplete();
-              return 0;
-            }
+            const nextTime = Math.max(0, prev - deltaSecs);
             return nextTime;
           });
           setSessionDuration(prev => prev + deltaSecs);
@@ -89,12 +100,19 @@ export function FocusVaultPage() {
   }, [isActive]);
 
   const handleStartPause = () => {
+    if (!isActive) {
+      const finalMins = typeof inputMinutes === 'number' ? Math.max(1, inputMinutes) : 1;
+      setInputMinutes(finalMins);
+      if (timeLeft <= 0) setTimeLeft(finalMins * 60);
+    }
     setIsActive(!isActive);
   };
 
   const handleReset = () => {
     setIsActive(false);
-    setTimeLeft(inputMinutes * 60);
+    const finalMins = typeof inputMinutes === 'number' ? Math.max(1, inputMinutes) : DEFAULT_MINUTES;
+    setInputMinutes(finalMins);
+    setTimeLeft(finalMins * 60);
     setSessionDuration(0);
     setIsCompleted(false);
   };
@@ -196,7 +214,12 @@ export function FocusVaultPage() {
                       type="number" 
                       value={inputMinutes}
                       onChange={(e) => {
-                        const val = Math.max(1, Math.min(300, parseInt(e.target.value) || 0));
+                        if (e.target.value === '') {
+                          setInputMinutes('');
+                          setTimeLeft(0);
+                          return;
+                        }
+                        const val = Math.min(300, parseInt(e.target.value, 10) || 0);
                         setInputMinutes(val);
                         setTimeLeft(val * 60);
                       }}
@@ -286,7 +309,13 @@ export function FocusVaultPage() {
           <div className="absolute inset-0 z-10"></div>
           {/* Using highly stable Synthwave VOD instead of live stream */}
           <iframe 
+            key={LOFI_STATIONS[stationIndex].id}
             ref={youtubeRef}
+            onLoad={() => {
+              if (youtubeRef.current && youtubeRef.current.contentWindow) {
+                youtubeRef.current.contentWindow.postMessage(`{"event":"command","func":"${isMuted ? 'mute' : 'unMute'}","args":""}`, '*');
+              }
+            }}
             src={`https://www.youtube.com/embed/${LOFI_STATIONS[stationIndex].id}?autoplay=1&enablejsapi=1&controls=0&disablekb=1&fs=0&loop=1&playlist=${LOFI_STATIONS[stationIndex].id}&modestbranding=1&playsinline=1&iv_load_policy=3`} 
             title="Lofi Stream" 
             className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300%] h-[300%] pointer-events-none opacity-80"

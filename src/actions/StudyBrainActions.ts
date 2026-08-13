@@ -180,9 +180,15 @@ export class StudyBrainActions {
     const mission = this.state.todayMissions.find(m => m.id === missionId);
     if (!mission || mission.completed) return;
 
+    // To prevent "AFK" XP exploits (Bug 4.1), strictly require a minimum focus score.
+    if (focusScore < 30) {
+      console.warn('Partial XP rejected: Focus score too low, indicating AFK behavior.');
+      return;
+    }
+
     const missionDurationSecs = (mission.duration || 60) * 60;
     const timeRatio = Math.min(0.95, elapsedSecs / missionDurationSecs);
-    const focusMultiplier = Math.max(0.1, Math.min(1, focusScore / 100));
+    const focusMultiplier = Math.min(1, focusScore / 100);
     const baseXp = mission.xp || 50;
     let partialXP = Math.max(5, Math.floor(baseXp * timeRatio * focusMultiplier));
 
@@ -290,18 +296,50 @@ export class StudyBrainActions {
       // We will link the generated session ID once created
       updatedMission.linkedSessionId = null; 
     } else {
-      // Un-completing: restore original values
+      // Un-completing: do NOT restore originalTimeSlot here.
+      // If we restore it to an early morning time, the UI will sort it to the top of the 
+      // uncompleted list instantly, causing a double-jump animation when the engine 
+      // subsequently pushes it back to 'Live' time 350ms later.
+      // Just restore duration and let the engine assign the correct timeSlot.
       if (mission.originalDuration) {
         updatedMission.duration = mission.originalDuration;
         delete updatedMission.originalDuration;
       }
-      if (mission.originalTimeSlot) {
-        updatedMission.timeSlot = mission.originalTimeSlot;
-        delete updatedMission.originalTimeSlot;
-      }
+      delete updatedMission.originalTimeSlot;
     }
 
     updatedMissions[missionIndex] = updatedMission;
+
+    if (isCompleting && mission.type !== 'Break') {
+      const breakDuration = mission.duration >= 60 ? 10 : 5;
+      const breakId = `today-break-${mission.id}`;
+      const hasExistingBreak = updatedMissions.some(m => m.id === breakId || m.id === `break-${mission.id}`);
+      
+      if (!hasExistingBreak) {
+        // Synchronously inject a Break to prevent UI flickering before Planner Engine runs
+        const localBreak: any = {
+          id: breakId,
+          subject: 'break',
+          chapter: 'Rest',
+          type: 'Break',
+          taskName: `${breakDuration}m Break`,
+          duration: breakDuration,
+          timeSlot: mission.timeSlot,
+          scheduledTime: mission.scheduledTime,
+          completed: false,
+          xp: 0,
+          unlocked: true,
+          isManualOverride: false
+        };
+        updatedMissions.splice(missionIndex + 1, 0, localBreak);
+      }
+    } else if (!isCompleting && mission.type !== 'Break') {
+      const breakId = `today-break-${mission.id}`;
+      const existingBreakIndex = updatedMissions.findIndex(m => m.id === breakId || m.id === `break-${mission.id}`);
+      if (existingBreakIndex !== -1) {
+        updatedMissions.splice(existingBreakIndex, 1);
+      }
+    }
 
     if (isCompleting && missionIndex + 1 < updatedMissions.length) {
       updatedMissions[missionIndex + 1] = {
@@ -370,13 +408,10 @@ export class StudyBrainActions {
           let currentLecture = c.currentLecture || 0;
           const totalLectures = c.totalLectures || 12;
           
-          if (isCompleting) {
+           if (isCompleting) {
              if (mission.type === 'Watch Lecture') {
-               // Extract the actual lecture number from taskName (e.g. 'Lecture 7/20: Chemical Bonding' → 7)
-               // to avoid blindly incrementing when out-of-order lectures are completed.
-               const lecMatch = (mission.taskName || '').match(/Lecture\s+(\d+)/i);
-               const completedLecNum = lecMatch ? parseInt(lecMatch[1], 10) : currentLecture + 1;
-               currentLecture = Math.min(totalLectures, Math.max(currentLecture, completedLecNum));
+               // Treat currentLecture as a simple count to avoid out-of-order desyncs (Bug 2.3)
+               currentLecture = Math.min(totalLectures, currentLecture + 1);
                theoryComplete = currentLecture >= totalLectures;
              }
             if (mission.type === 'Solve DPP') dppComplete = true;
@@ -392,15 +427,8 @@ export class StudyBrainActions {
             }
           } else {
             if (mission.type === 'Watch Lecture') {
-              const lecMatch = (mission.taskName || '').match(/Lecture\s+(\d+)/i);
-              const uncheckedLecNum = lecMatch ? parseInt(lecMatch[1], 10) : null;
-              
-              if (uncheckedLecNum !== null && currentLecture === uncheckedLecNum) {
-                // Only decrement if we are unchecking the latest lecture (Bug 2.2)
-                currentLecture = Math.max(0, currentLecture - 1);
-              } else if (uncheckedLecNum === null) {
-                currentLecture = Math.max(0, currentLecture - 1);
-              }
+              // Simply decrement the count (Bug 2.3)
+              currentLecture = Math.max(0, currentLecture - 1);
               theoryComplete = false;
             }
             if (mission.type === 'Solve DPP') dppComplete = false;
@@ -525,19 +553,23 @@ export class StudyBrainActions {
       }
 
       // Optimistic update - refresh UI immediately before saving
-
-
-      // Await heavy IO tasks so errors are caught by the outer try/catch
-      await Promise.all(savePromises);
-
-      // Trigger matrix regeneration
-      // Use INIT instead of SESSION_UPDATE to trigger generateWeeklyMatrix
-      await this.runtime.refresh('INIT', {
+      this.runtime.updateStateOptimistic({
         todayMissions: updatedMissions,
         customMissions: updatedCustomMissions,
         completedPlannerMissionIds: updatedCompletedPlannerMissionIds,
         xp: newXp,
         chapters: updatedChapters,
+      });
+
+      // Await heavy IO tasks so errors are caught by the outer try/catch
+      await Promise.all(savePromises);
+
+      // Delay heavy matrix regeneration to allow UI layout animations to finish at a smooth 60fps
+      await new Promise(resolve => setTimeout(resolve, 350));
+
+      // Trigger matrix regeneration
+      // Use INIT instead of SESSION_UPDATE to trigger generateWeeklyMatrix
+      await this.runtime.refresh('INIT', {
         lastSyncError: null,
         levelUpData
       });

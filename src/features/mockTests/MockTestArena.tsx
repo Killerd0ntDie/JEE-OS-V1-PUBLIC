@@ -17,8 +17,31 @@ interface MockTestArenaProps {
 export function MockTestArena({ test, onComplete, onExit }: MockTestArenaProps) {
   const { user } = useAuth();
   const userId = user?.uid || 'guest';
-  const [currentSubject, setCurrentSubject] = useState<SubjectId>(test.sections[0].subject);
-  const [currentQIdx, setCurrentQIdx] = useState(0);
+  const [currentSubject, setCurrentSubject] = useState<SubjectId>(() => {
+    try {
+      const saved = localStorage.getItem(`jeeos_mock_pos_${userId}_${test.id}`);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.subject) return parsed.subject;
+      }
+    } catch(e) {}
+    return test.sections[0].subject;
+  });
+
+  const [currentQIdx, setCurrentQIdx] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`jeeos_mock_pos_${userId}_${test.id}`);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (typeof parsed.idx === 'number') return parsed.idx;
+      }
+    } catch(e) {}
+    return 0;
+  });
+
+  useEffect(() => {
+    localStorage.setItem(`jeeos_mock_pos_${userId}_${test.id}`, JSON.stringify({ subject: currentSubject, idx: currentQIdx }));
+  }, [currentSubject, currentQIdx, userId, test.id]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isConfirmSubmitOpen, setIsConfirmSubmitOpen] = useState(false);
 
@@ -206,15 +229,20 @@ export function MockTestArena({ test, onComplete, onExit }: MockTestArenaProps) 
     
     const finalAttempt = {
       ...attempt,
-      endTime: new Date().toISOString()
+      endTime: new Date().toISOString(),
+      questions: { ...attempt.questions }
     };
     
     if (timeSpent > 0 && finalAttempt.questions[activeQuestion.id]) {
-        finalAttempt.questions[activeQuestion.id].timeSpentSeconds += timeSpent;
+      finalAttempt.questions[activeQuestion.id] = {
+        ...finalAttempt.questions[activeQuestion.id],
+        timeSpentSeconds: finalAttempt.questions[activeQuestion.id].timeSpentSeconds + timeSpent
+      };
     }
 
     localStorage.removeItem(`jeeos_mock_attempt_${userId}_${test.id}`);
     localStorage.removeItem(`jeeos_mock_end_${userId}_${test.id}`);
+    localStorage.removeItem(`jeeos_mock_pos_${userId}_${test.id}`);
 
     // Let animation play for a split second
     setTimeout(() => {

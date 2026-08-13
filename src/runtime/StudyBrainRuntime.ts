@@ -259,7 +259,9 @@ export class StudyBrainRuntime {
   public dispose() {
     this.isDisposed = true;
     this.subscribers.clear();
-    this.refreshQueue = [];
+    this.pendingResolvers = [];
+    this.pendingReasons.clear();
+    if (this.refreshTimer) clearTimeout(this.refreshTimer);
     this.isProcessingRefresh = false;
     if (this.levelUpTimeout) {
       clearTimeout(this.levelUpTimeout);
@@ -287,12 +289,13 @@ export class StudyBrainRuntime {
 
   // For optimistic updates, they can pass partial state
   
-  private refreshQueue: Array<{ reason: RefreshTriggers; optimisticData?: Partial<StudyBrainState>; resolve: (value: void) => void }> = [];
   private isProcessingRefresh: boolean = false;
   private isDisposed: boolean = false;
   private levelUpTimeout: NodeJS.Timeout | null = null;
-
-
+  
+  private refreshTimer: NodeJS.Timeout | null = null;
+  private pendingReasons = new Set<RefreshTriggers>();
+  private pendingResolvers: Array<(value: void) => void> = [];
 
   public async refresh(reason: RefreshTriggers, optimisticData?: Partial<StudyBrainState>) {
     if (this.isDisposed) {
@@ -310,35 +313,49 @@ export class StudyBrainRuntime {
       return;
     }
 
-    // Add to queue instead of using debounced timeout
-    return new Promise((resolve) => {
-      this.refreshQueue.push({ reason, optimisticData: null, resolve }); // Don't pass optimisticData to queue - already applied
-      this.processRefreshQueue();
+    return new Promise<void>((resolve) => {
+      this.pendingReasons.add(reason);
+      this.pendingResolvers.push(resolve);
+
+      if (this.refreshTimer) {
+        clearTimeout(this.refreshTimer);
+      }
+
+      this.refreshTimer = setTimeout(() => {
+        this.processDebouncedRefresh();
+      }, 500); // 500ms debounce
     });
   }
 
-  private async processRefreshQueue() {
-    if (this.isDisposed || this.isProcessingRefresh || this.refreshQueue.length === 0) {
+  private async processDebouncedRefresh() {
+    if (this.isDisposed || this.isProcessingRefresh || this.pendingReasons.size === 0) {
       return;
     }
 
     this.isProcessingRefresh = true;
+    
+    // Snapshot the current pending batch
+    const reasons = Array.from(this.pendingReasons);
+    const resolvers = [...this.pendingResolvers];
+    this.pendingReasons.clear();
+    this.pendingResolvers = [];
 
-    while (this.refreshQueue.length > 0 && !this.isDisposed) {
-      const { reason, resolve } = this.refreshQueue.shift()!;
-      
-      try {
-        await this.executeRefresh(reason);
-        resolve();
-      } catch (error) {
-        console.error('[StudyBrainRuntime] Refresh failed:', error);
-        // Resolve anyway to prevent queue deadlock, but the error has been logged
-        // The caller should handle this gracefully - state may be stale but won't crash
-        resolve();
+    try {
+      // Pick the most impactful reason, or just the first one since executeRefresh is delta-aware
+      const mainReason = reasons.includes('SETTINGS_UPDATE') ? 'SETTINGS_UPDATE' : reasons[0];
+      await this.executeRefresh(mainReason);
+    } catch (error) {
+      console.error('[StudyBrainRuntime] Refresh failed:', error);
+    } finally {
+      // Resolve all waiters for this batch
+      resolvers.forEach(r => r());
+      this.isProcessingRefresh = false;
+
+      // If more came in while we were processing, kick off another cycle
+      if (this.pendingReasons.size > 0) {
+        this.processDebouncedRefresh();
       }
     }
-
-    this.isProcessingRefresh = false;
   }
 
   private async executeRefresh(reason: RefreshTriggers) {
@@ -415,17 +432,12 @@ export class StudyBrainRuntime {
     if (reason === 'INIT' || stateChanged.chapters || stateChanged.sessions || stateChanged.mocks || stateChanged.mistakes) {
       const aStart = performance.now();
       
-      // Compute subject specific filters inside engine input
-      let filteredSessions = this.state.studySessions;
-      let filteredChapters = this.state.chapters;
-      if (this.state.activeSubject !== 'all') {
-        filteredSessions = this.state.studySessions.filter(s => s.subjectId === this.state.activeSubject);
-        filteredChapters = this.state.chapters.filter(c => c.subject === this.state.activeSubject);
-      }
-
+      // Unconditional Global Compute (Architectural Fix 1.2)
+      // The Analytics Engine should always compute global state. 
+      // Sub-filtering belongs at the UI/Selector level, not at data-ingestion.
       const analyticsInput: AnalyticsInput = {
-        chapters: filteredChapters,
-        sessions: filteredSessions,
+        chapters: this.state.chapters,
+        sessions: this.state.studySessions,
         mocks: this.state.mocks,
         mistakes: this.state.mistakes,
         chapterTelemetryMap: this.state.chapterTelemetryMap
@@ -475,7 +487,7 @@ export class StudyBrainRuntime {
         .reduce((acc, m) => acc + (m.duration || 0), 0);
       
       const consumedHours = consumedMinutes / 60;
-      const effectiveStudyHours = Math.max(1.0, totalDailyQuotaHours - consumedHours);
+      const effectiveStudyHours = Math.max(0, totalDailyQuotaHours - consumedHours);
 
       const plannerInput: PlannerInput = {
         studyHours: effectiveStudyHours, 
@@ -486,7 +498,8 @@ export class StudyBrainRuntime {
           focusSubject: this.state.settings.targetBranch ? undefined : undefined, 
           dailyQuota: effectiveStudyHours,
           subjectSplitStrategy: this.state.mentorProfile?.subjectSplitStrategy,
-          twoDaySplitConfig: this.state.mentorProfile?.twoDaySplitConfig
+          twoDaySplitConfig: this.state.mentorProfile?.twoDaySplitConfig,
+          prerequisiteEnforcementStrategy: this.state.settings.prerequisiteEnforcementStrategy
         },
         remainingDaysUntilJEE: StudyBrainService.getDaysUntilExam(this.state.settings.targetYear),
         studySessions: this.state.studySessions,
@@ -526,29 +539,36 @@ export class StudyBrainRuntime {
       );
 
       // Priority 3: Planner-generated missions (lowest priority - system suggestions)
-      const plannerMissions = (this.state.plannerOutput?.todaysMission || []).map(t => ({
-        id: t.id,
-        subject: t.subjectId as SubjectId,
-        chapter: t.chapterName,
-        type: t.type,
-        taskName: t.taskName,
-        duration: t.duration,
-        completed: existingMissionsMap.get(t.id)?.completed || false,
-        xp: Math.round(t.priorityScore),
-        unlocked: true,
-        priorityScore: t.priorityScore,
-        expectedMarksGain: t.expectedMarksGain,
-        expectedLearningGain: t.expectedLearningGain,
-        dependencyValue: t.dependencyValue,
-        revisionContribution: t.revisionContribution,
-        selectionReason: t.selectionReason,
-        whyThisTaskExists: t.reasoning?.whySelected || t.selectionReason,
-        futureDependencies: t.reasoning?.dependentChapters || [],
-        estimatedCompletionMinutes: t.duration,
-        expectedJeeImpact: t.reasoning?.longTermImpact || `+${t.expectedMarksGain} Marks`,
-        confidenceGainPercent: t.reasoning?.confidenceScorePercent || 85,
-        reasoning: t.reasoning
-      })).filter(pm => !userCustomMissions.some(uc => uc.id === pm.id) && !aiMissions.some(ai => ai.id === pm.id));
+      const plannerMissions = (this.state.plannerOutput?.todaysMission || []).map(t => {
+        // Bug 4.2: Preserve user edits to planner tasks. If it already exists in state,
+        // return the exact existing object so duration/timeSlot edits aren't wiped out by refresh.
+        const existing = existingMissionsMap.get(t.id);
+        if (existing) return existing;
+
+        return {
+          id: t.id,
+          subject: t.subjectId as any,
+          chapter: t.chapterName,
+          type: t.type,
+          taskName: t.taskName,
+          duration: t.duration,
+          completed: false,
+          xp: Math.round(t.priorityScore),
+          unlocked: true,
+          priorityScore: t.priorityScore,
+          expectedMarksGain: t.expectedMarksGain,
+          expectedLearningGain: t.expectedLearningGain,
+          dependencyValue: t.dependencyValue,
+          revisionContribution: t.revisionContribution,
+          selectionReason: t.selectionReason,
+          whyThisTaskExists: t.reasoning?.whySelected || t.selectionReason,
+          futureDependencies: t.reasoning?.dependentChapters || [],
+          estimatedCompletionMinutes: t.duration,
+          expectedJeeImpact: t.reasoning?.longTermImpact || `+${t.expectedMarksGain} Marks`,
+          confidenceGainPercent: t.reasoning?.confidenceScorePercent || 85,
+          reasoning: t.reasoning
+        };
+      }).filter(pm => !userCustomMissions.some(uc => uc.id === pm.id) && !aiMissions.some(ai => ai.id === pm.id));
 
       // Combine missions in priority order (later entries override earlier ones if same ID)
       const allMissions = [
@@ -579,11 +599,11 @@ export class StudyBrainRuntime {
         }
       }
 
-      this.state.todayMissions = Array.from(uniqueMissions.values());
+      let tempTodayMissions = Array.from(uniqueMissions.values());
 
       // Enforce sequential lecture order: same-chapter lectures must be in ascending order.
       // This prevents the Map insertion order from scrambling lecture sequences (e.g. L7 before L5).
-      this.state.todayMissions.sort((a, b) => {
+      tempTodayMissions.sort((a, b) => {
         // Completed tasks first
         if (a.completed !== b.completed) return a.completed ? -1 : 1;
         // For same-chapter lecture tasks, sort by lecture number
@@ -607,7 +627,7 @@ export class StudyBrainRuntime {
       this.state.weeklySchedule = (generateWeeklyMatrix as any)(
         splitStrategy,
         this.state.chapters,
-        this.state.todayMissions,
+        tempTodayMissions,
         this.state.weeklySchedule,
         currentDayIndex,
         this.state.mentorProfile?.twoDaySplitConfig,
@@ -684,12 +704,15 @@ export class StudyBrainRuntime {
       // Update timeline based on the newly synchronized todayMissions
       let currentHour = 9;
       let currentMinute = 0;
+      let timeSinceLastBreak = 0;
       const customBlocks = this.state.timeline.filter(b => b.id.startsWith('custom-'));
       const generatedBlocks: TimelineBlock[] = [];
 
       this.state.todayMissions.forEach((mission, idx) => {
         const startStr = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
         currentMinute += mission.duration;
+        timeSinceLastBreak += mission.duration;
+        
         while (currentMinute >= 60) {
           currentHour += 1;
           currentMinute -= 60;
@@ -706,22 +729,27 @@ export class StudyBrainRuntime {
         });
 
         if (idx < this.state.todayMissions.length - 1) {
-          const breakStart = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
-          currentMinute += 20;
-          while (currentMinute >= 60) {
-            currentHour += 1;
-            currentMinute -= 60;
-          }
-          const breakEnd = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
+          // Dynamic Breaks: Only insert a break if we've been studying continuously for 45+ mins
+          if (timeSinceLastBreak >= 45) {
+            const breakDuration = timeSinceLastBreak >= 90 ? 20 : 10;
+            const breakStart = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
+            currentMinute += breakDuration;
+            while (currentMinute >= 60) {
+              currentHour += 1;
+              currentMinute -= 60;
+            }
+            const breakEnd = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
 
-          generatedBlocks.push({
-            id: `break-${idx}`,
-            time: `${breakStart} - ${breakEnd}`,
-            subject: 'break',
-            chapter: 'Cognitive Disconnection',
-            activity: 'Take a 20-minute break. Absolutely no social media feeds or high-intensity audio.',
-            completed: false
-          });
+            generatedBlocks.push({
+              id: `break-${idx}`,
+              time: `${breakStart} - ${breakEnd}`,
+              subject: 'break',
+              chapter: 'Cognitive Disconnection',
+              activity: `Take a ${breakDuration}-minute break. Stretch and hydrate.`,
+              completed: false
+            });
+            timeSinceLastBreak = 0;
+          }
         }
       });
       this.state.timeline = [...customBlocks, ...generatedBlocks];

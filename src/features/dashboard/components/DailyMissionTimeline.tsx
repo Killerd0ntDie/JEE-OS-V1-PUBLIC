@@ -415,7 +415,9 @@ export function DailyMissionTimeline({
 
               const visibleMissions = sortedMissions;
 
-              return visibleMissions.map((mission, idx) => {
+              return (
+                <AnimatePresence mode="popLayout">
+                  {visibleMissions.map((mission, idx) => {
                   const isDismissed = !!mission.dismissed;
                   const badgeStyle = getSubjectBadgeStyle(mission.subject);
                   const isExpanded = expandedMission === mission.id;
@@ -447,7 +449,13 @@ export function DailyMissionTimeline({
 
                   if (isBreak) {
                     return (
-                      <div
+                      <motion.div
+                        layout
+                        style={{ willChange: 'transform, opacity' }}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{ duration: 0.3, ease: 'easeInOut' }}
                         key={mission.id}
                         onClick={() => {
                           if (sessionState !== 'idle' && selectedMissionId !== mission.id) {
@@ -455,7 +463,7 @@ export function DailyMissionTimeline({
                           }
                           setSelectedMissionId?.(mission.id);
                         }}
-                        className={`group transition-all duration-200 cursor-pointer focus:outline-none flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 px-4 py-2.5 rounded-xl border relative mb-2 ${
+                        className={`group transition-colors duration-200 cursor-pointer focus:outline-none flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 px-4 py-2.5 rounded-xl border relative mb-2 ${
                           isLive 
                             ? 'border-emerald-500/40 bg-emerald-950/20 shadow-[0_0_10px_rgba(16,185,129,0.05)]' 
                             : isDismissed
@@ -537,12 +545,18 @@ export function DailyMissionTimeline({
                              </button>
                            )}
                          </div>
-                      </div>
+                      </motion.div>
                     );
                   }
 
                   return (
-                    <div
+                    <motion.div
+                      layout
+                      style={{ willChange: 'transform, opacity' }}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ duration: 0.3, ease: 'easeInOut' }}
                       key={mission.id}
                       onClick={() => {
                         if (sessionState !== 'idle' && selectedMissionId !== mission.id) {
@@ -553,7 +567,7 @@ export function DailyMissionTimeline({
                           actions.setRadarFocusedChapter(chap.id);
                         }
                       }}
-                    className={`group transition-all duration-200 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 active:scale-[0.99] relative overflow-hidden ${
+                    className={`group transition-colors duration-200 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 active:scale-[0.99] relative overflow-hidden ${
                         isLive
                           ? 'p-6 md:p-7 rounded-2xl border-2 border-emerald-500 shadow-[0_0_18px_rgba(16,185,129,0.15)] bg-zinc-900/80 mb-4'
                           : isDismissed
@@ -802,11 +816,12 @@ export function DailyMissionTimeline({
                         )}
                       </AnimatePresence>
 
-                    </div>
+                    </motion.div>
                   );
-                })
-              })()
-            }
+                })}
+                </AnimatePresence>
+              );
+            })()}
           </div>
         </div>
 

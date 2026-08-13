@@ -28,8 +28,10 @@ export function MistakeTestModal({ isOpen, onClose, mistakes }: MistakeTestModal
   const [completed, setCompleted] = useState(false);
   const [sessionResults, setSessionResults] = useState<{correct: number, wrong: number}>({ correct: 0, wrong: 0 });
 
+  const hasInitializedRef = React.useRef(false);
+
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !hasInitializedRef.current) {
       // Shuffle and pick up to 20 unmastered mistakes that have questionText
       const eligible = mistakes.filter(m => m.revisionStatus !== 'Mastered' && m.questionText && m.questionText.trim().length > 0);
       const shuffled = [...eligible].sort(() => 0.5 - Math.random());
@@ -38,6 +40,9 @@ export function MistakeTestModal({ isOpen, onClose, mistakes }: MistakeTestModal
       setIsRevealed(false);
       setCompleted(false);
       setSessionResults({ correct: 0, wrong: 0 });
+      hasInitializedRef.current = true;
+    } else if (!isOpen) {
+      hasInitializedRef.current = false;
     }
   }, [isOpen, mistakes]);
 

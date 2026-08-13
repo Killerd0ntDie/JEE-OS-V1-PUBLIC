@@ -482,9 +482,16 @@ export class PlannerScoringEngine {
     const taskDuration = context.taskType === 'Watch Lecture' ? 60 : (context.taskType === 'Revise Formulas' ? 30 : 45);
     const totalMins = context.globalInput.studyHours * 60;
     const userVelocityHours = context.globalInput.studyHours || 4;
-    // Prevent division by zero and ensure denominator is at least 1
     const safeTotalMins = Math.max(1, totalMins);
-    let completionProbabilityScore = PLANNER_CONFIG.completionProbBase - (taskDuration / safeTotalMins) * PLANNER_CONFIG.completionProbPenaltyFactor + (userVelocityHours - 4) * PLANNER_CONFIG.completionProbVelocityBonus;
+    let penaltyRatio = taskDuration / safeTotalMins;
+    
+    // Soften penalty for low quotas: if they don't have much time, we shouldn't heavily punish 
+    // them for needing to do necessary core tasks (like a long lecture).
+    if (safeTotalMins <= 180) {
+      penaltyRatio = Math.min(0.3, penaltyRatio); // Cap penalty impact for low daily quotas
+    }
+    
+    let completionProbabilityScore = PLANNER_CONFIG.completionProbBase - penaltyRatio * PLANNER_CONFIG.completionProbPenaltyFactor + (userVelocityHours - 4) * PLANNER_CONFIG.completionProbVelocityBonus;
     completionProbabilityScore = Math.max(PLANNER_CONFIG.completionProbMin, Math.min(PLANNER_CONFIG.completionProbMax, completionProbabilityScore));
 
     // -------------------------------------------------------------
@@ -530,9 +537,9 @@ export class PlannerScoringEngine {
     let fatigueScore = 50;
     if (userFatigue > 50) {
       if (context.taskType === 'Revise Formulas' || context.taskType === 'Review Mistakes') {
-        fatigueScore = 90;
+        fatigueScore = 90; // Still prefer light tasks when hours are high
       } else {
-        fatigueScore = 20;
+        fatigueScore = 45; // Softened from 20 so it doesn't completely block core progression
       }
     }
 

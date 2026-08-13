@@ -23,6 +23,8 @@ export class RevisionEngine {
     const notStartedChapters: ChapterRevisionSummary[] = [];
     const allCards: RevisionCardItem[] = [];
 
+    const smEngine = new SpacedRepetitionEngine();
+
     // Process chapters & formula cards
     chapters.forEach(chap => {
       if (chap.chapterOnHold || chap.revisionOnHold) return;
@@ -79,8 +81,6 @@ export class RevisionEngine {
       if (!isStartedOrMastered) {
         return;
       }
-
-      const smEngine = new SpacedRepetitionEngine();
 
       // Generate card items with spaced repetition metadata
       formulas.forEach((f, idx) => {

@@ -48,12 +48,15 @@ export class KnowledgeEngine {
    * Returns all chapters that are fully unlocked (all prerequisites are mastered).
    */
   public getUnlockedChapters(progress: ProgressState[]): SyllabusNode[] {
-    const masteredIds = new Set(progress.filter(p => p.isMastered || p.completion === 100).map(p => p.chapterId));
+    // Bug 1.1: Prereqs are satisfied if completion >= 50, theory is complete, or fully mastered.
+    const passedPrereqIds = new Set(progress.filter(p => p.isMastered || p.completion >= 50 || p.theoryComplete).map(p => p.chapterId));
+    
+    const completedIds = new Set(progress.filter(p => p.isMastered || p.completion === 100).map(p => p.chapterId));
     
     return this.getAllNodes().filter(node => {
       // If it's already mastered/completed, it's not "unlocked" to study, it's done.
-      // Or maybe it is unlocked but completed. Let's return everything that has prereqs met.
-      const hasAllPrereqs = node.prerequisites.every(reqId => masteredIds.has(reqId));
+      if (completedIds.has(node.id)) return false;
+      const hasAllPrereqs = node.prerequisites.every(reqId => passedPrereqIds.has(reqId));
       return hasAllPrereqs;
     });
   }
@@ -62,10 +65,10 @@ export class KnowledgeEngine {
    * Returns all chapters that are currently blocked by unmastered prerequisites.
    */
   public getBlockedChapters(progress: ProgressState[]): SyllabusNode[] {
-    const masteredIds = new Set(progress.filter(p => p.isMastered || p.completion === 100).map(p => p.chapterId));
+    const passedPrereqIds = new Set(progress.filter(p => p.isMastered || p.completion >= 50 || p.theoryComplete).map(p => p.chapterId));
     
     return this.getAllNodes().filter(node => {
-      const hasAllPrereqs = node.prerequisites.every(reqId => masteredIds.has(reqId));
+      const hasAllPrereqs = node.prerequisites.every(reqId => passedPrereqIds.has(reqId));
       return !hasAllPrereqs;
     });
   }
@@ -75,10 +78,9 @@ export class KnowledgeEngine {
    */
   public getRecommendedNextChapters(progress: ProgressState[], limit: number = 25): SyllabusNode[] {
     const completedIds = new Set(progress.filter(p => p.completion === 100 || p.isMastered).map(p => p.chapterId));
-    const unlocked = this.getUnlockedChapters(progress);
     
-    // Filter out already completed ones
-    const available = unlocked.filter(node => !completedIds.has(node.id));
+    // getUnlockedChapters now inherently filters out completed ones
+    const available = this.getUnlockedChapters(progress);
 
     const progressMap = new Map(progress.map(p => [p.chapterId, p]));
     const importanceScore: Record<string, number> = { 'High': 3, 'Medium': 2, 'Low': 1 };
@@ -167,7 +169,8 @@ export class KnowledgeEngine {
       const completion = prog ? prog.completion : 0;
       if (completion < 100) {
         const remainingPct = (100 - completion) / 100;
-        remaining += (node.estimatedHours || 0) * remainingPct;
+        const fallbackHours = ((node.totalLectures || 12) * (node.avgLectureDuration || 60)) / 60 * 1.5;
+        remaining += (node.estimatedHours || fallbackHours) * remainingPct;
       }
     }
 

@@ -638,7 +638,7 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
                               </span>
                             )}
                             <span className={`font-space-grotesk font-bold ${viewMode === 'weekly' ? 'text-[11px]' : 'text-[11px]'} text-zinc-200 truncate`}>
-                              ☕ {block.activity || 'Take a Break'}
+                              {block.activity || 'Take a Break'}
                             </span>
                           </div>
                           <div className="flex items-center gap-1 shrink-0">

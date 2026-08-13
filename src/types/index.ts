@@ -659,6 +659,7 @@ export interface UserProfile {
     pauseOnTabChange?: boolean;
     migratedToPristine?: boolean;
     revisionSettings?: RevisionSettings;
+    prerequisiteEnforcementStrategy?: 'strict' | 'parallel';
     enableGodMode?: boolean;
     enableHardBedtimeCap?: boolean;
     dayStartTime?: string;

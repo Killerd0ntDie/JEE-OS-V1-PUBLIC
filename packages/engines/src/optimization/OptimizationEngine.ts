@@ -33,7 +33,13 @@ export class OptimizationEngine {
     // Clamp target daily quota between 2 and 12 hrs/day to prevent impossible 30 hrs/day or 0 hrs/day values
     const rawQuota = plannerInput.userPreferences.dailyQuota || plannerInput.studyHours || 6;
     const targetQuota = Math.min(12, Math.max(2, rawQuota));
-    const avgStudyHours = loggedAvg > 0.5 ? Math.min(12, loggedAvg) : targetQuota;
+    
+    // Implement Velocity Smoothing (EWMA): 60% reality (logged) + 40% intention (quota)
+    let avgStudyHours = targetQuota;
+    if (loggedAvg > 0) {
+      avgStudyHours = (targetQuota * 0.4) + (loggedAvg * 0.6);
+    }
+    avgStudyHours = Math.max(1.5, Math.min(12, avgStudyHours)); // Ensure it never drops too low or high
 
     const telemetryMap = plannerInput.chapterTelemetryMap || {};
     const progressStates: ProgressState[] = Object.entries(telemetryMap).map(([chapterId, data]) => ({
@@ -80,9 +86,12 @@ export class OptimizationEngine {
     let scheduleStatus: 'On Track' | 'At Risk' | 'Behind Schedule' = 'On Track';
     const thirtyDaysMs = OPTIMIZATION_CONFIG.behindScheduleBufferDays * 24 * 60 * 60 * 1000;
     
-    if (predictedCompletionMs > targetMs + thirtyDaysMs) {
+    // Fix: Buffer should be subtracted from the target date, not added.
+    if (predictedCompletionMs > targetMs) {
+      // Finishing AFTER the exam is a hard fail.
       scheduleStatus = 'Behind Schedule';
-    } else if (predictedCompletionMs > targetMs) {
+    } else if (predictedCompletionMs > targetMs - thirtyDaysMs) {
+      // Finishing within the 30-day buffer zone is risky.
       scheduleStatus = 'At Risk';
     }
 
@@ -96,8 +105,8 @@ export class OptimizationEngine {
     for (const node of allNodes) {
       const prog = telemetryMap[node.id];
       subjectProgress[node.subject].total += 1;
-      if (prog && prog.isMastered) {
-        subjectProgress[node.subject].completed += 1;
+      if (prog) {
+        subjectProgress[node.subject].completed += (prog.masteryScore || 0) / 100;
       }
     }
 

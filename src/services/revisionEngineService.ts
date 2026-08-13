@@ -107,7 +107,10 @@ export const RevisionEngineService = {
     // Weighted Health: Completion (20%), Confidence (45%), Retention (35%)
     // Subtract 4% penalty for each active mistake in this chapter (capped at -24%)
     const rawHealth = (chapter.completion * 0.20) + (chapter.confidence * 0.45) + (retention * 0.35);
-    const penalty = Math.min(24, chapterMistakesCount * 4);
+    const totalQs = Math.max(1, chapter.solvedQuestions || 0);
+    const mistakeRatio = Math.min(1, chapterMistakesCount / totalQs);
+    // 50% mistake ratio yields max penalty of 24 (Bug 3.1)
+    const penalty = Math.min(24, mistakeRatio * 48);
     
     return Math.max(0, Math.min(100, Math.round(rawHealth - penalty)));
   },
@@ -180,8 +183,9 @@ export const RevisionEngineService = {
       if (chapter.chapterOnHold || chapter.revisionOnHold) return;
 
       // Check if eligible for spaced repetition revision
-      // Must be at least Theory Complete or DPP Complete
-      if (!chapter.theoryComplete && chapter.completion < 30) return;
+      // Must have hit at least 50% mastery OR explicitly finished Theory/DPP (Bug 3.2)
+      const masteryScore = chapter.completion || 0;
+      if (!chapter.theoryComplete && !chapter.dppComplete && masteryScore < 50) return;
 
       const currentStage = this.inferCurrentStage(chapter);
       if (currentStage === 'Mastered') return; // already finished!
@@ -240,10 +244,10 @@ export const RevisionEngineService = {
         reason = `${currentStage} Checkpoint`;
       }
 
-      // Determine Priority Category
-      let priority: 'High' | 'Medium' | 'Low' = 'Low';
-      if (priorityScore >= 65) priority = 'High';
-      else if (priorityScore >= 35) priority = 'Medium';
+      // Determine Priority Category based on syllabus importance (Bug 3.3)
+      let priority: 'High' | 'Medium' | 'Low' = 'Medium';
+      if (chapter.priority === 1) priority = 'High';
+      else if (chapter.priority === 3) priority = 'Low';
 
       // Revisions are critical if overdue by > 3 days, have Critical health (< 40), or high priority score (>= 65)
       const isCritical = daysOverdue >= 3 || healthScore < 40 || priorityScore >= 65;
@@ -268,8 +272,14 @@ export const RevisionEngineService = {
       });
     });
 
-    // Sort by priorityScore descending
-    queue.sort((a, b) => b.priorityScore - a.priorityScore);
+    // Sort by priority bucket first, then by priorityScore descending (Bug 3.3)
+    queue.sort((a, b) => {
+       const pMap = { 'High': 3, 'Medium': 2, 'Low': 1 };
+       const aPri = pMap[a.priority];
+       const bPri = pMap[b.priority];
+       if (aPri !== bPri) return bPri - aPri;
+       return b.priorityScore - a.priorityScore;
+    });
 
     // Smart Rescheduling:
     // 1. Identify all critical items.
