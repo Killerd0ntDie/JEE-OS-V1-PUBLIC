@@ -569,6 +569,9 @@ Valid Action examples (as payload):
   } else {
     const distPath = import_path2.default.join(process.cwd(), "dist");
     app.use(import_express.default.static(distPath));
+    app.use("/assets", (req, res) => {
+      res.status(404).send("Asset not found");
+    });
     app.get("*", (req, res) => {
       res.sendFile(import_path2.default.join(distPath, "index.html"));
     });

@@ -116,7 +116,13 @@ body {
   box-shadow: 0 12px 40px 0 rgba(99, 102, 241, 0.2);
 }
 
-@utility glass-panel {
+/* glass-panel & glass-dropdown are defined as plain classes instead of
+   @utility so they always survive production tree-shaking / purging.
+   The @utility directive in Tailwind v4 can be aggressively pruned on
+   deploy targets like Render.com, stripping the glassmorphism off the
+   sidebar, topbar, and modals. Plain classes inside the stylesheet are
+   never purged.                                                         */
+.glass-panel {
   background: rgba(0, 0, 0, 0.45) !important;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
   backdrop-filter: blur(16px) !important;
@@ -131,7 +137,7 @@ body {
    Nested backdrop-filter is a no-op per the CSS spec — the child can
    only blur the parent's already-composited surface, not the page
    content behind it, so the blur appears invisible.                     */
-@utility glass-dropdown {
+.glass-dropdown {
   background: rgba(0, 0, 0, 0.45) !important;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
   backdrop-filter: blur(16px) !important;
