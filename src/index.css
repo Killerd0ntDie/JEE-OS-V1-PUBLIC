@@ -102,7 +102,7 @@ body {
 }
 
 /* Glassmorphism Design Tokens & Utilities */
-@utility glass-card {
+.glass-card {
   background: rgba(18, 19, 26, 0.80);
   border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.08);
@@ -110,18 +110,12 @@ body {
   transform: translateZ(0);
 }
 
-@utility glass-card-hover {
+.glass-card-hover {
   background: rgba(24, 25, 34, 0.90);
   border-color: rgba(99, 102, 241, 0.4);
   box-shadow: 0 12px 40px 0 rgba(99, 102, 241, 0.2);
 }
 
-/* glass-panel & glass-dropdown are defined as plain classes instead of
-   @utility so they always survive production tree-shaking / purging.
-   The @utility directive in Tailwind v4 can be aggressively pruned on
-   deploy targets like Render.com, stripping the glassmorphism off the
-   sidebar, topbar, and modals. Plain classes inside the stylesheet are
-   never purged.                                                         */
 .glass-panel {
   background: rgba(0, 0, 0, 0.45) !important;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
@@ -130,18 +124,11 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.10) !important;
 }
 
-/* glass-dropdown: visually identical to glass-panel but uses an opaque
-   solid background instead of backdrop-filter.  This is required for any
-   popup, popover, floating menu, or dropdown that renders *inside* a
-   parent which already carries backdrop-filter (header, modal, sidebar).
-   Nested backdrop-filter is a no-op per the CSS spec — the child can
-   only blur the parent's already-composited surface, not the page
-   content behind it, so the blur appears invisible.                     */
 .glass-dropdown {
-  background: rgba(0, 0, 0, 0.45) !important;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
-  backdrop-filter: blur(16px) !important;
-  -webkit-backdrop-filter: blur(16px) !important;
+  background: rgba(12, 14, 20, 0.70) !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
   border: 1px solid rgba(255, 255, 255, 0.10) !important;
 }
 
