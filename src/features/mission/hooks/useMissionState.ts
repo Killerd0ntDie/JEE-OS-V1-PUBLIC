@@ -63,14 +63,18 @@ export function useMissionState(props: MissionModeProps) {
   // Enhanced session storage persistence for timer state
   useEffect(() => {
     if (storageKey && !isSettingUp && !isCompleted && !missionFailed) {
-      localStorage.setItem(storageKey, JSON.stringify({
-        isPaused, 
-        seconds, 
-        focusScore, 
-        idleTime, 
-        focusInterruptions,
-        timestamp: Date.now() // Add timestamp to detect stale sessions
-      }));
+      try {
+        localStorage.setItem(storageKey, JSON.stringify({
+          isPaused, 
+          seconds, 
+          focusScore, 
+          idleTime, 
+          focusInterruptions,
+          timestamp: Date.now() // Add timestamp to detect stale sessions
+        }));
+      } catch (e) {
+        console.warn('Failed to save mission snapshot to localStorage', e);
+      }
     }
   }, [storageKey, isSettingUp, isCompleted, missionFailed, isPaused, seconds, focusScore, idleTime, focusInterruptions]);
   

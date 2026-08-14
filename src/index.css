@@ -91,6 +91,8 @@ body {
   -webkit-backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.05);
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.02);
+  transform: translateZ(0);
+  will-change: transform, backdrop-filter;
 }
 
 .premium-card:hover {
@@ -105,6 +107,7 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.08);
   transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  transform: translateZ(0);
 }
 
 @utility glass-card-hover {
@@ -115,10 +118,28 @@ body {
 
 @utility glass-panel {
   background: rgba(0, 0, 0, 0.45) !important;
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1) !important;
-  backdrop-filter: blur(12px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
 }
+
+/* glass-dropdown: visually identical to glass-panel but uses an opaque
+   solid background instead of backdrop-filter.  This is required for any
+   popup, popover, floating menu, or dropdown that renders *inside* a
+   parent which already carries backdrop-filter (header, modal, sidebar).
+   Nested backdrop-filter is a no-op per the CSS spec — the child can
+   only blur the parent's already-composited surface, not the page
+   content behind it, so the blur appears invisible.                     */
+@utility glass-dropdown {
+  background: rgba(0, 0, 0, 0.45) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+}
+
+
 
 .text-gradient-indigo {
   background: linear-gradient(135deg, #c7d2fe 0%, #818cf8 50%, #6366f1 100%);
@@ -162,11 +183,64 @@ body {
   100% { background-position: 100% 50%; opacity: 1; }
 }
 
-
 /* ==========================================================================
-   PERFORMANCE OVERRIDES
+   INTERACTION & SHIMMER MOTION ENGINE
    ========================================================================== */
-*, ::before, ::after {
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.animate-shimmer::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.05) 35%,
+    rgba(255, 255, 255, 0.12) 50%,
+    rgba(255, 255, 255, 0.05) 65%,
+    transparent 100%
+  );
+  animation: shimmer 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  will-change: transform;
+}
+
+/* Tactile Micro-Interactions */
+.tap-subtle {
+  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.15s ease;
+}
+.tap-subtle:active {
+  transform: scale(0.98);
+}
+
+.tap-card {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.tap-card:hover {
+  transform: translateY(-2px);
+}
+.tap-card:active {
+  transform: translateY(0) scale(0.99);
+}
+
+/* Hide scrollbar utility */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

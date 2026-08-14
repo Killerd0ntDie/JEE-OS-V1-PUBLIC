@@ -101,88 +101,81 @@ export function PlannerPage() {
   return (
     <div className="w-full max-w-7xl mx-auto flex flex-col gap-4 font-sans text-zinc-400 relative flex-1 h-[calc(100dvh-2rem)] pb-4">
       {/* PLANNER HEADER CONTROLS */}
-      <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 select-none py-0.5">
+      <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 select-none py-1">
         {/* LEFT: Date / Week Stepper & Status Badge */}
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#0c0d14] border border-zinc-800 shadow-sm">
-            <button
+          <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-zinc-950/60 border border-zinc-850/80 shadow-sm backdrop-blur-xl">
+            <motion.button
               type="button"
+              whileTap={{ scale: 0.92 }}
               onClick={handlePrevDate}
-              className="w-6 h-6 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white transition-all flex items-center justify-center cursor-pointer font-bold text-xs"
+              className="w-7 h-7 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors flex items-center justify-center cursor-pointer border border-zinc-800"
               title={viewMode === 'weekly' ? 'Previous week' : 'Previous day'}
             >
-              ‹
-            </button>
-            <span className="font-space-grotesk font-bold text-zinc-200 text-xs px-2 min-w-[110px] text-center tracking-wide">
+              <span className="text-sm font-bold">‹</span>
+            </motion.button>
+            <span className="font-mono font-bold text-zinc-200 text-xs px-3 min-w-[120px] text-center tracking-tight">
               {viewMode === 'weekly' ? getWeekRangeString(selectedDayIndex) : getDayDateString(selectedDayIndex)}
             </span>
-            <button
+            <motion.button
               type="button"
+              whileTap={{ scale: 0.92 }}
               onClick={handleNextDate}
-              className="w-6 h-6 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white transition-all flex items-center justify-center cursor-pointer font-bold text-xs"
+              className="w-7 h-7 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors flex items-center justify-center cursor-pointer border border-zinc-800"
               title={viewMode === 'weekly' ? 'Next week' : 'Next day'}
             >
-              ›
-            </button>
+              <span className="text-sm font-bold">›</span>
+            </motion.button>
           </div>
 
-          <span className="text-xs text-zinc-400 font-sans hidden sm:flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-            <span className="font-mono text-[11px] text-zinc-400">42h planned this week</span>
+          <span className="text-xs font-mono hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-950/60 border border-zinc-850/80 text-zinc-400">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-zinc-300 font-bold">42h</span> planned this week
           </span>
         </div>
 
         {/* RIGHT: View Switcher + Add Block CTA */}
-        <div className="flex items-center gap-3">
-          {/* Day / Week / Month Switcher */}
-          <div className="flex items-center p-1 rounded-xl bg-[#0c0d14] border border-zinc-800 gap-1 shadow-sm">
-            <button
-              type="button"
-              onClick={() => {
-                setSlideDirection('forward');
-                setViewMode('daily');
-              }}
-              className={`px-3 py-1 rounded-lg font-syne font-bold text-xs tracking-wider uppercase cursor-pointer transition-all ${
-                viewMode === 'daily' ? 'bg-indigo-600 text-white shadow-sm' : 'text-zinc-400 hover:text-white'
-              }`}
-            >
-              Day
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setSlideDirection('forward');
-                setViewMode('weekly');
-              }}
-              className={`px-3 py-1 rounded-lg font-syne font-bold text-xs tracking-wider uppercase cursor-pointer transition-all ${
-                viewMode === 'weekly' ? 'bg-indigo-600 text-white shadow-sm' : 'text-zinc-400 hover:text-white'
-              }`}
-            >
-              Week
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setSlideDirection('forward');
-                setViewMode('monthly');
-              }}
-              className={`px-3 py-1 rounded-lg font-syne font-bold text-xs tracking-wider uppercase cursor-pointer transition-all ${
-                viewMode === 'monthly' ? 'bg-indigo-600 text-white shadow-sm' : 'text-zinc-400 hover:text-white'
-              }`}
-            >
-              Month
-            </button>
+        <div className="flex items-center gap-2.5">
+          {/* Day / Week / Month Switcher with Spring Glider */}
+          <div className="grid grid-cols-3 gap-1 p-1 bg-zinc-950/80 border border-zinc-850 rounded-xl relative select-none">
+            {(['daily', 'weekly', 'monthly'] as const).map((mode) => {
+              const isActive = viewMode === mode;
+              const label = mode === 'daily' ? 'Day' : mode === 'weekly' ? 'Week' : 'Month';
+              return (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => {
+                    setSlideDirection('forward');
+                    setViewMode(mode);
+                  }}
+                  className={`relative px-3 py-1.5 rounded-lg text-xs font-mono font-bold uppercase transition-colors cursor-pointer select-none z-10 flex items-center justify-center ${
+                    isActive ? 'text-white' : 'text-zinc-400 hover:text-zinc-200'
+                  }`}
+                >
+                  {isActive && (
+                    <motion.div
+                      layoutId="plannerViewModeGlider"
+                      className="absolute inset-0 bg-indigo-600 rounded-lg shadow-md shadow-indigo-600/30 -z-10"
+                      transition={{ type: "spring", stiffness: 450, damping: 35 }}
+                    />
+                  )}
+                  <span>{label}</span>
+                </button>
+              );
+            })}
           </div>
 
           {/* Add Block CTA */}
-          <button
+          <motion.button
             type="button"
+            whileTap={{ scale: 0.94 }}
             onClick={() => setIsCustomMissionModalOpen(true)}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-syne font-bold text-xs tracking-wide shadow-sm transition-all cursor-pointer"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-mono font-bold text-xs tracking-wider uppercase shadow-md shadow-indigo-600/20 transition-colors cursor-pointer"
           >
-            <span className="text-sm">+</span>
+            <span className="text-sm leading-none font-bold">+</span>
             <span>Add Block</span>
-          </button>
+          </motion.button>
         </div>
       </div>
 

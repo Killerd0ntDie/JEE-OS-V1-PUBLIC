@@ -89,11 +89,19 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
     return () => clearInterval(timer);
   }, []);
 
-  // Current day calculation
+  // Current day calculation — during overnight hours (before dayStartTime),
+  // the student is still on the PREVIOUS day's schedule
   const currentDayIndex = useMemo(() => {
-    const d = nowDate.getDay();
+    const startHour = parseInt((state?.settings?.dayStartTime || '07:00').split(':')[0]) || 7;
+    const isOvernightWindow = nowDate.getHours() < startHour;
+    // If in overnight window, treat as previous calendar day
+    const effectiveDate = new Date(nowDate);
+    if (isOvernightWindow) {
+      effectiveDate.setDate(effectiveDate.getDate() - 1);
+    }
+    const d = effectiveDate.getDay();
     return d === 0 ? 6 : d - 1; // 0 = Mon
-  }, [nowDate]);
+  }, [nowDate, state?.settings?.dayStartTime]);
 
   const visibleDayIndices = useMemo(() => {
     if (viewMode === 'daily') return [selectedDayIndex];
@@ -167,24 +175,24 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
     const s = (subject || 'unknown').toLowerCase();
     const act = (activity || '').toLowerCase();
     if (act.includes('mock') || act.includes('paper') || s.includes('mock')) {
-      return 'bg-[rgba(99,102,241,0.14)] border-l-2 border-[rgba(99,102,241,0.6)] hover:bg-[rgba(99,102,241,0.22)] text-indigo-200';
+      return 'bg-indigo-950/40 border border-indigo-500/40 text-indigo-200 hover:border-indigo-400 hover:bg-indigo-950/60 shadow-lg';
     }
     if (act.includes('revision') || act.includes('flashcard') || s.includes('revision')) {
-      return 'bg-[rgba(251,146,60,0.1)] border-l-2 border-[rgba(251,146,60,0.5)] hover:bg-[rgba(251,146,60,0.18)] text-amber-200';
+      return 'bg-amber-950/40 border border-amber-500/40 text-amber-200 hover:border-amber-400 hover:bg-amber-950/60 shadow-lg';
     }
     if (s.includes('math')) {
-      return 'bg-[rgba(192,132,252,0.14)] border-l-2 border-[rgba(192,132,252,0.6)] hover:bg-[rgba(192,132,252,0.22)] text-purple-200';
+      return 'bg-indigo-950/40 border border-indigo-500/40 text-indigo-200 hover:border-indigo-400 hover:bg-indigo-950/60 shadow-lg';
     }
     if (s.includes('phys')) {
-      return 'bg-[rgba(56,189,248,0.12)] border-l-2 border-[rgba(56,189,248,0.55)] hover:bg-[rgba(56,189,248,0.2)] text-sky-200';
+      return 'bg-sky-950/40 border border-sky-500/40 text-sky-200 hover:border-sky-400 hover:bg-sky-950/60 shadow-lg';
     }
     if (s.includes('chem')) {
-      return 'bg-[rgba(52,211,153,0.12)] border-l-2 border-[rgba(52,211,153,0.55)] hover:bg-[rgba(52,211,153,0.2)] text-emerald-200';
+      return 'bg-emerald-950/40 border border-emerald-500/40 text-emerald-200 hover:border-emerald-400 hover:bg-emerald-950/60 shadow-lg';
     }
     if (s === 'break') {
-      return 'bg-[rgba(255,255,255,0.03)] border-l-2 border-[rgba(255,255,255,0.12)] text-zinc-400';
+      return 'bg-zinc-950/50 border border-dashed border-zinc-800 text-zinc-400 hover:border-zinc-700';
     }
-    return 'bg-indigo-950/20 border-l-2 border-indigo-500/40 text-indigo-200';
+    return 'bg-indigo-950/40 border border-indigo-500/40 text-indigo-200 hover:border-indigo-400';
   };
 
   const getSubjectTitle = (block: WeeklyBlock) => {
@@ -425,22 +433,33 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
               {/* EVENT BLOCKS (WITH OVERLAP / CLASH DETECTION & SIDE-BY-SIDE SPLIT) */}
               {(() => {
                 const isTodayCol = dIndex === currentDayIndex;
-                const nowMins = nowDate.getHours() * 60 + nowDate.getMinutes();
-                let runningPushMins = nowMins;
+                const dayStartTime = state?.settings?.dayStartTime || '07:00';
+                const dayEndTime = state?.settings?.dayEndTime || '23:00';
+                const parseTimeVal = (val: string | undefined, fallback: number) => {
+                  const p = parseInt(val || '', 10);
+                  return isNaN(p) ? fallback : p;
+                };
+                const startHourVal = parseTimeVal(dayStartTime.split(':')[0], 7);
+                let endHour = parseTimeVal(dayEndTime.split(':')[0], 23);
+                let endMinute = parseTimeVal(dayEndTime.split(':')[1], 0);
+                let logicalEndHour = endHour;
+                if (logicalEndHour < startHourVal) {
+                  logicalEndHour += 24;
+                }
+                const endMinsTotal = logicalEndHour * 60 + endMinute;
+
+                let nowHour = nowDate.getHours();
+                const isOvernightCycle = nowHour < startHourVal;
+                let logicalNowHour = isOvernightCycle ? nowHour + 24 : nowHour;
+                const nowMins = logicalNowHour * 60 + nowDate.getMinutes();
+                let runningPushMins = Math.max(startHourVal * 60, isOvernightCycle ? startHourVal * 60 : nowMins);
 
                 const sortedDayBlocks = [...dayBlocks].sort((a: WeeklyBlock, b: WeeklyBlock) => {
                   if (isTodayCol) {
                     if (a.completed && !b.completed) return -1;
                     if (!a.completed && b.completed) return 1;
                   }
-                  // Always order chronologically by each block's own scheduled timeSlot —
-                  // this must match DailyMissionTimeline's ordering (which drives the
-                  // Dashboard's "push to live" cascade) or the two views disagree about
-                  // which mission is actually live. Previously this fell back to parsing
-                  // a number out of the activity/chapter text (e.g. "Lecture 5/20") for
-                  // today's uncompleted blocks, which silently reordered missions whenever
-                  // the planner scheduled them out of lecture-number order, causing the
-                  // wrong lecture to be marked LIVE here vs. on the Dashboard.
+                  // Always order chronologically by each block's own scheduled timeSlot
                   const getMins = (blk: WeeklyBlock) => {
                     const match = (blk.timeSlot || '').match(/(\d{1,2}):(\d{2})/);
                     return match ? parseInt(match[1]) * 60 + parseInt(match[2]) : 9999;
@@ -448,22 +467,7 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
                   return getMins(a) - getMins(b);
                 });
 
-                 const dayStartTime = state?.settings?.dayStartTime || '07:00';
-                 const dayEndTime = state?.settings?.dayEndTime || '23:00';
-                  const parseTimeVal = (val: string | undefined, fallback: number) => {
-                    const p = parseInt(val || '', 10);
-                    return isNaN(p) ? fallback : p;
-                  };
-                  let endHour = parseTimeVal(dayEndTime.split(':')[0], 23);
-                  let endMinute = parseTimeVal(dayEndTime.split(':')[1], 0);
-                  let logicalEndHour = endHour;
-                  const startHourVal = parseTimeVal(dayStartTime.split(':')[0], 7);
-                  if (logicalEndHour < startHourVal) {
-                    logicalEndHour += 24;
-                  }
-                  const endMinsTotal = logicalEndHour * 60 + endMinute;
-
-                 const blockMetrics = sortedDayBlocks.map((block: WeeklyBlock, bIdx: number) => {
+                const blockMetrics = sortedDayBlocks.map((block: WeeklyBlock, bIdx: number) => {
                   let { topPx, heightPx } = calculateBlockPos(block, bIdx);
                   const duration = getBlockDuration(block);
 
@@ -477,12 +481,10 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
                       let sH = parseInt(matchFull[1]);
                       if (matchFull[3]?.toLowerCase() === 'pm' && sH !== 12) sH += 12;
                       if (matchFull[3]?.toLowerCase() === 'am' && sH === 12) sH = 0;
-                      if (sH < 6) sH += 24;
                       
                       let eH = parseInt(matchFull[4]);
                       if (matchFull[6]?.toLowerCase() === 'pm' && eH !== 12) eH += 12;
                       if (matchFull[6]?.toLowerCase() === 'am' && eH === 12) eH = 0;
-                      if (eH < 6) eH += 24;
 
                       startMins = sH * 60 + parseInt(matchFull[2]);
                       endMins = eH * 60 + parseInt(matchFull[5]);
@@ -490,7 +492,6 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
                       let sH = parseInt(matchStart[1]);
                       if (matchStart[3]?.toLowerCase() === 'pm' && sH !== 12) sH += 12;
                       if (matchStart[3]?.toLowerCase() === 'am' && sH === 12) sH = 0;
-                      if (sH < 6) sH += 24;
 
                       startMins = sH * 60 + parseInt(matchStart[2]);
                       endMins = startMins + duration;
@@ -500,14 +501,14 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
                   let isPushedLive = false;
                   let effectiveSlot = block.timeSlot || '';
 
-                  // If on TODAY and block is UNCOMPLETED: push forward sequentially to auto-balance breaks & tasks
-                  if (isTodayCol && !block.completed) {
+                  // If on TODAY and block is UNCOMPLETED: push forward sequentially if behind real time during active daytime
+                  if (isTodayCol && !block.completed && !isOvernightCycle) {
                     const shouldSnapToLive = !block.isManualOverride || startMins < runningPushMins;
                     
-                    if (shouldSnapToLive && startMins !== runningPushMins) {
+                    if (shouldSnapToLive && startMins < runningPushMins) {
                       startMins = runningPushMins;
                       endMins = startMins + duration;
-                      topPx = (startMins / 60) * 120;
+                      topPx = ((startMins % 1440) / 60) * 120;
 
                       const sH = Math.floor((startMins % 1440) / 60).toString().padStart(2, '0');
                       const sM = (startMins % 60).toString().padStart(2, '0');
@@ -516,23 +517,18 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
                       effectiveSlot = `${sH}:${sM} - ${eH}:${eM}`;
                     }
 
-                    if (nowMins >= startMins && nowMins < endMins && startMins < endMinsTotal) {
+                    if (nowMins >= startMins && nowMins < endMins) {
                       isPushedLive = true;
                     }
 
                     runningPushMins = endMins;
-
-                    // Omit uncompleted blocks on today's grid column when pushed past bedtime (dayEndTime)
-                    if (startMins >= endMinsTotal) {
-                      return null;
-                    }
                   }
 
                   const startPx = topPx;
                   const endPx = topPx + heightPx;
 
                   return { block, bIdx, topPx, heightPx, startPx, endPx, startMins, endMins, isPushedLive, effectiveSlot };
-                }).filter((item): item is NonNullable<typeof item> => item !== null);
+                });
 
                 return blockMetrics.map((item) => {
                   const { block, bIdx, topPx, heightPx, startPx, endPx, startMins, endMins } = item;

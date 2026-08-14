@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Clock, User, X, Check, Bookmark, Target, AlertCircle, AlertTriangle } from 'lucide-react';
+import { Clock, User, X, Check, Bookmark, Target, AlertCircle, AlertTriangle, LayoutGrid, ChevronDown, ChevronUp } from 'lucide-react';
 import { SubjectId } from '../../types';
 import { Modal } from '@/components/ui/Modal';
 import { ConfirmDeleteModal } from '@/components/ui/ConfirmDeleteModal';
@@ -7,6 +7,7 @@ import { MockTest, MockTestAttempt, MockTestAttemptQuestion, QuestionStatus } fr
 import { MissionMode } from '../mission/MissionMode';
 import { RichTextRenderer } from '@/components/MathRenderer';
 import { useAuth } from '@/features/auth';
+import { idbGet, idbSet, idbRemove } from '@/utils/idb';
 
 interface MockTestArenaProps {
   test: MockTest;
@@ -17,6 +18,7 @@ interface MockTestArenaProps {
 export function MockTestArena({ test, onComplete, onExit }: MockTestArenaProps) {
   const { user } = useAuth();
   const userId = user?.uid || 'guest';
+  const [isMobilePaletteOpen, setIsMobilePaletteOpen] = useState(false);
   const [currentSubject, setCurrentSubject] = useState<SubjectId>(() => {
     try {
       const saved = localStorage.getItem(`jeeos_mock_pos_${userId}_${test.id}`);
@@ -40,8 +42,13 @@ export function MockTestArena({ test, onComplete, onExit }: MockTestArenaProps) 
   });
 
   useEffect(() => {
-    localStorage.setItem(`jeeos_mock_pos_${userId}_${test.id}`, JSON.stringify({ subject: currentSubject, idx: currentQIdx }));
+    try {
+      localStorage.setItem(`jeeos_mock_pos_${userId}_${test.id}`, JSON.stringify({ subject: currentSubject, idx: currentQIdx }));
+    } catch(e) {
+      console.warn('Failed to save mock position metadata:', e);
+    }
   }, [currentSubject, currentQIdx, userId, test.id]);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isConfirmSubmitOpen, setIsConfirmSubmitOpen] = useState(false);
 
@@ -51,7 +58,11 @@ export function MockTestArena({ test, onComplete, onExit }: MockTestArenaProps) 
       if (saved) return parseInt(saved, 10);
     } catch(e) {}
     const end = Date.now() + test.durationMinutes * 60000;
-    localStorage.setItem(`jeeos_mock_end_${userId}_${test.id}`, end.toString());
+    try {
+      localStorage.setItem(`jeeos_mock_end_${userId}_${test.id}`, end.toString());
+    } catch(e) {
+      console.warn('Failed to save mock end time metadata:', e);
+    }
     return end;
   });
 
@@ -65,7 +76,7 @@ export function MockTestArena({ test, onComplete, onExit }: MockTestArenaProps) 
       const saved = localStorage.getItem(`jeeos_mock_attempt_${userId}_${test.id}`);
       if (saved) return JSON.parse(saved);
     } catch(e) {
-      console.error('Failed to load mock attempt', e);
+      console.error('Failed to load mock attempt from local storage fallback', e);
     }
 
     const initialQuestions: Record<string, MockTestAttemptQuestion> = {};
@@ -86,9 +97,38 @@ export function MockTestArena({ test, onComplete, onExit }: MockTestArenaProps) 
     };
   });
 
+  // Asynchronously load attempt from IndexedDB on initial mount
   useEffect(() => {
-    localStorage.setItem(`jeeos_mock_attempt_${userId}_${test.id}`, JSON.stringify(attempt));
-  }, [attempt, test.id, userId]);
+    let active = true;
+    (async () => {
+      try {
+        const savedIdb = await idbGet<MockTestAttempt>(`jeeos_mock_attempt_${userId}_${test.id}`);
+        if (active && savedIdb && savedIdb.questions && Object.keys(savedIdb.questions).length > 0) {
+          setAttempt(savedIdb);
+        }
+      } catch (e) {
+        console.warn('Failed to load mock attempt from IndexedDB:', e);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [test.id, userId]);
+
+  const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Debounced asynchronous persist to IndexedDB to eliminate LocalStorage 5MB quota crash
+  useEffect(() => {
+    if (isSubmitting) return;
+    saveTimerRef.current = setTimeout(() => {
+      idbSet(`jeeos_mock_attempt_${userId}_${test.id}`, attempt).catch(err => {
+        console.warn('IndexedDB mock save warning:', err);
+      });
+    }, 400);
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
+  }, [attempt, test.id, userId, isSubmitting]);
 
   const [currentAnswer, setCurrentAnswer] = useState<string>('');
 
@@ -99,14 +139,94 @@ export function MockTestArena({ test, onComplete, onExit }: MockTestArenaProps) 
 
   const [isConfirmExitOpen, setIsConfirmExitOpen] = useState(false);
 
-  // Escape key logic
+  // Comprehensive Keyboard Navigation (CBT High-Speed Mode)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const isInput = e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement;
+
+      // Handle Escape for exit modal
       if (e.key === 'Escape') {
         if (document.fullscreenElement) {
           document.exitFullscreen().catch(err => console.warn(err));
         }
         setIsConfirmExitOpen(true);
+        return;
+      }
+
+      // Enter key saves & navigates next
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleSaveAndNext();
+        return;
+      }
+
+      // Alt + Section switching (Alt+1: Physics, Alt+2: Chemistry, Alt+3: Mathematics)
+      if (e.altKey && ['1', '2', '3'].includes(e.key)) {
+        e.preventDefault();
+        const targetSecIdx = parseInt(e.key, 10) - 1;
+        if (test.sections[targetSecIdx]) {
+          setCurrentSubject(test.sections[targetSecIdx].subject);
+          setCurrentQIdx(0);
+        }
+        return;
+      }
+
+      // Alt+S: Save & Next
+      if (e.altKey && (e.key === 's' || e.key === 'S')) {
+        e.preventDefault();
+        handleSaveAndNext();
+        return;
+      }
+
+      // Alt+M: Save & Mark for Review
+      if (e.altKey && (e.key === 'm' || e.key === 'M')) {
+        e.preventDefault();
+        handleSaveAndMark();
+        return;
+      }
+
+      // Alt+C: Clear Response
+      if (e.altKey && (e.key === 'c' || e.key === 'C')) {
+        e.preventDefault();
+        handleClear();
+        return;
+      }
+
+      // Don't intercept single character shortcuts if typing in numerical input
+      if (isInput) return;
+
+      // Arrow keys for rapid flipping
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        handleNext();
+        return;
+      }
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        if (currentQIdx > 0) setCurrentQIdx(currentQIdx - 1);
+        return;
+      }
+
+      // Option selection for MCQ via 1-4 or A-D
+      if (activeQuestion.type === 'MCQ') {
+        const keyUpper = e.key.toUpperCase();
+        let selectedIdx: number | null = null;
+        if (['1', '2', '3', '4'].includes(e.key)) {
+          selectedIdx = parseInt(e.key, 10) - 1;
+        } else if (['A', 'B', 'C', 'D'].includes(keyUpper)) {
+          selectedIdx = keyUpper.charCodeAt(0) - 65;
+        }
+
+        if (selectedIdx !== null && activeQuestion.options && selectedIdx < activeQuestion.options.length) {
+          e.preventDefault();
+          setCurrentAnswer(selectedIdx.toString());
+        }
+      }
+
+      // Backspace or Delete to clear
+      if (e.key === 'Backspace' || e.key === 'Delete') {
+        e.preventDefault();
+        handleClear();
       }
     };
 
@@ -114,7 +234,7 @@ export function MockTestArena({ test, onComplete, onExit }: MockTestArenaProps) 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, []);
+  }, [currentQIdx, activeSection, currentSubject, currentAnswer, activeQuestion, test.sections]);
 
   // Load current answer when question changes
   useEffect(() => {
@@ -182,6 +302,7 @@ export function MockTestArena({ test, onComplete, onExit }: MockTestArenaProps) 
 
   const navigateToQuestion = (idx: number) => {
     setCurrentQIdx(idx);
+    setIsMobilePaletteOpen(false);
   };
 
   const handleNext = () => {
@@ -223,6 +344,7 @@ export function MockTestArena({ test, onComplete, onExit }: MockTestArenaProps) 
   const handleSubmitTest = () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     
     // Add time for current question before submitting
     const timeSpent = Math.floor((Date.now() - entryTimeRef.current) / 1000);
@@ -240,9 +362,14 @@ export function MockTestArena({ test, onComplete, onExit }: MockTestArenaProps) 
       };
     }
 
-    localStorage.removeItem(`jeeos_mock_attempt_${userId}_${test.id}`);
-    localStorage.removeItem(`jeeos_mock_end_${userId}_${test.id}`);
-    localStorage.removeItem(`jeeos_mock_pos_${userId}_${test.id}`);
+    try {
+      localStorage.removeItem(`jeeos_mock_attempt_${userId}_${test.id}`);
+      localStorage.removeItem(`jeeos_mock_end_${userId}_${test.id}`);
+      localStorage.removeItem(`jeeos_mock_pos_${userId}_${test.id}`);
+    } catch(e) {
+      console.warn("Storage removal warning:", e);
+    }
+    idbRemove(`jeeos_mock_attempt_${userId}_${test.id}`).catch(e => console.warn("IDB removal warning:", e));
 
     // Let animation play for a split second
     setTimeout(() => {
@@ -293,11 +420,35 @@ export function MockTestArena({ test, onComplete, onExit }: MockTestArenaProps) 
           </div>
 
           {/* Question Content */}
-          <div className="flex-1 overflow-y-auto p-6 md:p-8 flex flex-col">
-            <div className="flex justify-between items-center mb-6 border-b border-zinc-800/50 pb-4">
-              <h2 className="text-xl font-bold text-zinc-100">Question {currentQIdx + 1}</h2>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-mono bg-zinc-900 border border-zinc-800 px-2 py-1 rounded text-zinc-400">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 flex flex-col">
+            <div className="flex justify-between items-center mb-6 border-b border-zinc-800/50 pb-4 gap-2 flex-wrap">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <h2 className="text-lg sm:text-xl font-bold text-zinc-100">Question {currentQIdx + 1}</h2>
+                <span className="hidden sm:inline-block text-[11px] font-mono text-zinc-500">of {activeSection.questions.length}</span>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Mobile Palette Drawer Toggle */}
+                <button
+                  onClick={() => setIsMobilePaletteOpen(prev => !prev)}
+                  className="lg:hidden flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 font-mono text-xs font-bold transition-colors cursor-pointer"
+                  title="Toggle Question Palette"
+                >
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                  <span>Palette</span>
+                  <span className="text-[10px] bg-indigo-500/30 px-1 rounded">{currentQIdx + 1}/{activeSection.questions.length}</span>
+                  {isMobilePaletteOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                </button>
+
+                {/* Mobile Timer Display */}
+                <div className={`lg:hidden flex items-center gap-1 font-mono text-xs font-bold px-2 py-1 rounded-md ${
+                  timeLeft < 300 ? 'text-rose-400 bg-rose-950/60 border border-rose-500/40' : 'text-emerald-400 bg-zinc-900 border border-zinc-800'
+                }`}>
+                  <Clock className="w-3 h-3" />
+                  <span>{formatTime(timeLeft)}</span>
+                </div>
+
+                <span className="hidden sm:inline-block text-xs font-mono bg-zinc-900 border border-zinc-800 px-2 py-1 rounded text-zinc-400">
                   {activeQuestion.type === 'MCQ' ? 'Multiple Choice' : 'Numerical'}
                 </span>
                 <span className="text-xs font-mono bg-indigo-500/10 border border-indigo-500/20 px-2 py-1 rounded text-indigo-400">
@@ -313,64 +464,96 @@ export function MockTestArena({ test, onComplete, onExit }: MockTestArenaProps) 
             {/* Answer Input Area */}
             <div className="mt-auto max-w-xl">
               {activeQuestion.type === 'MCQ' ? (
-                <div className="space-y-3">
-                  {activeQuestion.options?.map((opt, idx) => (
-                    <label 
-                      key={idx}
-                      className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-all ${
-                        currentAnswer === idx.toString()
-                          ? 'bg-indigo-500/10 border-indigo-500 text-white'
-                          : 'bg-[#121318] border-zinc-800 text-zinc-400 hover:border-zinc-600 hover:bg-zinc-900'
-                      }`}
-                    >
-                      <input 
-                        type="radio" 
-                        name={`q-${activeQuestion.id}`}
-                        checked={currentAnswer === idx.toString()}
-                        onChange={() => setCurrentAnswer(idx.toString())}
-                        className="hidden"
-                      />
-                      <div className="w-5 h-5 rounded-full border flex-shrink-0 flex items-center justify-center border-inherit">
-                        {currentAnswer === idx.toString() && <div className="w-2.5 h-2.5 rounded-full bg-current" />}
-                      </div>
-                      <span className="text-sm font-medium"><RichTextRenderer content={opt} /></span>
-                    </label>
-                  ))}
+                <div className="space-y-2.5">
+                  {activeQuestion.options?.map((opt, idx) => {
+                    const optionLetter = String.fromCharCode(65 + idx);
+                    const isSelected = currentAnswer === idx.toString();
+                    return (
+                      <label 
+                        key={idx}
+                        className={`flex items-center gap-3.5 p-3.5 rounded-xl border cursor-pointer transition-all ${
+                          isSelected
+                            ? 'bg-indigo-500/15 border-indigo-500 text-white shadow-md'
+                            : 'bg-[#121318] border-zinc-800 text-zinc-400 hover:border-zinc-600 hover:bg-zinc-900'
+                        }`}
+                      >
+                        <input 
+                          type="radio" 
+                          name={`q-${activeQuestion.id}`}
+                          checked={isSelected}
+                          onChange={() => setCurrentAnswer(idx.toString())}
+                          className="hidden"
+                        />
+                        <div className={`w-6 h-6 rounded-lg border flex-shrink-0 flex items-center justify-center font-mono text-xs font-bold ${
+                          isSelected 
+                            ? 'bg-indigo-500 text-white border-indigo-400' 
+                            : 'bg-zinc-900 border-zinc-700 text-zinc-400'
+                        }`}>
+                          {optionLetter}
+                        </div>
+                        <span className="text-sm font-medium flex-1"><RichTextRenderer content={opt} /></span>
+                        <kbd className="hidden sm:inline-block text-[9px] font-mono text-zinc-400 bg-zinc-900/80 px-1.5 py-0.5 rounded border border-zinc-800">
+                          {idx + 1}
+                        </kbd>
+                      </label>
+                    );
+                  })}
                 </div>
               ) : (
                 <div>
-                  <label className="block text-sm text-zinc-400 mb-2">Enter your numerical answer:</label>
+                  <label className="block text-xs font-mono font-bold uppercase tracking-wider text-zinc-400 mb-2">
+                    Enter numerical answer (Press Enter to Save):
+                  </label>
                   <input 
                     type="number"
                     value={currentAnswer}
                     onChange={(e) => setCurrentAnswer(e.target.value)}
                     placeholder="e.g. 40"
-                    className="w-full bg-[#121318] border border-zinc-700 rounded-xl px-4 py-3 text-lg font-mono text-white focus:outline-none focus:border-indigo-500 transition-colors"
+                    className="w-full bg-[#121318] border border-zinc-700 focus:border-indigo-500 rounded-xl px-4 py-3 text-lg font-mono text-white focus:outline-none transition-colors"
                   />
                 </div>
               )}
             </div>
           </div>
 
-          {/* Action Footer */}
-          <div className="bg-[#0c0c0e] border-t border-zinc-800 p-4 flex flex-wrap gap-3 shrink-0">
-            <button onClick={handleSaveAndNext} className="flex-1 min-w-[140px] py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold uppercase tracking-wider transition-colors">
-              Save & Next
+          {/* Action Footer with Accelerator Badges */}
+          <div className="bg-[#0c0c0e] border-t border-zinc-800 p-3 sm:p-4 flex flex-wrap gap-2.5 sm:gap-3 shrink-0">
+            <button 
+              onClick={handleSaveAndNext} 
+              className="flex-1 min-w-[130px] py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 shadow-md active:scale-95 cursor-pointer"
+            >
+              <span>Save & Next</span>
+              <kbd className="hidden sm:inline bg-emerald-800/80 text-emerald-200 px-1.5 py-0.5 rounded text-[9px]">↵</kbd>
             </button>
-            <button onClick={handleClear} className="flex-1 min-w-[140px] py-2.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-bold uppercase tracking-wider transition-colors border border-zinc-700">
-              Clear Response
+            <button 
+              onClick={handleClear} 
+              className="flex-1 min-w-[120px] py-2.5 px-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs font-mono font-bold uppercase tracking-wider transition-all border border-zinc-700/80 flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer"
+            >
+              <span>Clear</span>
+              <kbd className="hidden sm:inline bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded text-[9px]">⌫</kbd>
             </button>
-            <button onClick={handleSaveAndMark} className="flex-1 min-w-[140px] py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold uppercase tracking-wider transition-colors">
-              Save & Mark for Review
+            <button 
+              onClick={handleSaveAndMark} 
+              className="flex-1 min-w-[140px] py-2.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 shadow-md active:scale-95 cursor-pointer"
+            >
+              <span>Save & Mark</span>
+              <kbd className="hidden sm:inline bg-indigo-800/80 text-indigo-200 px-1.5 py-0.5 rounded text-[9px]">Alt+M</kbd>
             </button>
-            <button onClick={handleMarkForReview} className="flex-1 min-w-[140px] py-2.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold uppercase tracking-wider transition-colors">
-              Mark for Review & Next
+            <button 
+              onClick={handleMarkForReview} 
+              className="flex-1 min-w-[130px] py-2.5 px-3 rounded-xl bg-amber-600/90 hover:bg-amber-500 text-white text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 shadow-md active:scale-95 cursor-pointer"
+            >
+              <span>Mark & Next</span>
             </button>
           </div>
         </div>
 
-        {/* Right Panel: Palette & Profile */}
-        <div className="w-full lg:w-80 max-h-[40vh] lg:max-h-full bg-[#121318] border-t lg:border-l lg:border-t-0 border-zinc-800 flex flex-col shrink-0 overflow-y-auto rounded-xl lg:rounded-none lg:rounded-r-[22px]">
+        {/* Right Panel: Palette & Profile (Collapsible Drawer on Mobile, Docked Sidebar on Desktop) */}
+        <div className={`w-full lg:w-80 bg-[#121318] border-t lg:border-l lg:border-t-0 border-zinc-800 flex flex-col shrink-0 rounded-xl lg:rounded-none lg:rounded-r-[22px] transition-all duration-200 overflow-hidden ${
+          isMobilePaletteOpen 
+            ? 'max-h-[65vh] flex shadow-2xl border-indigo-500/40 ring-1 ring-indigo-500/20' 
+            : 'hidden lg:flex max-h-full'
+        }`}>
           {/* Profile & Timer Area */}
           <div className="p-4 border-b border-zinc-800">
             <div className="flex items-center justify-between mb-4">
@@ -385,12 +568,16 @@ export function MockTestArena({ test, onComplete, onExit }: MockTestArenaProps) 
               </div>
             </div>
             
-            <div className="flex items-center justify-between bg-zinc-900/50 rounded-lg p-3 border border-zinc-800">
+            <div className="flex items-center justify-between bg-zinc-900/80 rounded-xl p-3 border border-zinc-800">
               <div className="flex items-center gap-2 text-zinc-400">
                 <Clock className="w-4 h-4" />
                 <span className="text-xs font-bold uppercase tracking-wider">Time Left</span>
               </div>
-              <div className={`font-mono text-xl font-bold tracking-wider ${timeLeft < 300 ? 'text-rose-500 animate-pulse' : 'text-emerald-400'}`}>
+              <div className={`font-mono text-xl font-black tracking-wider ${
+                timeLeft < 300 
+                  ? 'text-rose-400 bg-rose-950/60 border border-rose-500/40 px-2 py-0.5 rounded-md shadow-sm' 
+                  : 'text-emerald-400'
+              }`}>
                 {formatTime(timeLeft)}
               </div>
             </div>
@@ -529,8 +716,15 @@ export function MockTestArena({ test, onComplete, onExit }: MockTestArenaProps) 
             <button
               onClick={() => {
                 setIsConfirmExitOpen(false);
-                localStorage.removeItem(`jeeos_mock_attempt_${userId}_${test.id}`);
-                localStorage.removeItem(`jeeos_mock_end_${userId}_${test.id}`);
+                if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+                try {
+                  localStorage.removeItem(`jeeos_mock_attempt_${userId}_${test.id}`);
+                  localStorage.removeItem(`jeeos_mock_end_${userId}_${test.id}`);
+                  localStorage.removeItem(`jeeos_mock_pos_${userId}_${test.id}`);
+                } catch(e) {
+                  console.warn("Storage removal warning:", e);
+                }
+                idbRemove(`jeeos_mock_attempt_${userId}_${test.id}`).catch(e => console.warn("IDB removal warning:", e));
                 onExit();
               }}
               className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-mono font-bold transition-colors shadow-lg cursor-pointer"

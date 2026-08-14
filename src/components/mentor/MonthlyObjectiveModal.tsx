@@ -60,7 +60,7 @@ export const MonthlyObjectiveModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
   return (
     
-    <Modal isOpen={isOpen} onClose={onClose} zIndex={50} backdropClassName="p-4 bg-black/80 backdrop-blur-md animate-fade-in overflow-y-auto text-left" className="relative w-full max-w-xl bg-[#0a0b0e] border border-indigo-900/50 rounded-2xl shadow-2xl overflow-hidden my-6">
+    <Modal isOpen={isOpen} onClose={onClose} zIndex={50} backdropClassName="p-4 bg-black/35 backdrop-blur-sm animate-fade-in overflow-y-auto text-left" className="relative w-full max-w-xl bg-[#0a0b0e] border border-indigo-900/50 rounded-2xl shadow-2xl overflow-hidden my-6">
         
         {/* Header */}
         <div className="px-6 py-4 bg-indigo-950/30 border-b border-indigo-900/40 flex items-center justify-between">

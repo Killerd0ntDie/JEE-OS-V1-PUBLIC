@@ -1,12 +1,44 @@
 import { Chapter } from '@/types/index';
 import { Node, Edge } from '@xyflow/react';
+import { ChapterTelemetry } from '../chapterInfo/types';
+
+export type NeuralGraphMode = 'flow' | 'decay' | 'weightage';
+
+export interface NeuralNodeData extends Record<string, unknown> {
+  id: string;
+  label: string;
+  subject: string;
+  unit: string;
+  status: 'Mastered' | 'Completed' | 'In Progress' | 'Not Started';
+  stage: string;
+  masteryScore: number;
+  retentionScore: number;
+  lastRevisedDaysAgo: number;
+  needRevision: boolean;
+  isDecaying: boolean;
+  isHighWeightage: boolean;
+  weightage: number;
+  completedLectures: number;
+  totalLectures: number;
+  dppDone: boolean;
+  pyqsDone: boolean;
+  accuracyPercent: number;
+  graphMode: NeuralGraphMode;
+  isSelected?: boolean;
+}
 
 export class NeuralGraphEngine {
   /**
-   * Generates a deterministic, interconnected graph of chapters for the Neural Link map.
-   * Groups chapters by subject and creates a linear logical flow for V1.
+   * Generates a balanced, 4-column horizontal learning matrix for the Neural Link map.
+   * Matches standard 16:9 aspect ratio screens perfectly so nodes render crisp, large, and readable.
    */
-  public static generateGraph(chapters: Chapter[], activeSubject: 'physics' | 'chemistry' | 'maths', telemetryMap: Record<string, any> = {}): { nodes: Node[], edges: Edge[] } {
+  public static generateGraph(
+    chapters: Chapter[], 
+    activeSubject: 'physics' | 'chemistry' | 'maths', 
+    telemetryMap: Record<string, ChapterTelemetry> = {},
+    graphMode: NeuralGraphMode = 'flow',
+    selectedChapterId: string | null = null
+  ): { nodes: Node[], edges: Edge[] } {
     const nodes: Node[] = [];
     const edges: Edge[] = [];
     
@@ -16,57 +48,74 @@ export class NeuralGraphEngine {
       maths: { stroke: '#8b5cf6', glow: 'rgba(139, 92, 246, 0.4)' }, // Violet
     };
 
-    const X_SPACING = 350;
-    const Y_SPACING = 150;
-    const START_X = 100;
-    const START_Y = 100;
-
     const subjectChapters = chapters.filter(c => c.subject === activeSubject);
 
+    const COLS = 4;
+    const X_SPACING = 310;
+    const Y_SPACING = 135;
+    const START_X = 50;
+    const START_Y = 40;
+
     let prevNodeId: string | null = null;
-    let yOffset = START_Y;
-    let xOffset = START_X;
 
     subjectChapters.forEach((chapter, index) => {
+      const col = index % COLS;
+      const row = Math.floor(index / COLS);
+
+      const x = START_X + col * X_SPACING;
+      const y = START_Y + row * Y_SPACING;
+
       const nodeId = `node-${chapter.id}`;
       const telemetry = telemetryMap[chapter.id];
       
-      // Wrap to next line every 5 chapters to keep graph compact
-      if (index > 0 && index % 5 === 0) {
-        yOffset += Y_SPACING;
-        xOffset = START_X;
-      } else if (index > 0) {
-        xOffset += X_SPACING;
-      }
-
-      let uiStatus = 'Not Started';
+      let uiStatus: 'Mastered' | 'Completed' | 'In Progress' | 'Not Started' = 'Not Started';
       const stage = telemetry?.syllabusStage || 'Not Started';
       
       if (stage === 'Mastered') {
         uiStatus = 'Mastered';
-      } else if (['Revision', 'Solving PYQs', 'Solving Modules', 'Solving DPPs'].includes(stage)) {
-        uiStatus = 'Completed';
-      } else if (['Watching Lectures', 'Making Notes', 'Doing Questions'].includes(stage)) {
-        uiStatus = 'In Progress';
+      } else if (stage === 'In Progress' || chapter.status === 'Learning' || chapter.status === 'DPP Pending' || chapter.status === 'PYQ Pending') {
+        uiStatus = chapter.completion > 60 ? 'Completed' : 'In Progress';
       }
 
-      const data = {
-        label: chapter.name,
-        status: uiStatus,
-        subject: chapter.subject,
+      const lastRevisedDaysAgo = chapter.lastRevisionDaysAgo ?? 0;
+      const needRevision = chapter.retentionStatus === 'Fading' || chapter.retentionStatus === 'Forgotten' || (lastRevisedDaysAgo > 14 && uiStatus !== 'Not Started');
+      const isDecaying = needRevision;
+      const weightage = chapter.weightage || telemetry?.weightagePercent || 4;
+      const isHighWeightage = weightage >= 6;
+
+      const data: NeuralNodeData = {
         id: chapter.id,
-        masteryScore: telemetry?.masteryScore || 0
+        label: chapter.name,
+        subject: chapter.subject,
+        unit: chapter.unit || 'Core Module',
+        status: uiStatus,
+        stage,
+        masteryScore: telemetry?.masteryScore || chapter.completion || 0,
+        retentionScore: chapter.retentionScore || 100,
+        lastRevisedDaysAgo,
+        needRevision,
+        isDecaying,
+        isHighWeightage,
+        weightage,
+        completedLectures: telemetry?.currentLecture ?? chapter.currentLecture ?? 0,
+        totalLectures: telemetry?.totalLectures ?? chapter.totalLectures ?? 8,
+        dppDone: telemetry?.dppComplete ?? chapter.theoryComplete ?? false,
+        pyqsDone: telemetry?.pyqsComplete ?? chapter.pyqsComplete ?? false,
+        accuracyPercent: telemetry?.strategyRadar?.dppCompletionPercent || chapter.confidence || 0,
+        graphMode,
+        isSelected: selectedChapterId === chapter.id
       };
 
       nodes.push({
         id: nodeId,
-        position: { x: xOffset, y: yOffset },
+        position: { x, y },
         data,
         type: 'topicNode',
       });
 
+      // Connect sequential syllabus progression with glowing energy edges
       if (prevNodeId) {
-        const isActive = uiStatus === 'Mastered' || uiStatus === 'Completed';
+        const isEnergyActive = uiStatus === 'Mastered' || uiStatus === 'Completed';
         const color = subjectColors[activeSubject];
 
         edges.push({
@@ -74,17 +123,17 @@ export class NeuralGraphEngine {
           source: prevNodeId,
           target: nodeId,
           type: 'animatedEnergyEdge',
-          animated: true,
+          animated: isEnergyActive,
           style: { 
-            stroke: isActive ? color.stroke : '#27272a',
-            strokeWidth: isActive ? 2 : 1,
-            opacity: isActive ? 0.8 : 0.2
+            stroke: isEnergyActive ? color.stroke : '#3f3f46',
+            strokeWidth: isEnergyActive ? 2 : 1,
+            opacity: isEnergyActive ? 0.9 : 0.25
           },
-          data: { isActive, subject: activeSubject }
+          data: { isActive: isEnergyActive, subject: activeSubject }
         });
-        }
+      }
 
-        prevNodeId = nodeId;
+      prevNodeId = nodeId;
     });
 
     return { nodes, edges };

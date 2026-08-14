@@ -1,5 +1,7 @@
 import React, { useMemo } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
+import { motion } from 'motion/react';
+import { springs } from '@/constants/motion';
 import { PAGES, PageDefinition } from '@/types/index';
 import { Icon } from '@/components/ui/Icon';
 import { Badge } from '@/components/ui/Badge';
@@ -69,14 +71,21 @@ export function Sidebar({
               to={toPath}
               onClick={onCloseMobile}
               title={collapsed ? item.label : undefined}
-              className={({ isActive }) => `w-full h-10 rounded-xl text-xs font-semibold flex items-center transition-[background-color,border-color,color] duration-150 ease-out border focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus-visible:shadow-[0_0_15px_rgba(99,102,241,0.25)] focus-visible:bg-indigo-900/20 ${
+              className={({ isActive }) => `w-full h-10 rounded-xl text-xs font-semibold flex items-center transition-[color,transform] duration-150 ease-out active:scale-[0.97] select-none relative z-10 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 ${
                 isActive
-                  ? 'bg-indigo-600/15 border-indigo-500/30 text-white font-bold shadow-sm'
-                  : 'bg-transparent border-transparent text-zinc-400 hover:bg-zinc-850/60 hover:text-zinc-200'
+                  ? 'text-white font-bold'
+                  : 'text-zinc-400 hover:bg-zinc-850/60 hover:text-zinc-200'
               }`}
             >
               {({ isActive }) => (
                 <>
+                  {isActive && (
+                    <motion.div
+                      layoutId="sidebarActivePill"
+                      className="absolute inset-0 bg-indigo-600/15 border border-indigo-500/30 rounded-xl shadow-sm -z-10"
+                      transition={springs.fluid}
+                    />
+                  )}
                   {/* STATIC 48px ICON SLOT MATHEMETICALLY CENTERING THE 20px ICON AT PIXEL 32 */}
                   <div className="w-12 h-full flex items-center justify-center shrink-0">
                     <Icon
@@ -206,8 +215,8 @@ export function Sidebar({
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className={`group hidden md:block h-screen shrink-0 sticky top-0 z-40 transition-[width] duration-300 ease-in-out ${isCollapsed ? 'w-16' : 'w-64'}`}>
-        <div className={`h-full ${isCollapsed ? 'absolute top-0 left-0 h-screen z-50' : ''}`}>
+      <aside className={`group hidden md:block h-screen shrink-0 sticky top-0 z-[60] transition-[width] duration-300 ease-in-out ${isCollapsed ? 'w-16' : 'w-64'}`}>
+        <div className={`h-full ${isCollapsed ? 'absolute top-0 left-0 h-screen z-[60]' : ''}`}>
           {renderSidebarContent(isCollapsed)}
         </div>
       </aside>
@@ -215,7 +224,7 @@ export function Sidebar({
       {/* Mobile sidebar overlay backdrop */}
       {isOpenMobile && (
         <div
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 md:hidden transition-all group"
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] md:hidden transition-all group"
           onClick={onCloseMobile}
         >
           <div

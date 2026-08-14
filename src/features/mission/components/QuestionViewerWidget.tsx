@@ -11,13 +11,14 @@ import { Sparkles, BookOpen } from 'lucide-react';
 
 interface QuestionViewerWidgetProps {
   chapterId: string;
+  chapterName?: string;
   subject: string;
   onExitPractice: () => void;
   onCorrectAnswer?: () => void;
   onQuestionAttempted?: () => void;
 }
 
-export function QuestionViewerWidget({ chapterId, subject, onExitPractice, onCorrectAnswer, onQuestionAttempted }: QuestionViewerWidgetProps) {
+export function QuestionViewerWidget({ chapterId, chapterName, subject, onExitPractice, onCorrectAnswer, onQuestionAttempted }: QuestionViewerWidgetProps) {
   const [chapterQuestions, setChapterQuestions] = useState<Question[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -37,7 +38,10 @@ export function QuestionViewerWidget({ chapterId, subject, onExitPractice, onCor
       setGenError(null);
       try {
         await QuestionRepository.seedInitialDatabase(pyqData.questions as Question[]);
-        const qList = await QuestionRepository.getQuestionsByChapter(chapterId);
+        let qList = await QuestionRepository.getQuestionsByChapter(chapterId);
+        if (qList.length === 0 && chapterName && chapterName !== chapterId) {
+          qList = await QuestionRepository.getQuestionsByChapter(chapterName);
+        }
         
         if (qList.length > 0) {
           if (isMounted) setChapterQuestions(qList);
@@ -45,7 +49,8 @@ export function QuestionViewerWidget({ chapterId, subject, onExitPractice, onCor
           // Trigger AI Generation if empty
           if (isMounted) setIsGenerating(true);
           console.log("Database empty for chapter, triggering AI generation...");
-          const aiGenerated = await PyqGeneratorEngine.generateQuestions(chapterId, subject, 3);
+          const targetChapter = chapterName || chapterId;
+          const aiGenerated = await PyqGeneratorEngine.generateQuestions(targetChapter, subject, 3);
           await QuestionRepository.saveQuestionsBatch(aiGenerated);
           if (isMounted) {
             setChapterQuestions(aiGenerated);
@@ -242,14 +247,14 @@ export function QuestionViewerWidget({ chapterId, subject, onExitPractice, onCor
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto scrollbar p-6 md:p-8 space-y-8 relative">
+      <div className="flex-1 overflow-y-auto scrollbar p-4 sm:p-6 space-y-5 relative">
         {/* Question Content */}
-        <div className="text-zinc-100 text-lg leading-relaxed font-serif">
+        <div className="text-zinc-100 text-base sm:text-lg leading-relaxed font-serif">
           {renderMathText(activeQuestion.content)}
         </div>
 
         {/* Options / Input */}
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           {activeQuestion.options && activeQuestion.options.map(opt => {
             const isSelected = selectedOptions.includes(opt.id);
             const isCorrectOption = showSolution && activeQuestion.solution.correctOptionIds?.includes(opt.id);
@@ -268,13 +273,13 @@ export function QuestionViewerWidget({ chapterId, subject, onExitPractice, onCor
                 key={opt.id}
                 onClick={() => handleOptionToggle(opt.id)}
                 disabled={showSolution}
-                className={`w-full flex items-start gap-4 p-4 rounded-2xl border transition-all text-left ${optClass}`}
+                className={`w-full flex items-start gap-3.5 p-3 sm:p-3.5 rounded-xl border transition-all text-left ${optClass} cursor-pointer`}
               >
-                <div className={`w-6 h-6 rounded flex items-center justify-center shrink-0 font-bold font-mono text-xs border
+                <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded flex items-center justify-center shrink-0 font-bold font-mono text-xs border
                   ${isSelected && !showSolution ? 'bg-indigo-500 text-white border-indigo-400' : 'bg-black/50 border-zinc-700'}`}>
                   {opt.id}
                 </div>
-                <div className="flex-1 mt-0.5 leading-relaxed font-serif">
+                <div className="flex-1 mt-0.5 leading-relaxed font-serif text-sm sm:text-base">
                   {renderMathText(opt.text)}
                 </div>
               </button>

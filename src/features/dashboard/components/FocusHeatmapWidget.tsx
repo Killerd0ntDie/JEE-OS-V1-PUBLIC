@@ -1,14 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { StudySession } from '@/types';
 import { toLocalDateString } from '@/utils/dateUtils';
+import { motion, AnimatePresence } from 'motion/react';
+import { springs } from '@/constants/motion';
 
 interface FocusHeatmapWidgetProps {
   studySessions: StudySession[];
 }
 
 export const FocusHeatmapWidget: React.FC<FocusHeatmapWidgetProps> = ({ studySessions }) => {
-  const [activeTooltip, setActiveTooltip] = React.useState<string | null>(null);
+  const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
 
   // Generate last 14 days dates (inclusive of today)
   const days = Array.from({ length: 14 }).map((_, i) => {
@@ -53,7 +55,7 @@ export const FocusHeatmapWidget: React.FC<FocusHeatmapWidgetProps> = ({ studySes
   }).length;
 
   return (
-    <Card className="p-5 border-zinc-800/80 bg-zinc-950/40 text-left relative overflow-hidden">
+    <Card className="p-5 border-zinc-800/80 bg-zinc-950/40 text-left relative overflow-visible flex-1 flex flex-col justify-between">
       <div className="flex items-center justify-between mb-3.5">
         <div>
           <span className="text-[11px] font-mono text-emerald-400 font-bold tracking-widest uppercase block">
@@ -68,23 +70,41 @@ export const FocusHeatmapWidget: React.FC<FocusHeatmapWidgetProps> = ({ studySes
       </div>
 
       {/* Heatmap Grid */}
-      <div className="grid grid-cols-7 sm:grid-cols-14 gap-1.5 pt-1">
+      <div className="grid grid-cols-7 sm:grid-cols-14 gap-1.5 pt-1 relative">
         {days.map((day, idx) => {
           const dateKey = toLocalDateString(day);
           const mins = dailyMinutesMap.get(dateKey) || 0;
           const hrs = (mins / 60).toFixed(1);
           const isToday = idx === 13;
+          const isHovered = activeTooltip === dateKey;
+
+          // Position tooltip to avoid edge clipping
+          const alignmentClass =
+            idx >= 11
+              ? 'right-0 items-end'
+              : idx < 3
+              ? 'left-0 items-start'
+              : 'left-1/2 -translate-x-1/2 items-center';
+
+          const arrowAlignmentClass =
+            idx >= 11
+              ? 'mr-3'
+              : idx < 3
+              ? 'ml-3'
+              : '';
 
           return (
             <div
               key={dateKey}
+              onMouseEnter={() => setActiveTooltip(dateKey)}
+              onMouseLeave={() => setActiveTooltip(null)}
               onClick={() => setActiveTooltip(prev => prev === dateKey ? null : dateKey)}
-              className="group relative flex flex-col items-center gap-1 cursor-pointer"
+              className="relative flex flex-col items-center gap-1 cursor-pointer select-none"
             >
               <div
                 className={`w-full aspect-square rounded-lg border transition-all duration-200 flex items-center justify-center text-[11px] font-mono ${getIntensity(mins)} ${
                   isToday ? 'ring-1 ring-emerald-400 ring-offset-1 ring-offset-black' : ''
-                }`}
+                } ${isHovered ? 'scale-110 shadow-md shadow-emerald-500/20' : ''}`}
               >
                 {mins > 0 ? (mins >= 60 ? `${Math.round(mins/60)}h` : `${mins}m`) : ''}
               </div>
@@ -93,21 +113,29 @@ export const FocusHeatmapWidget: React.FC<FocusHeatmapWidgetProps> = ({ studySes
                 {getDayName(day)}
               </span>
 
-              {/* Tooltip on hover (desktop) or tap (touch) */}
-              <div className={`absolute bottom-full mb-2 flex-col items-center pointer-events-none z-30 ${
-                activeTooltip === dateKey ? 'flex' : 'hidden group-hover:flex'
-              }`}>
-                <div className="bg-zinc-900 border border-zinc-700 text-zinc-200 px-2 py-1 rounded text-[11px] font-mono whitespace-nowrap shadow-xl">
-                  <span className="font-bold text-white">{formatDateLabel(day)}</span>: {hrs} hrs ({mins} mins)
-                </div>
-                <div className="w-1.5 h-1.5 bg-zinc-900 border-b border-r border-zinc-700 rotate-45 -mt-1" />
-              </div>
+              {/* Tooltip with AnimatePresence physics pop */}
+              <AnimatePresence>
+                {isHovered && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.92, y: -4 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.92, y: -4 }}
+                    transition={springs.snappy}
+                    className={`absolute bottom-full mb-2 flex flex-col pointer-events-none z-50 ${alignmentClass}`}
+                  >
+                    <div className="bg-zinc-900/95 border border-zinc-700 text-zinc-200 px-2.5 py-1 rounded-xl text-[11px] font-mono whitespace-nowrap shadow-2xl backdrop-blur-md">
+                      <span className="font-bold text-white">{formatDateLabel(day)}</span>: {hrs} hrs ({mins} mins)
+                    </div>
+                    <div className={`w-1.5 h-1.5 bg-zinc-900 border-b border-r border-zinc-700 rotate-45 -mt-1 ${arrowAlignmentClass}`} />
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           );
         })}
       </div>
 
-      <div className="flex items-center justify-between text-[11px] font-mono text-zinc-400 pt-3 border-t border-zinc-900/60 mt-3">
+      <div className="flex items-center justify-between text-[11px] font-mono text-zinc-400 pt-3 border-t border-zinc-850/80 mt-3">
         <span>Less active</span>
         <div className="flex items-center gap-1">
           <span className="w-2.5 h-2.5 rounded bg-zinc-900 border border-zinc-800" />

@@ -69,29 +69,17 @@ export function useDashboardState() {
       return;
     }
 
-    // 2. Check if this is the first visit of the day
+    // 2. Check if this is the first visit of the day or has bottleneck alert
     const todayStr = new Date().toLocaleDateString('en-CA');
     const lastVisitDate = localStorage.getItem('jee_last_dashboard_expand_date');
     const isFirstVisitOfDay = lastVisitDate !== todayStr;
 
-    // 3. Determine if smart auto-expand should trigger
     if (isFirstVisitOfDay || hasBottleneckAlert) {
       setIsHeaderExpanded(true);
-
-      // Record first visit of day if applicable
       if (isFirstVisitOfDay) {
         localStorage.setItem('jee_last_dashboard_expand_date', todayStr);
       }
-
-      // Dynamic duration: 8 seconds for bottleneck alert, 5 seconds for normal first visit of day
-      const duration = hasBottleneckAlert ? 8000 : 5000;
-      const timer = setTimeout(() => {
-        setIsHeaderExpanded(false);
-      }, duration);
-
-      return () => clearTimeout(timer);
     } else {
-      // Routine visit on same day with no bottleneck alert -> stay collapsed by default
       setIsHeaderExpanded(false);
     }
   }, [hasBottleneckAlert]);

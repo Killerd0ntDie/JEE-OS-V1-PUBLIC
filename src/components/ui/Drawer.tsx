@@ -1,6 +1,7 @@
 import React, { ReactNode, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
+import { drawerVariants, backdropVariants } from '@/constants/motion';
 
 export interface DrawerProps {
   isOpen: boolean;
@@ -20,7 +21,7 @@ export function Drawer({
   className = '',
   position = 'right',
   hideBackdrop = false,
-  backdropClassName = 'bg-black/40',
+  backdropClassName = 'bg-black/35 backdrop-blur-sm',
   zIndex = 110,
 }: DrawerProps) {
   useEffect(() => {
@@ -34,12 +35,6 @@ export function Drawer({
     };
   }, [isOpen]);
 
-  const slideVariants = {
-    left: { initial: { x: '-100%' }, animate: { x: 0 }, exit: { x: '-100%' } },
-    right: { initial: { x: '100%' }, animate: { x: 0 }, exit: { x: '100%' } },
-    bottom: { initial: { y: '100%' }, animate: { y: 0 }, exit: { y: '100%' } },
-  };
-
   const getPositionClasses = () => {
     switch (position) {
       case 'left': return 'top-0 left-0 bottom-0 h-full';
@@ -49,28 +44,28 @@ export function Drawer({
   };
 
   const drawerContent = (
-    <AnimatePresence>
+    <AnimatePresence mode="wait">
       {isOpen && (
         <div className="fixed inset-0" style={{ zIndex }}>
           {/* Backdrop */}
           {!hideBackdrop && (
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
+              variants={backdropVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
               className={`absolute inset-0 ${backdropClassName}`}
               onClick={onClose}
               aria-label="Close drawer overlay"
             />
           )}
 
-          {/* Drawer Content */}
+          {/* Drawer Content with Spring Physics */}
           <motion.div
-            initial={slideVariants[position].initial}
-            animate={slideVariants[position].animate}
-            exit={slideVariants[position].exit}
-            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            variants={drawerVariants[position]}
+            initial="initial"
+            animate="animate"
+            exit="exit"
             className={`absolute ${getPositionClasses()} flex flex-col shadow-2xl glass-panel ${className}`}
             onClick={(e) => e.stopPropagation()}
             role="dialog"
@@ -85,3 +80,4 @@ export function Drawer({
 
   return typeof document !== 'undefined' ? ReactDOM.createPortal(drawerContent, document.body) : null;
 }
+

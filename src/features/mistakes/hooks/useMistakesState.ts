@@ -39,14 +39,19 @@ export function useMistakesState() {
     }
   };
 
+  const [selectedMistakeId, setSelectedMistakeId] = useState<string | null>(null);
+
   // Filtered Mistakes
   const filteredMistakes = useMemo(() => {
     return mistakes.filter(m => {
       if (activeSubject !== 'all' && m.subject !== activeSubject) return false;
       if (selectedTag !== 'all' && !m.mistakeTypes?.includes(selectedTag)) return false;
       if (selectedDifficulty !== 'all' && m.difficulty !== selectedDifficulty) return false;
-      if (statusFilter === 'unresolved' && m.revisionStatus === 'Mastered') return false;
-      if (statusFilter === 'resolved' && m.revisionStatus !== 'Mastered') return false;
+      
+      const isResolved = m.revisionStatus === 'Solved Again' || m.revisionStatus === 'Mastered';
+      if (statusFilter === 'unresolved' && isResolved) return false;
+      if (statusFilter === 'resolved' && !isResolved) return false;
+      
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const inQuestion = m.questionText?.toLowerCase().includes(q);
@@ -59,8 +64,8 @@ export function useMistakesState() {
   }, [mistakes, activeSubject, selectedTag, selectedDifficulty, statusFilter, searchQuery]);
 
   const totalMistakes = mistakes.length;
-  const unresolvedCount = mistakes.filter(m => m.revisionStatus !== 'Mastered').length;
-  const resolvedCount = mistakes.filter(m => m.revisionStatus === 'Mastered').length;
+  const resolvedCount = mistakes.filter(m => m.revisionStatus === 'Solved Again' || m.revisionStatus === 'Mastered').length;
+  const unresolvedCount = totalMistakes - resolvedCount;
   const resolutionRate = totalMistakes > 0 ? Math.round((resolvedCount / totalMistakes) * 100) : 100;
 
   return {
@@ -82,6 +87,7 @@ export function useMistakesState() {
       unresolvedCount,
       resolvedCount,
       resolutionRate,
+      selectedMistakeId,
     },
     handlers: {
       setActiveSubject,
@@ -95,6 +101,7 @@ export function useMistakesState() {
       setReSolvingMistake,
       setExpandedId,
       setInterrogationMistake,
+      setSelectedMistakeId,
       getSubjectColor,
       getStatusBadge,
     },

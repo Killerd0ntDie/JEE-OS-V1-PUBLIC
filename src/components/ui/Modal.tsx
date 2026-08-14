@@ -1,8 +1,9 @@
-import React, { ReactNode, useEffect } from 'react';
+import React, { ReactNode } from 'react';
 import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
+import { modalVariants, backdropVariants } from '@/constants/motion';
 
 export interface ModalProps {
   isOpen: boolean;
@@ -22,7 +23,7 @@ export function Modal({
   children,
   className = '',
   hideBackdrop = false,
-  backdropClassName = 'bg-black/40',
+  backdropClassName = 'bg-black/35 backdrop-blur-sm',
   zIndex = 999,
   center = true,
   fullScreen = false
@@ -34,46 +35,43 @@ export function Modal({
   }, isOpen);
 
   const modalContent = (
-    <AnimatePresence>
+    <AnimatePresence mode="wait">
       {isOpen && (
-        <motion.div 
-          initial={{ opacity: 1 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
+        <div 
           className={`fixed inset-0 flex ${center ? 'items-center justify-center' : 'items-start justify-center pt-[10vh]'} ${fullScreen ? 'p-0' : 'p-4'}`}
           style={{ zIndex }}
         >
-          {/* Backdrop */}
+          {/* Backdrop with Physics-Based Entrance & Blur Dynamics */}
           {!hideBackdrop && (
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
+              variants={backdropVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
               className={`absolute inset-0 ${backdropClassName}`}
               onClick={onClose}
               aria-label="Close modal overlay"
             />
           )}
 
-          {/* Modal Content */}
+          {/* Modal Dialog with Spring Physics Scale & Filter Transition */}
           <motion.div
-            initial={{ opacity: 0, scale: fullScreen ? 1 : 0.95, y: center ? 0 : -10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: fullScreen ? 1 : 0.95, y: center ? 0 : -10 }}
-            transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
-            className={`relative flex flex-col glass-panel overflow-hidden ${fullScreen ? 'w-full h-full rounded-none' : 'rounded-2xl'} ${className}`}
+            variants={modalVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className={`relative flex flex-col glass-panel overflow-hidden shadow-2xl ${fullScreen ? 'w-full h-full rounded-none' : 'rounded-2xl'} ${className}`}
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
           >
             {children}
           </motion.div>
-        </motion.div>
+        </div>
       )}
     </AnimatePresence>
   );
 
   return typeof document !== 'undefined' ? ReactDOM.createPortal(modalContent, document.body) : null;
 }
+

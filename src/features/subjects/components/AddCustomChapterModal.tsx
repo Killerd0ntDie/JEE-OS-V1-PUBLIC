@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Plus } from 'lucide-react';
 import { SubjectId } from '@/types/index';
+import { CustomSelect } from '@/components/ui/CustomSelect';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
@@ -90,7 +91,7 @@ export function AddCustomChapterModal({ isOpen, onClose, defaultSubject, default
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} zIndex={100} backdropClassName="bg-black/70 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto" className="w-full max-w-md bg-[#0d0e12] border border-zinc-800 rounded-2xl p-4 sm:p-5 shadow-2xl font-sans text-left my-4">
+    <Modal isOpen={isOpen} onClose={onClose} zIndex={100} backdropClassName="bg-black/35 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto" className="w-full max-w-md bg-[#0d0e12] border border-zinc-800 rounded-2xl p-4 sm:p-5 shadow-2xl font-sans text-left my-4">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
               <Plus className="w-4 h-4 text-indigo-400" /> Add Custom Chapter
@@ -121,30 +122,32 @@ export function AddCustomChapterModal({ isOpen, onClose, defaultSubject, default
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3 relative z-20">
               <div>
                 <label className="text-[10px] text-zinc-400 block mb-1 uppercase font-bold tracking-wide">Subject</label>
-                <select
+                <CustomSelect
+                  size="sm"
                   value={subject}
-                  onChange={(e) => setSubject(e.target.value as SubjectId)}
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500 cursor-pointer"
-                >
-                  <option value="physics">Physics</option>
-                  <option value="chemistry">Chemistry</option>
-                  <option value="maths">Maths</option>
-                </select>
+                  onChange={(val) => setSubject(val as SubjectId)}
+                  options={[
+                    { value: 'physics', label: 'Physics' },
+                    { value: 'chemistry', label: 'Chemistry' },
+                    { value: 'maths', label: 'Maths' },
+                  ]}
+                />
               </div>
               <div>
                 <label className="text-[10px] text-zinc-400 block mb-1 uppercase font-bold tracking-wide">Difficulty</label>
-                <select
+                <CustomSelect
+                  size="sm"
                   value={difficulty}
-                  onChange={(e) => setDifficulty(e.target.value as 'Easy' | 'Medium' | 'Hard')}
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500 cursor-pointer"
-                >
-                  <option value="Easy">Easy</option>
-                  <option value="Medium">Medium</option>
-                  <option value="Hard">Hard</option>
-                </select>
+                  onChange={(val) => setDifficulty(val as 'Easy' | 'Medium' | 'Hard')}
+                  options={[
+                    { value: 'Easy', label: 'Easy' },
+                    { value: 'Medium', label: 'Medium' },
+                    { value: 'Hard', label: 'Hard' },
+                  ]}
+                />
               </div>
             </div>
 

@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'motion/react';
+import { springs } from '@/constants/motion';
 import { PAGES, PageId } from '@/types/index';
 import { Icon } from '@/components/ui/Icon';
 import { useAuth } from '@/features/auth';
@@ -73,8 +75,7 @@ export function Topbar({
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isBreadcrumbMenuOpen, setIsBreadcrumbMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [isStreakOpen, setIsStreakOpen] = useState(false);
-  const [isTimeOpen, setIsTimeOpen] = useState(false);
+  const [activeQuickStat, setActiveQuickStat] = useState<'streak' | 'time' | null>(null);
   const [readNotificationIds, setReadNotificationIds] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem('jeeos_read_notifications');
@@ -115,11 +116,11 @@ export function Topbar({
       if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
         setIsProfileOpen(false);
       }
-      if (streakRef.current && !streakRef.current.contains(e.target as Node)) {
-        setIsStreakOpen(false);
-      }
-      if (timeRef.current && !timeRef.current.contains(e.target as Node)) {
-        setIsTimeOpen(false);
+      if (
+        streakRef.current && !streakRef.current.contains(e.target as Node) &&
+        timeRef.current && !timeRef.current.contains(e.target as Node)
+      ) {
+        setActiveQuickStat(null);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -199,9 +200,12 @@ export function Topbar({
   };
 
   return (
-    <header className="h-14 shrink-0 glass-panel border-b-0 border-white/10 flex items-center justify-between px-4 sticky top-0 z-30 select-none shadow-xl">
-      {/* Ambient background glow */}
-      <div className="absolute top-0 left-1/4 w-96 h-12 bg-indigo-600/10 filter blur-3xl pointer-events-none" />
+    <header className="h-14 shrink-0 relative border-b border-zinc-850/80 flex items-center justify-between px-4 sticky top-0 z-50 select-none shadow-xl">
+  {/* Frosted Glass Background Layer (Keeps the glass effect on Topbar without trapping dropdowns) */}
+  <div className="absolute inset-0 glass-panel -z-10 pointer-events-none" />
+
+  {/* Ambient background glow */}
+  <div className="absolute top-0 left-1/4 w-96 h-12 bg-indigo-600/10 filter blur-3xl pointer-events-none -z-10" />
       
       {/* Left: Interactive Brand Logo & Breadcrumb Navigation */}
       <div className="flex items-center gap-3">
@@ -242,7 +246,7 @@ export function Topbar({
               onClick={() => setIsBreadcrumbMenuOpen(!isBreadcrumbMenuOpen)}
               aria-expanded={isBreadcrumbMenuOpen}
               aria-label="Switch current page"
-              className="flex items-center gap-1.5 font-bold text-white bg-zinc-900/90 hover:bg-zinc-850 border border-zinc-800/80 px-2.5 py-1 rounded-xl shadow-sm cursor-pointer transition-all duration-200 hover:border-indigo-500/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:ring-2 focus:ring-indigo-500/50"
+              className="flex items-center gap-1.5 font-bold text-white bg-zinc-900/90 hover:bg-zinc-850 border border-zinc-800/80 px-2.5 py-1 rounded-xl shadow-sm cursor-pointer transition-all duration-150 active:scale-[0.97] select-none hover:border-indigo-500/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:ring-2 focus:ring-indigo-500/50"
               title="Click to jump to another page"
             >
               {activePage && <Icon name={activePage.icon} aria-hidden="true" className="w-3.5 h-3.5 text-indigo-400" />}
@@ -251,7 +255,7 @@ export function Topbar({
             </button>
 
             {/* Quick Page Jump Popover Menu */}
-            <div className={`absolute top-full left-0 mt-2 w-48 bg-[#0e0e11]/95 border border-zinc-800/90 rounded-2xl shadow-2xl p-1.5 z-50 backdrop-blur-md transition-all duration-150 ease-out transform-gpu will-change-transform origin-top-left ${
+            <div className={`absolute top-full left-0 mt-2 w-48 glass-dropdown rounded-2xl p-1.5 z-50 transition-all duration-150 ease-out transform-gpu will-change-transform origin-top-left ${
               isBreadcrumbMenuOpen ? 'opacity-100 scale-100 translate-y-0 visible pointer-events-auto' : 'opacity-0 scale-95 -translate-y-2 invisible pointer-events-none'
             }`}>
               <div className="text-[11px] font-mono font-bold uppercase text-zinc-400 px-2.5 py-1 tracking-wider">
@@ -287,7 +291,7 @@ export function Topbar({
           type="button"
           onClick={onOpenCommandPalette}
           aria-label="Search commands and topics (Cmd+K)"
-          className="w-full h-8.5 px-3 rounded-xl border border-zinc-800/80 bg-zinc-900/40 text-left text-zinc-400 hover:text-zinc-200 hover:border-indigo-500/40 hover:bg-zinc-900/70 flex items-center justify-between text-xs transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:ring-2 focus:ring-indigo-500/50 cursor-pointer font-sans shadow-inner group"
+          className="w-full h-8.5 px-3 rounded-xl border border-zinc-800/80 bg-zinc-900/40 text-left text-zinc-400 hover:text-zinc-200 hover:border-indigo-500/40 hover:bg-zinc-900/70 flex items-center justify-between text-xs transition-all duration-150 active:scale-[0.98] select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:ring-2 focus:ring-indigo-500/50 cursor-pointer font-sans shadow-inner group"
         >
           <span className="flex items-center gap-2 min-w-0 mr-2">
             <Icon name="Search" aria-hidden="true" className="w-3.5 h-3.5 text-zinc-400 group-hover:text-indigo-400 transition-colors shrink-0" />
@@ -312,189 +316,221 @@ export function Topbar({
         </button>
 
         {/* Quick Stat Pill: Streak */}
-        <div className="hidden md:block relative" ref={streakRef}>
-        <button
-          type="button"
-          aria-haspopup="true"
-          aria-expanded={isStreakOpen}
-          onClick={() => { setIsStreakOpen(o => !o); setIsTimeOpen(false); }}
-          className="group flex items-center gap-1 bg-zinc-900/60 hover:bg-zinc-850 border border-zinc-800 hover:border-zinc-700 px-2.5 py-1 rounded-full text-xs font-mono text-zinc-300 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
-          title="Study Streak"
+        <div 
+          className="hidden md:block relative" 
+          ref={streakRef}
+          onMouseEnter={() => {
+            if (activeQuickStat && activeQuickStat !== 'streak') setActiveQuickStat('streak');
+          }}
         >
-          <Icon name="Zap" className="w-3 h-3 text-amber-400" />
-          <span className="font-bold text-amber-400">{effectiveStreak}d</span>
-          
-          <div className={`absolute top-full right-0 mt-2 p-4 bg-[#0e0e11]/95 border border-zinc-800 rounded-2xl shadow-2xl transition-all duration-150 ease-out transform-gpu will-change-transform origin-top-right z-50 ${
-            isStreakOpen
-              ? 'opacity-100 scale-100 translate-y-0 visible pointer-events-auto'
-              : 'opacity-0 invisible scale-95 -translate-y-2 pointer-events-none group-hover:scale-100 group-hover:translate-y-0 group-hover:opacity-100 group-hover:visible group-hover:pointer-events-auto group-focus-within:scale-100 group-focus-within:translate-y-0 group-focus-within:opacity-100 group-focus-within:visible group-focus-within:pointer-events-auto'
-          }`}>
-            {(() => {
-              const now = new Date();
-              const currentMonthStr = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-              const todayDate = now.getDate();
-              const currentMonth = now.getMonth();
-              const currentYear = now.getFullYear();
-              const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-              const firstDayOfWeek = new Date(currentYear, currentMonth, 1).getDay(); // 0=Sun
-              const weekDays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+          <button
+            type="button"
+            aria-haspopup="true"
+            aria-expanded={activeQuickStat === 'streak'}
+            onClick={() => setActiveQuickStat(prev => prev === 'streak' ? null : 'streak')}
+            className={`group flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-mono transition-all duration-150 active:scale-[0.96] select-none cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 border ${
+              activeQuickStat === 'streak'
+                ? 'bg-amber-950/40 border-amber-500/50 text-amber-300 shadow-sm'
+                : 'bg-zinc-900/60 hover:bg-zinc-850 border-zinc-800 hover:border-zinc-700 text-zinc-300'
+            }`}
+            title="Study Streak"
+          >
+            <Icon name="Zap" className="w-3.5 h-3.5 text-amber-400" />
+            <span className="font-bold text-amber-400">{effectiveStreak}d</span>
+          </button>
 
-              // Aggregate real session data
-              const monthlyHours = new Array(daysInMonth).fill(0);
-              const activeDaysSet = new Set<number>();
+          <AnimatePresence>
+            {activeQuickStat === 'streak' && (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                transition={springs.snappy}
+                className="absolute top-full right-0 mt-2 p-4 glass-dropdown rounded-2xl z-50 origin-top-right text-left select-none"
+              >
+                {(() => {
+                  const now = new Date();
+                  const currentMonthStr = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                  const todayDate = now.getDate();
+                  const currentMonth = now.getMonth();
+                  const currentYear = now.getFullYear();
+                  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+                  const firstDayOfWeek = new Date(currentYear, currentMonth, 1).getDay(); // 0=Sun
+                  const weekDays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
-              studySessions.forEach((s: any) => {
-                const d = new Date(s.startTime);
-                if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
-                  const dayIndex = d.getDate() - 1;
-                  monthlyHours[dayIndex] += (s.duration || 0) / 60;
-                }
-              });
+                  // Aggregate real session data
+                  const monthlyHours = new Array(daysInMonth).fill(0);
+                  const activeDaysSet = new Set<number>();
 
-              // Include daily analytics activity
-              ((analytics as any)?.dailyAnalytics || []).forEach((da: any) => {
-                if (!da.date) return;
-                const d = new Date(da.date);
-                if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
-                  if ((da.studyTime || 0) >= minStreakMins || (da.xpEarned || 0) > 0) {
-                    activeDaysSet.add(d.getDate() - 1);
+                  studySessions.forEach((s: any) => {
+                    const d = new Date(s.startTime);
+                    if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
+                      const dayIndex = d.getDate() - 1;
+                      monthlyHours[dayIndex] += (s.duration || 0) / 60;
+                    }
+                  });
+
+                  // Include daily analytics activity
+                  ((analytics as any)?.dailyAnalytics || []).forEach((da: any) => {
+                    if (!da.date) return;
+                    const d = new Date(da.date);
+                    if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
+                      if ((da.studyTime || 0) >= minStreakMins || (da.xpEarned || 0) > 0) {
+                        activeDaysSet.add(d.getDate() - 1);
+                      }
+                    }
+                  });
+
+                  // Ensure current active streak days are highlighted in the current month
+                  if (effectiveStreak > 0) {
+                    const todayMet = todayStudyMins >= minStreakMins;
+                    const startIndex = todayMet ? todayDate - 1 : todayDate - 2;
+                    for (let k = 0; k < effectiveStreak; k++) {
+                      const dayIdx = startIndex - k;
+                      if (dayIdx >= 0 && dayIdx < daysInMonth) {
+                        activeDaysSet.add(dayIdx);
+                      }
+                    }
                   }
-                }
-              });
 
-              // Ensure current active streak days are highlighted in the current month
-              if (effectiveStreak > 0) {
-                const todayMet = todayStudyMins >= minStreakMins;
-                const startIndex = todayMet ? todayDate - 1 : todayDate - 2;
-                for (let k = 0; k < effectiveStreak; k++) {
-                  const dayIdx = startIndex - k;
-                  if (dayIdx >= 0 && dayIdx < daysInMonth) {
-                    activeDaysSet.add(dayIdx);
-                  }
-                }
-              }
-
-              return (
-                <div className="w-[190px]">
-                  <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-3 flex items-center justify-between">
-                    <span>{currentMonthStr} Streak</span>
-                    <span className="text-amber-400">{effectiveStreak} Day Fire</span>
-                  </div>
-                  <div className="grid grid-cols-7 gap-1.5 mb-1.5 text-center">
-                    {weekDays.map((d, i) => <span key={i} className="text-[11px] font-bold text-zinc-600">{d}</span>)}
-                  </div>
-                  <div className="grid grid-cols-7 gap-1.5">
-                    {Array.from({ length: firstDayOfWeek }).map((_, i) => (
-                      <div key={`empty-${i}`} className="w-6 h-6" />
-                    ))}
-                    {Array.from({ length: daysInMonth }).map((_, i) => {
-                      const day = i + 1;
-                      const isFuture = day > todayDate;
-                      const hours = monthlyHours[i] || 0;
-                      const minStreakHours = settings?.minStreakHours ?? 0.5;
-                      const active = (hours >= minStreakHours || activeDaysSet.has(i)) && !isFuture;
-                      const isToday = day === todayDate;
-                      
-                      return (
-                        <div 
-                          key={day} 
-                          className={`w-6 h-6 rounded-md flex items-center justify-center text-[10px] relative transition-colors ${
-                            isFuture ? 'bg-zinc-800/20 border border-zinc-800/60 text-transparent' :
-                            active ? 'bg-amber-950/40 border border-amber-900/50 text-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.15)]' : 
-                            'bg-red-950/20 border border-red-900/30 text-red-900/60' // Break days in subtle red
-                          } ${isToday ? 'ring-1 ring-white/30 ring-offset-1 ring-offset-zinc-950' : ''}`}
-                          title={isFuture ? `${currentMonthStr} ${day}` : `${currentMonthStr} ${day} - ${hours > 0 ? formatStudyTime(hours) : (active ? 'Active' : 'Missed')}`}
-                        >
-                          {active ? <Icon name="Zap" className="w-3 h-3 text-amber-400 fill-amber-400" /> : (!isFuture ? '·' : '')}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })()}
-          </div>
-        </button>
+                  return (
+                    <div className="w-[190px]">
+                      <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-3 flex items-center justify-between">
+                        <span>{currentMonthStr} Streak</span>
+                        <span className="text-amber-400 font-mono font-bold">{effectiveStreak} Day Fire</span>
+                      </div>
+                      <div className="grid grid-cols-7 gap-1.5 mb-1.5 text-center">
+                        {weekDays.map((d, i) => <span key={i} className="text-[11px] font-bold text-zinc-600">{d}</span>)}
+                      </div>
+                      <div className="grid grid-cols-7 gap-1.5">
+                        {Array.from({ length: firstDayOfWeek }).map((_, i) => (
+                          <div key={`empty-${i}`} className="w-6 h-6" />
+                        ))}
+                        {Array.from({ length: daysInMonth }).map((_, i) => {
+                          const day = i + 1;
+                          const isFuture = day > todayDate;
+                          const hours = monthlyHours[i] || 0;
+                          const minStreakHours = settings?.minStreakHours ?? 0.5;
+                          const active = (hours >= minStreakHours || activeDaysSet.has(i)) && !isFuture;
+                          const isToday = day === todayDate;
+                          
+                          return (
+                            <div 
+                              key={day} 
+                              className={`w-6 h-6 rounded-md flex items-center justify-center text-[10px] relative transition-colors ${
+                                isFuture ? 'bg-zinc-800/20 border border-zinc-800/60 text-transparent' :
+                                active ? 'bg-amber-950/40 border border-amber-900/50 text-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.15)]' : 
+                                'bg-red-950/20 border border-red-900/30 text-red-900/60'
+                              } ${isToday ? 'ring-1 ring-white/30 ring-offset-1 ring-offset-zinc-950' : ''}`}
+                              title={isFuture ? `${currentMonthStr} ${day}` : `${currentMonthStr} ${day} - ${hours > 0 ? formatStudyTime(hours) : (active ? 'Active' : 'Missed')}`}
+                            >
+                              {active ? <Icon name="Zap" className="w-3 h-3 text-amber-400 fill-amber-400" /> : (!isFuture ? '·' : '')}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Quick Stat Pill: Study Time */}
-        <div className="hidden md:block relative" ref={timeRef}>
-        <button
-          type="button"
-          aria-haspopup="true"
-          aria-expanded={isTimeOpen}
-          onClick={() => { setIsTimeOpen(o => !o); setIsStreakOpen(false); }}
-          className="group flex items-center gap-1 bg-zinc-900/60 hover:bg-zinc-850 border border-zinc-800 hover:border-zinc-700 px-2.5 py-1 rounded-full text-xs font-mono text-zinc-300 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
-          title="Today's Study Time"
+        <div 
+          className="hidden md:block relative" 
+          ref={timeRef}
+          onMouseEnter={() => {
+            if (activeQuickStat && activeQuickStat !== 'time') setActiveQuickStat('time');
+          }}
         >
-          <Icon name="Clock" className="w-3 h-3 text-indigo-400" />
-          <span className="font-bold text-indigo-400">{todayHoursStr}</span>
-          
-          <div className={`absolute top-full right-0 mt-2 p-4 bg-[#0e0e11]/95 border border-zinc-800 rounded-2xl shadow-2xl transition-all duration-150 ease-out transform-gpu will-change-transform origin-top-right z-50 ${
-            isTimeOpen
-              ? 'opacity-100 scale-100 translate-y-0 visible pointer-events-auto'
-              : 'opacity-0 invisible scale-95 -translate-y-2 pointer-events-none group-hover:scale-100 group-hover:translate-y-0 group-hover:opacity-100 group-hover:visible group-hover:pointer-events-auto group-focus-within:scale-100 group-focus-within:translate-y-0 group-focus-within:opacity-100 group-focus-within:visible group-focus-within:pointer-events-auto'
-          }`}>
-            {(() => {
-              const now = new Date();
-              const currentMonthStr = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-              const todayDate = now.getDate();
-              const currentMonth = now.getMonth();
-              const currentYear = now.getFullYear();
-              const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-              const firstDayOfWeek = new Date(currentYear, currentMonth, 1).getDay(); // 0=Sun
-              const weekDays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+          <button
+            type="button"
+            aria-haspopup="true"
+            aria-expanded={activeQuickStat === 'time'}
+            onClick={() => setActiveQuickStat(prev => prev === 'time' ? null : 'time')}
+            className={`group flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-mono transition-all duration-150 active:scale-[0.96] select-none cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 border ${
+              activeQuickStat === 'time'
+                ? 'bg-indigo-950/40 border-indigo-500/50 text-indigo-300 shadow-sm'
+                : 'bg-zinc-900/60 hover:bg-zinc-850 border-zinc-800 hover:border-zinc-700 text-zinc-300'
+            }`}
+            title="Today's Study Time"
+          >
+            <Icon name="Clock" className="w-3.5 h-3.5 text-indigo-400" />
+            <span className="font-bold text-indigo-400">{todayHoursStr}</span>
+          </button>
 
-              // Aggregate real session data
-              const monthlyHours = new Array(daysInMonth).fill(0);
-              studySessions.forEach((s: any) => {
-                const d = new Date(s.startTime);
-                if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
-                  const dayIndex = d.getDate() - 1;
-                  monthlyHours[dayIndex] += (s.duration || 0) / 60;
-                }
-              });
-              const totalMonthHours = monthlyHours.reduce((a, b) => a + b, 0);
+          <AnimatePresence>
+            {activeQuickStat === 'time' && (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                transition={springs.snappy}
+                className="absolute top-full right-0 mt-2 p-4 glass-dropdown rounded-2xl z-50 origin-top-right text-left select-none"
+              >
+                {(() => {
+                  const now = new Date();
+                  const currentMonthStr = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                  const todayDate = now.getDate();
+                  const currentMonth = now.getMonth();
+                  const currentYear = now.getFullYear();
+                  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+                  const firstDayOfWeek = new Date(currentYear, currentMonth, 1).getDay(); // 0=Sun
+                  const weekDays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
-              return (
-                <div className="w-[320px]">
-                  <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-3 flex items-center justify-between">
-                    <span>{currentMonthStr} Log</span>
-                    <span className="text-indigo-400">{formatStudyTime(totalMonthHours)} Total</span>
-                  </div>
-                  <div className="grid grid-cols-7 gap-1.5 mb-1.5 text-center">
-                    {weekDays.map((d, i) => <span key={i} className="text-[11px] font-bold text-zinc-600">{d}</span>)}
-                  </div>
-                  <div className="grid grid-cols-7 gap-1.5">
-                    {Array.from({ length: firstDayOfWeek }).map((_, i) => (
-                      <div key={`empty-${i}`} className="w-full h-7" />
-                    ))}
-                    {monthlyHours.map((hours, i) => {
-                      const day = i + 1;
-                      const isFuture = day > todayDate;
-                      const active = hours > 0;
-                      const isToday = day === todayDate;
-                      
-                      return (
-                        <div 
-                          key={day} 
-                          className={`w-full h-7 rounded-md flex items-center justify-center text-[10px] whitespace-nowrap tracking-tight font-bold relative transition-colors ${
-                            isFuture ? 'bg-zinc-800/20 border border-zinc-800/60 text-transparent' :
-                            active ? 'bg-indigo-900/40 border border-indigo-500/50 text-indigo-300 shadow-[0_0_12px_rgba(99,102,241,0.4)]' : 
-                            'bg-zinc-800/50 border border-zinc-700/60 text-zinc-400' // Break days in brighter grey
-                          } ${isToday ? 'ring-1 ring-white/30 ring-offset-1 ring-offset-zinc-950' : ''}`}
-                          title={`${currentMonthStr} ${day}`}
-                        >
-                          {active ? formatStudyTime(hours) : (!isFuture ? '-' : '')}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })()}
-          </div>
-        </button>
+                  // Aggregate real session data
+                  const monthlyHours = new Array(daysInMonth).fill(0);
+                  studySessions.forEach((s: any) => {
+                    const d = new Date(s.startTime);
+                    if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
+                      const dayIndex = d.getDate() - 1;
+                      monthlyHours[dayIndex] += (s.duration || 0) / 60;
+                    }
+                  });
+                  const totalMonthHours = monthlyHours.reduce((a, b) => a + b, 0);
+
+                  return (
+                    <div className="w-[320px]">
+                      <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-3 flex items-center justify-between">
+                        <span>{currentMonthStr} Log</span>
+                        <span className="text-indigo-400 font-mono font-bold">{formatStudyTime(totalMonthHours)} Total</span>
+                      </div>
+                      <div className="grid grid-cols-7 gap-1.5 mb-1.5 text-center">
+                        {weekDays.map((d, i) => <span key={i} className="text-[11px] font-bold text-zinc-600">{d}</span>)}
+                      </div>
+                      <div className="grid grid-cols-7 gap-1.5">
+                        {Array.from({ length: firstDayOfWeek }).map((_, i) => (
+                          <div key={`empty-${i}`} className="w-full h-7" />
+                        ))}
+                        {monthlyHours.map((hours, i) => {
+                          const day = i + 1;
+                          const isFuture = day > todayDate;
+                          const active = hours > 0;
+                          const isToday = day === todayDate;
+                          
+                          return (
+                            <div 
+                              key={day} 
+                              className={`w-full h-7 rounded-md flex items-center justify-center text-[10px] whitespace-nowrap tracking-tight font-bold relative transition-colors ${
+                                isFuture ? 'bg-zinc-800/20 border border-zinc-800/60 text-transparent' :
+                                active ? 'bg-indigo-900/40 border border-indigo-500/50 text-indigo-300 shadow-[0_0_12px_rgba(99,102,241,0.4)]' : 
+                                'bg-zinc-800/50 border border-zinc-700/60 text-zinc-400'
+                              } ${isToday ? 'ring-1 ring-white/30 ring-offset-1 ring-offset-zinc-950' : ''}`}
+                              title={`${currentMonthStr} ${day}`}
+                            >
+                              {active ? formatStudyTime(hours) : (!isFuture ? '-' : '')}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Keyboard Shortcuts Trigger Button */}
@@ -503,7 +539,7 @@ export function Topbar({
             type="button"
             onClick={onOpenShortcutGuide}
             aria-label="Keyboard Shortcuts Guide (?)"
-            className="p-1.5 rounded-xl border border-zinc-800/80 bg-zinc-900/40 text-zinc-400 hover:text-white hover:border-zinc-700 transition-all cursor-pointer font-mono text-xs flex items-center justify-center w-8 h-8 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
+            className="p-1.5 rounded-xl border border-zinc-800/80 bg-zinc-900/40 text-zinc-400 hover:text-white hover:border-zinc-700 transition-all duration-150 active:scale-[0.95] select-none cursor-pointer font-mono text-xs flex items-center justify-center w-8 h-8 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
             title="Keyboard Shortcuts (?)"
           >
             <Icon name="Keyboard" aria-hidden="true" className="w-4 h-4" />
@@ -517,7 +553,7 @@ export function Topbar({
             onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
             aria-expanded={isNotificationsOpen}
             aria-label="System Notifications and Alerts"
-            className={`p-1.5 rounded-xl border transition-all cursor-pointer shrink-0 relative ${
+            className={`p-1.5 rounded-xl border transition-all duration-150 active:scale-[0.95] select-none cursor-pointer shrink-0 relative ${
               isNotificationsOpen 
                 ? 'border-indigo-500 text-indigo-300 bg-indigo-950/30' 
                 : 'border-zinc-800/80 bg-zinc-900/40 text-zinc-400 hover:text-white hover:border-zinc-700'
@@ -534,12 +570,12 @@ export function Topbar({
           </button>
 
           {/* NOTIFICATION CENTER DROPDOWN PANEL */}
-          <div className={`absolute top-full right-0 mt-2 w-80 sm:w-96 max-w-[calc(100vw-2rem)] bg-[#0e0e11]/95 border border-zinc-800 rounded-2xl shadow-2xl p-4 z-50 backdrop-blur-md text-left space-y-3 transition-all duration-150 ease-out transform-gpu will-change-transform origin-top-right ${
+          <div className={`absolute top-full right-0 mt-2 w-80 sm:w-96 max-w-[calc(100vw-2rem)] glass-dropdown rounded-2xl p-4 z-50 text-left space-y-3 transition-all duration-150 ease-out transform-gpu will-change-transform origin-top-right ${
             isNotificationsOpen ? 'opacity-100 scale-100 translate-y-0 visible pointer-events-auto' : 'opacity-0 scale-95 -translate-y-2 invisible pointer-events-none'
           }`}>
             
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-zinc-850 pb-2.5">
+            <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-mono font-bold uppercase text-white tracking-wider flex items-center gap-1.5">
                   <Icon name="Bell" className="w-3.5 h-3.5 text-indigo-400" />
@@ -576,8 +612,8 @@ export function Topbar({
                     }}
                     className={`w-full p-3 rounded-xl border transition-all cursor-pointer text-left space-y-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/60 ${
                       isRead 
-                        ? 'bg-zinc-950/40 border-zinc-850 opacity-60' 
-                        : 'bg-zinc-900/60 border-zinc-800 hover:border-indigo-500/40 hover:bg-zinc-900'
+                        ? 'bg-zinc-950/40 border-white/5 opacity-60' 
+                        : 'bg-zinc-900/60 border-white/10 hover:border-indigo-500/40 hover:bg-zinc-850'
                     }`}
                   >
                     <div className="flex items-center justify-between">
@@ -610,7 +646,7 @@ export function Topbar({
             onClick={() => setIsProfileOpen(!isProfileOpen)}
             aria-expanded={isProfileOpen}
             aria-label="User Profile Options"
-            className="flex items-center gap-2 p-1 rounded-xl hover:bg-zinc-900/60 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 cursor-pointer"
+            className="flex items-center gap-2 p-1 rounded-xl hover:bg-zinc-900/60 transition-all duration-150 active:scale-[0.97] select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 cursor-pointer"
           >
             {user?.photoURL ? (
               <img
@@ -634,7 +670,7 @@ export function Topbar({
           </button>
 
           {/* USER PROFILE DROPDOWN */}
-          <div className={`absolute top-full right-0 mt-2 w-56 bg-[#0e0e11]/95 border border-zinc-800 rounded-2xl shadow-2xl p-2 z-50 backdrop-blur-md text-left transition-all duration-150 ease-out transform-gpu will-change-transform origin-top-right ${
+          <div className={`absolute top-full right-0 mt-2 w-56 glass-dropdown rounded-2xl p-2 z-50 text-left transition-all duration-150 ease-out transform-gpu will-change-transform origin-top-right ${
             isProfileOpen ? 'opacity-100 scale-100 translate-y-0 visible pointer-events-auto' : 'opacity-0 scale-95 -translate-y-2 invisible pointer-events-none'
           }`}>
             <div className="px-3 py-2 border-b border-zinc-850 mb-1">

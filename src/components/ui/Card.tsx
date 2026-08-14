@@ -4,7 +4,7 @@ export const Card = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
   ({ className = '', ...props }, ref) => (
     <div
       ref={ref}
-      className={`premium-card rounded-xl transition-all duration-200 overflow-hidden ${className}`}
+      className={`premium-card rounded-xl transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-hidden ${className}`}
       {...props}
     />
   )

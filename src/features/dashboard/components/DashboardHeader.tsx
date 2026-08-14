@@ -1,8 +1,10 @@
 import React from 'react';
+import { motion } from 'motion/react';
 import { Icon } from '@/components/ui/Icon';
 import { CommandOverviewBanner } from './CommandOverviewBanner';
 import { MonthlyCampaignBanner } from '@/features/mission/components/MonthlyCampaignBanner';
 import { Chapter } from '@/types/index';
+import { springs } from '@/constants/motion';
 
 interface DashboardHeaderProps {
   getGreeting: () => string;
@@ -78,7 +80,7 @@ export function DashboardHeader({
             <button
               type="button"
               onClick={onOpenRoutineBreak}
-              className="px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 hover:text-amber-200 rounded-xl font-mono text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer shrink-0"
+              className="px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 hover:text-amber-200 rounded-xl font-mono text-xs font-bold transition-all duration-150 active:scale-[0.97] shadow-sm flex items-center gap-1.5 cursor-pointer shrink-0 select-none"
               title="Take Routine Break (Lunch, Dinner, Exercise)"
             >
               <Icon name="Coffee" className="w-3.5 h-3.5 text-amber-400" />
@@ -88,29 +90,41 @@ export function DashboardHeader({
 
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-mono text-zinc-400 font-semibold uppercase mr-1 hidden sm:inline">Energy:</span>
-            <div className="flex items-center bg-zinc-900/80 border border-zinc-800 p-1 rounded-xl shadow-inner">
-              {(['Low', 'Medium', 'High'] as const).map((level) => (
-                <button
-                  key={level}
-                  onClick={() => setEnergyLevel(level)}
-                  className={`px-2 py-1 sm:px-2.5 sm:py-1 rounded-lg font-mono text-[10px] font-bold transition-all cursor-pointer ${
-                    energyLevel === level
-                      ? 'bg-indigo-600 text-white shadow-md'
-                      : 'text-zinc-400 hover:text-zinc-300'
-                  }`}
-                >
-                  <span className="flex items-center gap-1">
-                    {level === 'Low' ? (
-                      <Icon name="Battery" className="w-3 h-3 text-amber-400" />
-                    ) : level === 'Medium' ? (
-                      <Icon name="Activity" className="w-3 h-3 text-indigo-400" />
-                    ) : (
-                      <Icon name="Zap" className="w-3 h-3 text-emerald-400" />
+            <div className="grid grid-cols-3 gap-1 bg-zinc-900/80 border border-zinc-800 p-1 rounded-xl shadow-inner relative">
+              {(['Low', 'Medium', 'High'] as const).map((level) => {
+                const isActive = energyLevel === level;
+                return (
+                  <motion.button
+                    key={level}
+                    type="button"
+                    whileTap={{ scale: 0.94 }}
+                    onClick={() => setEnergyLevel(level)}
+                    className={`relative px-2 py-1 sm:px-3 sm:py-1 rounded-lg font-mono text-[10px] font-bold transition-colors duration-150 cursor-pointer select-none z-10 flex items-center justify-center min-w-[68px] sm:min-w-[80px] text-center ${
+                      isActive
+                        ? 'text-white'
+                        : 'text-zinc-400 hover:text-zinc-200'
+                    }`}
+                  >
+                    {isActive && (
+                      <motion.div
+                        layoutId="dashboardEnergyPill"
+                        className="absolute inset-0 bg-indigo-600 rounded-lg shadow-md shadow-indigo-600/30 -z-10"
+                        transition={springs.snappy}
+                      />
                     )}
-                    <span className="hidden sm:inline">{level.toUpperCase()}</span>
-                  </span>
-                </button>
-              ))}
+                    <span className="flex items-center justify-center gap-1">
+                      {level === 'Low' ? (
+                        <Icon name="Battery" className="w-3 h-3 text-amber-400" />
+                      ) : level === 'Medium' ? (
+                        <Icon name="Activity" className="w-3 h-3 text-indigo-400" />
+                      ) : (
+                        <Icon name="Zap" className="w-3 h-3 text-emerald-400" />
+                      )}
+                      <span>{level.toUpperCase()}</span>
+                    </span>
+                  </motion.button>
+                );
+              })}
             </div>
           </div>
         </div>

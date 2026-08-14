@@ -215,11 +215,13 @@ describe('PlannerPage Matrix Slot Generation & Header Views', () => {
         taskName: 'Solve 10 Hard Numerical Problems',
         type: 'Solve PYQs',
         duration: 90,
+        timeSlot: '10:00 - 11:30',
+        isManualOverride: true,
         completed: false,
         priorityScore: 98
       }];
 
-      const blocks = generateWeeklyMatrix('3_a_day', activeChapters, mockTodayMission, null, 2); // Wed is current day
+      const blocks = generateWeeklyMatrix('3_a_day', activeChapters, mockTodayMission, null, 2, undefined, [], {}, "00:00", "23:59"); // Wed is current day
       const wedStudyBlocks = blocks.filter(b => b.dayIndex === 2 && (b.taskType as any) !== 'Break');
       expect(wedStudyBlocks.length).toBe(1);
       expect(wedStudyBlocks[0].chapterName).toBe('Rotational Motion');

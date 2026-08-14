@@ -117,8 +117,8 @@ export class RevisionEngine {
     // Sort all cards by urgency (highest urgency rank first)
     allCards.sort((a, b) => b.urgencyRank - a.urgencyRank);
 
-    // Top 6 most urgent cards for compact non-cluttered view
-    const urgentCards = allCards.slice(0, 6);
+    // Urgent cards: ONLY include cards that genuinely require recall (Low or Medium confidence)
+    const urgentCards = allCards.filter(c => c.retentionConfidence === 'Low' || c.retentionConfidence === 'Medium').slice(0, 10);
 
     const totalOverdue = overdueChapters.length;
     const totalUpcoming = upcomingChapters.length;

@@ -106,10 +106,10 @@ export function MissionMode(props: MissionModeProps) {
         <MissionHeader onExit={handleSmoothExit} />
 
         {/* MAIN TWO-COLUMN DECK WORKSPACE */}
-        <main className="flex-1 min-h-0 relative z-10 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden w-full max-w-5xl mx-auto p-3 sm:p-4 md:p-6 gap-4 md:gap-6 lg:gap-8 justify-center items-center pt-20 md:pt-24 my-auto">
+        <main className="flex-1 min-h-0 relative z-10 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden w-full max-w-5xl mx-auto px-3 sm:px-4 md:px-6 py-2 gap-4 md:gap-6 justify-center items-center pt-14 md:pt-16 my-auto max-h-[calc(100vh-4rem)]">
           
           {/* LEFT COMPONENT COLUMN (TIMER & CONTENT COCKPIT) */}
-          <div className="flex-1 flex flex-col items-center justify-center w-full max-w-lg mx-auto md:mx-0 h-full min-h-0">
+          <div className="flex-1 flex flex-col items-center justify-center w-full max-w-lg mx-auto md:mx-0 h-full min-h-0 space-y-1">
             
             <MissionTimerWidget
               progressPercent={state.timeProgressPercent}

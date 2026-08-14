@@ -207,7 +207,7 @@ export function DailyMissionTimeline({
                 <button
                   type="button"
                   onClick={() => setIsHistoryModalOpen(true)}
-                  className="text-xs font-mono text-zinc-400 hover:text-indigo-300 bg-zinc-900/50 border border-zinc-800 hover:bg-zinc-800 px-3 py-1.5 rounded-lg flex items-center gap-1.5 cursor-pointer transition-colors shadow-sm whitespace-nowrap shrink-0"
+                  className="text-xs font-mono text-zinc-400 hover:text-indigo-300 bg-zinc-900/50 border border-zinc-800 hover:bg-zinc-800 px-3 py-1.5 rounded-lg flex items-center gap-1.5 cursor-pointer transition-all duration-150 active:scale-[0.97] shadow-sm whitespace-nowrap shrink-0 select-none"
                 >
                   <History className="w-3.5 h-3.5" />
                   History
@@ -216,7 +216,7 @@ export function DailyMissionTimeline({
                 <button
                   type="button"
                   onClick={onOpenCustomMission}
-                  className="text-xs font-mono text-indigo-300 hover:text-indigo-200 bg-indigo-950/40 border border-indigo-900/50 hover:bg-indigo-900/60 px-3 py-1.5 rounded-lg flex items-center gap-1.5 cursor-pointer transition-colors shadow-sm whitespace-nowrap shrink-0"
+                  className="text-xs font-mono text-indigo-300 hover:text-indigo-200 bg-indigo-950/40 border border-indigo-900/50 hover:bg-indigo-900/60 px-3 py-1.5 rounded-lg flex items-center gap-1.5 cursor-pointer transition-all duration-150 active:scale-[0.97] shadow-sm whitespace-nowrap shrink-0 select-none"
                 >
                   <Icon name="Plus" className="w-3.5 h-3.5" />
                   Add Mission
@@ -227,7 +227,7 @@ export function DailyMissionTimeline({
                     e.preventDefault();
                     navigate('/planner');
                   }}
-                  className="text-xs font-mono text-indigo-400 hover:text-indigo-300 font-semibold hover:bg-indigo-950/30 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 cursor-pointer whitespace-nowrap shrink-0"
+                  className="text-xs font-mono text-indigo-400 hover:text-indigo-300 font-semibold hover:bg-indigo-950/30 px-3 py-1.5 rounded-lg transition-all duration-150 active:scale-[0.97] flex items-center gap-1 cursor-pointer whitespace-nowrap shrink-0 select-none"
                 >
                   Manage in Planner →
                 </a>
@@ -237,92 +237,94 @@ export function DailyMissionTimeline({
 
           {/* Checklist Items */}
           <div className="space-y-2.5">
-            {todayMissions.length === 0 ? (
-              isPastDayEnd ? (
-                <div className="p-8 flex flex-col items-center gap-5 text-center border border-indigo-900/30 rounded-xl bg-gradient-to-b from-indigo-950/20 to-zinc-950/50 shadow-inner">
-                  <div className="w-12 h-12 rounded-full bg-indigo-950/50 border border-indigo-900/50 flex items-center justify-center shadow-lg shadow-indigo-900/20 mb-2">
-                    <Icon name="Moon" className="w-6 h-6 text-indigo-400" />
+            {/* Active Bedtime Banner removed — replaced by full Goodnight Screen below */}
+
+            {isPastDayEnd ? (
+              <div className="p-8 flex flex-col items-center gap-5 text-center border border-indigo-900/30 rounded-2xl bg-gradient-to-b from-indigo-950/25 via-zinc-900/40 to-zinc-950/70 shadow-2xl">
+                <div className="w-14 h-14 rounded-2xl bg-indigo-950/60 border border-indigo-500/40 flex items-center justify-center shadow-lg shadow-indigo-900/30">
+                  <Icon name="Moon" className="w-7 h-7 text-indigo-400" />
+                </div>
+                <div className="space-y-1.5">
+                  <div className="text-white font-display font-bold text-xl tracking-tight">Time to Rest & Consolidate.</div>
+                  <div className="text-zinc-400 text-xs max-w-md mx-auto leading-relaxed font-sans">
+                    You've passed your scheduled bedtime ({effectiveEndTime}). Your daily missions are queued for tomorrow starting at {dayStartTime}. Let your brain consolidate memories.
                   </div>
-                  <div className="space-y-1">
-                    <div className="text-zinc-200 font-display font-medium text-lg tracking-wide">Time to rest.</div>
-                    <div className="text-zinc-400 text-xs max-w-sm leading-relaxed">
-                      You've passed your scheduled bedtime ({effectiveEndTime}). Your remaining missions have been securely pushed to tomorrow. Let your brain consolidate memories.
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-3 justify-center mt-4">
+                </div>
+                <div className="flex flex-wrap gap-3 justify-center pt-2 font-mono">
+                  <button
+                    type="button"
+                    className="px-5 py-2.5 bg-zinc-900 hover:bg-zinc-800 border border-white/10 rounded-xl text-zinc-200 hover:text-white text-xs font-bold transition-all shadow-lg cursor-pointer flex items-center gap-2"
+                  >
+                    <Icon name="Check" className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Sleep Now</span>
+                  </button>
+                  
+                  <div className="relative group">
                     <button
                       type="button"
-                      className="px-5 py-2.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-lg text-zinc-300 text-xs font-mono transition-colors shadow-lg cursor-pointer flex items-center gap-2"
+                      className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-indigo-600/30 cursor-pointer flex items-center gap-2"
                     >
-                      <Icon name="Check" className="w-3.5 h-3.5" /> Sleep Now
+                      <Icon name="Clock" className="w-3.5 h-3.5" />
+                      <span>Extend Session</span>
                     </button>
                     
-                    <div className="relative group">
-                      <button
-                        type="button"
-                        className="px-5 py-2.5 bg-indigo-950/40 hover:bg-indigo-900/60 border border-indigo-900/50 rounded-lg text-indigo-300 text-xs font-mono transition-colors shadow-lg cursor-pointer flex items-center gap-2"
-                      >
-                        <Icon name="Clock" className="w-3.5 h-3.5" /> Extend Session
-                      </button>
-                      
-                      {/* Dropdown for extension */}
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-32 bg-zinc-900 border border-zinc-800 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 overflow-hidden flex flex-col">
-                        <button onClick={() => actions.extendSession(0.5)} className="px-4 py-2 text-xs text-zinc-300 hover:bg-indigo-950/40 hover:text-indigo-300 text-left cursor-pointer transition-colors border-b border-zinc-800/50">+30 mins</button>
-                        <button onClick={() => actions.extendSession(1)} className="px-4 py-2 text-xs text-zinc-300 hover:bg-indigo-950/40 hover:text-indigo-300 text-left cursor-pointer transition-colors border-b border-zinc-800/50">+1 hour</button>
-                        <button onClick={() => actions.extendSession(2)} className="px-4 py-2 text-xs text-zinc-300 hover:bg-indigo-950/40 hover:text-indigo-300 text-left cursor-pointer transition-colors">+2 hours</button>
-                      </div>
+                    {/* Dropdown for extension */}
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-36 glass-dropdown bg-zinc-900 border border-white/10 rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 overflow-hidden flex flex-col z-30 font-mono text-xs">
+                      <button onClick={() => actions.extendSession(0.5)} className="px-4 py-2.5 text-zinc-300 hover:bg-indigo-600 hover:text-white text-left cursor-pointer transition-colors border-b border-white/5">+30 mins</button>
+                      <button onClick={() => actions.extendSession(1)} className="px-4 py-2.5 text-zinc-300 hover:bg-indigo-600 hover:text-white text-left cursor-pointer transition-colors border-b border-white/5">+1 hour</button>
+                      <button onClick={() => actions.extendSession(2)} className="px-4 py-2.5 text-zinc-300 hover:bg-indigo-600 hover:text-white text-left cursor-pointer transition-colors">+2 hours</button>
                     </div>
                   </div>
                 </div>
-              ) : (
-                <div className="p-8 flex flex-col items-center gap-4 text-center border border-dashed border-zinc-800 rounded-xl bg-zinc-950/30">
-                  <div className="text-zinc-300 font-display font-medium text-base">Execution Queue is Empty</div>
-                  <div className="text-zinc-400 text-xs max-w-sm">
-                    You have no active chapters in progress. Pick a foundational module to start your journey.
-                  </div>
-                  <div className="flex flex-wrap gap-3 justify-center mt-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const c = chapters.find(ch => ch.name.includes("General Organic"));
-                        if (c) {
-                          actions.updateChapterData(c.id, { status: "Learning", currentLecture: 1 });
-                          actions.setEnergyLevel("High");
-                        }
-                      }}
-                      className="px-4 py-2.5 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-900/50 rounded-lg text-rose-300 text-xs font-mono transition-colors shadow-lg cursor-pointer"
-                    >
-                      Start GOC (Chem)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const c = chapters.find(ch => ch.name.includes("Sets"));
-                        if (c) {
-                          actions.updateChapterData(c.id, { status: "Learning", currentLecture: 1 });
-                          actions.setEnergyLevel("High");
-                        }
-                      }}
-                      className="px-4 py-2.5 bg-indigo-950/40 hover:bg-indigo-900/60 border border-indigo-900/50 rounded-lg text-indigo-300 text-xs font-mono transition-colors shadow-lg cursor-pointer"
-                    >
-                      Start Sets (Maths)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const c = chapters.find(ch => ch.name.includes("Units") || ch.name.includes("Kinematics"));
-                        if (c) {
-                          actions.updateChapterData(c.id, { status: "Learning", currentLecture: 1 });
-                          actions.setEnergyLevel("High");
-                        }
-                      }}
-                      className="px-4 py-2.5 bg-cyan-950/40 hover:bg-cyan-900/60 border border-cyan-900/50 rounded-lg text-cyan-300 text-xs font-mono transition-colors shadow-lg cursor-pointer"
-                    >
-                      Start Physics
-                    </button>
-                  </div>
+              </div>
+            ) : todayMissions.length === 0 ? (
+              <div className="p-8 flex flex-col items-center gap-4 text-center border border-dashed border-zinc-800 rounded-xl bg-zinc-950/30">
+                <div className="text-zinc-300 font-display font-medium text-base">Execution Queue is Empty</div>
+                <div className="text-zinc-400 text-xs max-w-sm font-sans">
+                  You have no active chapters in progress. Pick a foundational module to start your journey.
                 </div>
-              )
+                <div className="flex flex-wrap gap-3 justify-center mt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const c = chapters.find(ch => ch.name.includes("General Organic"));
+                      if (c) {
+                        actions.updateChapterData(c.id, { status: "Learning", currentLecture: 1 });
+                        actions.setEnergyLevel("High");
+                      }
+                    }}
+                    className="px-4 py-2.5 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-900/50 rounded-lg text-rose-300 text-xs font-mono transition-colors shadow-lg cursor-pointer"
+                  >
+                    Start GOC (Chem)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const c = chapters.find(ch => ch.name.includes("Sets"));
+                      if (c) {
+                        actions.updateChapterData(c.id, { status: "Learning", currentLecture: 1 });
+                        actions.setEnergyLevel("High");
+                      }
+                    }}
+                    className="px-4 py-2.5 bg-indigo-950/40 hover:bg-indigo-900/60 border border-indigo-900/50 rounded-lg text-indigo-300 text-xs font-mono transition-colors shadow-lg cursor-pointer"
+                  >
+                    Start Sets (Maths)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const c = chapters.find(ch => ch.name.includes("Units") || ch.name.includes("Kinematics"));
+                      if (c) {
+                        actions.updateChapterData(c.id, { status: "Learning", currentLecture: 1 });
+                        actions.setEnergyLevel("High");
+                      }
+                    }}
+                    className="px-4 py-2.5 bg-cyan-950/40 hover:bg-cyan-900/60 border border-cyan-900/50 rounded-lg text-cyan-300 text-xs font-mono transition-colors shadow-lg cursor-pointer"
+                  >
+                    Start Physics
+                  </button>
+                </div>
+              </div>
             ) : (() => {
               const sortedMissions = [...todayMissions].sort((a, b) => {
                 // Sort order: active → completed → dismissed
@@ -358,55 +360,62 @@ export function DailyMissionTimeline({
               const pushedSlotsMap = new Map<string, { slot: string; isPushed: boolean }>();
               const overBudgetMissionIds = new Set<string>();
               
-              let runningPushMins = nowMins;
+              // When past bedtime, don't run push cascade — keep original slots and mark all as over-budget
+              if (isPastDayEnd) {
+                uncompletedMissions.forEach(m => {
+                  overBudgetMissionIds.add(m.id);
+                });
+              } else {
+                let runningPushMins = nowMins;
 
-              uncompletedMissions.forEach((m, idx) => {
-                let duration = m.duration || 60;
-                let startMins = runningPushMins;
-                let endMins = startMins + duration;
-                
-                if (m.timeSlot) {
-                  const range = parseTimeSlotToRange(m.timeSlot);
-                  if (range) {
-                    const origStart = range.startMins;
-                    const origEnd = range.endMins;
-                    if (origEnd > origStart) duration = origEnd - origStart;
-                    if (m.isManualOverride && origStart >= runningPushMins) {
-                      startMins = origStart;
-                      endMins = startMins + duration;
+                uncompletedMissions.forEach((m, idx) => {
+                  let duration = m.duration || 60;
+                  let startMins = runningPushMins;
+                  let endMins = startMins + duration;
+                  
+                  if (m.timeSlot) {
+                    const range = parseTimeSlotToRange(m.timeSlot);
+                    if (range) {
+                      const origStart = range.startMins;
+                      const origEnd = range.endMins;
+                      if (origEnd > origStart) duration = origEnd - origStart;
+                      if (m.isManualOverride && origStart >= runningPushMins) {
+                        startMins = origStart;
+                        endMins = startMins + duration;
+                      }
                     }
                   }
-                }
 
-                const shouldSnapToLive = !m.isManualOverride || startMins < runningPushMins;
-                if (shouldSnapToLive) {
-                  startMins = runningPushMins;
-                  endMins = startMins + duration;
-                  
-                  const sH = Math.floor((startMins % 1440) / 60).toString().padStart(2, '0');
-                  const sM = (startMins % 60).toString().padStart(2, '0');
-                  const eH = Math.floor((endMins % 1440) / 60).toString().padStart(2, '0');
-                  const eM = (endMins % 60).toString().padStart(2, '0');
-                  
-                  pushedSlotsMap.set(m.id, {
-                    slot: `${sH}:${sM} - ${eH}:${eM}`,
-                    isPushed: true
-                  });
-                }
-
-                // If this uncompleted mission's cascaded start time reaches bedtime or spills past bedtime (and it's not the live mission), mark as over budget
-                if (startMins >= endMinsTotal || (endMins > endMinsTotal && idx > 0)) {
-                  overBudgetMissionIds.add(m.id);
-                }
-
-                if (nowMins >= startMins && nowMins < endMins && startMins < endMinsTotal) {
-                  if (!liveMissionId) {
-                    liveMissionId = m.id;
+                  const shouldSnapToLive = !m.isManualOverride || startMins < runningPushMins;
+                  if (shouldSnapToLive) {
+                    startMins = runningPushMins;
+                    endMins = startMins + duration;
+                    
+                    const sH = Math.floor((startMins % 1440) / 60).toString().padStart(2, '0');
+                    const sM = (startMins % 60).toString().padStart(2, '0');
+                    const eH = Math.floor((endMins % 1440) / 60).toString().padStart(2, '0');
+                    const eM = (endMins % 60).toString().padStart(2, '0');
+                    
+                    pushedSlotsMap.set(m.id, {
+                      slot: `${sH}:${sM} - ${eH}:${eM}`,
+                      isPushed: true
+                    });
                   }
-                }
 
-                runningPushMins = endMins;
-              });
+                  // If this uncompleted mission's cascaded start time reaches bedtime or spills past bedtime (and it's not the live mission), mark as over budget
+                  if (startMins >= endMinsTotal || (endMins > endMinsTotal && idx > 0)) {
+                    overBudgetMissionIds.add(m.id);
+                  }
+
+                  if (nowMins >= startMins && nowMins < endMins && startMins < endMinsTotal) {
+                    if (!liveMissionId) {
+                      liveMissionId = m.id;
+                    }
+                  }
+
+                  runningPushMins = endMins;
+                });
+              }
 
               // Find Next Up Mission
               if (liveMissionId) {
@@ -429,11 +438,16 @@ export function DailyMissionTimeline({
                   const isLive = mission.id === liveMissionId;
                   const isNextUp = mission.id === nextUpMissionId;
 
-                  // Chapter metadata
+                  // Chapter metadata & Ebbinghaus decay telemetry
                   const chap = chapters.find(c => 
                     c.name.toLowerCase() === (mission.chapter || mission.chapterName || '').toLowerCase() || 
                     (mission.chapterId && c.id === mission.chapterId)
                   );
+
+                  const chapTelemetry = chap && chapterTelemetryMap ? chapterTelemetryMap[chap.id] : null;
+                  const retentionScore = chapTelemetry?.strategyRadar?.retentionConfidenceScore 
+                    ?? chap?.revisionProgress?.retentionScore 
+                    ?? (chap?.confidence !== undefined ? (chap.confidence >= 4 ? 88 : chap.confidence >= 2 ? 65 : 42) : (chap?.completion && chap.completion > 0 ? 70 : undefined));
 
                   const currentLec = chap?.currentLecture ?? 0;
                   const totalLec = chap?.totalLectures ?? 12;
@@ -655,6 +669,33 @@ export function DailyMissionTimeline({
                                 <Icon name="Clock" className="w-3 h-3 text-emerald-400" /> {pushedSlotsMap.get(mission.id)?.slot} (Pushed to Live)
                               </span>
                             )}
+                            {/* Mini Circular Ebbinghaus Decay Gauge */}
+                            {retentionScore !== undefined && (
+                              <span 
+                                className={`px-2 py-0.5 rounded-md border flex items-center gap-1.5 font-mono text-[10px] font-bold shadow-sm ${
+                                  retentionScore < 50 
+                                    ? 'bg-red-950/60 border-red-500/50 text-red-300 animate-pulse' 
+                                    : retentionScore < 75 
+                                    ? 'bg-amber-950/60 border-amber-500/50 text-amber-300' 
+                                    : 'bg-emerald-950/60 border-emerald-500/50 text-emerald-300'
+                                }`}
+                                title={`Ebbinghaus Retention Index: ${retentionScore}% memory retention probability`}
+                              >
+                                <svg className="w-3 h-3 -rotate-90 shrink-0" viewBox="0 0 32 32">
+                                  <circle cx="16" cy="16" r="12" className="stroke-zinc-800" strokeWidth="3.5" fill="none" />
+                                  <circle 
+                                    cx="16" cy="16" r="12" 
+                                    stroke={retentionScore < 50 ? '#ef4444' : retentionScore < 75 ? '#f59e0b' : '#10b981'} 
+                                    strokeWidth="3.5" 
+                                    fill="none" 
+                                    strokeDasharray="75.4"
+                                    strokeDashoffset={75.4 - (75.4 * retentionScore) / 100}
+                                    strokeLinecap="round"
+                                  />
+                                </svg>
+                                <span>{retentionScore}% Memory</span>
+                              </span>
+                            )}
                             {!mission.completed && !isDismissed && overBudgetMissionIds.has(mission.id) && (
                               <span className="text-amber-400 bg-amber-950/40 border border-amber-800/60 font-mono text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-1">
                                 <Icon name="Moon" className="w-3 h-3 text-amber-400" /> Over Bedtime
@@ -720,10 +761,11 @@ export function DailyMissionTimeline({
                                   e.stopPropagation();
                                   actions.openChapterEditModal(chap.id);
                                 }}
-                                className="text-[10px] bg-indigo-950/40 hover:bg-indigo-600/90 text-indigo-300 hover:text-white px-2.5 py-1 rounded-lg cursor-pointer transition-all border border-indigo-500/30 flex items-center gap-1 shadow-sm font-mono"
-                                title="Chapter Info"
+                                className="text-xs bg-indigo-950/40 hover:bg-indigo-600/30 text-indigo-300 hover:text-white px-3 py-1.5 rounded-xl cursor-pointer transition-all duration-150 active:scale-[0.96] border border-indigo-500/30 flex items-center gap-1.5 shadow-sm font-mono font-bold select-none"
+                                title="Configure Chapter"
                               >
-                                <Icon name="Settings" className="w-3 h-3" /> Chap Config
+                                <Icon name="SlidersHorizontal" className="w-3 h-3 text-indigo-400" />
+                                <span>Chap Config</span>
                               </button>
                             )}
 
@@ -733,10 +775,11 @@ export function DailyMissionTimeline({
                                 e.stopPropagation();
                                 onEditMission?.(mission);
                               }}
-                              className="text-[10px] bg-zinc-900/60 hover:bg-zinc-800 text-zinc-300 hover:text-white px-2.5 py-1 rounded-lg cursor-pointer transition-all border border-zinc-800 flex items-center gap-1 shadow-sm font-mono"
+                              className="text-xs bg-zinc-900/60 hover:bg-zinc-800 text-zinc-300 hover:text-white px-3 py-1.5 rounded-xl cursor-pointer transition-all duration-150 active:scale-[0.96] border border-zinc-800 flex items-center gap-1.5 shadow-sm font-mono font-bold select-none"
                               title="Edit Mission Details"
                             >
-                              Edit Mission
+                              <Icon name="Edit" className="w-3 h-3 text-zinc-400" />
+                              <span>Edit Mission</span>
                             </button>
                           </div>
                         </div>
@@ -863,13 +906,13 @@ export function DailyMissionTimeline({
       </div>
 
       {/* RIGHT COLUMN: 35% width (~400px) — Sleek Strategy & Formula Radar */}
-      <div className="lg:col-span-5 xl:col-span-5 self-start sticky top-6">
-        <div className="p-5 md:p-6 rounded-2xl border border-zinc-800/80 bg-zinc-950/60 backdrop-blur-xl space-y-4">
+      <div className="lg:col-span-5 xl:col-span-5 self-start sticky top-4 max-h-[calc(100vh-2rem)] overflow-y-auto custom-scrollbar">
+        <div className="p-4 md:p-5 rounded-2xl border border-zinc-800/80 bg-zinc-950/70 backdrop-blur-xl space-y-3.5 shadow-xl">
           
           <div className="space-y-4">
             
             {/* Header Radar Badge */}
-            <div className="flex items-center justify-between border-b border-zinc-900/80 pb-3">
+            <div className="flex items-center justify-between border-b border-zinc-850/80 pb-3">
               <div className="flex items-center gap-2">
                 <span className="flex h-2 w-2 rounded-full bg-indigo-400 animate-pulse" />
                 <span className="text-[10px] font-mono font-bold tracking-widest text-indigo-400 uppercase">
@@ -881,9 +924,10 @@ export function DailyMissionTimeline({
                 <button
                   type="button"
                   onClick={() => actions.openChapterEditModal(activeChap.id)}
-                  className="text-[10px] font-mono text-indigo-400 hover:text-indigo-300 bg-indigo-950/40 border border-indigo-900/60 px-2 py-0.5 rounded cursor-pointer transition-colors"
+                  className="text-xs font-mono font-bold text-indigo-300 hover:text-white bg-indigo-600/15 hover:bg-indigo-600/25 border border-indigo-500/30 hover:border-indigo-500/50 px-3 py-1.5 rounded-xl cursor-pointer transition-all duration-150 active:scale-[0.96] select-none flex items-center gap-1.5 shadow-sm"
                 >
-                  <Icon name="Settings" className="w-3.5 h-3.5 text-zinc-400 inline mr-1" /> Configure Chapter
+                  <Icon name="SlidersHorizontal" className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>Configure Chapter</span>
                 </button>
               )}
             </div>
@@ -892,77 +936,77 @@ export function DailyMissionTimeline({
               <div className="space-y-4 text-left">
                 
                 {/* Active Module Header */}
-                <div className="space-y-1">
+                <div className="space-y-1.5">
                   <div className="flex items-center gap-2">
-                    <span className={`text-[11px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${getSubjectBadgeStyle(activeMission.subject)}`}>
+                    <span className={`text-[10px] font-mono font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-lg border shadow-sm ${getSubjectBadgeStyle(activeMission.subject)}`}>
                       {activeMission.subject.toUpperCase()}
                     </span>
-                    <span className="text-[11px] font-mono text-amber-300 bg-amber-950/30 border border-amber-900/40 px-2 py-0.5 rounded font-semibold">
+                    <span className="text-[10px] font-mono text-amber-300 bg-amber-950/40 border border-amber-500/30 px-2.5 py-0.5 rounded-lg font-bold shadow-sm">
                       +{strategyRadar.weightageGain} Marks Gain
                     </span>
                   </div>
-                  <h3 className="text-base font-display font-bold text-white tracking-tight pt-1">
+                  <h3 className="text-base font-display font-black text-white tracking-tight pt-0.5">
                     {activeMission.taskName}
                   </h3>
                 </div>
 
                 {/* Chapter Vitals */}
                 {activeChap ? (
-                  <div className="space-y-1.5 mt-4">
-                    <span className="text-xs font-mono font-bold text-zinc-400 uppercase tracking-widest block">
+                  <div className="space-y-2 mt-3">
+                    <span className="text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-widest block">
                       Chapter Vitals
                     </span>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="p-2.5 rounded-lg bg-zinc-900/60 border border-zinc-850/80 flex flex-col gap-1">
-                        <span className="text-[10px] text-zinc-500 font-mono uppercase">Completion</span>
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-850/80 flex flex-col gap-1.5">
+                        <span className="text-[10px] text-zinc-400 font-mono uppercase tracking-wider">Completion</span>
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-white">{activeChap.completion}%</span>
+                          <span className="text-xs font-bold text-white font-mono">{activeChap.completion}%</span>
                           <div className="w-16 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
                             <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${activeChap.completion}%` }} />
                           </div>
                         </div>
                       </div>
-                      <div className="p-2.5 rounded-lg bg-zinc-900/60 border border-zinc-850/80 flex flex-col gap-1">
-                        <span className="text-[10px] text-zinc-500 font-mono uppercase">Confidence</span>
+                      <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-850/80 flex flex-col gap-1.5">
+                        <span className="text-[10px] text-zinc-400 font-mono uppercase tracking-wider">Confidence</span>
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-white">{activeChap.confidence}%</span>
+                          <span className="text-xs font-bold text-white font-mono">{activeChap.confidence}%</span>
                           <div className="w-16 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
                             <div className={`h-full rounded-full ${activeChap.confidence > 70 ? 'bg-emerald-500' : activeChap.confidence > 40 ? 'bg-amber-500' : 'bg-rose-500'}`} style={{ width: `${activeChap.confidence}%` }} />
                           </div>
                         </div>
                       </div>
-                      <div className="p-2.5 rounded-lg bg-zinc-900/60 border border-zinc-850/80 flex flex-col gap-1">
-                        <span className="text-[10px] text-zinc-500 font-mono uppercase">Difficulty</span>
-                        <span className={`text-xs font-bold ${activeChap.difficulty === 'Hard' ? 'text-rose-400' : activeChap.difficulty === 'Medium' ? 'text-amber-400' : 'text-emerald-400'}`}>{activeChap.difficulty}</span>
+                      <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-850/80 flex flex-col gap-1">
+                        <span className="text-[10px] text-zinc-400 font-mono uppercase tracking-wider">Difficulty</span>
+                        <span className={`text-xs font-bold font-mono ${activeChap.difficulty === 'Hard' ? 'text-rose-400' : activeChap.difficulty === 'Medium' ? 'text-amber-400' : 'text-emerald-400'}`}>{activeChap.difficulty}</span>
                       </div>
-                      <div className="p-2.5 rounded-lg bg-zinc-900/60 border border-zinc-850/80 flex flex-col gap-1">
-                        <span className="text-[10px] text-zinc-500 font-mono uppercase">Lectures</span>
-                        <span className="text-xs font-bold text-white">{activeChap.currentLecture} / {activeChap.totalLectures}</span>
+                      <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-850/80 flex flex-col gap-1">
+                        <span className="text-[10px] text-zinc-400 font-mono uppercase tracking-wider">Lectures</span>
+                        <span className="text-xs font-bold text-white font-mono">{activeChap.currentLecture} / {activeChap.totalLectures}</span>
                       </div>
                     </div>
                   </div>
                 ) : (
-                  <div className="p-4 rounded-xl border border-zinc-900/80 bg-zinc-900/40 space-y-1 text-center">
+                  <div className="p-4 rounded-xl border border-zinc-850/80 bg-zinc-900/40 space-y-1 text-center">
                     <span className="text-[10px] text-zinc-400 uppercase font-mono block">No Chapter Data</span>
-                    <span className="text-xs text-zinc-500">Mission does not belong to a specific syllabus chapter.</span>
+                    <span className="text-xs text-zinc-400">Mission does not belong to a specific syllabus chapter.</span>
                   </div>
                 )}
 
                 {/* Target PYQ Quota & Metrics */}
-                <div className={`grid ${targetPYQs !== null ? 'grid-cols-3' : 'grid-cols-2'} gap-2 text-center font-mono`}>
-                  <div className="p-2.5 rounded-xl border border-zinc-900 bg-zinc-900/40 space-y-0.5">
-                    <span className="text-xs text-zinc-400 uppercase block">Est. Time</span>
-                    <span className="text-xs font-bold text-white">{activeMission.duration}m</span>
+                <div className={`grid ${targetPYQs !== null ? 'grid-cols-3' : 'grid-cols-2'} gap-2.5 text-center font-mono`}>
+                  <div className="p-3 rounded-xl border border-zinc-850 bg-zinc-900/40 space-y-0.5">
+                    <span className="text-[10px] text-zinc-400 uppercase tracking-wider block">Est. Time</span>
+                    <span className="text-sm font-bold text-white">{activeMission.duration}m</span>
                   </div>
                   {targetPYQs !== null && (
-                    <div className="p-2.5 rounded-xl border border-zinc-900 bg-zinc-900/40 space-y-0.5">
-                      <span className="text-xs text-zinc-400 uppercase block">Target PYQs</span>
-                      <span className="text-xs font-bold text-indigo-400">{targetPYQs} Qs</span>
+                    <div className="p-3 rounded-xl border border-zinc-850 bg-zinc-900/40 space-y-0.5">
+                      <span className="text-[10px] text-zinc-400 uppercase tracking-wider block">Target PYQs</span>
+                      <span className="text-sm font-bold text-indigo-400">{targetPYQs} Qs</span>
                     </div>
                   )}
-                  <div className="p-2.5 rounded-xl border border-zinc-900 bg-zinc-900/40 space-y-0.5">
-                    <span className="text-xs text-zinc-400 uppercase block">XP Award</span>
-                    <span className="text-xs font-bold text-emerald-400">+{displayXp}</span>
+                  <div className="p-3 rounded-xl border border-zinc-850 bg-zinc-900/40 space-y-0.5">
+                    <span className="text-[10px] text-zinc-400 uppercase tracking-wider block">XP Award</span>
+                    <span className="text-sm font-bold text-emerald-400">+{displayXp}</span>
                   </div>
                 </div>
 

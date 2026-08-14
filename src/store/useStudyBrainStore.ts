@@ -5,6 +5,7 @@ import { StudyBrainActions } from '@/actions/StudyBrainActions';
 export type StudyBrainStoreState = StudyBrainState & {
   actions: StudyBrainActions;
   setState: (newState: Partial<StudyBrainState>) => void;
+  syncFromRuntime: (newState: StudyBrainState) => void;
   setActions: (actions: StudyBrainActions) => void;
 };
 
@@ -15,7 +16,11 @@ export const useStudyBrainStore = create<StudyBrainStoreState>((set) => {
   return {
     ...runtime.getState(),
     actions,
-    setState: (newState) => set((state) => ({ ...state, ...newState })),
+    setState: (newState) => {
+      runtime.updateStateOptimistic(newState);
+      set((state) => ({ ...state, ...newState }));
+    },
+    syncFromRuntime: (newState) => set((state) => ({ ...state, ...newState })),
     setActions: (actions) => set({ actions }),
   };
 });

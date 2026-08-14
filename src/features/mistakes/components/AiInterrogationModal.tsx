@@ -83,7 +83,8 @@ export const AiInterrogationModal: React.FC<AiInterrogationModalProps> = ({
               </div>
             ) : (
               <QuestionViewerWidget
-                chapterId={mistake?.chapter || ''}
+                chapterId={mistake?.chapterId || mistake?.chapter || ''}
+                chapterName={mistake?.chapter || ''}
                 subject={mistake?.subject || 'physics'}
                 onExitPractice={handleClose}
                 onCorrectAnswer={handleCorrectAnswer}

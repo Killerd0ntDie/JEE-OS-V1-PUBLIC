@@ -139,9 +139,11 @@ export function PlannerHeader({ state }: { state: any }) {
             type="button"
             onClick={handleAutoBalance}
             disabled={isAutoBalancing}
-            className={`px-3.5 py-2 rounded-xl font-mono text-xs font-bold uppercase tracking-wider flex items-center gap-2 shadow-lg transition-all cursor-pointer disabled:opacity-50 ${
-              balanceToast
-                ? 'bg-emerald-600 border border-emerald-500 text-white shadow-emerald-600/25'
+            className={`px-3.5 py-2 rounded-xl font-mono text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all duration-150 active:scale-[0.97] cursor-pointer shadow-lg select-none ${
+              isAutoBalancing
+                ? 'bg-indigo-900/50 text-indigo-300 cursor-not-allowed opacity-80'
+                : balanceToast
+                ? 'bg-emerald-600 text-white shadow-emerald-600/25'
                 : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/25'
             }`}
           >
@@ -158,7 +160,7 @@ export function PlannerHeader({ state }: { state: any }) {
           <button
             type="button"
             onClick={() => setIsAiRevisionModalOpen(true)}
-            className="px-3 py-2 rounded-xl font-mono text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer bg-zinc-900 hover:bg-zinc-850 text-emerald-400 border border-zinc-800 hover:border-emerald-500/40"
+            className="px-3 py-2 rounded-xl font-mono text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all duration-150 active:scale-[0.97] cursor-pointer bg-zinc-900 hover:bg-zinc-850 text-emerald-400 border border-zinc-800 hover:border-emerald-500/40 select-none"
           >
             <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
             AI Revision Sprint
@@ -167,7 +169,7 @@ export function PlannerHeader({ state }: { state: any }) {
           <button
             type="button"
             onClick={() => setIsCustomMissionModalOpen(true)}
-            className="px-3 py-2 rounded-xl font-mono text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer bg-zinc-900 hover:bg-zinc-850 text-zinc-200 border border-zinc-800"
+            className="px-3 py-2 rounded-xl font-mono text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all duration-150 active:scale-[0.97] cursor-pointer bg-zinc-900 hover:bg-zinc-850 text-zinc-200 border border-zinc-800 select-none"
           >
             <PenTool className="w-3.5 h-3.5 text-zinc-400" />
             Add Mission
@@ -177,7 +179,7 @@ export function PlannerHeader({ state }: { state: any }) {
             <button
               type="button"
               onClick={() => setIsAuditDropdownOpen(!isAuditDropdownOpen)}
-              className="px-3 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-300 font-mono text-xs font-bold flex items-center gap-2 transition-all cursor-pointer"
+              className="px-3 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-300 font-mono text-xs font-bold flex items-center gap-2 transition-all duration-150 active:scale-[0.97] cursor-pointer select-none"
             >
               <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-400" />
               AI Audits & Sync

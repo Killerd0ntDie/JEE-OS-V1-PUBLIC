@@ -4,7 +4,7 @@ import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
 import { motion } from 'motion/react';
 import { StudyBrainService } from '@/services/studyBrainService';
 import { calculateRealisticDailyChapterVelocity } from '@/utils/chapterVelocity';
-
+import { springs } from '@/constants/motion';
 import { AlertTriangle, Clock, Skull, Zap } from 'lucide-react';
 
 interface ExamReadinessWidgetProps {
@@ -59,7 +59,7 @@ export function ExamReadinessWidget({ targetYear, syllabusProgress, studySession
   const maxPossiblePercent = totalChapters > 0 ? Math.min(100, Math.round(((masteredChapters + projectedFinishedChapters) / totalChapters) * 100)) : 0;
 
   return (
-    <div className={`rounded-2xl p-6 relative overflow-hidden border transition-all duration-500 shadow-2xl ${
+    <div className={`rounded-2xl p-6 relative overflow-hidden border transition-all duration-500 shadow-2xl h-full flex flex-col justify-between ${
       isDoomsday 
         ? 'bg-red-950/40 border-red-900/80 shadow-[0_0_50px_rgba(220,38,38,0.1)]' 
         : 'bg-zinc-950/40 border-zinc-800/80 glass-card backdrop-blur-xl'
@@ -76,25 +76,33 @@ export function ExamReadinessWidget({ targetYear, syllabusProgress, studySession
           {isDoomsday ? <AlertTriangle className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
           {isDoomsday ? 'DOOMSDAY VELOCITY WARNING' : 'EXAM READINESS & TRAJECTORY'}
         </span>
-        <div className="flex items-center gap-1 bg-zinc-900/80 border border-zinc-800 rounded-lg p-1">
-          <button
-            type="button"
-            onClick={() => setSelectedExamTab('main')}
-            className={`px-2.5 py-0.5 rounded text-[10px] font-mono font-bold transition-all cursor-pointer ${
-              selectedExamTab === 'main' ? 'bg-indigo-600 text-white shadow-md' : 'text-zinc-400 hover:text-zinc-200'
-            }`}
-          >
-            JEE Main (Jan)
-          </button>
-          <button
-            type="button"
-            onClick={() => setSelectedExamTab('adv')}
-            className={`px-2.5 py-0.5 rounded text-[10px] font-mono font-bold transition-all cursor-pointer ${
-              selectedExamTab === 'adv' ? 'bg-indigo-600 text-white shadow-md' : 'text-zinc-400 hover:text-zinc-200'
-            }`}
-          >
-            JEE Advanced (May)
-          </button>
+        <div className="grid grid-cols-2 gap-1 bg-zinc-900/80 border border-zinc-800 rounded-xl p-1 relative select-none">
+          {[
+            { id: 'main', label: 'JEE Main (Jan)' },
+            { id: 'adv', label: 'JEE Advanced (May)' }
+          ].map(tab => {
+            const isActive = selectedExamTab === tab.id;
+            return (
+              <motion.button
+                key={tab.id}
+                type="button"
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setSelectedExamTab(tab.id as any)}
+                className={`relative px-3 py-1 rounded-lg text-[10px] font-mono font-bold transition-colors cursor-pointer select-none z-10 flex items-center justify-center min-w-[115px] sm:min-w-[130px] text-center ${
+                  isActive ? 'text-white' : 'text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                {isActive && (
+                  <motion.div
+                    layoutId="examTargetPill"
+                    className="absolute inset-0 bg-indigo-600 rounded-lg shadow-md shadow-indigo-600/30 -z-10"
+                    transition={springs.snappy}
+                  />
+                )}
+                <span>{tab.label}</span>
+              </motion.button>
+            );
+          })}
         </div>
       </div>
 

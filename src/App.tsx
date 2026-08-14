@@ -273,7 +273,7 @@ function AppLayout() {
                       <Route path="/analytics" element={<ErrorBoundary><AnalyticsPage /></ErrorBoundary>} />
                       <Route path="/coach-history" element={<ErrorBoundary><CoachHistoryPage /></ErrorBoundary>} />
                       <Route path="/mock-tests" element={<ErrorBoundary><MockTestsPage /></ErrorBoundary>} />
-                      <Route path="/neural-link" element={<ErrorBoundary><NeuralGraphPage /></ErrorBoundary>} />
+                      <Route path="/neural-link" element={<ErrorBoundary><NeuralGraphPage onNavigate={(pageId) => navigate(`/${pageId}`)} /></ErrorBoundary>} />
                       <Route path="/settings" element={<ErrorBoundary><SettingsPage /></ErrorBoundary>} />
                       <Route path="/diagnostic" element={<ErrorBoundary><DiagnosticPage /></ErrorBoundary>} />
                       <Route path="*" element={<Navigate to="/dashboard" replace />} />

@@ -4,6 +4,7 @@ import { Sparkles, Calendar, RotateCcw, X, Check } from 'lucide-react';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { Modal } from '@/components/ui/Modal';
+import { CustomSelect } from '@/components/ui/CustomSelect';
 import { toLocalDateString } from '@/utils/dateUtils';
 
 interface Props {
@@ -50,7 +51,7 @@ export const WeeklyCheckinModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
   return (
     
-    <Modal isOpen={isOpen} onClose={onClose} zIndex={50} backdropClassName="p-4 bg-black/80 backdrop-blur-md animate-fade-in overflow-y-auto text-left" className="relative w-full max-w-lg bg-[#0a0b0e] border border-indigo-900/50 rounded-2xl shadow-2xl overflow-hidden my-6">
+    <Modal isOpen={isOpen} onClose={onClose} zIndex={50} backdropClassName="p-4 bg-black/35 backdrop-blur-sm animate-fade-in overflow-y-auto text-left" className="relative w-full max-w-lg bg-[#0a0b0e] border border-indigo-900/50 rounded-2xl shadow-2xl overflow-hidden my-6">
         
         {/* Header */}
         <div className="px-6 py-4 bg-indigo-950/30 border-b border-indigo-900/40 flex items-center justify-between">
@@ -114,17 +115,18 @@ export const WeeklyCheckinModal: React.FC<Props> = ({ isOpen, onClose }) => {
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
+            <div className="space-y-1 relative z-20">
               <label className="text-[10px] font-mono text-zinc-400 uppercase block">Health State</label>
-              <select
+              <CustomSelect
+                size="sm"
                 value={healthLevel}
-                onChange={(e) => setHealthLevel(e.target.value as any)}
-                className="w-full bg-[#121318] border border-zinc-800 rounded-lg px-3 py-2 text-white font-mono focus:border-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
-              >
-                <option value="Good">Good / Fit</option>
-                <option value="Fatigued">Fatigued</option>
-                <option value="Recovering">Recovering</option>
-              </select>
+                onChange={(val) => setHealthLevel(val as any)}
+                options={[
+                  { value: 'Good', label: 'Good / Fit' },
+                  { value: 'Fatigued', label: 'Fatigued' },
+                  { value: 'Recovering', label: 'Recovering' },
+                ]}
+              />
             </div>
 
             <div className="space-y-1">

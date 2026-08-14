@@ -1,17 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  CheckCircle, ChevronLeft, ChevronRight, Eye, EyeOff, 
-  Sparkles, Award, RotateCcw, AlertTriangle, BookOpen 
+  CheckCircle, ChevronLeft, ChevronRight, Eye, 
+  RotateCcw, AlertTriangle, BookOpen, Clock, X, Trophy, Sparkles, Check
 } from 'lucide-react';
-import { Badge } from '@/components/ui/Badge';
 import { Mistake, SubjectId } from '@/types/index';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { RichTextRenderer } from '@/components/MathRenderer';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
-import { MissionMode } from '@/features/mission/MissionMode';
-import { BlockMath, InlineMath } from '@/components/MathRenderer';
 
 export interface BatchReviewModalProps {
   isOpen: boolean;
@@ -30,271 +27,339 @@ export const BatchReviewModal: React.FC<BatchReviewModalProps> = ({
   getSubjectColor,
   triggerToast,
 }) => {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [showAnswer, setShowAnswer] = useState(false);
-  const [reviewQueue, setReviewQueue] = useState<Mistake[]>([]);
-  const hasInitializedRef = React.useRef(false);
+  const actions = useStudyBrainStore(state => state.actions);
 
-  React.useEffect(() => {
-    if (isOpen && !hasInitializedRef.current) {
-      setReviewQueue(activeMistakes);
-      setCurrentIndex(0);
-      setShowAnswer(false);
-      hasInitializedRef.current = true;
-    } else if (!isOpen) {
-      hasInitializedRef.current = false;
-    }
-  }, [isOpen, activeMistakes]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [showSolution, setShowSolution] = useState(false);
+  const [reviewQueue, setReviewQueue] = useState<Mistake[]>([]);
+  const [userScratchpad, setUserScratchpad] = useState<Record<string, string>>({});
+  const [resolvedIds, setResolvedIds] = useState<Set<string>>(new Set());
+  const [secondsElapsed, setSecondsElapsed] = useState(0);
+  const [isFinished, setIsFinished] = useState(false);
+  
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useLockBodyScroll(isOpen);
   useEscapeKey(onClose, isOpen);
 
+  useEffect(() => {
+    if (isOpen) {
+      setReviewQueue(activeMistakes);
+      setCurrentIndex(0);
+      setShowSolution(false);
+      setUserScratchpad({});
+      setResolvedIds(new Set());
+      setSecondsElapsed(0);
+      setIsFinished(false);
+
+      timerRef.current = setInterval(() => {
+        setSecondsElapsed(s => s + 1);
+      }, 1000);
+    } else {
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [isOpen, activeMistakes]);
 
   if (!isOpen) return null;
 
   const currentItem = reviewQueue[currentIndex];
 
+  const formatTime = (secs: number) => {
+    const mins = Math.floor(secs / 60);
+    const rem = secs % 60;
+    return `${String(mins).padStart(2, '0')}:${String(rem).padStart(2, '0')}`;
+  };
+
   const handleNext = () => {
-    setShowAnswer(false);
+    setShowSolution(false);
     if (currentIndex < reviewQueue.length - 1) {
       setCurrentIndex(prev => prev + 1);
+    } else {
+      setIsFinished(true);
     }
   };
 
   const handlePrev = () => {
-    setShowAnswer(false);
+    setShowSolution(false);
     if (currentIndex > 0) {
       setCurrentIndex(prev => prev - 1);
     }
   };
 
-  return isOpen ? (
-    <MissionMode 
-      mode="mistake" 
-      activeSubject="all" 
-      customDurationSecs={1800} 
-      skipSetup={true}
-      onExit={onClose} 
-      onComplete={onClose}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        className="w-full max-w-3xl h-full max-h-[85vh] glass-panel rounded-2xl shadow-2xl flex flex-col overflow-hidden text-left"
+  const handleMarkResolved = async (item: Mistake) => {
+    onUpdateStatus(item.id, 'Solved Again');
+    setResolvedIds(prev => new Set(prev).add(item.id));
+    triggerToast(`"${item.chapter}" marked as Solved!`, 'success');
+    
+    // Reward XP for solving a logged error
+    try {
+      await actions.completeStudySession({
+        type: 'Revision',
+        duration: Math.max(1, Math.round(secondsElapsed / 60)),
+        questionsSolved: 1,
+        correct: 1,
+        accuracy: 100,
+        xpEarned: 60,
+      });
+    } catch (_) {}
+
+    handleNext();
+  };
+
+  const handleKeepInLog = () => {
+    handleNext();
+  };
+
+  const subColor = currentItem ? getSubjectColor(currentItem.subject) : { text: '', bg: '', border: '', badge: '' };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 select-none">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96, y: 12 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.96, y: 12 }}
+        transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+        className="w-full max-w-4xl max-h-[92vh] rounded-2xl border border-zinc-850/80 bg-zinc-950/95 backdrop-blur-2xl shadow-2xl flex flex-col overflow-hidden text-left"
       >
-        <div className="p-5 border-b border-zinc-900 flex justify-between items-center bg-zinc-900/30">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-red-950/40 text-red-400 border border-red-900/40">
-              <RotateCcw className="w-4 h-4 animate-spin-slow" />
+        {/* CBT TOP BAR */}
+        <div className="p-4 sm:p-5 border-b border-zinc-850/80 bg-zinc-950 flex items-center justify-between gap-4 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-red-950/60 border border-red-800/60 flex items-center justify-center text-red-400">
+              <RotateCcw className="w-4 h-4" />
             </div>
             <div>
-              <h2 id="batch-review-modal-title" className="text-sm font-bold text-white font-display">Active Recall Review Session</h2>
-              <p className="text-xs text-zinc-400 font-mono">STEP THROUGH ACTIVE MISTAKES FOR SPACED RECALL</p>
+              <h2 className="text-sm font-display font-bold text-white">Mistakes Retest Arena</h2>
+              <p className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">CBT Focused Error Rehabilitation</p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            {reviewQueue.length > 0 && (
-              <span className="text-xs font-mono text-zinc-400 bg-zinc-900 px-3 py-1 rounded-full border border-zinc-800">
-                {currentIndex + 1} / {reviewQueue.length}
+            {/* Question Counter Pill */}
+            {reviewQueue.length > 0 && !isFinished && (
+              <span className="text-xs font-mono font-bold text-zinc-200 bg-zinc-900 border border-zinc-800 px-3 py-1 rounded-xl">
+                Question <strong className="text-indigo-400">{currentIndex + 1}</strong> of {reviewQueue.length}
               </span>
             )}
+
+            {/* Stopwatch */}
+            <span className="text-xs font-mono text-zinc-300 bg-zinc-900/80 border border-zinc-800 px-3 py-1 rounded-xl flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5 text-zinc-400" />
+              <span>{formatTime(secondsElapsed)}</span>
+            </span>
+
             <button
               onClick={onClose}
-              aria-label="Close Review Session Modal"
-              className="text-zinc-400 hover:text-zinc-200 p-1 rounded-lg hover:bg-zinc-900 cursor-pointer"
+              className="p-1.5 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 text-zinc-400 hover:text-white border border-zinc-800 transition-colors cursor-pointer"
             >
-              ✕
+              <X className="w-4 h-4" />
             </button>
           </div>
         </div>
 
-        {/* Modal Content */}
-        <div className="p-6 space-y-5 flex-1 overflow-y-auto">
-          {reviewQueue.length === 0 ? (
-            <div className="py-12 text-center space-y-3">
-              <Award className="w-12 h-12 text-emerald-400 mx-auto opacity-80" />
-              <h3 className="text-sm font-bold text-zinc-200">No Active Errors Pending Review!</h3>
-              <p className="text-xs text-zinc-400 max-w-sm mx-auto font-mono">
-                All logged mistakes are either mastered or fully reviewed. Log new questions or reset status from the ledger.
+        {/* PROGRESS LINE */}
+        {reviewQueue.length > 0 && !isFinished && (
+          <div className="w-full bg-zinc-900 h-1 shrink-0">
+            <div 
+              className="bg-indigo-500 h-full transition-all duration-300"
+              style={{ width: `${((currentIndex + 1) / reviewQueue.length) * 100}%` }}
+            />
+          </div>
+        )}
+
+        {/* BODY STAGE */}
+        {isFinished ? (
+          /* COMPLETION SCORECARD */
+          <div className="p-8 sm:p-12 flex flex-col items-center justify-center text-center space-y-5 flex-1 overflow-y-auto">
+            <div className="w-16 h-16 rounded-2xl bg-indigo-950/60 border border-indigo-500/40 flex items-center justify-center text-indigo-400 shadow-xl shadow-indigo-600/20">
+              <Trophy className="w-8 h-8" />
+            </div>
+
+            <div className="space-y-1.5">
+              <h3 className="text-2xl font-display font-bold text-white tracking-tight">Retest Session Completed!</h3>
+              <p className="text-xs font-mono text-zinc-400 max-w-md">
+                You stepped through {reviewQueue.length} logged mistakes in {formatTime(secondsElapsed)}.
               </p>
             </div>
-          ) : currentItem ? (
-            <div className="space-y-5">
-              {/* Question Banner */}
-              <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-zinc-900">
-                <div className="flex items-center gap-2">
-                  <Badge variant="default" className={`text-[11px] ${getSubjectColor(currentItem.subject).badge}`}>
-                    {currentItem.subject}
-                  </Badge>
-                  <span className="text-xs font-bold text-zinc-200">{currentItem.chapter}</span>
-                  <span className="text-2xs text-zinc-400 font-mono">/ {currentItem.topic}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-2xs font-mono text-amber-400 bg-amber-950/30 border border-amber-900/30 px-2 py-0.5 rounded">
-                    Priority: {currentItem.priority}
-                  </span>
-                  <span className="text-2xs font-mono text-zinc-400 bg-zinc-900 px-2 py-0.5 rounded border border-zinc-800">
-                    {currentItem.difficulty}
-                  </span>
-                </div>
+
+            {/* Summary Metrics */}
+            <div className="grid grid-cols-3 gap-3 w-full max-w-md font-mono text-xs">
+              <div className="p-3.5 rounded-xl bg-zinc-900/80 border border-zinc-800 text-center">
+                <span className="text-[10px] text-zinc-400 block uppercase font-bold">Reviewed</span>
+                <span className="text-lg font-bold text-white">{reviewQueue.length}</span>
               </div>
-
-              {/* Question Box */}
-              <div className="space-y-2">
-                <span className="text-[10px] font-mono uppercase text-zinc-400 tracking-wider">
-                  Question (Source: {currentItem.source})
-                </span>
-                <div className="p-4 bg-zinc-950 border border-zinc-900 rounded-xl text-xs text-zinc-200 leading-relaxed whitespace-pre-line shadow-inner">
-                  <RichTextRenderer content={currentItem.questionText} />
-                </div>
+              <div className="p-3.5 rounded-xl bg-emerald-950/40 border border-emerald-800/60 text-center">
+                <span className="text-[10px] text-emerald-400 block uppercase font-bold">Resolved</span>
+                <span className="text-lg font-bold text-emerald-300">{resolvedIds.size}</span>
               </div>
-
-              {/* Active Recall Reveal Button */}
-              {!showAnswer ? (
-                <button
-                  onClick={() => setShowAnswer(true)}
-                  className="w-full py-3 bg-red-950/30 hover:bg-red-900/40 text-red-400 border border-red-900/50 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg"
-                >
-                  <Eye className="w-4 h-4" />
-                  Reveal Faulty vs Correct Method & Solution
-                </button>
-              ) : (
-                <AnimatePresence>
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="space-y-4"
-                  >
-                    {/* Split Diagnostic */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="p-4 bg-red-950/10 border border-red-950/30 rounded-xl space-y-1.5">
-                        <span className="text-[10px] font-mono uppercase text-red-400 tracking-wider flex items-center gap-1.5">
-                          <AlertTriangle className="w-3.5 h-3.5" />
-                          My Original Error
-                        </span>
-                        <p className="text-xs text-zinc-300 font-sans"><RichTextRenderer content={currentItem.studentMethod} /></p>
-                      </div>
-
-                      <div className="p-4 bg-emerald-950/10 border border-emerald-950/30 rounded-xl space-y-1.5">
-                        <span className="text-[10px] font-mono uppercase text-emerald-400 tracking-wider flex items-center gap-1.5">
-                          <CheckCircle className="w-3.5 h-3.5" />
-                          Correct Approach
-                        </span>
-                        <p className="text-xs text-zinc-300 font-sans"><RichTextRenderer content={currentItem.correctMethod} /></p>
-                      </div>
-                    </div>
-
-                    {/* Solution */}
-                    <div className="space-y-1">
-                      <span className="text-[10px] font-mono uppercase text-zinc-400 tracking-wider flex items-center gap-1">
-                        <BookOpen className="w-3.5 h-3.5" />
-                        Complete Solution Steps
-                      </span>
-                      <div className="p-4 bg-zinc-950 border border-zinc-900 rounded-xl text-xs text-zinc-300 leading-relaxed whitespace-pre-line">
-                        <RichTextRenderer content={currentItem.correctSolution} />
-                      </div>
-                    </div>
-
-                    {/* AI Advice */}
-                    {currentItem.aiAdvice && (
-                      <div className="p-3.5 bg-amber-950/15 border border-amber-900/40 rounded-xl flex items-start gap-2.5">
-                        <Sparkles className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                        <p className="text-xs text-zinc-300 font-sans"><RichTextRenderer content={currentItem.aiAdvice} /></p>
-                      </div>
-                    )}
-
-                    {/* Rate Confidence / Update Status Controls */}
-                    <div className="p-4 bg-zinc-900/20 border border-zinc-900 rounded-xl space-y-2">
-                      <span className="text-3xs font-mono uppercase text-zinc-400 tracking-wider">
-                        Update Recovery Status for this item:
-                      </span>
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          onClick={() => {
-                            onUpdateStatus(currentItem.id, 'Reviewed');
-                            // Update local snapshot state so the UI reflects the new status
-                            setReviewQueue(prev => prev.map(m => m.id === currentItem.id ? { ...m, revisionStatus: 'Reviewed' } : m));
-                            triggerToast('Marked as Reviewed (40% Recovery)', 'info');
-                          }}
-                          className={`px-3 py-1.5 rounded-lg text-2xs font-bold border transition-all cursor-pointer ${
-                            currentItem.revisionStatus === 'Reviewed'
-                              ? 'bg-blue-950 text-blue-300 border-blue-800'
-                              : 'bg-zinc-950 text-zinc-400 border-zinc-800 hover:text-white'
-                          }`}
-                        >
-                          Reviewed [40%]
-                        </button>
-                        <button
-                          onClick={() => {
-                            onUpdateStatus(currentItem.id, 'Solved Again');
-                            setReviewQueue(prev => prev.map(m => m.id === currentItem.id ? { ...m, revisionStatus: 'Solved Again' } : m));
-                            triggerToast('Marked as Re-Attempted (70% Recovery)', 'info');
-                          }}
-                          className={`px-3 py-1.5 rounded-lg text-2xs font-bold border transition-all cursor-pointer ${
-                            currentItem.revisionStatus === 'Solved Again'
-                              ? 'bg-purple-950 text-purple-300 border-purple-800'
-                              : 'bg-zinc-950 text-zinc-400 border-zinc-800 hover:text-white'
-                          }`}
-                        >
-                          Solved Again [70%]
-                        </button>
-                        <button
-                          onClick={() => {
-                            onUpdateStatus(currentItem.id, 'Mastered');
-                            setReviewQueue(prev => prev.map(m => m.id === currentItem.id ? { ...m, revisionStatus: 'Mastered' } : m));
-                            triggerToast('Marked as Mastered (100% Recovery)!', 'success');
-                          }}
-                          className={`px-3 py-1.5 rounded-lg text-2xs font-bold border transition-all cursor-pointer ${
-                            currentItem.revisionStatus === 'Mastered'
-                              ? 'bg-emerald-950 text-emerald-300 border-emerald-800'
-                              : 'bg-zinc-950 text-emerald-400 border-emerald-900/60 hover:bg-emerald-900/20'
-                          }`}
-                        >
-                          Mark Mastered [100%]
-                        </button>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => setShowAnswer(false)}
-                      className="text-3xs text-zinc-400 hover:text-zinc-300 font-mono flex items-center gap-1 mx-auto cursor-pointer"
-                    >
-                      <EyeOff className="w-3 h-3" />
-                      Hide Answer Pane
-                    </button>
-                  </motion.div>
-                </AnimatePresence>
-              )}
+              <div className="p-3.5 rounded-xl bg-indigo-950/40 border border-indigo-800/60 text-center">
+                <span className="text-[10px] text-indigo-400 block uppercase font-bold">XP Earned</span>
+                <span className="text-lg font-bold text-indigo-300">+{resolvedIds.size * 60}</span>
+              </div>
             </div>
-          ) : null}
-        </div>
 
-        {/* Footer Navigation */}
-        <div className="p-4 border-t border-zinc-900 bg-zinc-900/20 flex items-center justify-between">
-          <button
-            onClick={handlePrev}
-            disabled={currentIndex === 0 || activeMistakes.length === 0}
-            className="flex items-center gap-1 px-4 py-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 disabled:opacity-40 text-zinc-300 rounded-xl text-xs font-bold transition-all cursor-pointer disabled:cursor-not-allowed"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            Previous
-          </button>
+            <motion.button
+              type="button"
+              whileTap={{ scale: 0.94 }}
+              onClick={onClose}
+              className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-mono text-xs font-bold uppercase tracking-wider shadow-lg shadow-indigo-600/30 cursor-pointer transition-colors"
+            >
+              Back to Mistakes Log
+            </motion.button>
+          </div>
+        ) : currentItem ? (
+          /* QUESTION & SOLVING STAGE */
+          <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6 custom-scrollbar">
+            
+            {/* Meta Tags Row */}
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-2">
+                <span className={`text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-lg border ${subColor.badge}`}>
+                  {currentItem.subject.toUpperCase()}
+                </span>
+                <span className="text-xs font-mono font-bold text-white">
+                  {currentItem.chapter}
+                </span>
+                <span className="text-zinc-600 font-mono">•</span>
+                <span className="text-xs font-mono text-zinc-400 truncate">
+                  {currentItem.topic || 'Practice Drill'}
+                </span>
+              </div>
 
-          <span className="text-3xs font-mono text-zinc-400 hidden sm:inline">
-            Press Next to review next question
-          </span>
+              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md border border-zinc-850 bg-zinc-900 text-zinc-400">
+                Difficulty: {currentItem.difficulty}
+              </span>
+            </div>
 
-          <button
-            onClick={handleNext}
-            disabled={currentIndex === activeMistakes.length - 1 || activeMistakes.length === 0}
-            className="flex items-center gap-1 px-4 py-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 disabled:opacity-40 text-zinc-300 rounded-xl text-xs font-bold transition-all cursor-pointer disabled:cursor-not-allowed"
-          >
-            Next
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-    </MissionMode>
-  ) : null;
+            {/* Question Stage with LaTeX */}
+            <div className="p-5 rounded-2xl border border-zinc-850/80 bg-zinc-900/60 text-zinc-100 text-sm leading-relaxed shadow-inner">
+              <span className="text-[10px] font-mono uppercase font-bold text-zinc-400 tracking-wider block mb-2">
+                Question Statement
+              </span>
+              <RichTextRenderer content={currentItem.questionText} />
+            </div>
+
+            {/* Student Scratchpad Input */}
+            <div className="space-y-2">
+              <label className="text-[10px] font-mono uppercase font-bold text-zinc-400 tracking-wider block">
+                Your Attempt Workspace / Final Calculation:
+              </label>
+              <textarea
+                value={userScratchpad[currentItem.id] || ''}
+                onChange={(e) => setUserScratchpad(prev => ({ ...prev, [currentItem.id]: e.target.value }))}
+                placeholder="Write your revised steps, key formula, or final answer here..."
+                rows={3}
+                className="w-full bg-zinc-900/70 border border-zinc-800 rounded-xl p-3.5 text-xs text-white placeholder-zinc-500 font-mono focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500 transition-all custom-scrollbar"
+              />
+            </div>
+
+            {/* Toggle Solution Reveal */}
+            <div className="flex justify-center pt-1">
+              <motion.button
+                type="button"
+                whileTap={{ scale: 0.94 }}
+                onClick={() => setShowSolution(!showSolution)}
+                className={`px-4 py-2 rounded-xl font-mono text-xs font-bold uppercase tracking-wider border transition-colors flex items-center gap-2 cursor-pointer ${
+                  showSolution 
+                    ? 'bg-zinc-900 border-zinc-800 text-zinc-300'
+                    : 'bg-indigo-600/20 hover:bg-indigo-600/30 border-indigo-500/40 text-indigo-300 shadow-sm'
+                }`}
+              >
+                <Eye className="w-3.5 h-3.5" />
+                <span>{showSolution ? 'Hide Solution' : 'Reveal Correct Method & Solution'}</span>
+              </motion.button>
+            </div>
+
+            {/* Revealed Side-by-Side Diagnostic Comparison */}
+            <AnimatePresence>
+              {showSolution && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="space-y-4 pt-2"
+                >
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    {/* Previous Faulty Attempt */}
+                    <div className="p-4 rounded-xl border border-red-900/40 bg-red-950/15 space-y-2">
+                      <span className="text-[10px] font-mono uppercase font-bold text-red-400 tracking-wider flex items-center gap-1.5">
+                        <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
+                        Previous Faulty Method
+                      </span>
+                      <div className="text-xs text-red-200 leading-relaxed font-mono">
+                        <RichTextRenderer content={currentItem.studentMethod || 'No prior notes recorded.'} />
+                      </div>
+                    </div>
+
+                    {/* Correct Analytical Solution */}
+                    <div className="p-4 rounded-xl border border-emerald-900/40 bg-emerald-950/15 space-y-2">
+                      <span className="text-[10px] font-mono uppercase font-bold text-emerald-400 tracking-wider flex items-center gap-1.5">
+                        <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                        Correct Step-by-Step Solution
+                      </span>
+                      <div className="text-xs text-emerald-200 leading-relaxed">
+                        <RichTextRenderer content={currentItem.correctSolution || currentItem.correctMethod || 'No solution recorded.'} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Grading Evaluation Prompt */}
+                  <div className="p-4 rounded-2xl bg-zinc-900/80 border border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <span className="text-xs font-mono text-zinc-300 font-bold">
+                      Did you resolve this mistake correctly on this retest?
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <motion.button
+                        type="button"
+                        whileTap={{ scale: 0.94 }}
+                        onClick={() => handleMarkResolved(currentItem)}
+                        className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-mono text-xs font-bold flex items-center gap-1.5 shadow-md shadow-emerald-600/20 cursor-pointer"
+                      >
+                        <Check className="w-3.5 h-3.5 stroke-[3]" />
+                        <span>Solved Correctly</span>
+                      </motion.button>
+                      <motion.button
+                        type="button"
+                        whileTap={{ scale: 0.94 }}
+                        onClick={handleKeepInLog}
+                        className="px-3.5 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-750 text-zinc-300 border border-zinc-700 font-mono text-xs font-bold cursor-pointer"
+                      >
+                        <span>Still Shaky</span>
+                      </motion.button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        ) : null}
+
+        {/* CBT FOOTER NAVIGATION */}
+        {!isFinished && reviewQueue.length > 0 && (
+          <div className="p-4 border-t border-zinc-850/80 bg-zinc-950 flex items-center justify-between gap-3 shrink-0">
+            <button
+              onClick={handlePrev}
+              disabled={currentIndex === 0}
+              className="px-3.5 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-850 disabled:opacity-30 border border-zinc-800 text-zinc-300 font-mono text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span>Previous</span>
+            </button>
+
+            <button
+              onClick={handleNext}
+              className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-mono text-xs font-bold flex items-center gap-1.5 shadow-md shadow-indigo-600/20 cursor-pointer transition-colors"
+            >
+              <span>{currentIndex === reviewQueue.length - 1 ? 'Finish Retest' : 'Next Question'}</span>
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+      </motion.div>
+    </div>
+  );
 };

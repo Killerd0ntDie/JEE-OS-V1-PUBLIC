@@ -133,7 +133,7 @@ export const StudyBrainProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     useStudyBrainStore.getState().setActions(actions);
     
     const unsubscribe = runtime.subscribe((newState) => {
-      useStudyBrainStore.getState().setState({ ...newState });
+      useStudyBrainStore.getState().syncFromRuntime(newState);
     });
     return unsubscribe;
   }, [runtime, actions]);
@@ -265,27 +265,30 @@ export const StudyBrainProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         await MistakeRepository.seedMistakes(currentUid, seeds.INITIAL_MISTAKES);
         return; // Will re-trigger snapshot on creation
       }
-      
-      const profile = snap.data();
-      if (profile.xp && !profile.xp.nextLevelXP) profile.xp.nextLevelXP = 1000;
-      
-      snapshotState.xp = profile.xp;
-      snapshotState.analytics = profile.analytics;
-      snapshotState.energyLevel = profile.energyLevel || 'Medium';
-      snapshotState.activeSubject = profile.activeSubject || 'physics';
-      snapshotState.isMissionModeActive = profile.isMissionModeActive || false;
-      snapshotState.coachMessage = profile.coachMessage || '';
-      snapshotState.mentorProfile = profile.mentorProfile;
-      snapshotState.settings = profile.settings || {};
-      snapshotState.weeklyGoals = profile.weeklyGoals;
-      // Restore the user's deleted-mission blocklist so planner-regenerated missions
-      // that were previously dismissed don't reappear after a page reload.
-      snapshotState.deletedMissionIds = profile.deletedMissionIds || [];
-      snapshotState.completedPlannerMissionIds = profile.completedPlannerMissionIds || [];
-      snapshotState.scheduleOverrides = profile.scheduleOverrides || {};
-      
-      loadedFlags.profile = true;
-      checkAndInit();
+      try {
+        const profile = snap.data();
+        if (profile.xp && !profile.xp.nextLevelXP) profile.xp.nextLevelXP = 1000;
+        
+        snapshotState.xp = profile.xp;
+        snapshotState.analytics = profile.analytics;
+        snapshotState.energyLevel = profile.energyLevel || 'Medium';
+        snapshotState.activeSubject = profile.activeSubject || 'physics';
+        snapshotState.isMissionModeActive = profile.isMissionModeActive || false;
+        snapshotState.coachMessage = profile.coachMessage || '';
+        snapshotState.mentorProfile = profile.mentorProfile;
+        snapshotState.settings = profile.settings || {};
+        snapshotState.weeklyGoals = profile.weeklyGoals;
+        // Restore the user's deleted-mission blocklist so planner-regenerated missions
+        // that were previously dismissed don't reappear after a page reload.
+        snapshotState.deletedMissionIds = profile.deletedMissionIds || [];
+        snapshotState.completedPlannerMissionIds = profile.completedPlannerMissionIds || [];
+        snapshotState.scheduleOverrides = profile.scheduleOverrides || {};
+        
+        loadedFlags.profile = true;
+        checkAndInit();
+      } catch (e) {
+        console.error("Error processing profile snapshot:", e);
+      }
     }, (error) => {
       console.error("Profile snapshot error:", error);
     });
@@ -293,65 +296,97 @@ export const StudyBrainProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     // 2. Chapters Listener
     const unsubChapters = onSnapshot(collection(db, 'users', currentUid, 'chapters'), (snap) => {
       if (!active) return;
-      snapshotState.chapters = validateAndSanitizeChapters(snap.docs.map(d => d.data()));
-      loadedFlags.chapters = true;
-      checkAndInit();
+      try {
+        snapshotState.chapters = validateAndSanitizeChapters(snap.docs.map(d => d.data()));
+        loadedFlags.chapters = true;
+        checkAndInit();
+      } catch (e) {
+        console.error("Error processing chapters snapshot:", e);
+      }
     });
 
     // 3. Notes Listener
     const unsubNotes = onSnapshot(collection(db, 'users', currentUid, 'notes'), (snap) => {
       if (!active) return;
-      snapshotState.notes = snap.docs.map(d => d.data());
-      loadedFlags.notes = true;
-      checkAndInit();
+      try {
+        snapshotState.notes = snap.docs.map(d => d.data());
+        loadedFlags.notes = true;
+        checkAndInit();
+      } catch (e) {
+        console.error("Error processing notes snapshot:", e);
+      }
     });
 
     // 4. Mistakes Listener
     const unsubMistakes = onSnapshot(collection(db, 'users', currentUid, 'mistakes'), (snap) => {
       if (!active) return;
-      snapshotState.mistakes = validateAndSanitizeMistakes(snap.docs.map(d => d.data()));
-      loadedFlags.mistakes = true;
-      checkAndInit();
+      try {
+        snapshotState.mistakes = validateAndSanitizeMistakes(snap.docs.map(d => d.data()));
+        loadedFlags.mistakes = true;
+        checkAndInit();
+      } catch (e) {
+        console.error("Error processing mistakes snapshot:", e);
+      }
     });
 
     // 5. Study Sessions Listener
     const unsubSessions = onSnapshot(collection(db, 'users', currentUid, 'studySessions'), (snap) => {
       if (!active) return;
-      snapshotState.studySessions = snap.docs.map(d => d.data());
-      loadedFlags.studySessions = true;
-      checkAndInit();
+      try {
+        snapshotState.studySessions = snap.docs.map(d => d.data());
+        loadedFlags.studySessions = true;
+        checkAndInit();
+      } catch (e) {
+        console.error("Error processing study sessions snapshot:", e);
+      }
     });
 
     // 6. Mock Results Listener
     const unsubMocks = onSnapshot(collection(db, 'users', currentUid, 'mockResults'), (snap) => {
       if (!active) return;
-      snapshotState.mocks = snap.docs.map(d => d.data());
-      loadedFlags.mocks = true;
-      checkAndInit();
+      try {
+        snapshotState.mocks = snap.docs.map(d => d.data());
+        loadedFlags.mocks = true;
+        checkAndInit();
+      } catch (e) {
+        console.error("Error processing mock results snapshot:", e);
+      }
     });
 
     // 7. Custom Mock Tests Listener
     const unsubCustomMocks = onSnapshot(collection(db, 'users', currentUid, 'customMockTests'), (snap) => {
       if (!active) return;
-      snapshotState.customMockTests = snap.docs.map(d => d.data());
-      loadedFlags.customMocks = true;
-      checkAndInit();
+      try {
+        snapshotState.customMockTests = snap.docs.map(d => d.data());
+        loadedFlags.customMocks = true;
+        checkAndInit();
+      } catch (e) {
+        console.error("Error processing custom mock tests snapshot:", e);
+      }
     });
 
     // 8. Timeline Listener
     const unsubTimeline = onSnapshot(collection(db, 'users', currentUid, 'timelineBlocks'), (snap) => {
       if (!active) return;
-      snapshotState.timeline = snap.docs.map(d => d.data());
-      loadedFlags.timeline = true;
-      checkAndInit();
+      try {
+        snapshotState.timeline = snap.docs.map(d => d.data());
+        loadedFlags.timeline = true;
+        checkAndInit();
+      } catch (e) {
+        console.error("Error processing timeline snapshot:", e);
+      }
     });
 
     // 9. Custom Missions Listener
     const unsubCustomMissions = onSnapshot(collection(db, 'users', currentUid, 'customMissions'), (snap) => {
       if (!active) return;
-      snapshotState.customMissions = snap.docs.map(d => d.data());
-      loadedFlags.customMissions = true;
-      checkAndInit();
+      try {
+        snapshotState.customMissions = snap.docs.map(d => d.data());
+        loadedFlags.customMissions = true;
+        checkAndInit();
+      } catch (e) {
+        console.error("Error processing custom missions snapshot:", e);
+      }
     });
 
     return () => {

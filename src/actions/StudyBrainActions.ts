@@ -251,6 +251,7 @@ export class StudyBrainActions {
 
   async completeTask(taskId: string, durationSecs?: number) {
     this.checkWriteBlock();
+    const previousState = { ...this.state };
     const missionIndex = this.state.todayMissions.findIndex(m => m.id === taskId);
     if (missionIndex === -1) return;
 
@@ -584,12 +585,14 @@ export class StudyBrainActions {
         this.triggerToast('Mission Accomplished', `${mission.taskName} finished successfully!`, 'success');
       }
     } catch (err) {
+      this.runtime.updateStateOptimistic(previousState);
       await this.handleWriteError(err, 'completeTask');
     }
   }
 
   async deleteMission(taskId: string) {
     this.checkWriteBlock();
+    const previousState = { ...this.state };
     const updatedDeletedMissionIds = Array.from(new Set([...(this.state.deletedMissionIds || []), taskId]));
 
     // For custom missions: hard-delete from Firestore and remove from list entirely.
@@ -605,6 +608,13 @@ export class StudyBrainActions {
     const updatedTodayMissions = this.state.todayMissions.filter(m => m.id !== taskId);
 
     try {
+      // Optimistic state update immediately
+      this.runtime.updateStateOptimistic({
+        todayMissions: updatedTodayMissions,
+        customMissions: updatedCustomMissions,
+        deletedMissionIds: updatedDeletedMissionIds
+      });
+
       if (isCustom) {
         await CustomMissionRepository.deleteMission(this.userId, taskId);
       }
@@ -613,19 +623,18 @@ export class StudyBrainActions {
       // this they'd reappear every time the page is refreshed.
       await UserRepository.updateUserProfile(this.userId, { deletedMissionIds: updatedDeletedMissionIds });
       await this.runtime.refresh('SESSION_UPDATE', {
-        todayMissions: updatedTodayMissions,
-        customMissions: updatedCustomMissions,
-        deletedMissionIds: updatedDeletedMissionIds,
         lastSyncError: null
       });
       // Toast removed to prevent notification spam
     } catch (err) {
+      this.runtime.updateStateOptimistic(previousState);
       await this.handleWriteError(err, 'deleteMission');
     }
   }
 
   async addCustomMission(missionData: Omit<TodayMission, 'id' | 'completed' | 'unlocked'>) {
     this.checkWriteBlock();
+    const previousState = { ...this.state };
     const newMission: TodayMission = {
       ...missionData,
       id: `user-custom-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
@@ -642,20 +651,24 @@ export class StudyBrainActions {
     const updatedCustomMissions = [...this.state.customMissions, newMission];
 
     try {
+      this.runtime.updateStateOptimistic({ 
+        todayMissions: updatedMissions,
+        customMissions: updatedCustomMissions 
+      });
       await CustomMissionRepository.saveMission(this.userId, newMission);
       await this.runtime.refresh('SESSION_UPDATE', { 
-        todayMissions: updatedMissions,
-        customMissions: updatedCustomMissions,
         lastSyncError: null
       });
       // Toast removed to prevent notification spam
     } catch (err) {
+      this.runtime.updateStateOptimistic(previousState);
       await this.handleWriteError(err, 'addCustomMission');
     }
   }
 
   async addAiMission(missionData: Omit<TodayMission, 'id' | 'completed' | 'unlocked'>) {
     this.checkWriteBlock();
+    const previousState = { ...this.state };
     const newMission: TodayMission = {
       ...missionData,
       id: `mission-ai-${Date.now()}`,
@@ -670,19 +683,23 @@ export class StudyBrainActions {
     const updatedCustomMissions = [...this.state.customMissions, newMission];
 
     try {
+      this.runtime.updateStateOptimistic({ 
+        todayMissions: updatedMissions,
+        customMissions: updatedCustomMissions 
+      });
       await CustomMissionRepository.saveMission(this.userId, newMission);
       await this.runtime.refresh('SESSION_UPDATE', { 
-        todayMissions: updatedMissions,
-        customMissions: updatedCustomMissions,
         lastSyncError: null
       });
     } catch (err) {
+      this.runtime.updateStateOptimistic(previousState);
       await this.handleWriteError(err, 'addAiMission');
     }
   }
 
   async updateMissionDetails(taskId: string, updates: Partial<TodayMission>) {
     this.checkWriteBlock();
+    const previousState = { ...this.state };
     
     const missionIndex = this.state.todayMissions.findIndex(m => m.id === taskId);
     if (missionIndex === -1) return;
@@ -701,6 +718,12 @@ export class StudyBrainActions {
     const isCustom = this.state.customMissions.some(cm => cm.id === taskId);
     
     try {
+      // Optimitistic update
+      this.runtime.updateStateOptimistic({
+        todayMissions: updatedMissions,
+        customMissions: updatedCustomMissions
+      });
+
       // Only save to CustomMissionRepository if it's truly a custom mission
       if (isCustom) {
         await CustomMissionRepository.saveMission(this.userId, updatedMission);
@@ -711,11 +734,10 @@ export class StudyBrainActions {
       }
       
       await this.runtime.refresh('SESSION_UPDATE', {
-        todayMissions: updatedMissions,
-        customMissions: updatedCustomMissions,
         lastSyncError: null
       });
     } catch (err) {
+      this.runtime.updateStateOptimistic(previousState);
       await this.handleWriteError(err, 'updateMissionDetails');
     }
   }
@@ -1049,10 +1071,21 @@ export class StudyBrainActions {
       
       const nextRevisionDueAt = new Date(Date.now() + interval * 24 * 60 * 60 * 1000).toISOString();
 
-      const updatedChapter = { 
+      const updatedChapter: Chapter = { 
         ...chapter, 
         revisionCount,
-        confidence: Math.round(((chapter.confidence || 0) + confScore) / 2),
+        confidence: confScore,
+        lastRevisionDaysAgo: 0,
+        revisionProgress: {
+          formulaMemoryPercent: confidence === 'High' ? 95 : confidence === 'Medium' ? 70 : 40,
+          questionSolvingConfidencePercent: chapter.revisionProgress?.questionSolvingConfidencePercent || 80,
+          needRevision: confidence === 'Low',
+          retentionScore: confScore,
+          ...(chapter.revisionProgress || {}),
+          lastRevisedDaysAgo: 0,
+          retentionConfidence: confidence,
+          lastRevisedAt: new Date().toISOString()
+        },
         sm2EaseFactor: easeFactor,
         sm2Interval: interval,
         nextRevisionDueAt,
@@ -1184,11 +1217,49 @@ export class StudyBrainActions {
     this.checkWriteBlock();
     const mistake = this.state.mistakes.find(m => m.id === mistakeId);
     if (!mistake) return;
-    const updatedMistake = { ...mistake, revisionStatus: status };
+
+    const wasResolved = mistake.revisionStatus === 'Solved Again' || mistake.revisionStatus === 'Mastered';
+    const isNowResolved = status === 'Solved Again' || status === 'Mastered';
+
+    let deltaXp = 0;
+    if (!wasResolved && isNowResolved) {
+      const baseXP = 60;
+      deltaXp = this.isGodModeActive() ? Math.floor(baseXP * 1.5) : baseXP;
+    }
+
+    const updatedMistake: Mistake = {
+      ...mistake,
+      revisionStatus: status,
+      recoveryScore: isNowResolved ? Math.max(mistake.recoveryScore || 0, status === 'Mastered' ? 100 : 70) : mistake.recoveryScore
+    };
+
+    let newXp = this.state.xp;
+    if (deltaXp > 0) {
+      const baseXpState = this.getResetXpBase();
+      newXp = {
+        ...baseXpState,
+        daily: Math.max(0, baseXpState.daily + deltaXp),
+        weekly: Math.max(0, baseXpState.weekly + deltaXp),
+        monthly: Math.max(0, (baseXpState.monthly || 0) + deltaXp),
+        total: Math.max(0, baseXpState.total + deltaXp)
+      };
+      const { level: newLevel, nextLevelXP: xpNeededForNext } = calculateLevelFromXP(newXp.total);
+      newXp.level = newLevel;
+      newXp.nextLevelXP = xpNeededForNext;
+      this.evaluateAndUpdateStreak(newXp, this.state.studySessions);
+    }
+
     try {
       await MistakeRepository.saveMistake(this.userId, updatedMistake);
+      if (deltaXp > 0) {
+        await UserRepository.updateUserProfile(this.userId, { xp: newXp });
+      }
       const updatedMistakes = this.state.mistakes.map(m => m.id === mistakeId ? updatedMistake : m);
-      await this.runtime.refresh('MISTAKE_UPDATE', { mistakes: updatedMistakes, lastSyncError: null });
+      await this.runtime.refresh('MISTAKE_UPDATE', { 
+        mistakes: updatedMistakes, 
+        xp: newXp,
+        lastSyncError: null 
+      });
     } catch (err) {
       await this.handleWriteError(err, 'updateMistakeStatus');
     }
@@ -1266,31 +1337,63 @@ export class StudyBrainActions {
     const mistake = this.state.mistakes.find(m => m.id === mistakeId);
     if (!mistake) return;
 
-    let newRecoveryScore = mistake.recoveryScore;
+    const wasResolved = mistake.revisionStatus === 'Solved Again' || mistake.revisionStatus === 'Mastered';
+    let newRecoveryScore = mistake.recoveryScore || 0;
     let newRevisionStatus = mistake.revisionStatus;
 
     if (isCorrect) {
-      newRecoveryScore = Math.min(100, mistake.recoveryScore + 40);
+      newRecoveryScore = Math.min(100, (mistake.recoveryScore || 0) + 40);
       if (newRecoveryScore >= 100) {
         newRevisionStatus = 'Mastered';
       } else {
         newRevisionStatus = 'Solved Again';
       }
     } else {
-      newRecoveryScore = Math.max(0, mistake.recoveryScore - 20);
+      newRecoveryScore = Math.max(0, (mistake.recoveryScore || 0) - 20);
       newRevisionStatus = 'Reviewed';
+    }
+
+    const isNowResolved = newRevisionStatus === 'Solved Again' || newRevisionStatus === 'Mastered';
+    let deltaXp = 0;
+    if (!wasResolved && isNowResolved) {
+      const baseXP = 60;
+      deltaXp = this.isGodModeActive() ? Math.floor(baseXP * 1.5) : baseXP;
+    }
+
+    let newXp = this.state.xp;
+    if (deltaXp > 0) {
+      const baseXpState = this.getResetXpBase();
+      newXp = {
+        ...baseXpState,
+        daily: Math.max(0, baseXpState.daily + deltaXp),
+        weekly: Math.max(0, baseXpState.weekly + deltaXp),
+        monthly: Math.max(0, (baseXpState.monthly || 0) + deltaXp),
+        total: Math.max(0, baseXpState.total + deltaXp)
+      };
+      const { level: newLevel, nextLevelXP: xpNeededForNext } = calculateLevelFromXP(newXp.total);
+      newXp.level = newLevel;
+      newXp.nextLevelXP = xpNeededForNext;
+      this.evaluateAndUpdateStreak(newXp, this.state.studySessions);
     }
 
     const updatedMistake: Mistake = {
       ...mistake,
+      attemptNumber: (mistake.attemptNumber || 1) + 1,
       recoveryScore: newRecoveryScore,
       revisionStatus: newRevisionStatus
     };
 
     try {
       await MistakeRepository.saveMistake(this.userId, updatedMistake);
+      if (deltaXp > 0) {
+        await UserRepository.updateUserProfile(this.userId, { xp: newXp });
+      }
       const updatedMistakes = this.state.mistakes.map(m => m.id === mistakeId ? updatedMistake : m);
-      await this.runtime.refresh('MISTAKE_UPDATE', { mistakes: updatedMistakes, lastSyncError: null });
+      await this.runtime.refresh('MISTAKE_UPDATE', { 
+        mistakes: updatedMistakes, 
+        xp: newXp,
+        lastSyncError: null 
+      });
     } catch (err) {
       await this.handleWriteError(err, 'updateMistakeTestResult');
     }

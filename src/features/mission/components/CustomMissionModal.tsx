@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { getSubjectTheme } from '@/constants/subjectTheme';
-import { ModalPortal } from '@/components/ui/ModalPortal';
+import { motion } from 'motion/react';
+import { Modal } from '@/components/ui/Modal';
+import { CustomSelect } from '@/components/ui/CustomSelect';
 import { X, Plus, Clock, Sparkles, Trash2 } from 'lucide-react';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { SubjectId, TodayMission } from '@/types/index';
-import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { toLocalDateString } from '@/utils/dateUtils';
+import { springs } from '@/constants/motion';
 
 interface CustomMissionModalProps {
   isOpen: boolean;
@@ -15,7 +16,6 @@ interface CustomMissionModalProps {
 
 export const CustomMissionModal: React.FC<CustomMissionModalProps> = ({ isOpen, onClose, missionToEdit }) => {
   const actions = useStudyBrainStore(state => state.actions);
-  const chapters = useStudyBrainStore(state => state.chapters);
   const [taskName, setTaskName] = useState('');
   const [subject, setSubject] = useState<SubjectId>('physics');
   const [chapter, setChapter] = useState('');
@@ -33,11 +33,7 @@ export const CustomMissionModal: React.FC<CustomMissionModalProps> = ({ isOpen, 
       setChapter(missionToEdit.chapter || '');
       setType(missionToEdit.type || 'Solve DPP');
       setDuration(missionToEdit.duration || 60);
-      if (missionToEdit.targetPYQs !== undefined) {
-        setTargetPYQs(missionToEdit.targetPYQs);
-      } else {
-        setTargetPYQs('');
-      }
+      setTargetPYQs(missionToEdit.targetPYQs ?? '');
       if ((missionToEdit as any).date) {
         setScheduledDate((missionToEdit as any).date);
       }
@@ -50,41 +46,28 @@ export const CustomMissionModal: React.FC<CustomMissionModalProps> = ({ isOpen, 
       setTargetPYQs('');
       setScheduledDate(todayStr);
     }
-  }, [missionToEdit, isOpen]);
+  }, [missionToEdit, isOpen, todayStr]);
 
-  useEscapeKey(onClose, isOpen);
-
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [isOpen]);
-
-  if (!isOpen) return null;
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!taskName.trim()) return;
 
     if (missionToEdit) {
-      actions.updateMissionDetails(missionToEdit.id, {
+      await actions.updateMissionDetails(missionToEdit.id, {
         taskName,
         subject,
-        chapter: chapter || 'General',
+        chapter,
         type,
         duration,
+        xp: targetPYQs !== '' ? Math.round(targetPYQs * 2) : duration * 1.5,
         targetPYQs: targetPYQs === '' ? undefined : targetPYQs,
+        date: scheduledDate,
       });
     } else {
-      actions.addCustomMission({
+      await actions.addCustomMission({
         taskName,
         subject,
-        chapter: chapter || 'General',
+        chapter,
         type,
         duration,
         xp: targetPYQs !== '' ? Math.round(targetPYQs * 2) : duration * 1.5,
@@ -102,9 +85,9 @@ export const CustomMissionModal: React.FC<CustomMissionModalProps> = ({ isOpen, 
   };
 
   const subjectOptions = [
-    { id: 'physics', label: 'Physics', color: 'text-purple-400 bg-purple-400/10' },
-    { id: 'chemistry', label: 'Chemistry', color: 'text-blue-400 bg-blue-400/10' },
-    { id: 'maths', label: 'Mathematics', color: 'text-emerald-400 bg-emerald-400/10' },
+    { id: 'physics', label: 'Physics' },
+    { id: 'chemistry', label: 'Chemistry' },
+    { id: 'maths', label: 'Mathematics' },
   ];
 
   const handleDelete = () => {
@@ -115,162 +98,177 @@ export const CustomMissionModal: React.FC<CustomMissionModalProps> = ({ isOpen, 
   };
 
   return (
-    <ModalPortal>
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 animate-fade-in">
-      <div className="relative w-full max-w-lg glass-panel rounded-2xl shadow-2xl overflow-hidden flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-white/5">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
-              <Sparkles className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="font-syne font-bold text-lg text-white">
-                {missionToEdit ? 'Edit Mission' : 'Inject Custom Mission'}
-              </h3>
-              <p className="text-xs font-mono text-zinc-400">
-                {missionToEdit ? 'Update scheduled mission parameters' : 'Manually add a targeted task to your queue'}
-              </p>
-            </div>
+    <Modal 
+      isOpen={isOpen} 
+      onClose={onClose} 
+      zIndex={100} 
+      backdropClassName="bg-black/35 backdrop-blur-sm p-4"
+      className="glass-panel bg-zinc-900/80 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] overflow-hidden w-full max-w-lg text-left"
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between p-6 border-b border-zinc-800/80 bg-zinc-950/40">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+            <Sparkles className="w-5 h-5" />
           </div>
-          <button 
-            onClick={onClose}
-            className="p-2 rounded-xl hover:bg-white/5 text-zinc-400 hover:text-white transition-colors cursor-pointer"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div>
+            <h3 className="font-display font-bold text-lg text-white">
+              {missionToEdit ? 'Edit Mission' : 'Inject Custom Mission'}
+            </h3>
+            <p className="text-xs font-mono text-zinc-400">
+              {missionToEdit ? 'Update scheduled mission parameters' : 'Manually add a targeted task to your queue'}
+            </p>
+          </div>
+        </div>
+        <button 
+          type="button"
+          onClick={onClose}
+          className="p-2 rounded-xl hover:bg-white/5 text-zinc-400 hover:text-white transition-colors cursor-pointer select-none active:scale-95"
+        >
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+
+      {/* Form Body */}
+      <form onSubmit={handleSubmit} className="p-6 space-y-5 overflow-y-auto max-h-[60vh] text-left">
+        {/* Task Name */}
+        <div className="space-y-2">
+          <label className="text-xs font-mono uppercase tracking-wider text-zinc-400 font-semibold block">Mission / Task Title</label>
+          <input 
+            type="text" 
+            placeholder="e.g., Solve 15 Electrochemistry PYQs"
+            value={taskName}
+            onChange={e => setTaskName(e.target.value)}
+            className="w-full bg-zinc-900/80 border border-zinc-800 rounded-xl px-4 py-3 text-white font-sans text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500 transition-colors"
+            required
+          />
         </div>
 
-        {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-5 overflow-y-auto max-h-[60vh] text-left">
-          {/* Task Name */}
-          <div className="space-y-2">
-            <label className="text-xs font-mono uppercase tracking-wider text-zinc-400 font-semibold block">Mission / Task Title</label>
-            <input 
-              type="text" 
-              placeholder="e.g., Solve 15 Electrochemistry PYQs"
-              value={taskName}
-              onChange={e => setTaskName(e.target.value)}
-              className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white font-sans text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500 transition-colors"
-              required
-            />
-          </div>
-
-          {/* Subject */}
-          <div className="space-y-2">
-            <label className="text-xs font-mono uppercase tracking-wider text-zinc-400 font-semibold block">Subject</label>
-            <div className="grid grid-cols-3 gap-2">
-              {subjectOptions.map(opt => (
+        {/* Subject with Gliding Pill */}
+        <div className="space-y-2">
+          <label className="text-xs font-mono uppercase tracking-wider text-zinc-400 font-semibold block">Subject</label>
+          <div className="grid grid-cols-3 gap-2 relative bg-zinc-950/80 border border-zinc-850 p-1 rounded-xl">
+            {subjectOptions.map(opt => {
+              const isActive = subject === opt.id;
+              return (
                 <button
                   key={opt.id}
                   type="button"
                   onClick={() => setSubject(opt.id as SubjectId)}
-                  className={`py-2.5 px-3 rounded-xl font-mono text-xs font-bold border transition-all text-center cursor-pointer ${
-                    subject === opt.id 
-                      ? 'border-indigo-500 bg-indigo-500/20 text-white shadow-sm' 
-                      : 'border-zinc-800 bg-zinc-900/50 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200'
+                  className={`relative py-2.5 px-3 rounded-lg font-mono text-xs font-bold transition-colors text-center cursor-pointer select-none z-10 ${
+                    isActive ? 'text-white' : 'text-zinc-400 hover:text-zinc-200'
                   }`}
                 >
+                  {isActive && (
+                    <motion.div
+                      layoutId="customMissionSubjectPill"
+                      className="absolute inset-0 bg-indigo-600 rounded-lg shadow-md shadow-indigo-600/30 -z-10"
+                      transition={springs.fluid}
+                    />
+                  )}
                   {opt.label}
                 </button>
-              ))}
-            </div>
+              );
+            })}
           </div>
-
-          {/* Chapter */}
-          <div className="space-y-2">
-            <label className="text-xs font-mono uppercase tracking-wider text-zinc-400 font-semibold block">Chapter</label>
-            <input 
-              type="text" 
-              placeholder="e.g., Electrochemistry"
-              value={chapter}
-              onChange={e => setChapter(e.target.value)}
-              className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white font-sans text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500 transition-colors"
-            />
-          </div>
-
-          {/* Type */}
-          <div className="space-y-2">
-            <label className="text-xs font-mono uppercase tracking-wider text-zinc-400 font-semibold block">Task Type</label>
-            <select
-              value={type}
-              onChange={e => setType(e.target.value as TodayMission['type'])}
-              className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white font-mono text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500 transition-colors"
-            >
-              <option value="Solve DPP">Solve Questions (DPP)</option>
-              <option value="Solve PYQs">Solve PYQs</option>
-              <option value="Watch Lecture">Watch Lecture</option>
-              <option value="Revise Formulas">Revise Formulas</option>
-              <option value="Review Mistakes">Review Mistakes</option>
-            </select>
-          </div>
-
-          {/* Target PYQs Optional Manual Override */}
-          <div className="space-y-2">
-            <label className="text-xs font-mono uppercase tracking-wider text-zinc-400 font-semibold flex justify-between">
-              <span>Target PYQs <span className="text-zinc-500 lowercase normal-case text-[10px]">(Optional)</span></span>
-            </label>
-            <input 
-              type="number"
-              placeholder="Leave empty for auto-calculate"
-              value={targetPYQs}
-              onChange={e => setTargetPYQs(e.target.value ? parseInt(e.target.value) : '')}
-              className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white font-mono text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500 transition-colors"
-            />
-          </div>
-
-          {/* Scheduled Date */}
-          <div className="space-y-2">
-            <label className="text-xs font-mono uppercase tracking-wider text-zinc-400 font-semibold block">Scheduled Date</label>
-            <input 
-              type="date"
-              value={scheduledDate}
-              onChange={e => setScheduledDate(e.target.value)}
-              className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white font-mono text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500 transition-colors"
-            />
-          </div>
-
-          {/* Duration */}
-          <div className="space-y-2">
-            <label className="text-xs font-mono uppercase tracking-wider text-zinc-400 font-semibold flex justify-between">
-              <span>Estimated Duration</span>
-              <span className="text-indigo-400">{duration} mins</span>
-            </label>
-            <input 
-              type="range"
-              min="15"
-              max="180"
-              step="15"
-              value={duration}
-              onChange={e => setDuration(parseInt(e.target.value))}
-              className="w-full accent-indigo-500"
-            />
-          </div>
-        </form>
-
-        {/* Footer */}
-        <div className="p-6 border-t border-white/5 bg-white/[0.02] flex items-center gap-3">
-          {missionToEdit && (
-            <button 
-              type="button"
-              onClick={handleDelete}
-              className="px-4 py-3.5 bg-rose-950/60 hover:bg-rose-900 border border-rose-800 text-rose-300 font-mono text-xs font-bold uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0"
-            >
-              <Trash2 className="w-4 h-4 text-rose-400" />
-              Delete
-            </button>
-          )}
-          <button 
-            type="submit"
-            onClick={handleSubmit}
-            className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-mono text-xs font-bold uppercase tracking-wider py-3.5 rounded-xl shadow-[0_0_20px_rgba(79,70,229,0.3)] transition-all flex items-center justify-center gap-2 cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            {missionToEdit ? 'Save Changes' : 'Inject Mission'}
-          </button>
         </div>
+
+        {/* Chapter */}
+        <div className="space-y-2">
+          <label className="text-xs font-mono uppercase tracking-wider text-zinc-400 font-semibold block">Chapter</label>
+          <input 
+            type="text" 
+            placeholder="e.g., Electrochemistry"
+            value={chapter}
+            onChange={e => setChapter(e.target.value)}
+            className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white font-sans text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500 transition-colors"
+          />
+        </div>
+
+        {/* Type */}
+        <div className="space-y-2 relative z-20">
+          <label className="text-xs font-mono uppercase tracking-wider text-zinc-400 font-semibold block">Task Type</label>
+          <CustomSelect
+            value={type}
+            onChange={val => setType(val as TodayMission['type'])}
+            options={[
+              { value: 'Solve DPP', label: 'Solve Questions (DPP)' },
+              { value: 'Solve PYQs', label: 'Solve PYQs Sprint' },
+              { value: 'Watch Lecture', label: 'Theory & Lecture' },
+              { value: 'Revise Formulas', label: 'Revise Formulas' },
+              { value: 'Review Mistakes', label: 'Review Mistakes' },
+              { value: 'Break', label: 'Scheduled Rest Break' },
+              { value: 'Solve Mock', label: 'Solve Mock Test' }
+            ]}
+          />
+        </div>
+
+        {/* Scheduled Date */}
+        <div className="space-y-2">
+          <label className="text-xs font-mono uppercase tracking-wider text-zinc-400 font-semibold block">Scheduled Date</label>
+          <input 
+            type="date" 
+            value={scheduledDate}
+            onChange={e => setScheduledDate(e.target.value)}
+            className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white font-mono text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500 transition-colors"
+          />
+        </div>
+
+        {/* Target PYQs / Questions */}
+        {(type === 'Solve DPP' || type === 'Solve PYQs') && (
+          <div className="space-y-2">
+            <label className="text-xs font-mono uppercase tracking-wider text-zinc-400 font-semibold block">Target Questions (Optional)</label>
+            <input 
+              type="number" 
+              placeholder="e.g., 20"
+              value={targetPYQs}
+              onChange={e => setTargetPYQs(e.target.value === '' ? '' : parseInt(e.target.value))}
+              className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white font-mono text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500 transition-colors"
+            />
+          </div>
+        )}
+
+        {/* Duration */}
+        <div className="space-y-2">
+          <div className="flex justify-between items-center">
+            <label className="text-xs font-mono uppercase tracking-wider text-zinc-400 font-semibold">Planned Duration</label>
+            <span className="text-xs font-mono font-bold text-indigo-400 flex items-center gap-1">
+              <Clock className="w-3.5 h-3.5" /> {duration} minutes
+            </span>
+          </div>
+          <input 
+            type="range" 
+            min="15" 
+            max="180" 
+            step="15"
+            value={duration}
+            onChange={e => setDuration(parseInt(e.target.value))}
+            className="w-full accent-indigo-500 cursor-pointer"
+          />
+        </div>
+      </form>
+
+      {/* Footer */}
+      <div className="p-6 border-t border-zinc-800/80 bg-zinc-950/40 flex items-center gap-3">
+        {missionToEdit && (
+          <button 
+            type="button"
+            onClick={handleDelete}
+            className="px-4 py-3.5 bg-rose-950/60 hover:bg-rose-900 border border-rose-800 text-rose-300 font-mono text-xs font-bold uppercase tracking-wider rounded-xl transition-all active:scale-[0.97] flex items-center justify-center gap-2 cursor-pointer shrink-0 select-none"
+          >
+            <Trash2 className="w-4 h-4 text-rose-400" />
+            Delete
+          </button>
+        )}
+        <button 
+          type="submit"
+          onClick={handleSubmit}
+          className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-mono text-xs font-bold uppercase tracking-wider py-3.5 rounded-xl shadow-[0_0_20px_rgba(79,70,229,0.3)] transition-all active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer select-none"
+        >
+          <Plus className="w-4 h-4" />
+          {missionToEdit ? 'Save Changes' : 'Inject Mission'}
+        </button>
       </div>
-    </div>
-    </ModalPortal>
+    </Modal>
   );
 };

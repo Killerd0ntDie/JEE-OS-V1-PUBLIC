@@ -5,6 +5,7 @@ import { SubjectId, Chapter, SyllabusDiagnosisStage } from '@/types/index';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { Modal } from '@/components/ui/Modal';
+import { CustomSelect } from '@/components/ui/CustomSelect';
 import { 
   BookOpen, Video, FileCheck2, RotateCcw, Sparkles, X, Check, Search, AlertCircle, SlidersHorizontal
 } from 'lucide-react';
@@ -160,7 +161,7 @@ export const SyllabusDiagnosisModal: React.FC<Props> = ({ isOpen, onClose }) => 
 
   return (
     
-    <Modal isOpen={isOpen} onClose={onClose} zIndex={50} backdropClassName="p-4 bg-black/80 backdrop-blur-md animate-fade-in overflow-y-auto" className="relative w-full max-w-5xl bg-[#0a0b0e] border border-indigo-900/50 rounded-2xl shadow-2xl overflow-hidden my-6 text-left">
+    <Modal isOpen={isOpen} onClose={onClose} zIndex={50} backdropClassName="p-4 bg-black/35 backdrop-blur-sm animate-fade-in overflow-y-auto" className="relative w-full max-w-5xl bg-[#0a0b0e] border border-indigo-900/50 rounded-2xl shadow-2xl overflow-hidden my-6 text-left">
         
         {/* Header */}
         <div className="px-6 py-4 bg-indigo-950/30 border-b border-indigo-900/40 flex items-center justify-between">
@@ -446,17 +447,18 @@ export const SyllabusDiagnosisModal: React.FC<Props> = ({ isOpen, onClose }) => 
                     />
                   </div>
 
-                  <div>
-                    <label className="text-[10px] font-mono text-zinc-400 uppercase block">Retention Confidence</label>
-                    <select
+                  <div className="relative z-20">
+                    <label className="text-[10px] font-mono text-zinc-400 uppercase block mb-1">Retention Confidence</label>
+                    <CustomSelect
+                      size="sm"
                       value={selectedChapter.revisionProgress?.retentionConfidence || 'Medium'}
-                      onChange={(e) => handleUpdateRevisionState(selectedChapter.id, 'retentionConfidence', e.target.value)}
-                      className="w-full bg-[#121318] border border-zinc-800 rounded px-2.5 py-1.5 text-white font-mono text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
-                    >
-                      <option value="High">High Retention</option>
-                      <option value="Medium">Medium Retention</option>
-                      <option value="Low">Fading / Low</option>
-                    </select>
+                      onChange={(val) => handleUpdateRevisionState(selectedChapter.id, 'retentionConfidence', String(val))}
+                      options={[
+                        { value: 'High', label: 'High Retention' },
+                        { value: 'Medium', label: 'Medium Retention' },
+                        { value: 'Low', label: 'Fading / Low' },
+                      ]}
+                    />
                   </div>
                 </div>
               </div>

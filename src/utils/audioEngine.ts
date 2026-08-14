@@ -216,6 +216,70 @@ class AudioEngine {
   }
 
   /**
+   * High-Frequency Card Flip / Tactile Micro-Click
+   */
+  public async playCardFlip() {
+    await this.init();
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try { navigator.vibrate?.(12); } catch {}
+    }
+    if (!this.ctx || !this.masterGain) return;
+    const t = this.ctx.currentTime;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    
+    // Quick paper / card snap sound
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(1400, t);
+    osc.frequency.exponentialRampToValueAtTime(450, t + 0.025);
+
+    gain.gain.setValueAtTime(0.001, t);
+    gain.gain.linearRampToValueAtTime(0.18, t + 0.003);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.025);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+
+    osc.start(t);
+    osc.stop(t + 0.03);
+  }
+
+  /**
+   * Resonant Celebration Chime for Speed Drill Streaks (5x, 10x, etc.)
+   */
+  public async playStreakChime(streak: number = 5) {
+    await this.init();
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try { navigator.vibrate?.([25, 50, 25]); } catch {}
+    }
+    if (!this.ctx || !this.masterGain) return;
+    const t = this.ctx.currentTime;
+
+    // Ascending arpeggio notes (C5, E5, G5, C6)
+    const baseFreqs = streak >= 10 ? [523.25, 659.25, 783.99, 1046.50] : [523.25, 659.25, 783.99];
+    
+    baseFreqs.forEach((freq, idx) => {
+      const noteTime = t + idx * 0.06;
+      const osc = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, noteTime);
+
+      gain.gain.setValueAtTime(0.001, noteTime);
+      gain.gain.linearRampToValueAtTime(0.25, noteTime + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.001, noteTime + 0.25);
+
+      osc.connect(gain);
+      gain.connect(this.masterGain!);
+
+      osc.start(noteTime);
+      osc.stop(noteTime + 0.26);
+    });
+  }
+
+  /**
    * Request Desktop Notification Permission
    */
   public async requestNotificationPermission(): Promise<boolean> {

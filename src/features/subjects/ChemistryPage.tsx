@@ -7,7 +7,7 @@ export function ChemistryPage() {
       subjectTitle="Chemistry"
       subjectSubtitle="Master molecular structures, organic synthesis pathways, equilibrium dynamics, and transition metallurgy through systematic diagnostic testing."
       subjectIcon="FlaskConical"
-      unitCategories={['All', 'Organic', 'Inorganic', 'Physical']}
+      unitCategories={['All', 'Physical', 'Inorganic', 'Organic']}
     />
   );
 }

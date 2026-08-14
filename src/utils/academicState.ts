@@ -81,8 +81,17 @@ export function getAcademicState(chapter: Chapter): ChapterAcademicState {
   };
 
   // 4. Revision State
-  const daysAgo = chapter.revisionProgress?.lastRevisedDaysAgo ?? chapter.lastRevisionDaysAgo ?? 14;
-  const retentionConfidence = chapter.revisionProgress?.retentionConfidence || (daysAgo <= 7 ? 'High' : daysAgo <= 21 ? 'Medium' : 'Low');
+  const computedDaysAgoFromDate = chapter.lastRevisedAt 
+    ? Math.max(0, Math.floor((Date.now() - new Date(chapter.lastRevisedAt).getTime()) / (1000 * 60 * 60 * 24)))
+    : undefined;
+  const daysAgo = chapter.revisionProgress?.lastRevisedDaysAgo ?? chapter.lastRevisionDaysAgo ?? computedDaysAgoFromDate ?? 14;
+  
+  const retentionConfidence: 'High' | 'Medium' | 'Low' = 
+    chapter.revisionProgress?.retentionConfidence || 
+    (chapter.confidence !== undefined 
+      ? (chapter.confidence >= 80 ? 'High' : chapter.confidence >= 50 ? 'Medium' : 'Low')
+      : (daysAgo <= 7 ? 'High' : daysAgo <= 21 ? 'Medium' : 'Low'));
+  
   const retentionScore = chapter.retentionScore ?? (
     retentionConfidence === 'High' ? 90 : retentionConfidence === 'Medium' ? 65 : 40
   );

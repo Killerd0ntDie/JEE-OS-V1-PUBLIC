@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
+import { motion } from 'motion/react';
 import { Modal } from '@/components/ui/Modal';
 import { Icon } from '@/components/ui/Icon';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { toLocalDateString } from '@/utils/dateUtils';
+import { springs } from '@/constants/motion';
 
 interface RoutineBreakModalProps {
   isOpen: boolean;
@@ -133,21 +135,31 @@ export function RoutineBreakModal({ isOpen, onClose }: RoutineBreakModalProps) {
           <label className="block text-xs font-mono font-semibold text-zinc-400 uppercase tracking-wider mb-2">
             Break Duration (Minutes)
           </label>
-          <div className="flex gap-2">
-            {DURATIONS.map((d) => (
-              <button
-                key={d}
-                type="button"
-                onClick={() => setDuration(d)}
-                className={`flex-1 py-2 rounded-lg font-mono text-xs font-bold transition-all border cursor-pointer ${
-                  duration === d
-                    ? 'bg-amber-500 text-black border-amber-400 shadow-md shadow-amber-500/20'
-                    : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700'
-                }`}
-              >
-                {d}m
-              </button>
-            ))}
+          <div className="flex gap-2 relative bg-zinc-950/80 border border-zinc-850 p-1 rounded-xl">
+            {DURATIONS.map((d) => {
+              const isActive = duration === d;
+              return (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => setDuration(d)}
+                  className={`relative flex-1 py-2 rounded-lg font-mono text-xs font-bold transition-colors cursor-pointer select-none z-10 ${
+                    isActive
+                      ? 'text-black'
+                      : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  {isActive && (
+                    <motion.div
+                      layoutId="routineBreakDurationPill"
+                      className="absolute inset-0 bg-amber-500 rounded-lg shadow-md shadow-amber-500/30 -z-10"
+                      transition={springs.fluid}
+                    />
+                  )}
+                  {d}m
+                </button>
+              );
+            })}
           </div>
         </div>
 

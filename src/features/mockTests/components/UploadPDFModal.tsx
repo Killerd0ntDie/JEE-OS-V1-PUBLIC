@@ -17,6 +17,7 @@ interface UploadPDFModalProps {
 
 export function UploadPDFModal({ isOpen, onSuccess, onCancel }: UploadPDFModalProps) {
   const actions = useStudyBrainStore(state => state.actions);
+  const chapters = useStudyBrainStore(state => state.chapters) || [];
   const [dragActive, setDragActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
@@ -113,21 +114,31 @@ export function UploadPDFModal({ isOpen, onSuccess, onCancel }: UploadPDFModalPr
 
       // Add each mistake to Mistake Engine
       for (const m of result.mistakes) {
+        const rawSubj = (m.subject || '').toLowerCase();
+        const normalizedSubj = rawSubj.includes('math') ? 'maths' : (rawSubj.includes('chem') ? 'chemistry' : 'physics');
+        const matchedChapter = chapters.find(
+          c => c.subject === normalizedSubj && (
+            c.name.toLowerCase().includes((m.topic || '').toLowerCase()) || 
+            (m.topic && m.topic.toLowerCase().includes(c.name.toLowerCase()))
+          )
+        );
+
         await actions.addMistake({
           questionText: `Topic: ${m.topic} (Question ${m.questionNumber})`,
           correctSolution: m.correctAnswer,
-          chapter: 'ai-parsed-chapter',
-          topic: m.topic,
-          subtopic: 'General',
-          subject: m.subject.toLowerCase() as any,
+          chapter: matchedChapter ? matchedChapter.name : (m.topic || 'General Mock Problem'),
+          chapterId: matchedChapter?.id,
+          topic: m.topic || 'General Topic',
+          subtopic: '',
+          subject: normalizedSubj as any,
           mistakeTypes: ['Conceptual Error'],
           difficulty: 'Medium',
-          source: 'AI Mock Test Parser',
+          source: `Scorecard: ${file.name.replace('.pdf', '')}`,
           timeTaken: 2,
           correctMethod: m.reasoning || 'Refer to solution',
           studentMethod: m.studentAnswer || 'Unknown',
           confidence: 20,
-          revisionSchedule: '1_day',
+          revisionSchedule: 'Next Day',
           masteryImpact: 'High',
           attemptNumber: 1,
           revisionStatus: 'New',
@@ -160,7 +171,7 @@ export function UploadPDFModal({ isOpen, onSuccess, onCancel }: UploadPDFModalPr
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onCancel} zIndex={200} backdropClassName="bg-black/80 backdrop-blur-md p-4" className="bg-[#121318] border border-zinc-800 rounded-2xl p-6 w-full max-w-md shadow-2xl relative">
+    <Modal isOpen={isOpen} onClose={onCancel} zIndex={200} backdropClassName="bg-black/35 backdrop-blur-sm p-4" className="glass-panel bg-zinc-900/60 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 w-full max-w-md shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] relative text-left">
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">

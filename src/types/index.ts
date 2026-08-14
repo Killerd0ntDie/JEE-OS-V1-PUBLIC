@@ -360,6 +360,7 @@ export interface Mistake {
   id: string;
   subject: SubjectId;
   chapter: string;
+  chapterId?: string;
   topic: string;
   subtopic: string;
   difficulty: 'Easy' | 'Medium' | 'Hard' | 'JEE Main' | 'JEE Advanced';

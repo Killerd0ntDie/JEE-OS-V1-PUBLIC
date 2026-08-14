@@ -22,16 +22,16 @@ export function MissionTimerWidget({
   onCycleSpeed
 }: MissionTimerWidgetProps) {
   return (
-    <div className="relative w-64 h-64 md:w-72 md:h-72 flex items-center justify-center rounded-full border-[6px] border-zinc-850 bg-zinc-950/80 shadow-[0_0_100px_rgba(245,158,11,0.4)] shrink-0 group">
+    <div className="relative w-48 h-48 sm:w-56 sm:h-56 lg:w-64 lg:h-64 flex items-center justify-center rounded-full border-[4px] sm:border-[5px] lg:border-[6px] border-zinc-850 bg-zinc-950/80 shadow-[0_0_70px_rgba(245,158,11,0.3)] shrink-0 group">
       {/* Reset Timer — floating badge outside the ring, top-right corner */}
       {onResetTimer && (
         <button
           onClick={onResetTimer}
           title="Reset Timer"
           aria-label="Reset Timer"
-          className="absolute -top-1 -right-1 z-20 p-2 rounded-full bg-zinc-900 border border-zinc-700 text-zinc-400 shadow-lg hover:text-red-400 hover:border-red-500/50 transition-colors cursor-pointer active:scale-95"
+          className="absolute -top-1 -right-1 z-20 p-1.5 sm:p-2 rounded-full bg-zinc-900 border border-zinc-700 text-zinc-400 shadow-lg hover:text-red-400 hover:border-red-500/50 transition-colors cursor-pointer active:scale-95"
         >
-          <RotateCcw className="w-3.5 h-3.5" />
+          <RotateCcw className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
         </button>
       )}
 
@@ -60,23 +60,23 @@ export function MissionTimerWidget({
       </svg>
 
       {/* Central Chronometer HUD */}
-      <div className="relative text-center space-y-2 z-10 w-full px-4">
+      <div className="relative text-center space-y-1 sm:space-y-1.5 z-10 w-full px-3 sm:px-4">
         <div className="flex items-center justify-center relative">
-          <span className="text-[10px] font-mono tracking-[0.25em] text-amber-400/90 uppercase block font-bold text-center w-full">
+          <span className="text-[9px] sm:text-[10px] font-mono tracking-[0.25em] text-amber-400/90 uppercase block font-bold text-center w-full">
             FOCUS RUNTIME
           </span>
         </div>
         
-        {/* Massive Timer */}
+        {/* Massive Responsive Timer */}
         <span 
-          className="text-5xl md:text-6xl font-black font-mono tabular-nums tracking-wider text-white leading-none block select-none"
+          className="text-3xl sm:text-4xl lg:text-5xl font-black font-mono tabular-nums tracking-wider text-white leading-none block select-none"
           style={{ fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"zero" 0' }}
         >
           {formatTime(seconds)}
         </span>
 
         {/* Demoted Muted Focus Score & Lecture Speed Indicator */}
-        <div className="pt-1 flex items-center justify-center gap-2 text-[11px] font-mono text-zinc-400 font-medium">
+        <div className="pt-0.5 sm:pt-1 flex items-center justify-center gap-1.5 sm:gap-2 text-[10px] sm:text-[11px] font-mono text-zinc-400 font-medium">
           <span className="flex items-center gap-1 px-2 py-1 bg-zinc-900/50 rounded-md">
             <Zap className="w-2.5 h-2.5 text-amber-400/70" />
             <span>Focus {focusScore}%</span>

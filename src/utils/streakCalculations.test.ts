@@ -18,6 +18,19 @@ describe('streakCalculations', () => {
     expect(calculateCurrentStreak(sessions, 60)).toBe(0);
     expect(calculateCurrentStreak(sessions, 30)).toBe(2);
   });
+
+  it('bounds negative session durations to 0', () => {
+    const now = new Date();
+    const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const sessions = [
+      { startTime: new Date(`${todayKey}T09:00:00`).toISOString(), duration: 60 },
+      { startTime: new Date(`${todayKey}T10:00:00`).toISOString(), duration: -120 },
+    ] as any[];
+
+    // If negative duration was allowed, sum would be -60, and streak would be 0.
+    // Since bounded to 0, sum is 60, so streak should be 1.
+    expect(calculateCurrentStreak(sessions, 30)).toBe(1);
+  });
 });
 
 describe('chapterVelocity', () => {
