@@ -6,7 +6,7 @@ import { SubjectId, Mistake } from '@/types/index';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
-import { springs } from '@/constants/motion';
+import { springs, modalVariants } from '@/constants/motion';
 
 export interface LogMistakeModalProps {
   isOpen: boolean;
@@ -130,13 +130,13 @@ export const LogMistakeModal: React.FC<LogMistakeModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 select-none overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-black/10 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 select-none overflow-y-auto">
       <motion.div
-        initial={{ opacity: 0, scale: 0.96, y: 12 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.96, y: 12 }}
-        transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-        className="w-full max-w-2xl bg-zinc-950/95 border border-zinc-850/90 rounded-2xl shadow-2xl overflow-hidden my-auto text-left backdrop-blur-2xl"
+        variants={modalVariants}
+        initial="initial"
+        animate="animate"
+        exit="exit"
+        className="w-full max-w-2xl glass-panel border border-zinc-850/90 rounded-2xl shadow-2xl overflow-hidden my-auto text-left"
       >
         {/* Modal Header */}
         <div className="p-5 border-b border-zinc-850/80 flex justify-between items-center bg-zinc-950/60">

@@ -1,13 +1,13 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { BlockMath, InlineMath } from 'react-katex';
-import { Icon } from '@/components/ui/Icon';
+import { Target, X, Check, ChevronLeft, ChevronRight, CheckCircle2, XCircle, Sparkles, HelpCircle } from 'lucide-react';
 import pyqData from '@/data/pyqBank.json';
 import { Question, Difficulty } from '@/types/curriculum';
 import { audioEngine } from '@/utils/audioEngine';
 import { QuestionRepository } from '@/firebase/QuestionRepository';
 import { PyqGeneratorEngine } from '@/lib/PyqGeneratorEngine';
-import { Sparkles, BookOpen } from 'lucide-react';
+import { springs } from '@/constants/motion';
 
 interface QuestionViewerWidgetProps {
   chapterId: string;
@@ -30,7 +30,6 @@ export function QuestionViewerWidget({ chapterId, chapterName, subject, onExitPr
   const [showSolution, setShowSolution] = useState(false);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
 
-  // Fetch questions from Cloud Database
   useEffect(() => {
     let isMounted = true;
     const fetchQuestions = async () => {
@@ -46,9 +45,7 @@ export function QuestionViewerWidget({ chapterId, chapterName, subject, onExitPr
         if (qList.length > 0) {
           if (isMounted) setChapterQuestions(qList);
         } else {
-          // Trigger AI Generation if empty
           if (isMounted) setIsGenerating(true);
-          console.log("Database empty for chapter, triggering AI generation...");
           const targetChapter = chapterName || chapterId;
           const aiGenerated = await PyqGeneratorEngine.generateQuestions(targetChapter, subject, 3);
           await QuestionRepository.saveQuestionsBatch(aiGenerated);
@@ -61,7 +58,7 @@ export function QuestionViewerWidget({ chapterId, chapterName, subject, onExitPr
         console.error("Failed to fetch/generate questions:", err);
         if (isMounted) {
           setIsGenerating(false);
-          setGenError(err.message || "Failed to generate questions. Ensure GEMINI_API_KEY is configured on the backend server.");
+          setGenError(err.message || "Failed to generate questions.");
         }
       } finally {
         if (isMounted) setIsLoading(false);
@@ -69,14 +66,12 @@ export function QuestionViewerWidget({ chapterId, chapterName, subject, onExitPr
     };
     
     fetchQuestions();
-    
     return () => { isMounted = false; };
   }, [chapterId, subject]);
 
   const activeQuestion = chapterQuestions[currentIndex];
 
   useEffect(() => {
-    // Reset state when question changes
     setSelectedOptions([]);
     setNumericalInput('');
     setShowSolution(false);
@@ -85,55 +80,50 @@ export function QuestionViewerWidget({ chapterId, chapterName, subject, onExitPr
 
   if (isLoading || isGenerating) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-zinc-950/40 rounded-3xl border border-zinc-800/60 shadow-inner">
-        <div className="relative w-12 h-12 mb-4">
-          <div className="absolute inset-0 border-2 border-indigo-500/20 rounded-full"></div>
-          <div className="absolute inset-0 border-2 border-transparent border-t-indigo-500 rounded-full animate-spin"></div>
-          {isGenerating && (
-            <div className="absolute inset-0 border-2 border-transparent border-b-orange-500 rounded-full animate-spin direction-reverse opacity-50"></div>
-          )}
+      <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-4">
+        <div className="relative w-12 h-12">
+          <div className="absolute inset-0 border-2 border-indigo-500/20 rounded-full" />
+          <div className="absolute inset-0 border-2 border-transparent border-t-indigo-500 rounded-full animate-spin" />
         </div>
-        <h3 className="text-zinc-300 font-display font-bold text-sm tracking-wider uppercase mb-2">
-          {isGenerating ? 'Synthesizing PYQs' : 'Connecting to Cloud Server'}
-        </h3>
-        <p className="text-zinc-500 text-xs text-center font-mono max-w-[200px]">
-          {isGenerating 
-            ? 'The AI Coach is generating highly realistic JEE Advanced questions and solving them...'
-            : `Fetching questions for ${chapterId}...`}
-        </p>
+        <div className="space-y-1">
+          <h3 className="text-white font-mono font-bold text-xs uppercase tracking-wider">
+            {isGenerating ? 'Synthesizing PYQs' : 'Loading Question Vault'}
+          </h3>
+          <p className="text-zinc-500 text-xs font-mono max-w-xs">
+            {isGenerating 
+              ? 'AI Coach is assembling curated JEE exam problems with step-by-step solutions...'
+              : `Loading chapter telemetry for ${chapterName || chapterId}...`}
+          </p>
+        </div>
       </div>
     );
   }
 
   if (!activeQuestion || genError) {
-    let displayError = genError || "Failed to generate questions. Check console.";
-    if (displayError.includes('429') || displayError.includes('Quota exceeded') || displayError.includes('RESOURCE_EXHAUSTED')) {
-      displayError = "Gemini API Quota Exceeded (429). Please wait a minute and try again, or check your API key billing.";
-    } else if (displayError.length > 150) {
-      displayError = displayError.substring(0, 150) + "... (Check console for full error)";
-    }
-
+    let displayError = genError || "Failed to generate questions.";
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-zinc-950/40 rounded-3xl border border-zinc-800/60 shadow-inner">
-        <div className="w-16 h-16 bg-red-900/20 rounded-2xl flex items-center justify-center border border-red-900/50 mb-4">
-          <Icon name="XCircle" className="w-8 h-8 text-red-500" />
+      <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-4">
+        <div className="w-12 h-12 bg-red-950/30 rounded-2xl flex items-center justify-center border border-red-500/30 text-red-400">
+          <XCircle className="w-6 h-6" />
         </div>
-        <h3 className="text-zinc-300 font-display font-bold text-lg mb-2">Generation Failed</h3>
-        <p className="text-zinc-500 text-sm max-w-sm text-center">
-          {displayError}
-        </p>
-        <button 
+        <div className="space-y-1">
+          <h3 className="text-white font-mono font-bold text-sm">Practice Vault Unavailable</h3>
+          <p className="text-zinc-500 text-xs max-w-xs">{displayError}</p>
+        </div>
+        <motion.button 
+          whileHover={{ scale: 1.04 }}
+          whileTap={{ scale: 0.96 }}
           onClick={onExitPractice}
-          className="mt-6 px-4 py-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-xl text-xs font-mono text-zinc-300 transition-colors"
+          className="px-4 py-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-xl text-xs font-mono font-bold text-zinc-300 transition-colors cursor-pointer"
         >
           Return to Checklist
-        </button>
+        </motion.button>
       </div>
     );
   }
 
   const handleOptionToggle = (id: string) => {
-    if (showSolution) return; // Prevent changing answer after submission
+    if (showSolution) return;
     if (activeQuestion.type === 'MCQ_SINGLE') {
       setSelectedOptions([id]);
     } else {
@@ -172,6 +162,7 @@ export function QuestionViewerWidget({ chapterId, chapterName, subject, onExitPr
       }
     }
     setShowSolution(true);
+    if (onQuestionAttempted) onQuestionAttempted();
   };
 
   const nextQuestion = () => {
@@ -186,7 +177,6 @@ export function QuestionViewerWidget({ chapterId, chapterName, subject, onExitPr
     }
   };
 
-  // Helper to render text with inline math: parses text replacing $math$ with <InlineMath math="math"/>
   const renderMathText = (text: string | undefined | null) => {
     if (!text) return null;
     const cleanText = text.replace(/\\\$/g, '$');
@@ -204,171 +194,196 @@ export function QuestionViewerWidget({ chapterId, chapterName, subject, onExitPr
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-[#09090b] text-zinc-100 overflow-hidden rounded-3xl relative">
+    <div className="w-full h-full flex flex-col justify-between p-5 sm:p-6 select-none text-left">
       
-      {/* Header */}
-      <div className="relative flex items-center justify-between p-3 sm:p-4 border-b border-zinc-900 bg-zinc-950/50">
-        {/* Left: PYQ Arena Title */}
-        <div className="flex items-center gap-2 min-w-fit">
-          <Icon name="Target" className="w-4 h-4 text-orange-400" />
-          <span className="text-xs sm:text-sm font-mono font-bold tracking-widest uppercase text-orange-400">
-            PYQ Arena
-          </span>
-        </div>
-
-        {/* Center: Question metadata */}
-        <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-center px-4">
-          <Badge type={activeQuestion.difficulty} />
-          <span className="text-[10px] sm:text-xs font-mono text-zinc-500">ID: {activeQuestion.id}</span>
-          
-          {activeQuestion.source && (
-            <div 
-              className="flex items-center gap-1.5 px-2 py-0.5 bg-indigo-500/10 rounded-md border border-indigo-500/20 text-indigo-400 cursor-help"
-              title={activeQuestion.source}
-            >
-              <Sparkles className="w-3 h-3" />
-              <span className="text-[10px] sm:text-xs font-semibold whitespace-nowrap">AI Generated</span>
+      {/* Top Header */}
+      <div className="flex items-center justify-between border-b border-zinc-800/80 pb-3.5 shrink-0">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center shadow-sm">
+            <Target className="w-4 h-4" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono font-bold tracking-wider text-amber-400 uppercase">
+                PYQ ARENA
+              </span>
+              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-lg border bg-zinc-900 border-zinc-800 text-zinc-400 uppercase">
+                {activeQuestion.difficulty?.replace('_', ' ') || 'JEE ADVANCED'}
+              </span>
             </div>
-          )}
+            <span className="text-[10px] text-zinc-500 font-mono">
+              Q {currentIndex + 1} of {chapterQuestions.length} • {activeQuestion.id || 'PYQ'}
+            </span>
+          </div>
         </div>
 
-        {/* Right: Counter and close button */}
-        <div className="flex items-center gap-3 min-w-fit">
-          <span className="text-xs font-mono font-bold text-zinc-500 hidden sm:inline">
-            Q {currentIndex + 1} / {chapterQuestions.length}
-          </span>
-          <button 
-            onClick={onExitPractice}
-            className="flex-shrink-0 relative z-50 flex items-center justify-center w-10 h-10 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800 hover:border-zinc-700 transition-all active:scale-95 pointer-events-auto"
-            title="Exit Practice (Esc)"
-          >
-            <Icon name="X" className="w-5 h-5" />
-          </button>
-        </div>
+        {/* Exit Arena Button (Returns to Checklist) */}
+        <motion.button 
+          type="button"
+          whileHover={{ scale: 1.08 }}
+          whileTap={{ scale: 0.92 }}
+          transition={springs.snappy}
+          onClick={onExitPractice}
+          className="w-9 h-9 rounded-xl border border-zinc-800/80 hover:bg-zinc-850 hover:border-zinc-700 text-zinc-400 hover:text-white transition-colors flex items-center justify-center bg-zinc-900/80 cursor-pointer shadow-sm"
+          title="Return to Checklist"
+        >
+          <X className="w-4 h-4" />
+        </motion.button>
       </div>
 
-      <div className="flex-1 overflow-y-auto scrollbar p-4 sm:p-6 space-y-5 relative">
-        {/* Question Content */}
-        <div className="text-zinc-100 text-base sm:text-lg leading-relaxed font-serif">
+      {/* Main Question Body & Options */}
+      <div className="flex-1 overflow-y-auto custom-scrollbar py-4 space-y-4 pr-1 min-h-0">
+        
+        {/* Question Prompt */}
+        <div className="text-zinc-100 text-sm sm:text-base leading-relaxed font-sans bg-zinc-900/40 border border-zinc-800/60 p-4 rounded-2xl shadow-sm">
           {renderMathText(activeQuestion.content)}
         </div>
 
-        {/* Options / Input */}
-        <div className="space-y-2.5">
+        {/* Options Selection */}
+        <div className="space-y-2">
           {activeQuestion.options && activeQuestion.options.map(opt => {
             const isSelected = selectedOptions.includes(opt.id);
             const isCorrectOption = showSolution && activeQuestion.solution.correctOptionIds?.includes(opt.id);
             const isWrongSelection = showSolution && isSelected && !isCorrectOption;
 
-            let optClass = "border-zinc-800 bg-zinc-900/40 text-zinc-300 hover:border-indigo-500/50 hover:bg-zinc-800/80";
-            if (isSelected && !showSolution) optClass = "border-indigo-500 bg-indigo-500/10 text-white";
+            let cardStyle = "border-zinc-800/80 bg-zinc-900/50 hover:bg-zinc-850/80 hover:border-zinc-700 text-zinc-300";
+            if (isSelected && !showSolution) {
+              cardStyle = "border-indigo-500/60 bg-indigo-950/30 text-white shadow-sm";
+            }
             if (showSolution) {
-              if (isCorrectOption) optClass = "border-emerald-500 bg-emerald-500/20 text-emerald-100 ring-1 ring-emerald-500";
-              else if (isWrongSelection) optClass = "border-red-500 bg-red-500/10 text-red-200 opacity-70";
-              else optClass = "border-zinc-800 bg-zinc-900/20 text-zinc-500 opacity-50";
+              if (isCorrectOption) {
+                cardStyle = "border-emerald-500/60 bg-emerald-950/30 text-emerald-100 shadow-sm";
+              } else if (isWrongSelection) {
+                cardStyle = "border-rose-500/60 bg-rose-950/30 text-rose-200 opacity-80";
+              } else {
+                cardStyle = "border-zinc-850/60 bg-zinc-950/30 text-zinc-600 opacity-50";
+              }
             }
 
             return (
-              <button
+              <motion.button
                 key={opt.id}
+                type="button"
+                whileHover={!showSolution ? { x: 2 } : {}}
+                transition={springs.snappy}
                 onClick={() => handleOptionToggle(opt.id)}
                 disabled={showSolution}
-                className={`w-full flex items-start gap-3.5 p-3 sm:p-3.5 rounded-xl border transition-all text-left ${optClass} cursor-pointer`}
+                className={`w-full flex items-start gap-3 p-3 rounded-xl border transition-all text-left ${cardStyle} cursor-pointer`}
               >
-                <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded flex items-center justify-center shrink-0 font-bold font-mono text-xs border
-                  ${isSelected && !showSolution ? 'bg-indigo-500 text-white border-indigo-400' : 'bg-black/50 border-zinc-700'}`}>
+                <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 font-bold font-mono text-xs border transition-colors ${
+                  isSelected && !showSolution 
+                    ? 'bg-indigo-600 text-white border-indigo-400' 
+                    : isCorrectOption
+                    ? 'bg-emerald-600 text-white border-emerald-400'
+                    : isWrongSelection
+                    ? 'bg-rose-600 text-white border-rose-400'
+                    : 'bg-zinc-950 border-zinc-800 text-zinc-400'
+                }`}>
                   {opt.id}
                 </div>
-                <div className="flex-1 mt-0.5 leading-relaxed font-serif text-sm sm:text-base">
+                <div className="flex-1 mt-0.5 leading-relaxed font-sans text-xs sm:text-sm">
                   {renderMathText(opt.text)}
                 </div>
-              </button>
-            )
+              </motion.button>
+            );
           })}
 
           {activeQuestion.type === 'NUMERICAL' && (
-            <div className="max-w-xs">
-              <label className="text-xs font-mono font-bold text-zinc-400 uppercase mb-2 block">Enter Numerical Answer:</label>
+            <div className="space-y-1.5 pt-1">
+              <label className="text-xs font-mono font-bold text-zinc-400 uppercase">Enter Numerical Answer:</label>
               <input
                 type="number"
                 step="any"
                 value={numericalInput}
                 onChange={(e) => setNumericalInput(e.target.value)}
                 disabled={showSolution}
-                className={`w-full bg-black/50 border ${showSolution ? (isCorrect ? 'border-emerald-500 text-emerald-400' : 'border-red-500 text-red-400') : 'border-zinc-800 focus:border-indigo-500 text-white'} rounded-xl p-4 text-xl outline-none transition-colors`}
+                className={`w-full bg-zinc-900/80 border ${
+                  showSolution 
+                    ? (isCorrect ? 'border-emerald-500 text-emerald-400' : 'border-rose-500 text-rose-400') 
+                    : 'border-zinc-800 focus:border-indigo-500 text-white'
+                } rounded-xl px-4 py-3 text-lg font-mono outline-none transition-colors`}
                 placeholder="0.00"
               />
             </div>
           )}
         </div>
 
-        {/* Action / Solution Area */}
+        {/* Detailed Solution Box */}
         <AnimatePresence>
           {showSolution && (
             <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              className="pt-6 border-t border-zinc-900"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={springs.snappy}
+              className={`p-4 rounded-2xl border ${
+                isCorrect 
+                  ? 'bg-emerald-950/20 border-emerald-500/30' 
+                  : 'bg-rose-950/20 border-rose-500/30'
+              }`}
             >
-              <div className={`p-5 rounded-2xl border ${isCorrect ? 'bg-emerald-950/20 border-emerald-900/50' : 'bg-red-950/20 border-red-900/50'}`}>
-                <div className="flex items-center gap-2 mb-3">
-                  <Icon name={isCorrect ? "CheckCircle2" : "XCircle"} className={`w-5 h-5 ${isCorrect ? 'text-emerald-400' : 'text-red-400'}`} />
-                  <h4 className={`font-display font-bold uppercase tracking-wider ${isCorrect ? 'text-emerald-400' : 'text-red-400'}`}>
-                    {isCorrect ? 'Correct Answer!' : 'Incorrect Analysis'}
-                  </h4>
-                </div>
-                <div className="text-zinc-300 font-serif leading-relaxed text-sm">
-                  {renderMathText(activeQuestion.solution.text)}
-                </div>
+              <div className="flex items-center gap-2 mb-2">
+                {isCorrect ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                ) : (
+                  <XCircle className="w-4 h-4 text-rose-400" />
+                )}
+                <h4 className={`text-xs font-mono font-bold uppercase tracking-wider ${
+                  isCorrect ? 'text-emerald-400' : 'text-rose-400'
+                }`}>
+                  {isCorrect ? 'Correct Analysis' : 'Solution & Detailed Breakdown'}
+                </h4>
+              </div>
+              <div className="text-zinc-300 font-sans leading-relaxed text-xs sm:text-sm">
+                {renderMathText(activeQuestion.solution?.text)}
               </div>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
-      {/* Footer Navigation */}
-      <div className="p-4 border-t border-zinc-900 bg-[#09090b] flex items-center justify-between">
-        <button
+      {/* Footer Navigation CTAs */}
+      <div className="flex items-center justify-between gap-3 pt-4 border-t border-zinc-800/80 mt-2 shrink-0">
+        <motion.button
+          type="button"
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.96 }}
+          transition={springs.snappy}
           onClick={prevQuestion}
           disabled={currentIndex === 0}
-          className="flex items-center gap-2 px-4 py-2 bg-zinc-900 hover:bg-zinc-800 disabled:opacity-50 text-zinc-300 rounded-xl font-mono text-xs font-bold transition-colors"
+          className="flex items-center gap-1.5 px-4 py-2.5 bg-zinc-900 hover:bg-zinc-850 disabled:opacity-40 disabled:cursor-not-allowed border border-zinc-800 text-zinc-300 hover:text-white rounded-xl font-mono text-xs font-bold transition-colors cursor-pointer"
         >
-          <Icon name="ChevronLeft" className="w-4 h-4" />
+          <ChevronLeft className="w-4 h-4" />
           <span>Previous</span>
-        </button>
+        </motion.button>
 
         {!showSolution ? (
-          <button
+          <motion.button
+            type="button"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.96 }}
+            transition={springs.snappy}
             onClick={checkAnswer}
             disabled={activeQuestion.type === 'NUMERICAL' ? !numericalInput : selectedOptions.length === 0}
-            className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:bg-zinc-800 text-white rounded-xl font-mono text-sm font-bold shadow-lg shadow-indigo-500/20 transition-all"
+            className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl font-mono text-xs font-bold uppercase tracking-wider shadow-lg shadow-indigo-600/20 transition-colors cursor-pointer"
           >
             <span>Verify Answer</span>
-            <Icon name="Check" className="w-4 h-4" />
-          </button>
+            <Check className="w-4 h-4" />
+          </motion.button>
         ) : (
-          <button
+          <motion.button
+            type="button"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.96 }}
+            transition={springs.snappy}
             onClick={nextQuestion}
             disabled={currentIndex === chapterQuestions.length - 1}
-            className="flex items-center gap-2 px-6 py-2.5 bg-zinc-100 hover:bg-white disabled:opacity-50 text-black rounded-xl font-mono text-sm font-bold shadow-lg transition-all"
+            className="flex items-center gap-2 px-6 py-2.5 bg-white hover:bg-zinc-200 disabled:opacity-40 disabled:cursor-not-allowed text-black rounded-xl font-mono text-xs font-bold uppercase tracking-wider shadow-lg transition-colors cursor-pointer"
           >
             <span>Next Question</span>
-            <Icon name="ChevronRight" className="w-4 h-4" />
-          </button>
+            <ChevronRight className="w-4 h-4" />
+          </motion.button>
         )}
       </div>
-    </div>
-  );
-}
-
-function Badge({ type }: { type: Difficulty }) {
-  let color = "bg-zinc-800 text-zinc-400 border-zinc-700";
-  if (type === 'JEE_ADVANCED') color = "bg-orange-500/10 text-orange-400 border-orange-500/20";
-  if (type === 'JEE_MAIN') color = "bg-blue-500/10 text-blue-400 border-blue-500/20";
-  
-  return (
-    <div className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border uppercase tracking-wider ${color}`}>
-      {type.replace('_', ' ')}
     </div>
   );
 }

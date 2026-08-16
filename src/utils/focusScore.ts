@@ -5,11 +5,10 @@ export interface FocusScoreInput {
 }
 
 export const calculateFocusScore = ({ interruptions, idleSeconds, uninterruptedSeconds }: FocusScoreInput) => {
-  // Focus penalty is based on elapsed pause (idle) time (2 points per min) and explicit interruptions (5 points each).
+  // Focus penalty is based purely on elapsed pause (idle) time. 2 points per minute.
   const idlePenalty = Math.floor(idleSeconds / 60) * 2;
-  const interruptionPenalty = interruptions * 5;
   const recoveryBonus = Math.floor(uninterruptedSeconds / 60) * 1;
 
-  const score = Math.round(100 - idlePenalty - interruptionPenalty + recoveryBonus);
+  const score = Math.round(100 - idlePenalty + recoveryBonus);
   return Math.min(100, Math.max(0, score));
 };

@@ -619,7 +619,7 @@ export class PlannerScoringEngine {
     };
 
     // Calculate total score using the configurable 14-factor weights
-    const totalScore = Math.round(
+    let totalScore = Math.round(
       weightageScore * this.weights.jeeWeightage +
       masteryScore * this.weights.mastery +
       mistakeScore * this.weights.mistakeIntelligence +
@@ -635,6 +635,24 @@ export class PlannerScoringEngine {
       fatigueScore * this.weights.fatigue +
       dailyHoursScore * this.weights.dailyHours
     );
+
+    // Bug 3.1: Decision Tree / State Machine Bounds
+    // Prevent the 14-factor "mush" from overriding critical hard constraints
+
+    // 1. Fatigue State Machine Boundary
+    if (fatigueScore > 80 && (context.taskType === 'Watch Lecture' || context.taskType === 'Solve PYQs')) {
+      totalScore = Math.min(totalScore, 30);
+    }
+
+    // 2. Revision Emergency Boundary
+    if (revisionUrgencyScore > 80 && context.taskType === 'Watch Lecture') {
+      totalScore = Math.min(totalScore, 40);
+    }
+
+    // 3. Mastery Ceiling Boundary
+    if (currentMasteryScore < 20 && (context.taskType === 'Watch Lecture' || context.taskType === 'Solve DPP')) {
+      totalScore = Math.min(totalScore, 20);
+    }
 
     return { totalScore, breakdown, explanation: subjectBalanceExplanation };
   }

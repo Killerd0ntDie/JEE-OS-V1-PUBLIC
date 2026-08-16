@@ -117,8 +117,8 @@ export function AiRevisionPlanModal({ isOpen, onClose }: AiRevisionPlanModalProp
       isOpen={isOpen} 
       onClose={onClose} 
       zIndex={100} 
-      backdropClassName="p-4 bg-black/40 backdrop-blur-md animate-fade-in" 
-      className="w-full max-w-3xl glass-panel bg-zinc-900/80 backdrop-blur-2xl border border-white/20 rounded-3xl p-6 md:p-8 shadow-2xl relative overflow-hidden flex flex-col max-h-[85vh]"
+      backdropClassName="p-4 bg-black/10 backdrop-blur-md animate-fade-in" 
+      className="w-full max-w-3xl glass-panel backdrop-blur-2xl border border-white/20 rounded-3xl p-6 md:p-8 shadow-2xl relative overflow-hidden flex flex-col max-h-[85vh]"
     >
       {/* Header */}
       <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-6">

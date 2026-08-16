@@ -93,7 +93,7 @@ export const SwapSubjectModal: React.FC<SwapSubjectModalProps> = ({
 
   return (
     <>
-    <Modal isOpen={isOpen} onClose={onClose} zIndex={10000} className="relative bg-[#09090b] border border-zinc-800 rounded-3xl max-w-lg w-full p-6 shadow-2xl z-50 text-left space-y-5">
+    <Modal isOpen={isOpen} onClose={onClose} zIndex={10000} className="relative border border-zinc-800 rounded-3xl max-w-lg w-full p-6 shadow-2xl z-50 text-left space-y-5 glass-panel">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
             <div>

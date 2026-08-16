@@ -107,8 +107,9 @@ export const RevisionEngineService = {
     // Weighted Health: Completion (20%), Confidence (45%), Retention (35%)
     // Subtract 4% penalty for each active mistake in this chapter (capped at -24%)
     const rawHealth = (chapter.completion * 0.20) + (chapter.confidence * 0.45) + (retention * 0.35);
-    const totalQs = Math.max(1, chapter.solvedQuestions || 0);
-    const mistakeRatio = Math.min(1, chapterMistakesCount / totalQs);
+    // Bug 1.3: Add minimum question threshold to prevent instant 100% ratio penalty
+    const effectiveTotalQs = Math.max(10, chapter.solvedQuestions || 0);
+    const mistakeRatio = Math.min(1, chapterMistakesCount / effectiveTotalQs);
     // 50% mistake ratio yields max penalty of 24 (Bug 3.1)
     const penalty = Math.min(24, mistakeRatio * 48);
     
@@ -190,26 +191,30 @@ export const RevisionEngineService = {
       const currentStage = this.inferCurrentStage(chapter);
       if (currentStage === 'Mastered') return; // already finished!
 
-      // Determine days to wait based on stage
-      let intervalDays = settings.intervals.revision1;
+      // Determine base days to wait based on stage
+      let baseIntervalDays = settings.intervals.revision1;
       if (currentStage === 'DPP Complete' || currentStage === 'Revision 1') {
-        intervalDays = settings.intervals.revision1;
+        baseIntervalDays = settings.intervals.revision1;
       } else if (currentStage === 'Revision 2') {
-        intervalDays = settings.intervals.revision2;
+        baseIntervalDays = settings.intervals.revision2;
       } else if (currentStage === 'Revision 3') {
-        intervalDays = settings.intervals.revision3;
+        baseIntervalDays = settings.intervals.revision3;
       } else if (currentStage === 'PYQs') {
-        intervalDays = settings.intervals.revision4;
+        baseIntervalDays = settings.intervals.revision4;
       } else if (currentStage === 'Mock Test') {
-        intervalDays = settings.intervals.revision5;
+        baseIntervalDays = settings.intervals.revision5;
       }
+
+      // Bug 3.3: SM-2 inspired dynamic interval based on recall quality (confidence)
+      const confidenceModifier = Math.max(0.5, Math.min(2.0, (chapter.confidence || 50) / 50));
+      const dynamicIntervalDays = Math.max(1, Math.round(baseIntervalDays * confidenceModifier));
 
       // Calculate days overdue
       const daysSinceLast = Number.isFinite(chapter.lastRevisionDaysAgo) ? (chapter.lastRevisionDaysAgo ?? 999) : 999;
-      const daysOverdue = Math.max(0, daysSinceLast - intervalDays);
+      const daysOverdue = Math.max(0, daysSinceLast - dynamicIntervalDays);
 
       // We revision is "due" if we are past the interval, OR if confidence is dangerously low (< 60)
-      const isDue = daysSinceLast >= intervalDays || chapter.confidence < 60 || chapter.status === 'Revision Due';
+      const isDue = daysSinceLast >= dynamicIntervalDays || chapter.confidence < 60 || chapter.status === 'Revision Due';
       if (!isDue) return;
 
       // Unresolved Mistakes Count

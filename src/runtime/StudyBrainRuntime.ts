@@ -143,6 +143,7 @@ export class StudyBrainRuntime {
     mocks?: MockResult[];
     settings?: any;
     timeline?: TimelineBlock[];
+    mentorProfile?: MentorProfile;
   } = {};
 
   private constructor() {
@@ -371,12 +372,21 @@ export class StudyBrainRuntime {
   private async executeRefresh(reason: RefreshTriggers) {
     const currentState = this.state;
 
+    const prevSettings = this.prevMemoState.settings;
+    const currSettings = currentState.settings;
+    const settingsChangedForPlanner = !prevSettings || !currSettings ||
+      prevSettings.targetYear !== currSettings.targetYear ||
+      prevSettings.dailyQuota !== currSettings.dailyQuota ||
+      this.prevMemoState.mentorProfile?.subjectSplitStrategy !== currentState.mentorProfile?.subjectSplitStrategy ||
+      this.prevMemoState.mentorProfile?.twoDaySplitConfig !== currentState.mentorProfile?.twoDaySplitConfig ||
+      prevSettings.prerequisiteEnforcementStrategy !== currSettings.prerequisiteEnforcementStrategy;
+
     const stateChanged = {
       chapters: currentState.chapters !== this.prevMemoState.chapters,
       mistakes: currentState.mistakes !== this.prevMemoState.mistakes,
       sessions: currentState.studySessions !== this.prevMemoState.sessions,
       mocks: currentState.mocks !== this.prevMemoState.mocks,
-      settings: currentState.settings !== this.prevMemoState.settings,
+      settings: settingsChangedForPlanner,
       timeline: currentState.timeline !== this.prevMemoState.timeline,
     };
     
@@ -387,6 +397,7 @@ export class StudyBrainRuntime {
       mocks: currentState.mocks,
       settings: currentState.settings,
       timeline: currentState.timeline,
+      mentorProfile: currentState.mentorProfile,
     };
 
     const startTime = performance.now();
@@ -468,7 +479,15 @@ export class StudyBrainRuntime {
     let todayMissions = this.state.todayMissions;
     let timeline = this.state.timeline;
 
-    if (this.knowledgeEngine) {
+    const shouldRerunPlanner = reason === 'INIT' || 
+      !this.plannerEngine || 
+      !plannerOutput || 
+      stateChanged.chapters || 
+      stateChanged.sessions || 
+      stateChanged.mistakes || 
+      stateChanged.settings;
+
+    if (this.knowledgeEngine && shouldRerunPlanner) {
       if (!this.plannerEngine || reason === 'INIT' || stateChanged.chapters || stateChanged.sessions || stateChanged.mistakes || stateChanged.settings) {
         const { PlannerEngine } = await import('@jee-os/engines');
         this.plannerEngine = new PlannerEngine(this.knowledgeEngine);
@@ -786,11 +805,13 @@ export class StudyBrainRuntime {
         }
       });
       timeline = [...customBlocks, ...generatedBlocks];
-    }
 
-    engineTimes['PlannerAndOptimization'] = performance.now() - pStart;
-    invalidatedEngines.push('PlannerEngine');
-    this.cacheMisses++;
+      engineTimes['PlannerAndOptimization'] = performance.now() - pStart;
+      invalidatedEngines.push('PlannerEngine');
+      this.cacheMisses++;
+    } else {
+      this.cacheHits++;
+    }
 
     // 4. Revision Engine
     let revisionQueue = this.state.revisionQueue;
@@ -837,7 +858,7 @@ export class StudyBrainRuntime {
     // Compute Risk Profile
     const avgMastery = this.state.chapters.reduce((sum, c) => {
       const cMistakes = this.state.mistakes.filter(m => m.chapter === c.name && m.revisionStatus !== 'Mastered').length;
-      const completionPart = c.completion || 0;
+      const completionPart = c.completion ?? 0;
       const mistakePenalty = Math.min(30, cMistakes * 5);
       return sum + Math.max(0, completionPart - mistakePenalty);
     }, 0) / (this.state.chapters.length || 1);
@@ -851,11 +872,11 @@ export class StudyBrainRuntime {
       if (subChaps.length === 0) return 0;
       const totalM = subChaps.reduce((acc, c) => {
         const cMistakes = this.state.mistakes.filter(m => m.chapter === c.name && m.revisionStatus !== 'Mastered').length;
-        const completionPart = c.completion || 0;
+        const completionPart = c.completion ?? 0;
         const mistakePenalty = Math.min(30, cMistakes * 5);
         return acc + Math.max(0, completionPart - mistakePenalty);
       }, 0);
-      return totalM / subChaps.length;
+      return subChaps.length > 0 ? totalM / subChaps.length : 0;
     };
     
     let highestRiskSubject: 'Physics' | 'Chemistry' | 'Mathematics' = 'Physics';

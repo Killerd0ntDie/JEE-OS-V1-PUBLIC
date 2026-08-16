@@ -150,8 +150,9 @@ export function AuthPage() {
                 Enter your email address and we'll send you a link to reset your password.
               </p>
               <div>
-                <label className="block text-xs font-semibold text-zinc-400 mb-1.5 ml-1 uppercase tracking-wider">Email Address</label>
+                <label htmlFor="reset-email" className="block text-xs font-semibold text-zinc-400 mb-1.5 ml-1 uppercase tracking-wider">Email Address</label>
                 <input 
+                  id="reset-email"
                   type="email" 
                   required
                   value={email}
@@ -181,8 +182,9 @@ export function AuthPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             {!isLogin && (
               <div>
-                <label className="block text-xs font-semibold text-zinc-400 mb-1.5 ml-1 uppercase tracking-wider">Full Name</label>
+                <label htmlFor="register-name" className="block text-xs font-semibold text-zinc-400 mb-1.5 ml-1 uppercase tracking-wider">Full Name</label>
                 <input 
+                  id="register-name"
                   type="text" 
                   required
                   value={name}
@@ -194,8 +196,9 @@ export function AuthPage() {
             )}
 
             <div>
-              <label className="block text-xs font-semibold text-zinc-400 mb-1.5 ml-1 uppercase tracking-wider">Email Address</label>
+              <label htmlFor="auth-email" className="block text-xs font-semibold text-zinc-400 mb-1.5 ml-1 uppercase tracking-wider">Email Address</label>
               <input 
+                id="auth-email"
                 type="email" 
                 required
                 value={email}
@@ -207,7 +210,7 @@ export function AuthPage() {
 
             <div>
               <div className="flex items-center justify-between mb-1.5 ml-1 pr-1">
-                <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider">Password</label>
+                <label htmlFor="auth-password" className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider">Password</label>
                 {isLogin && (
                   <button 
                     type="button" 
@@ -220,6 +223,7 @@ export function AuthPage() {
               </div>
               <div className="relative">
                 <input 
+                  id="auth-password"
                   type={showPassword ? "text" : "password"} 
                   required
                   value={password}
@@ -247,9 +251,10 @@ export function AuthPage() {
 
             {!isLogin && (
               <div>
-                <label className="block text-xs font-semibold text-zinc-400 mb-1.5 ml-1 uppercase tracking-wider">Confirm Password</label>
+                <label htmlFor="register-confirm" className="block text-xs font-semibold text-zinc-400 mb-1.5 ml-1 uppercase tracking-wider">Confirm Password</label>
                 <div className="relative">
                   <input 
+                    id="register-confirm"
                     type={showPassword ? "text" : "password"} 
                     required
                     value={confirmPassword}

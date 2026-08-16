@@ -38,8 +38,7 @@ export class AnalyticsEngine {
       
       if (session.questionsSolved && session.accuracy !== undefined) {
         totalQs += session.questionsSolved;
-        const boundedAccuracy = Math.max(0, Math.min(100, session.accuracy));
-        correctQs += Math.round(session.questionsSolved * (boundedAccuracy / 100));
+        correctQs += Math.round(session.questionsSolved * (session.accuracy / 100));
       }
       
       const sessionDate = new Date(session.startTime);

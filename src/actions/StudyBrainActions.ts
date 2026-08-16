@@ -251,7 +251,6 @@ export class StudyBrainActions {
 
   async completeTask(taskId: string, durationSecs?: number) {
     this.checkWriteBlock();
-    const previousState = { ...this.state };
     const missionIndex = this.state.todayMissions.findIndex(m => m.id === taskId);
     if (missionIndex === -1) return;
 
@@ -585,14 +584,12 @@ export class StudyBrainActions {
         this.triggerToast('Mission Accomplished', `${mission.taskName} finished successfully!`, 'success');
       }
     } catch (err) {
-      this.runtime.updateStateOptimistic(previousState);
       await this.handleWriteError(err, 'completeTask');
     }
   }
 
   async deleteMission(taskId: string) {
     this.checkWriteBlock();
-    const previousState = { ...this.state };
     const updatedDeletedMissionIds = Array.from(new Set([...(this.state.deletedMissionIds || []), taskId]));
 
     // For custom missions: hard-delete from Firestore and remove from list entirely.
@@ -608,13 +605,6 @@ export class StudyBrainActions {
     const updatedTodayMissions = this.state.todayMissions.filter(m => m.id !== taskId);
 
     try {
-      // Optimistic state update immediately
-      this.runtime.updateStateOptimistic({
-        todayMissions: updatedTodayMissions,
-        customMissions: updatedCustomMissions,
-        deletedMissionIds: updatedDeletedMissionIds
-      });
-
       if (isCustom) {
         await CustomMissionRepository.deleteMission(this.userId, taskId);
       }
@@ -623,18 +613,19 @@ export class StudyBrainActions {
       // this they'd reappear every time the page is refreshed.
       await UserRepository.updateUserProfile(this.userId, { deletedMissionIds: updatedDeletedMissionIds });
       await this.runtime.refresh('SESSION_UPDATE', {
+        todayMissions: updatedTodayMissions,
+        customMissions: updatedCustomMissions,
+        deletedMissionIds: updatedDeletedMissionIds,
         lastSyncError: null
       });
       // Toast removed to prevent notification spam
     } catch (err) {
-      this.runtime.updateStateOptimistic(previousState);
       await this.handleWriteError(err, 'deleteMission');
     }
   }
 
   async addCustomMission(missionData: Omit<TodayMission, 'id' | 'completed' | 'unlocked'>) {
     this.checkWriteBlock();
-    const previousState = { ...this.state };
     const newMission: TodayMission = {
       ...missionData,
       id: `user-custom-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
@@ -651,24 +642,20 @@ export class StudyBrainActions {
     const updatedCustomMissions = [...this.state.customMissions, newMission];
 
     try {
-      this.runtime.updateStateOptimistic({ 
-        todayMissions: updatedMissions,
-        customMissions: updatedCustomMissions 
-      });
       await CustomMissionRepository.saveMission(this.userId, newMission);
       await this.runtime.refresh('SESSION_UPDATE', { 
+        todayMissions: updatedMissions,
+        customMissions: updatedCustomMissions,
         lastSyncError: null
       });
       // Toast removed to prevent notification spam
     } catch (err) {
-      this.runtime.updateStateOptimistic(previousState);
       await this.handleWriteError(err, 'addCustomMission');
     }
   }
 
   async addAiMission(missionData: Omit<TodayMission, 'id' | 'completed' | 'unlocked'>) {
     this.checkWriteBlock();
-    const previousState = { ...this.state };
     const newMission: TodayMission = {
       ...missionData,
       id: `mission-ai-${Date.now()}`,
@@ -683,23 +670,19 @@ export class StudyBrainActions {
     const updatedCustomMissions = [...this.state.customMissions, newMission];
 
     try {
-      this.runtime.updateStateOptimistic({ 
-        todayMissions: updatedMissions,
-        customMissions: updatedCustomMissions 
-      });
       await CustomMissionRepository.saveMission(this.userId, newMission);
       await this.runtime.refresh('SESSION_UPDATE', { 
+        todayMissions: updatedMissions,
+        customMissions: updatedCustomMissions,
         lastSyncError: null
       });
     } catch (err) {
-      this.runtime.updateStateOptimistic(previousState);
       await this.handleWriteError(err, 'addAiMission');
     }
   }
 
   async updateMissionDetails(taskId: string, updates: Partial<TodayMission>) {
     this.checkWriteBlock();
-    const previousState = { ...this.state };
     
     const missionIndex = this.state.todayMissions.findIndex(m => m.id === taskId);
     if (missionIndex === -1) return;
@@ -718,12 +701,6 @@ export class StudyBrainActions {
     const isCustom = this.state.customMissions.some(cm => cm.id === taskId);
     
     try {
-      // Optimitistic update
-      this.runtime.updateStateOptimistic({
-        todayMissions: updatedMissions,
-        customMissions: updatedCustomMissions
-      });
-
       // Only save to CustomMissionRepository if it's truly a custom mission
       if (isCustom) {
         await CustomMissionRepository.saveMission(this.userId, updatedMission);
@@ -734,10 +711,11 @@ export class StudyBrainActions {
       }
       
       await this.runtime.refresh('SESSION_UPDATE', {
+        todayMissions: updatedMissions,
+        customMissions: updatedCustomMissions,
         lastSyncError: null
       });
     } catch (err) {
-      this.runtime.updateStateOptimistic(previousState);
       await this.handleWriteError(err, 'updateMissionDetails');
     }
   }

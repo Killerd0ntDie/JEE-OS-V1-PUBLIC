@@ -1,4 +1,4 @@
-import { collection, doc, getDocs, getDoc, setDoc, query, where, writeBatch } from 'firebase/firestore';
+import { collection, doc, getDocs, getDocsFromCache, getDoc, setDoc, query, where, writeBatch, limit } from 'firebase/firestore';
 import { db } from './index';
 import { Question } from '@/types/curriculum';
 
@@ -11,8 +11,15 @@ export class QuestionRepository {
   static async getQuestionsByChapter(chapterId: string): Promise<Question[]> {
     try {
       const qRef = collection(db, this.COLLECTION);
-      const q = query(qRef, where("chapterId", "==", chapterId));
-      const snapshot = await getDocs(q);
+      const q = query(qRef, where("chapterId", "==", chapterId), limit(100)); // Hard limit for safety
+      
+      let snapshot;
+      try {
+        snapshot = await getDocsFromCache(q);
+        if (snapshot.empty) throw new Error("Cache miss");
+      } catch (error) {
+        snapshot = await getDocs(q);
+      }
       
       const questions: Question[] = [];
       const seenIds = new Set<string>();
@@ -51,14 +58,18 @@ export class QuestionRepository {
    */
   static async saveQuestionsBatch(questions: Question[]): Promise<void> {
     try {
-      const batch = writeBatch(db);
-      
-      questions.forEach(q => {
-        const docRef = doc(db, this.COLLECTION, q.id);
-        batch.set(docRef, q);
-      });
-      
-      await batch.commit();
+      const CHUNK_SIZE = 450;
+      for (let i = 0; i < questions.length; i += CHUNK_SIZE) {
+        const chunk = questions.slice(i, i + CHUNK_SIZE);
+        const batch = writeBatch(db);
+        
+        chunk.forEach(q => {
+          const docRef = doc(db, this.COLLECTION, q.id);
+          batch.set(docRef, q);
+        });
+        
+        await batch.commit();
+      }
     } catch (error) {
       console.error("Error batch saving questions:", error);
       throw error;

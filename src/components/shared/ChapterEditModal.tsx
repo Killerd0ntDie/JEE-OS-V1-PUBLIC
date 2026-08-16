@@ -334,8 +334,8 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
         isOpen={effectiveIsOpen} 
         onClose={handleClose} 
         zIndex={50} 
-        backdropClassName="bg-black/35 backdrop-blur-sm"
-        className="w-full max-w-2xl h-[670px] max-h-[92vh] flex flex-col bg-[#090a0f] border border-zinc-800/90 rounded-3xl shadow-2xl overflow-hidden focus:outline-none text-left"
+        backdropClassName="bg-black/10 backdrop-blur-sm"
+        className="w-full max-w-2xl min-h-[500px] h-[80vh] max-h-[92vh] flex flex-col border border-zinc-800/90 rounded-3xl shadow-2xl overflow-hidden focus:outline-none text-left glass-panel"
       >
         {/* Toast */}
         {showSuccessToast && (

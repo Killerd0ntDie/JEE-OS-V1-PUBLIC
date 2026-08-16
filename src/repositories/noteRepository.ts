@@ -24,11 +24,15 @@ export const NoteRepository = {
 
   // Seed initial notes for a new user
   async seedNotes(userId: string, initialNotes: Note[]): Promise<void> {
-    const batch = writeBatch(db);
-    initialNotes.forEach(note => {
-      const noteDoc = doc(db, 'users', userId, 'notes', note.id);
-      batch.set(noteDoc, note);
-    });
-    await batch.commit();
+    const CHUNK_SIZE = 450;
+    for (let i = 0; i < initialNotes.length; i += CHUNK_SIZE) {
+      const chunk = initialNotes.slice(i, i + CHUNK_SIZE);
+      const batch = writeBatch(db);
+      chunk.forEach(note => {
+        const noteDoc = doc(db, 'users', userId, 'notes', note.id);
+        batch.set(noteDoc, note);
+      });
+      await batch.commit();
+    }
   }
 };

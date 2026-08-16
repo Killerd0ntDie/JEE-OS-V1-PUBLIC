@@ -46,10 +46,10 @@ async function startServer() {
   const preferredPort = Number.isFinite(requestedPort) && requestedPort > 0 ? requestedPort : 3000;
   const port = await findAvailablePort(preferredPort, host);
 
-  // Render (and most PaaS hosts) run this app behind a reverse proxy that sets
-  // X-Forwarded-For. Trusting exactly 1 hop lets express-rate-limit identify
-  // real client IPs correctly instead of throwing ERR_ERL_UNEXPECTED_X_FORWARDED_FOR.
-  app.set('trust proxy', 1);
+  // Render (and most PaaS hosts) run this app behind a reverse proxy.
+  // Using 'loopback, linklocal, uniquelocal' instead of '1' ensures we don't blindly
+  // trust X-Forwarded-For if not proxied correctly.
+  app.set('trust proxy', 'loopback, linklocal, uniquelocal');
 
   app.use(express.json({ limit: '5mb' }));
 
@@ -69,6 +69,15 @@ async function startServer() {
 
   const generateCacheKey = (body: any, prefix: string) => {
     return prefix + '_v2_' + crypto.createHash('sha256').update(JSON.stringify(body)).digest('hex');
+  };
+
+  const safeGetText = (response: any, fallback: string): string => {
+    try {
+      return response.text ?? fallback;
+    } catch {
+      console.warn('[Gemini API] Response text blocked by safety filters.');
+      return fallback;
+    }
   };
 
   const generateWithFallback = async (ai: any, prompt: string, config: any) => {
@@ -230,7 +239,7 @@ Valid Action examples (as payload):
           }
         });
 
-      let cleanText = response.text || "{}";
+      let cleanText = safeGetText(response, "{}");
       // Strip any residual thinking tags if they leak into the response (they shouldn't with Schema)
       cleanText = cleanText.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
 
@@ -324,7 +333,7 @@ Valid Action examples (as payload):
         });
 
 
-      let text = (response.text || "[]").replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+      let text = safeGetText(response, "[]").replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
       let jsonStr = "[]";
       const jsonMatch = text.match(/\[[\s\S]*\]/);
       if (jsonMatch) {
@@ -415,7 +424,7 @@ Valid Action examples (as payload):
             temperature: 0.7
         });
 
-      let text = response.text || "[]";
+      let text = safeGetText(response, "[]");
       // Clean up any potential markdown if the model hallucinated it despite application/json
       text = text.replace(/```json/gi, '').replace(/```/gi, '').trim();
       // Remove think blocks
@@ -530,7 +539,7 @@ Valid Action examples (as payload):
           temperature: 0.7
         });
 
-      let text = (response.text || "{}").replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+      let text = safeGetText(response, "{}").replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
       let jsonStr = "{}";
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (jsonMatch) {

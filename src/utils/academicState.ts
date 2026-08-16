@@ -44,7 +44,7 @@ export function getAcademicState(chapter: Chapter): ChapterAcademicState {
     totalLects, 
     chapter.lectureProgress?.completedLectures ?? chapter.currentLecture ?? (stage === 'Mastered' ? totalLects : 0)
   );
-  const avgDur = chapter.lectureProgress?.avgLectureDurationMinutes || 75;
+  const avgDur = chapter.lectureProgress?.avgLectureDurationMinutes ?? 75;
   const remainingLects = Math.max(0, totalLects - compLects);
   const estLectHours = Math.round((remainingLects * avgDur / 60) * 10) / 10;
 
@@ -88,20 +88,21 @@ export function getAcademicState(chapter: Chapter): ChapterAcademicState {
   
   const retentionConfidence: 'High' | 'Medium' | 'Low' = 
     chapter.revisionProgress?.retentionConfidence || 
-    (chapter.confidence !== undefined 
+    (stage === 'Not Started' ? 'High' : 
+     chapter.confidence !== undefined && chapter.confidence > 0
       ? (chapter.confidence >= 80 ? 'High' : chapter.confidence >= 50 ? 'Medium' : 'Low')
       : (daysAgo <= 7 ? 'High' : daysAgo <= 21 ? 'Medium' : 'Low'));
   
   const retentionScore = chapter.retentionScore ?? (
-    retentionConfidence === 'High' ? 90 : retentionConfidence === 'Medium' ? 65 : 40
+    stage === 'Not Started' ? 90 : (retentionConfidence === 'High' ? 90 : retentionConfidence === 'Medium' ? 65 : 40)
   );
 
   const revisionState: RevisionState = {
-    lastRevisedDaysAgo: daysAgo,
+    lastRevisedDaysAgo: stage === 'Not Started' ? 0 : daysAgo,
     retentionConfidence,
     formulaMemoryPercent: chapter.revisionProgress?.formulaMemoryPercent || (retentionScore > 75 ? 85 : 60),
     questionSolvingConfidencePercent: chapter.revisionProgress?.questionSolvingConfidencePercent || accuracy,
-    needRevision: daysAgo > 14 || retentionScore < 60,
+    needRevision: stage !== 'Not Started' && (daysAgo > 14 || retentionScore < 60),
     retentionScore,
     lastRevisedAt: chapter.lastRevisedAt || chapter.revisionProgress?.lastRevisedAt
   };
@@ -139,7 +140,7 @@ export function getAcademicState(chapter: Chapter): ChapterAcademicState {
     chapterId: chapter.id,
     chapterName: chapter.name,
     subject: chapter.subject,
-    unit: chapter.unit,
+    unit: chapter.unit || 'Core Module',
     syllabusStage: stage,
     lectureProgress,
     practiceProgress,
@@ -156,9 +157,18 @@ export function getAcademicState(chapter: Chapter): ChapterAcademicState {
  */
 export function normalizeChapter(chapter: Chapter): Chapter {
   const isMastered = chapter.status === 'Mastered' || chapter.completion === 100 || (chapter.theoryComplete && chapter.dppComplete && chapter.pyqsComplete);
-  const isUnstarted = (!chapter.currentLecture || chapter.currentLecture === 0) && !chapter.theoryComplete && !chapter.dppComplete && !chapter.pyqsComplete && (chapter.completion === 0 || chapter.completion === undefined);
+  
+  // A chapter is ONLY unstarted if it has zero progress across all metrics AND hasn't been manually marked as Learning
+  const isUnstarted = chapter.status !== 'Learning' && 
+    (!chapter.currentLecture || chapter.currentLecture === 0) && 
+    !chapter.theoryComplete && 
+    !chapter.dppComplete && 
+    !chapter.pyqsComplete && 
+    (chapter.completion === 0 || chapter.completion === undefined) &&
+    (!chapter.solvedQuestions || chapter.solvedQuestions === 0);
 
   let syllabusStage: SyllabusDiagnosisStage = chapter.syllabusStage || 'Not Started';
+  
   if (isMastered) {
     syllabusStage = 'Mastered';
   } else if (isUnstarted) {
@@ -169,12 +179,15 @@ export function normalizeChapter(chapter: Chapter): Chapter {
     syllabusStage = 'Solving DPPs';
   } else if (chapter.theoryComplete || (chapter.currentLecture && chapter.currentLecture > 0)) {
     syllabusStage = 'Watching Lectures';
+  } else if (chapter.status === 'Learning' && syllabusStage === 'Not Started') {
+    // If it was manually set to Learning but has no stage yet, default to early learning stage
+    syllabusStage = 'Watching Lectures'; 
   }
 
   const mappedStatus: Chapter['status'] = 
     syllabusStage === 'Mastered' ? 'Mastered' :
     syllabusStage === 'Revision' ? 'Revision Due' :
-    syllabusStage === 'Not Started' ? 'Not Started' : 'Learning';
+    (syllabusStage === 'Not Started' && chapter.status !== 'Learning') ? 'Not Started' : 'Learning';
 
   const acad = getAcademicState({ ...chapter, syllabusStage, status: mappedStatus });
 
@@ -183,16 +196,16 @@ export function normalizeChapter(chapter: Chapter): Chapter {
     status: mappedStatus,
     syllabusStage: syllabusStage,
     completion: mappedStatus === 'Not Started' ? 0 : acad.overallCompletion,
-    currentLecture: acad.lectureProgress.completedLectures,
-    totalLectures: acad.lectureProgress.totalLectures,
-    theoryComplete: acad.lectureProgress.completedLectures >= acad.lectureProgress.totalLectures || syllabusStage === 'Mastered',
-    dppComplete: acad.practiceProgress.dppCompleted === true || acad.practiceProgress.dppPercent === 100,
-    pyqsComplete: acad.practiceProgress.pyqsCompleted === true || acad.practiceProgress.pyqPercent === 100,
+    currentLecture: mappedStatus === 'Not Started' ? 0 : acad.lectureProgress.completedLectures,
+    totalLectures: acad.lectureProgress.totalLectures || 10,
+    theoryComplete: mappedStatus === 'Not Started' ? false : (syllabusStage === 'Mastered' || chapter.theoryComplete === true || (acad.lectureProgress.completedLectures > 0 && acad.lectureProgress.completedLectures >= acad.lectureProgress.totalLectures)),
+    dppComplete: mappedStatus === 'Not Started' ? false : (chapter.dppComplete === true || acad.practiceProgress.dppCompleted === true || acad.practiceProgress.dppPercent === 100),
+    pyqsComplete: mappedStatus === 'Not Started' ? false : (chapter.pyqsComplete === true || acad.practiceProgress.pyqsCompleted === true || acad.practiceProgress.pyqPercent === 100),
     confidence: acad.practiceProgress.confidencePercent,
-    lastRevisionDaysAgo: acad.revisionState.lastRevisedDaysAgo,
-    estimatedRemainingTime: acad.estimatedRemainingTimeHours,
-    retentionScore: acad.revisionState.retentionScore ?? 60,
-    healthScore: Math.round((acad.practiceProgress.accuracyPercent * 0.6) + ((acad.revisionState.retentionScore ?? 60) * 0.4)),
+    lastRevisionDaysAgo: mappedStatus === 'Not Started' ? 0 : acad.revisionState.lastRevisedDaysAgo,
+    estimatedRemainingTime: mappedStatus === 'Not Started' ? 0 : acad.estimatedRemainingTimeHours,
+    retentionScore: mappedStatus === 'Not Started' ? 90 : (acad.revisionState.retentionScore ?? 60),
+    healthScore: mappedStatus === 'Not Started' ? 100 : Math.round((acad.practiceProgress.accuracyPercent * 0.6) + ((acad.revisionState.retentionScore ?? 60) * 0.4)),
     lectureProgress: acad.lectureProgress,
     practiceProgress: acad.practiceProgress,
     revisionProgress: acad.revisionState,

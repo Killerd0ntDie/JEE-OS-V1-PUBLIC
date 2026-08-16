@@ -88,22 +88,14 @@ export const formatReadableOptionText = (
 
 export const calculateRank = (score: number, maxMarks: number): number => {
   const safeMax = maxMarks > 0 ? maxMarks : 300;
-  // Do not floor at 0. JEE permits negative scores.
-  const normalizedScore = (score / safeMax) * 300;
-  
-  // High scores
+  const normalizedScore = Math.max(0, (score / safeMax) * 300);
   if (normalizedScore >= 280) return Math.floor(Math.max(1, (300 - normalizedScore) * 5));
   if (normalizedScore >= 250) return Math.floor(100 + (280 - normalizedScore) * 30);
   if (normalizedScore >= 200) return Math.floor(1000 + (250 - normalizedScore) * 150);
   if (normalizedScore >= 150) return Math.floor(8500 + (200 - normalizedScore) * 400);
   if (normalizedScore >= 100) return Math.floor(28500 + (150 - normalizedScore) * 1000);
   if (normalizedScore >= 50) return Math.floor(78500 + (100 - normalizedScore) * 3000);
-  
-  // Scores between 0 and 49
-  if (normalizedScore >= 0) return Math.floor(228500 + (50 - normalizedScore) * 10000);
-  
-  // Negative scores
-  return Math.floor(728500 + Math.abs(normalizedScore) * 15000);
+  return Math.floor(228500 + (50 - normalizedScore) * 10000);
 };
 
 export interface EvaluatedMockQuestion {

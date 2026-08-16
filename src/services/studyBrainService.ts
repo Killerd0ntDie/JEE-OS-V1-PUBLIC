@@ -53,9 +53,11 @@ export const StudyBrainService = {
   calculateMastery(chapter: Chapter, chapterMistakesCount: number): { score: number; explanation: string } {
     const lectureProgress = chapter.totalLectures > 0 ? (chapter.currentLecture / chapter.totalLectures) : (chapter.theoryComplete ? 1 : 0);
     const solvedQs = chapter.solvedQuestions ?? 0;
+    const questionAccuracy = solvedQs > 0 ? Math.max(30, Math.min(100, Math.round(100 - (chapterMistakesCount / (solvedQs + chapterMistakesCount)) * 100))) : 50;
     
     // Practice-Proven Bypass: If they haven't done theory, but have solved a significant number of questions or PYQs/DPP
-    const hasSignificantPractice = chapter.pyqsComplete || chapter.dppComplete || solvedQs >= 30;
+    // Bug 3.2: Only trigger if accuracy is acceptable (>= 70%) to prevent guessing bypass
+    const hasSignificantPractice = chapter.pyqsComplete || chapter.dppComplete || (solvedQs >= 30 && questionAccuracy >= 70);
 
     if (lectureProgress === 0 && !chapter.theoryComplete && !hasSignificantPractice) {
       return {
@@ -78,7 +80,6 @@ export const StudyBrainService = {
     const retentionComponent = (Math.min(1.0, (chapter.revisionCount || 0) / 3) * 0.4 + (retentionScore / 100) * 0.6) * 100;
 
     // 4. Accuracy & Mistakes Penalty - Weight: 15% (Base)
-    const questionAccuracy = solvedQs > 0 ? Math.max(30, Math.min(100, Math.round(100 - (chapterMistakesCount / (solvedQs + chapterMistakesCount)) * 100))) : 50;
     const accuracyScore = (questionAccuracy * 0.8) + Math.max(0, 20 - chapterMistakesCount * 2);
 
     // 5. Confidence & Mock Exam Readiness - Weight: 10% (Base)
@@ -517,7 +518,7 @@ export const StudyBrainService = {
     const total = subjChaps.length;
     const completed = subjChaps.filter(c => c.completion === 100).length;
     const percentage = total > 0 
-      ? Math.round(subjChaps.reduce((acc, curr) => acc + curr.completion, 0) / total)
+      ? Math.round(subjChaps.reduce((acc, curr) => acc + (curr.completion ?? 0), 0) / total)
       : 0;
     return { total, completed, percentage };
   },

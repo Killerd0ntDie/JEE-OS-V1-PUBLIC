@@ -22,7 +22,7 @@ export function CasinoSetupOverlay({
       isOpen={isSettingUp}
       zIndex={10001}
       backdropClassName="bg-zinc-950/90 backdrop-blur-md"
-      className="w-full max-w-md bg-[#09090b] border border-red-900/50 rounded-3xl p-8 shadow-[0_0_80px_rgba(220,38,38,0.15)] flex flex-col items-center text-center space-y-6"
+      className="w-full max-w-md border border-red-900/50 rounded-3xl p-8 shadow-[0_0_80px_rgba(220,38,38,0.15)] flex flex-col items-center text-center space-y-6 glass-panel"
     >
       <div className="w-20 h-20 rounded-full bg-red-950/50 border border-red-500/50 flex items-center justify-center shadow-[0_0_50px_rgba(239,68,68,0.3)]">
         <Flame className="w-10 h-10 text-red-500" />
@@ -81,7 +81,7 @@ export function CasinoFailureOverlay({
       isOpen={missionFailed}
       zIndex={10001}
       backdropClassName="bg-red-950/90 backdrop-blur-md"
-      className="w-full max-w-md bg-[#09090b] border border-red-500 rounded-3xl p-8 shadow-[0_0_100px_rgba(220,38,38,0.4)] flex flex-col items-center text-center space-y-6"
+      className="w-full max-w-md border border-red-500 rounded-3xl p-8 shadow-[0_0_100px_rgba(220,38,38,0.4)] flex flex-col items-center text-center space-y-6 glass-panel"
     >
       <div className="w-24 h-24 rounded-full bg-red-900/50 border border-red-500 flex items-center justify-center">
         <Skull className="w-12 h-12 text-red-500 animate-pulse" />

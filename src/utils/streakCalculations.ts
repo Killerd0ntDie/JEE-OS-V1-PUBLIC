@@ -12,8 +12,7 @@ export function getDailyMinutesMap(studySessions: StudySession[] = []): Map<stri
     if (isNaN(d.getTime())) return;
     const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     const existing = map.get(dateKey) || 0;
-    const duration = Math.max(0, session.duration || 0);
-    map.set(dateKey, existing + duration);
+    map.set(dateKey, existing + (session.duration || 0));
   });
   return map;
 }

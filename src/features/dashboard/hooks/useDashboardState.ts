@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { useAuth } from '@/features/auth';
 import { RevisionCard } from '@/services/revisionEngineService';
+import { audioEngine } from '@/utils/audioEngine';
 
 export function useDashboardState() {
   const navigate = useNavigate();
@@ -34,7 +35,6 @@ export function useDashboardState() {
   const [selectedRevision, setSelectedRevision] = useState<RevisionCard | null>(null);
   const [isCustomMissionModalOpen, setIsCustomMissionModalOpen] = useState(false);
   const [missionToEdit, setMissionToEdit] = useState<any>(null);
-  const [isShortcutGuideOpen, setIsShortcutGuideOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'focus' | 'analytics'>('focus');
   const [isMonthlyObjectiveModalOpen, setIsMonthlyObjectiveModalOpen] = useState(false);
   const [selectedMissionId, setSelectedMissionIdState] = useState<string | null>(
@@ -92,19 +92,6 @@ export function useDashboardState() {
     });
   };
 
-  // Global Shift+? shortcut to open guide
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === '?' && !e.ctrlKey && !e.altKey && !e.metaKey) {
-        // Prevent opening if typing in an input
-        if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-        setIsShortcutGuideOpen(prev => !prev);
-      }
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
   // Focus session timer is now strictly handled by MissionMode.tsx
   // Dashboard only holds the static paused value to prevent massive unneeded re-renders.
 
@@ -123,6 +110,7 @@ export function useDashboardState() {
       return;
     }
 
+    audioEngine.playClick().catch(() => {});
     navigate(`/cockpit/${targetMissionId}`);
   };
 
@@ -148,21 +136,10 @@ export function useDashboardState() {
     return 'Good night';
   };
 
-  const userName = user?.displayName?.split(' ')[0] || (mentorProfile?.coachingName ? 'Mani' : 'Aspirant');
+  const userName = user?.displayName?.split(' ')[0] || (mentorProfile as any)?.name || (mentorProfile as any)?.userName || 'Aspirant';
 
-  const incompleteTasks = todayMissions.filter(m => !m.completed);
+  const incompleteTasks = useMemo(() => todayMissions.filter(m => !m.completed), [todayMissions]);
   const nextTaskName = incompleteTasks[0]?.taskName || 'All daily tasks complete';
-
-  const missionModeSubject: 'physics' | 'chemistry' | 'maths' = (() => {
-    if (activeSubject !== 'all' && incompleteTasks.some(m => m.subject === activeSubject)) {
-      return activeSubject;
-    }
-    const nextSubject = incompleteTasks[0]?.subject;
-    if (nextSubject === 'physics' || nextSubject === 'chemistry' || nextSubject === 'maths') {
-      return nextSubject;
-    }
-    return 'physics';
-  })();
 
   return {
     state: {
@@ -173,7 +150,6 @@ export function useDashboardState() {
       selectedRevision,
       isCustomMissionModalOpen,
       missionToEdit,
-      isShortcutGuideOpen,
       activeTab,
       isMonthlyObjectiveModalOpen,
       isHeaderExpanded,
@@ -181,7 +157,6 @@ export function useDashboardState() {
       getGreeting,
       incompleteTasks,
       nextTaskName,
-      missionModeSubject,
       selectedMissionId,
       activeBreakMissionId,
       // Store state
@@ -207,7 +182,6 @@ export function useDashboardState() {
       setSelectedRevision,
       setIsCustomMissionModalOpen,
       setMissionToEdit,
-      setIsShortcutGuideOpen,
       setActiveTab,
       setIsMonthlyObjectiveModalOpen,
       handleManualToggleHeader,

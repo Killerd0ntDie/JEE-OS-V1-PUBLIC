@@ -117,7 +117,7 @@ async function startServer() {
   const requestedPort = process.env.PORT ? Number(process.env.PORT) : 3e3;
   const preferredPort = Number.isFinite(requestedPort) && requestedPort > 0 ? requestedPort : 3e3;
   const port = await findAvailablePort(preferredPort, host);
-  app.set("trust proxy", 1);
+  app.set("trust proxy", "loopback, linklocal, uniquelocal");
   app.use(import_express.default.json({ limit: "5mb" }));
   const apiLimiter = (0, import_express_rate_limit.default)({
     windowMs: 5 * 60 * 1e3,
@@ -134,6 +134,14 @@ async function startServer() {
   });
   const generateCacheKey = (body, prefix) => {
     return prefix + "_v2_" + import_crypto.default.createHash("sha256").update(JSON.stringify(body)).digest("hex");
+  };
+  const safeGetText = (response, fallback) => {
+    try {
+      return response.text ?? fallback;
+    } catch {
+      console.warn("[Gemini API] Response text blocked by safety filters.");
+      return fallback;
+    }
   };
   const generateWithFallback = async (ai, prompt, config) => {
     try {
@@ -284,7 +292,7 @@ Valid Action examples (as payload):
           required: ["analysis", "actions"]
         }
       });
-      let cleanText = response.text || "{}";
+      let cleanText = safeGetText(response, "{}");
       cleanText = cleanText.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
       let parsedResult;
       try {
@@ -363,7 +371,7 @@ Valid Action examples (as payload):
         responseMimeType: "application/json",
         temperature: 0.7
       });
-      let text = (response.text || "[]").replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+      let text = safeGetText(response, "[]").replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
       let jsonStr = "[]";
       const jsonMatch = text.match(/\[[\s\S]*\]/);
       if (jsonMatch) {
@@ -443,7 +451,7 @@ Valid Action examples (as payload):
         responseMimeType: "application/json",
         temperature: 0.7
       });
-      let text = response.text || "[]";
+      let text = safeGetText(response, "[]");
       text = text.replace(/```json/gi, "").replace(/```/gi, "").trim();
       text = text.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
       let jsonStr = "[]";
@@ -541,7 +549,7 @@ Valid Action examples (as payload):
         responseMimeType: "application/json",
         temperature: 0.7
       });
-      let text = (response.text || "{}").replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+      let text = safeGetText(response, "{}").replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
       let jsonStr = "{}";
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (jsonMatch) {

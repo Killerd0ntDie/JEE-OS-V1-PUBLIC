@@ -11,6 +11,7 @@ function attachGlobalListener() {
   
   document.addEventListener('keydown', (e: KeyboardEvent) => {
     if (e.key === 'Escape' && escapeHandlers.length > 0) {
+      e.stopPropagation();
       // Execute only the top-most modal callback.
       const { handler } = escapeHandlers[escapeHandlers.length - 1];
       handler();

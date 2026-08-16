@@ -74,7 +74,7 @@ export function MockTestUploader({ isOpen, onUpload, onCancel }: MockTestUploade
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onCancel} zIndex={50} backdropClassName="bg-black/35 backdrop-blur-sm p-4" className="glass-panel bg-zinc-900/60 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 w-full max-w-md shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] relative text-left">
+    <Modal isOpen={isOpen} onClose={onCancel} zIndex={50} backdropClassName="bg-black/10 backdrop-blur-md p-4" className="glass-panel backdrop-blur-2xl border border-white/10 rounded-3xl p-6 w-full max-w-md shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] relative text-left">
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">

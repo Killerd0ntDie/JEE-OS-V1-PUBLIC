@@ -15,6 +15,6 @@ export interface OptimizationResult {
   completionProbability: number;
   plusOneHourCompletionDate: string;
   neglectedSubjects: SubjectId[];
-  scheduleStatus: 'On Track' | 'At Risk' | 'Behind Schedule';
+  scheduleStatus: 'On Track' | 'At Risk' | 'Behind Schedule' | 'Slightly Off Pace' | 'Catching Up';
   optimizedPlannerInput: PlannerInput;
 }

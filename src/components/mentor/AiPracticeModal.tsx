@@ -21,7 +21,8 @@ export const AiPracticeModal: React.FC<AiPracticeModalProps> = ({
   if (!chapterId) return null;
 
   return (
-      <Modal isOpen={isOpen} onClose={onClose} zIndex={100} backdropClassName="bg-black/35 backdrop-blur-sm p-2 sm:p-6 text-left animate-fade-in" className="w-full h-full max-w-5xl rounded-3xl overflow-hidden shadow-2xl flex flex-col bg-[#09090b] border border-zinc-800">
+    
+      <Modal isOpen={isOpen} onClose={onClose} zIndex={100} backdropClassName="bg-black/10 backdrop-blur-md animate-fade-in p-2 sm:p-6 text-left" className="w-full h-full max-w-5xl rounded-3xl overflow-hidden shadow-2xl flex flex-col border border-zinc-800 glass-panel">
           <QuestionViewerWidget
             chapterId={chapterId}
             subject={subject}

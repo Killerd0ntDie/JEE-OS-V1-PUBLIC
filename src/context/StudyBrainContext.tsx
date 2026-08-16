@@ -69,6 +69,8 @@ const validateAndSanitizeChapters = (chaps: any[]): Chapter[] => {
       chapterOnHold: !!c.chapterOnHold,
       dppOnHold: !!c.dppOnHold,
       pyqOnHold: !!c.pyqOnHold,
+      revisionOnHold: !!c.revisionOnHold,
+      isCustom: !!c.isCustom,
     };
 
     return normalizeChapter(rawChap);
@@ -303,6 +305,8 @@ export const StudyBrainProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       } catch (e) {
         console.error("Error processing chapters snapshot:", e);
       }
+    }, (error) => {
+      console.error("chapters snapshot error:", error);
     });
 
     // 3. Notes Listener
@@ -315,6 +319,8 @@ export const StudyBrainProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       } catch (e) {
         console.error("Error processing notes snapshot:", e);
       }
+    }, (error) => {
+      console.error("notes snapshot error:", error);
     });
 
     // 4. Mistakes Listener
@@ -327,6 +333,8 @@ export const StudyBrainProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       } catch (e) {
         console.error("Error processing mistakes snapshot:", e);
       }
+    }, (error) => {
+      console.error("mistakes snapshot error:", error);
     });
 
     // 5. Study Sessions Listener
@@ -339,6 +347,8 @@ export const StudyBrainProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       } catch (e) {
         console.error("Error processing study sessions snapshot:", e);
       }
+    }, (error) => {
+      console.error("studySessions snapshot error:", error);
     });
 
     // 6. Mock Results Listener
@@ -351,6 +361,8 @@ export const StudyBrainProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       } catch (e) {
         console.error("Error processing mock results snapshot:", e);
       }
+    }, (error) => {
+      console.error("mockResults snapshot error:", error);
     });
 
     // 7. Custom Mock Tests Listener
@@ -363,6 +375,8 @@ export const StudyBrainProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       } catch (e) {
         console.error("Error processing custom mock tests snapshot:", e);
       }
+    }, (error) => {
+      console.error("customMockTests snapshot error:", error);
     });
 
     // 8. Timeline Listener
@@ -375,6 +389,8 @@ export const StudyBrainProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       } catch (e) {
         console.error("Error processing timeline snapshot:", e);
       }
+    }, (error) => {
+      console.error("timelineBlocks snapshot error:", error);
     });
 
     // 9. Custom Missions Listener
@@ -387,6 +403,8 @@ export const StudyBrainProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       } catch (e) {
         console.error("Error processing custom missions snapshot:", e);
       }
+    }, (error) => {
+      console.error("customMissions snapshot error:", error);
     });
 
     return () => {

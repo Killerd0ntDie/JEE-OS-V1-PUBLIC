@@ -224,7 +224,7 @@ export function Sidebar({
       {/* Mobile sidebar overlay backdrop */}
       {isOpenMobile && (
         <div
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] md:hidden transition-all group"
+          className="fixed inset-0 bg-black/10 backdrop-blur-sm z-[60] md:hidden transition-all group"
           onClick={onCloseMobile}
         >
           <div

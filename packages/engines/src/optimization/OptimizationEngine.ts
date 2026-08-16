@@ -34,10 +34,12 @@ export class OptimizationEngine {
     const rawQuota = plannerInput.userPreferences.dailyQuota || plannerInput.studyHours || 6;
     const targetQuota = Math.min(12, Math.max(2, rawQuota));
     
-    // Implement Velocity Smoothing (EWMA): 60% reality (logged) + 40% intention (quota)
+    // Implement Velocity Smoothing (EWMA) proportional to sample size
     let avgStudyHours = targetQuota;
     if (loggedAvg > 0) {
-      avgStudyHours = (targetQuota * 0.4) + (loggedAvg * 0.6);
+      const loggedWeight = Math.min(0.6, (actualStudyHoursPastWeek.length / 7) * 0.6);
+      const targetWeight = 1 - loggedWeight;
+      avgStudyHours = (targetQuota * targetWeight) + (loggedAvg * loggedWeight);
     }
     avgStudyHours = Math.max(1.5, Math.min(12, avgStudyHours)); // Ensure it never drops too low or high
 
@@ -83,16 +85,27 @@ export class OptimizationEngine {
 
     const isOverloaded = recommendedDailyStudyHours > this.MAX_DAILY_HOURS;
 
-    let scheduleStatus: 'On Track' | 'At Risk' | 'Behind Schedule' = 'On Track';
-    const thirtyDaysMs = OPTIMIZATION_CONFIG.behindScheduleBufferDays * 24 * 60 * 60 * 1000;
+    let scheduleStatus: OptimizationResult['scheduleStatus'] = 'On Track';
+    const bufferDays = Math.min(OPTIMIZATION_CONFIG.behindScheduleBufferDays, daysUntilTarget * 0.15);
+    const bufferMs = bufferDays * 24 * 60 * 60 * 1000;
+    const warningMs = (bufferDays * 2) * 24 * 60 * 60 * 1000;
     
     // Fix: Buffer should be subtracted from the target date, not added.
     if (predictedCompletionMs > targetMs) {
       // Finishing AFTER the exam is a hard fail.
       scheduleStatus = 'Behind Schedule';
-    } else if (predictedCompletionMs > targetMs - thirtyDaysMs) {
+    } else if (predictedCompletionMs > targetMs - bufferMs) {
       // Finishing within the 30-day buffer zone is risky.
       scheduleStatus = 'At Risk';
+    } else if (predictedCompletionMs > targetMs - warningMs) {
+      // Finishing slightly outside the buffer zone
+      scheduleStatus = 'Slightly Off Pace';
+    } else {
+      if (avgStudyHours > targetQuota + 0.5) {
+        scheduleStatus = 'Catching Up'; // Making good progress relative to quota
+      } else {
+        scheduleStatus = 'On Track';
+      }
     }
 
     const subjectProgress: Record<SubjectId, { completed: number, total: number }> = {

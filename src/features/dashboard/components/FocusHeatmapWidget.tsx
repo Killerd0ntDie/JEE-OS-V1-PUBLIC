@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Card } from '@/components/ui/Card';
 import { StudySession } from '@/types';
 import { toLocalDateString } from '@/utils/dateUtils';
 import { motion, AnimatePresence } from 'motion/react';
 import { springs } from '@/constants/motion';
+import { Flame } from 'lucide-react';
 
 interface FocusHeatmapWidgetProps {
   studySessions: StudySession[];
@@ -12,24 +12,29 @@ interface FocusHeatmapWidgetProps {
 export const FocusHeatmapWidget: React.FC<FocusHeatmapWidgetProps> = ({ studySessions }) => {
   const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
 
-  // Generate last 14 days dates (inclusive of today)
-  const days = Array.from({ length: 14 }).map((_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - (13 - i));
-    d.setHours(0, 0, 0, 0);
-    return d;
-  });
+  // Memoize heavy date and session calculations
+  const { days, dailyMinutesMap } = React.useMemo(() => {
+    // Generate last 14 days dates (inclusive of today)
+    const generatedDays = Array.from({ length: 14 }).map((_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (13 - i));
+      d.setHours(0, 0, 0, 0);
+      return d;
+    });
 
-  // Calculate total minutes logged per day
-  const dailyMinutesMap = new Map<string, number>();
-  studySessions.forEach(session => {
-    if (!session.startTime) return;
-    const sDate = new Date(session.startTime);
-    sDate.setHours(0, 0, 0, 0);
-    const dateKey = toLocalDateString(sDate);
-    const existing = dailyMinutesMap.get(dateKey) || 0;
-    dailyMinutesMap.set(dateKey, existing + (session.duration || 0));
-  });
+    // Calculate total minutes logged per day
+    const map = new Map<string, number>();
+    studySessions.forEach(session => {
+      if (!session.startTime) return;
+      const sDate = new Date(session.startTime);
+      sDate.setHours(0, 0, 0, 0);
+      const dateKey = toLocalDateString(sDate);
+      const existing = map.get(dateKey) || 0;
+      map.set(dateKey, existing + (session.duration || 0));
+    });
+
+    return { days: generatedDays, dailyMinutesMap: map };
+  }, [studySessions]);
 
   // Format date helper
   const formatDateLabel = (d: Date) => {
@@ -55,17 +60,24 @@ export const FocusHeatmapWidget: React.FC<FocusHeatmapWidgetProps> = ({ studySes
   }).length;
 
   return (
-    <Card className="p-5 border-zinc-800/80 bg-zinc-950/40 text-left relative overflow-visible flex-1 flex flex-col justify-between">
+    <div className="premium-card rounded-2xl p-5 border border-zinc-800 text-left relative overflow-visible flex-1 flex flex-col justify-between shadow-sm">
       <div className="flex items-center justify-between mb-3.5">
-        <div>
-          <span className="text-[11px] font-mono text-emerald-400 font-bold tracking-widest uppercase block">
-            CONSISTENCY METRIC
-          </span>
-          <h4 className="text-xs font-semibold text-zinc-200 mt-0.5">14-Day Focus Flow</h4>
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center shadow-sm">
+            <Flame className="w-4 h-4" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-white tracking-tight">
+              14-Day Focus Flow
+            </h3>
+            <span className="text-[10px] text-zinc-500 font-mono block">
+              Consistency & Study Streak
+            </span>
+          </div>
         </div>
         <div className="text-right">
           <span className="text-xs font-mono font-bold text-emerald-400">{activeDays}/14 Days</span>
-          <span className="text-[11px] font-mono text-zinc-400 block">Active Study Rate</span>
+          <span className="text-[10px] text-zinc-400 font-mono block">Active Study Rate</span>
         </div>
       </div>
 
@@ -145,6 +157,6 @@ export const FocusHeatmapWidget: React.FC<FocusHeatmapWidgetProps> = ({ studySes
         </div>
         <span>High Focus (4h+)</span>
       </div>
-    </Card>
+    </div>
   );
 };

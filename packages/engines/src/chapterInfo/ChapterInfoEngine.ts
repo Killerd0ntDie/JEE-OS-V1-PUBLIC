@@ -30,10 +30,15 @@ export class ChapterInfoEngine {
       const unresolvedMistakes = input.mistakes.filter(m => m.chapter === chapter.name && m.revisionStatus !== 'Mastered');
       const mastery = StudyBrainService.calculateMastery(chapter, unresolvedMistakes.length);
 
-      const isStarted = (chapter.completion > 0 && chapter.completion < 100) || 
-                        (chapter.currentLecture && chapter.currentLecture > 0) || 
-                        chapter.theoryComplete ||
-                        chapter.hasTelemetry;
+      const isStarted = chapter.status !== 'Not Started' && chapter.syllabusStage !== 'Not Started' && (
+        (chapter.currentLecture && chapter.currentLecture > 0) || 
+        chapter.theoryComplete || 
+        chapter.dppComplete || 
+        chapter.pyqsComplete || 
+        (chapter.solvedQuestions && chapter.solvedQuestions > 0) ||
+        (chapter.completion && chapter.completion > 0) ||
+        chapter.status === 'Learning'
+      );
                         
       const isMastered = chapter.status === 'Mastered' || chapter.completion === 100;
       const syllabusStage: 'Not Started' | 'In Progress' | 'Mastered' = isMastered ? 'Mastered' : isStarted ? 'In Progress' : 'Not Started';
@@ -45,7 +50,9 @@ export class ChapterInfoEngine {
       const dppPct = chapter.dppComplete ? 100 : (chapter.practiceProgress?.dppPercent || 0);
       const pyqPct = chapter.pyqsComplete ? 100 : (chapter.practiceProgress?.pyqPercent || 0);
 
-      const retentionConfidence: 'High' | 'Medium' | 'Low' = acad.revisionState?.retentionConfidence || 'High';
+      const retentionConfidence: 'High' | 'Medium' | 'Low' = (isStarted || isMastered)
+        ? (acad.revisionState?.retentionConfidence || 'High')
+        : 'High';
       const retentionConfidenceScore = retentionConfidence === 'High' ? 90 : retentionConfidence === 'Medium' ? 70 : 40;
 
       let isBottleneck = false;

@@ -33,7 +33,7 @@ const renderSafeMath = (mathStr: string) => {
   try {
     return <InlineMath math={mathStr} />;
   } catch (err) {
-    return <span>{mathStr}</span>;
+    return <span className="text-amber-400 font-mono text-xs" title="LaTeX render failed — raw formula shown">{mathStr}</span>;
   }
 };
 

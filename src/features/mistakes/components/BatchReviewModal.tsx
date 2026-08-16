@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { modalVariants } from '@/constants/motion';
 import { 
   CheckCircle, ChevronLeft, ChevronRight, Eye, 
   RotateCcw, AlertTriangle, BookOpen, Clock, X, Trophy, Sparkles, Check
@@ -117,13 +118,13 @@ export const BatchReviewModal: React.FC<BatchReviewModalProps> = ({
   const subColor = currentItem ? getSubjectColor(currentItem.subject) : { text: '', bg: '', border: '', badge: '' };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 select-none">
+    <div className="fixed inset-0 z-50 bg-black/10 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 select-none">
       <motion.div
-        initial={{ opacity: 0, scale: 0.96, y: 12 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.96, y: 12 }}
-        transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-        className="w-full max-w-4xl max-h-[92vh] rounded-2xl border border-zinc-850/80 bg-zinc-950/95 backdrop-blur-2xl shadow-2xl flex flex-col overflow-hidden text-left"
+        variants={modalVariants}
+        initial="initial"
+        animate="animate"
+        exit="exit"
+        className="w-full max-w-4xl max-h-[92vh] rounded-2xl border border-zinc-850/80 glass-panel shadow-2xl flex flex-col overflow-hidden text-left"
       >
         {/* CBT TOP BAR */}
         <div className="p-4 sm:p-5 border-b border-zinc-850/80 bg-zinc-950 flex items-center justify-between gap-4 shrink-0">

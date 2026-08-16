@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { Icon } from '@/components/ui/Icon';
+import { Coffee, Battery, Activity, Zap } from 'lucide-react';
 import { CommandOverviewBanner } from './CommandOverviewBanner';
 import { MonthlyCampaignBanner } from '@/features/mission/components/MonthlyCampaignBanner';
 import { Chapter } from '@/types/index';
@@ -52,80 +52,85 @@ export function DashboardHeader({
 
   return (
     <>
-      {/* AMBIENT CANVAS GREETING HEADER */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 text-left px-1 pt-1 pb-1">
+      {/* AMBIENT COMPACT GREETING HEADER */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left px-0.5 pt-0.5 pb-0">
         <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-[10px] font-mono font-bold tracking-[0.25em] text-indigo-400 uppercase">
-              JEE COMMAND CENTER
-            </span>
-          </div>
-
-          {/* COMPACT SUBTLE GREETING */}
-          <h1 className="text-base sm:text-lg font-bold tracking-tight text-zinc-300 flex items-center gap-1.5">
-            <span className="text-zinc-200">{getGreeting()},</span>
-            <span className="text-white font-extrabold">{userName}.</span>
+          {/* MODERN GREETING */}
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+            <span className="text-zinc-300 font-normal">{getGreeting()},</span>
+            <span className="font-extrabold text-zinc-100">{userName}</span>
           </h1>
 
-          {/* SUBTITLE & DYNAMICALLY COLORED NEXT TARGET */}
-          <p className="text-xs text-zinc-400 font-sans leading-relaxed">
-            You have <strong className="text-white font-bold">{incompleteTasks.length} missions</strong> remaining today ({estimatedRemainingHours} hrs) • Next target: <span className={`${targetColorClass} font-mono font-semibold`}>{nextTaskName}</span>
-          </p>
+          {/* INTEL SUBTITLE */}
+          <div className="flex items-center gap-2 text-xs text-zinc-400 font-sans flex-wrap">
+            {incompleteTasks.length > 0 ? (
+              <>
+                <span className="text-zinc-300 font-medium font-mono">{incompleteTasks.length} missions scheduled</span>
+                <span className="text-zinc-600 font-bold">•</span>
+                <span className="text-zinc-300 font-mono">~{estimatedRemainingHours}h study load</span>
+                {nextTaskName && (
+                  <>
+                    <span className="text-zinc-600 font-bold">•</span>
+                    <span className="text-zinc-400 truncate max-w-[280px]">
+                      Next up: <span className={`font-semibold ${targetColorClass}`}>{nextTaskName}</span>
+                    </span>
+                  </>
+                )}
+              </>
+            ) : (
+              <span className="text-emerald-400 font-medium">All daily missions completed · Great work!</span>
+            )}
+          </div>
         </div>
 
-        {/* Energy Level Selector Pills + Take Routine Break Button */}
-        <div className="shrink-0 flex items-center gap-3 flex-wrap">
+        {/* Action Controls: Routine Break + Energy Switcher */}
+        <div className="shrink-0 flex items-center gap-2.5 flex-wrap">
           {onOpenRoutineBreak && (
-            <button
+            <motion.button
               type="button"
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.96 }}
+              transition={springs.snappy}
               onClick={onOpenRoutineBreak}
-              className="px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 hover:text-amber-200 rounded-xl font-mono text-xs font-bold transition-all duration-150 active:scale-[0.97] shadow-sm flex items-center gap-1.5 cursor-pointer shrink-0 select-none"
+              className="px-3 py-1.5 bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white rounded-xl text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer shrink-0 shadow-sm group"
               title="Take Routine Break (Lunch, Dinner, Exercise)"
             >
-              <Icon name="Coffee" className="w-3.5 h-3.5 text-amber-400" />
-              <span>Take Routine Break</span>
-            </button>
+              <Coffee className="w-3.5 h-3.5 text-amber-400 group-hover:rotate-12 transition-transform duration-200" />
+              <span>Routine Break</span>
+            </motion.button>
           )}
 
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-mono text-zinc-400 font-semibold uppercase mr-1 hidden sm:inline">Energy:</span>
-            <div className="grid grid-cols-3 gap-1 bg-zinc-900/80 border border-zinc-800 p-1 rounded-xl shadow-inner relative">
-              {(['Low', 'Medium', 'High'] as const).map((level) => {
-                const isActive = energyLevel === level;
-                return (
-                  <motion.button
-                    key={level}
-                    type="button"
-                    whileTap={{ scale: 0.94 }}
-                    onClick={() => setEnergyLevel(level)}
-                    className={`relative px-2 py-1 sm:px-3 sm:py-1 rounded-lg font-mono text-[10px] font-bold transition-colors duration-150 cursor-pointer select-none z-10 flex items-center justify-center min-w-[68px] sm:min-w-[80px] text-center ${
-                      isActive
-                        ? 'text-white'
-                        : 'text-zinc-400 hover:text-zinc-200'
-                    }`}
-                  >
-                    {isActive && (
-                      <motion.div
-                        layoutId="dashboardEnergyPill"
-                        className="absolute inset-0 bg-indigo-600 rounded-lg shadow-md shadow-indigo-600/30 -z-10"
-                        transition={springs.snappy}
-                      />
-                    )}
-                    <span className="flex items-center justify-center gap-1">
-                      {level === 'Low' ? (
-                        <Icon name="Battery" className="w-3 h-3 text-amber-400" />
-                      ) : level === 'Medium' ? (
-                        <Icon name="Activity" className="w-3 h-3 text-indigo-400" />
-                      ) : (
-                        <Icon name="Zap" className="w-3 h-3 text-emerald-400" />
-                      )}
-                      <span>{level.toUpperCase()}</span>
-                    </span>
-                  </motion.button>
-                );
-              })}
-            </div>
+          {/* Real Icon Energy Level Selector with Sliding Layout Pill */}
+          <div className="flex items-center gap-1 bg-zinc-900/90 border border-zinc-800 p-1 rounded-xl shadow-inner relative">
+            {(['Low', 'Medium', 'High'] as const).map((level) => {
+              const isActive = energyLevel === level;
+              const EnergyIcon = level === 'Low' ? Battery : level === 'Medium' ? Activity : Zap;
+              const iconColor = level === 'Low' ? 'text-amber-400' : level === 'Medium' ? 'text-indigo-400' : 'text-emerald-400';
+
+              return (
+                <motion.button
+                  key={level}
+                  type="button"
+                  whileTap={{ scale: 0.94 }}
+                  onClick={() => setEnergyLevel(level)}
+                  className={`relative px-3 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer select-none flex items-center gap-1.5 z-10 ${
+                    isActive 
+                      ? 'text-white font-bold' 
+                      : 'text-zinc-400 hover:text-zinc-200'
+                  }`}
+                >
+                  {isActive && (
+                    <motion.div
+                      layoutId="activeEnergyIndicator"
+                      className="absolute inset-0 bg-indigo-600 rounded-lg shadow-sm -z-10"
+                      transition={springs.snappy}
+                    />
+                  )}
+                  <EnergyIcon className={`w-3.5 h-3.5 ${isActive ? 'text-white' : iconColor}`} />
+                  <span>{level}</span>
+                </motion.button>
+              );
+            })}
           </div>
         </div>
       </div>

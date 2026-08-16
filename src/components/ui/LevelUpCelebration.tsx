@@ -35,8 +35,8 @@ export function LevelUpCelebration({ isOpen, oldLevel, newLevel, onClose }: Leve
       isOpen={isOpen}
       onClose={onClose}
       zIndex={200}
-      backdropClassName="bg-black/60 backdrop-blur-sm"
-      className="glass-card border border-indigo-500/30 rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl shadow-indigo-500/10"
+      backdropClassName="bg-black/10 backdrop-blur-sm"
+      className="glass-card border border-indigo-500/30 rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl shadow-indigo-500/10 glass-panel"
     >
               {/* Confetti particles */}
               {confettiActive && (

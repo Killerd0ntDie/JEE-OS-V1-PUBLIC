@@ -12,7 +12,6 @@ const HOURS = [
   '18:00', '19:00', '20:00', '21:00', '22:00', '23:00'
 ];
 
-
 // ---------------------------------------------------------
 // Isolated Component to prevent grid re-renders every 10s
 // ---------------------------------------------------------
@@ -43,14 +42,14 @@ const LiveTimeLine = () => {
   return (
     <>
       <div
-        className="absolute right-1 -translate-y-1/2 bg-emerald-500 text-white font-mono text-[11px] font-bold px-1.5 py-0.5 rounded-full shadow-[0_0_12px_rgba(16,185,129,0.9)] flex items-center gap-1 z-15 pointer-events-none transition-all duration-1000 ease-linear"
+        className="absolute right-1 -translate-y-1/2 bg-emerald-500 text-zinc-950 font-mono text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-[0_0_12px_rgba(16,185,129,0.8)] flex items-center gap-1 z-20 pointer-events-none transition-all duration-1000 ease-linear"
         style={{ top: `${nowLineTop}px` }}
       >
-        <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+        <span className="w-1.5 h-1.5 rounded-full bg-zinc-950 animate-ping" />
         <span>{nowTimeStr}</span>
       </div>
       <div
-        className="absolute left-[60px] right-0 h-px bg-gradient-to-r from-emerald-500/80 via-emerald-500/30 to-transparent z-12 pointer-events-none transition-all duration-1000 ease-linear"
+        className="absolute left-[60px] right-0 h-[2px] bg-gradient-to-r from-emerald-400 via-emerald-500/50 to-transparent z-15 pointer-events-none transition-all duration-1000 ease-linear shadow-[0_0_8px_rgba(16,185,129,0.5)]"
         style={{ top: `${nowLineTop}px` }}
       />
     </>
@@ -77,7 +76,7 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
   } | null>(null);
   const [draggedDuration, setDraggedDuration] = useState<number>(75);
 
-  // Real system clock live ticker (ticks every 10 seconds)
+  // Real system clock live ticker (ticks every 60 seconds)
   const [nowDate, setNowDate] = useState(() => new Date());
 
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
@@ -85,7 +84,7 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
   React.useEffect(() => {
     const timer = setInterval(() => {
       setNowDate(new Date());
-    }, 60000); // Only re-render grid every 60s instead of 10s to prevent lag
+    }, 60000);
     return () => clearInterval(timer);
   }, []);
 
@@ -94,7 +93,6 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
   const currentDayIndex = useMemo(() => {
     const startHour = parseInt((state?.settings?.dayStartTime || '07:00').split(':')[0]) || 7;
     const isOvernightWindow = nowDate.getHours() < startHour;
-    // If in overnight window, treat as previous calendar day
     const effectiveDate = new Date(nowDate);
     if (isOvernightWindow) {
       effectiveDate.setDate(effectiveDate.getDate() - 1);
@@ -121,21 +119,6 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
     return { nowLineTop: (offsetMins / 60) * 120, nowTimeStr: timeStr }; // 120px per hour
   }, [nowDate]);
 
-  // Auto-scroll to the LIVE time line when the view opens or changes
-  React.useEffect(() => {
-    if (nowLineTop !== null && scrollContainerRef.current) {
-      setTimeout(() => {
-        if (scrollContainerRef.current) {
-          scrollContainerRef.current.scrollTo({
-            top: Math.max(0, nowLineTop - 48), // 48px = half hour padding
-            behavior: 'smooth',
-          });
-        }
-      }, 50);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [viewMode]);
-
   // Helper to extract duration from timeSlot or block property
   const getBlockDuration = (block: WeeklyBlock): number => {
     const matches = (block.timeSlot || '').match(/(\d{1,2}):(\d{2})/g);
@@ -147,6 +130,45 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
     }
     return block.durationMinutes || 75;
   };
+
+  // Compute total planned hours per day for header badges
+  const dayStatsMap = useMemo(() => {
+    const map: Record<number, { minutes: number; count: number }> = {
+      0: { minutes: 0, count: 0 },
+      1: { minutes: 0, count: 0 },
+      2: { minutes: 0, count: 0 },
+      3: { minutes: 0, count: 0 },
+      4: { minutes: 0, count: 0 },
+      5: { minutes: 0, count: 0 },
+      6: { minutes: 0, count: 0 },
+    };
+    weeklyMatrix.forEach((b: WeeklyBlock) => {
+      if (map[b.dayIndex]) {
+        map[b.dayIndex].minutes += getBlockDuration(b);
+        map[b.dayIndex].count += 1;
+      }
+    });
+    return map;
+  }, [weeklyMatrix]);
+
+  // Auto-scroll to active study window or live time line when view opens
+  React.useEffect(() => {
+    if (scrollContainerRef.current) {
+      const startHour = parseInt((state?.settings?.dayStartTime || '07:00').split(':')[0]) || 7;
+      const defaultStudyTop = (Math.max(6, startHour) * 120) - 30;
+      const targetTop = nowLineTop !== null ? Math.max(0, nowLineTop - 60) : defaultStudyTop;
+
+      setTimeout(() => {
+        if (scrollContainerRef.current) {
+          scrollContainerRef.current.scrollTo({
+            top: targetTop,
+            behavior: 'smooth',
+          });
+        }
+      }, 60);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewMode]);
 
   // Real-time block status evaluator (LIVE vs PAST vs UPCOMING)
   const getBlockStatus = (block: WeeklyBlock, dIndex: number) => {
@@ -175,33 +197,24 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
     const s = (subject || 'unknown').toLowerCase();
     const act = (activity || '').toLowerCase();
     if (act.includes('mock') || act.includes('paper') || s.includes('mock')) {
-      return 'bg-indigo-950/40 border border-indigo-500/40 text-indigo-200 hover:border-indigo-400 hover:bg-indigo-950/60 shadow-lg';
+      return 'bg-gradient-to-br from-rose-950/60 to-zinc-950/90 border-l-4 border-l-rose-500 border-zinc-800/80 text-rose-200 hover:border-rose-400 shadow-md';
     }
     if (act.includes('revision') || act.includes('flashcard') || s.includes('revision')) {
-      return 'bg-amber-950/40 border border-amber-500/40 text-amber-200 hover:border-amber-400 hover:bg-amber-950/60 shadow-lg';
+      return 'bg-gradient-to-br from-amber-950/60 to-zinc-950/90 border-l-4 border-l-amber-500 border-zinc-800/80 text-amber-200 hover:border-amber-400 shadow-md';
     }
     if (s.includes('math')) {
-      return 'bg-indigo-950/40 border border-indigo-500/40 text-indigo-200 hover:border-indigo-400 hover:bg-indigo-950/60 shadow-lg';
+      return 'bg-gradient-to-br from-indigo-950/60 to-zinc-950/90 border-l-4 border-l-indigo-500 border-zinc-800/80 text-indigo-200 hover:border-indigo-400 shadow-md';
     }
     if (s.includes('phys')) {
-      return 'bg-sky-950/40 border border-sky-500/40 text-sky-200 hover:border-sky-400 hover:bg-sky-950/60 shadow-lg';
+      return 'bg-gradient-to-br from-sky-950/60 to-zinc-950/90 border-l-4 border-l-sky-500 border-zinc-800/80 text-sky-200 hover:border-sky-400 shadow-md';
     }
     if (s.includes('chem')) {
-      return 'bg-emerald-950/40 border border-emerald-500/40 text-emerald-200 hover:border-emerald-400 hover:bg-emerald-950/60 shadow-lg';
+      return 'bg-gradient-to-br from-emerald-950/60 to-zinc-950/90 border-l-4 border-l-emerald-500 border-zinc-800/80 text-emerald-200 hover:border-emerald-400 shadow-md';
     }
     if (s === 'break') {
-      return 'bg-zinc-950/50 border border-dashed border-zinc-800 text-zinc-400 hover:border-zinc-700';
+      return 'bg-zinc-950/70 border border-dashed border-zinc-800 text-zinc-400 hover:border-zinc-700';
     }
-    return 'bg-indigo-950/40 border border-indigo-500/40 text-indigo-200 hover:border-indigo-400';
-  };
-
-  const getSubjectTitle = (block: WeeklyBlock) => {
-    if (block.subject === 'physics') return 'Physics';
-    if (block.subject === 'chemistry') return 'Chemistry';
-    if (block.subject === 'maths') return 'Mathematics';
-    if (block.subject === 'revision') return 'Revision';
-    if (block.subject === 'break') return 'Break';
-    return block.chapterName || 'Study Block';
+    return 'bg-gradient-to-br from-indigo-950/60 to-zinc-950/90 border-l-4 border-l-indigo-500 border-zinc-800/80 text-indigo-200 hover:border-indigo-400 shadow-md';
   };
 
   // Helper to format date string for day headers
@@ -215,7 +228,6 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
   };
 
   const calculateBlockPos = (block: WeeklyBlock, blockIndex: number) => {
-    // Extract first HH:MM from timeSlot like 'Morning (07:00 - 09:30)' or '07:00 - 09:30'
     const timeMatch = (block.timeSlot || '').match(/(\d{1,2}):(\d{2})\s*(am|pm|AM|PM)?/);
     let startHour = timeMatch ? parseInt(timeMatch[1], 10) : 8;
     const startMin = timeMatch ? parseInt(timeMatch[2], 10) : 0;
@@ -232,12 +244,12 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
 
     const topPx = (offsetMins / 60) * 120;
     const duration = getBlockDuration(block);
-    const heightPx = Math.max(30, (duration / 60) * 120 - 4);
+    const heightPx = Math.max(32, (duration / 60) * 120 - 4);
 
     return { topPx, heightPx };
   };
 
-  // Extract clean time range from timeSlot like 'Morning (07:00 - 09:30)' -> '07:00 – 09:30'
+  // Extract clean time range from timeSlot
   const getCleanTimeRange = (timeSlot: string): string => {
     const matches = timeSlot.match(/(\d{1,2}:\d{2}\s*(?:am|pm|AM|PM)?)/g);
     if (matches && matches.length >= 2) return `${matches[0]} – ${matches[1]}`;
@@ -246,43 +258,57 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
   };
 
   return (
-    <div className="flex-1 overflow-hidden flex flex-col rounded-xl border border-zinc-800/80 bg-[#0c0d14] shadow-xl select-none min-w-0">
+    <div className="flex-1 overflow-hidden flex flex-col rounded-2xl border border-zinc-850/90 bg-zinc-950/80 shadow-2xl select-none min-w-0 backdrop-blur-xl">
       {/* DAY HEADER ROW */}
       <div 
-        className="grid border-b border-zinc-800/80 bg-[#090a0f] sticky top-0 z-20"
+        className="grid border-b border-zinc-800/80 bg-zinc-950/95 sticky top-0 z-25 backdrop-blur-2xl"
         style={{ gridTemplateColumns: `60px repeat(${visibleDayIndices.length}, minmax(0, 1fr))` }}
       >
-        <div className="border-r border-zinc-800/60 flex items-center justify-center font-space-mono text-[11px] font-bold text-zinc-600 uppercase tracking-widest">
-          GMT
+        <div className="border-r border-zinc-800/70 flex items-center justify-center font-mono text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+          TIME
         </div>
         {visibleDayIndices.map((dIndex) => {
           const isToday = dIndex === currentDayIndex;
           const dayName = daysOfWeek[dIndex];
           const dayNum = getDayHeaderDate(dIndex);
+          const stats = dayStatsMap[dIndex] || { minutes: 0, count: 0 };
+          const hoursVal = Math.round((stats.minutes / 60) * 10) / 10;
 
           return (
             <div
               key={dIndex}
               onClick={() => setSelectedDayIndex(dIndex)}
-              className={`py-2.5 px-2 text-center border-l border-zinc-800/60 cursor-pointer transition-all ${
+              className={`py-2 px-2 text-center border-l border-zinc-850/80 cursor-pointer transition-all ${
                 isToday
-                  ? 'bg-zinc-900 border-b-2 border-indigo-500/80'
-                  : 'hover:bg-zinc-900/40'
+                  ? 'bg-indigo-950/40 border-b-2 border-b-indigo-500 shadow-inner'
+                  : 'hover:bg-zinc-900/50'
               }`}
             >
-              <div className={`font-space-mono text-[10px] font-bold tracking-wider uppercase ${
-                isToday ? 'text-indigo-400' : 'text-zinc-400'
-              }`}>
-                {dayName}
+              <div className="flex items-center justify-center gap-1.5">
+                <span className={`font-mono text-[10px] font-bold tracking-wider uppercase ${
+                  isToday ? 'text-indigo-400' : 'text-zinc-400'
+                }`}>
+                  {dayName}
+                </span>
+                {isToday && (
+                  <span className="text-[9px] font-mono font-extrabold uppercase px-1 py-0.2 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                    Today
+                  </span>
+                )}
               </div>
-              <div className={`font-syne text-base font-bold leading-tight mt-0.5 ${
-                isToday ? 'text-white' : 'text-zinc-300'
-              }`}>
-                {dayNum}
+              
+              <div className="flex items-center justify-center gap-2 mt-0.5">
+                <span className={`text-base font-bold leading-tight font-display ${
+                  isToday ? 'text-white font-extrabold' : 'text-zinc-200'
+                }`}>
+                  {dayNum}
+                </span>
+                {stats.count > 0 && (
+                  <span className="text-[10px] font-mono text-zinc-400 bg-zinc-900/80 border border-zinc-800 px-1.5 py-0.2 rounded-full">
+                    {hoursVal}h
+                  </span>
+                )}
               </div>
-              {isToday && (
-                <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 mx-auto mt-1" />
-              )}
             </div>
           );
         })}
@@ -291,21 +317,21 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
       {/* TIMETABLE GRID BODY */}
       <div 
         ref={scrollContainerRef}
-        className="grid flex-1 relative overflow-y-auto no-scrollbar bg-[#090a0f]"
+        className="grid flex-1 relative overflow-y-auto no-scrollbar bg-zinc-950/70"
         style={{ gridTemplateColumns: `60px repeat(${visibleDayIndices.length}, minmax(0, 1fr))` }}
       >
         {/* TIME COLUMN */}
-        <div className="border-r border-zinc-800/60 relative bg-[#090a0f] z-10 pb-[300px]">
+        <div className="border-r border-zinc-850/80 relative bg-zinc-950/90 z-10 pb-[300px]">
           {HOURS.map((hour) => (
             <div
               key={hour}
-              className="h-[120px] flex items-start justify-end pr-3 pt-1.5 font-space-mono text-[10px] font-medium text-zinc-400 select-none border-b border-zinc-800/40"
+              className="h-24 md:h-[120px] flex items-start justify-end pr-2.5 pt-1.5 font-mono text-[10px] font-medium text-zinc-500 select-none border-b border-zinc-850/60"
             >
               {hour}
             </div>
           ))}
 
-          {/* Time Blob Marker isolated in LiveTimeLine component */}
+          {/* Time Marker */}
           <LiveTimeLine />
         </div>
 
@@ -317,8 +343,8 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
           return (
             <div
               key={dIndex}
-              className={`border-l border-zinc-800/40 relative min-h-[1088px] pb-[300px] ${
-                isToday ? 'bg-indigo-500/[0.015]' : ''
+              className={`border-l border-zinc-850/60 relative min-h-[1088px] pb-[300px] transition-colors ${
+                isToday ? 'bg-indigo-500/[0.02]' : ''
               }`}
               onDragOver={(e) => {
                 e.preventDefault();
@@ -328,10 +354,7 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
                 const rect = colEl.getBoundingClientRect();
                 const offsetY = Math.max(0, e.clientY - rect.top);
 
-                // 120px = 1 hour (60 mins). Column starts at 00:00 AM (0 mins)
                 const minsFromMidnight = Math.max(0, Math.min(24 * 60, (offsetY / 120) * 60));
-
-                // SNAP TO 5 MINUTES!
                 const snappedMinsFromMidnight = Math.floor(minsFromMidnight / 5) * 5;
 
                 const totalStartMins = snappedMinsFromMidnight;
@@ -374,7 +397,6 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
                   if (raw) {
                     const data = JSON.parse(raw);
                     
-                    // Recalculate snap dynamically to avoid stale state from React batching
                     const colEl = e.currentTarget as HTMLElement;
                     const rect = colEl.getBoundingClientRect();
                     const offsetY = Math.max(0, e.clientY - rect.top);
@@ -401,21 +423,24 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
                 }
               }}
             >
-              {/* Hourly Cell Lines */}
+              {/* Hourly Grid Lines with Half-Hour Subdivisions */}
               {HOURS.map((h) => (
                 <div
                   key={h}
-                  className="h-[120px] border-b border-zinc-800/40 relative transition-colors pointer-events-none"
-                />
+                  className="h-24 md:h-[120px] border-b border-zinc-850/60 relative pointer-events-none"
+                >
+                  {/* Subtle 30-minute guide */}
+                  <div className="absolute top-1/2 left-0 right-0 h-px border-b border-dashed border-zinc-900/40" />
+                </div>
               ))}
 
               {/* LIVE 5-MINUTE SNAP PREVIEW OVERLAY */}
               {dragSnapPreview && dragSnapPreview.dayIndex === dIndex && (
                 <div
-                  className="absolute left-1 right-1 rounded-lg border-2 border-dashed border-cyan-400 bg-cyan-500/25 shadow-[0_0_20px_rgba(6,182,212,0.4)] z-15 pointer-events-none flex items-center justify-center p-2 text-cyan-200 font-mono text-xs font-bold transition-all duration-75"
+                  className="absolute left-1 right-1 rounded-xl border-2 border-dashed border-cyan-400 bg-cyan-500/20 shadow-[0_0_24px_rgba(6,182,212,0.35)] z-20 pointer-events-none flex items-center justify-center p-2 text-cyan-200 font-mono text-xs font-bold transition-all duration-75"
                   style={{ top: `${dragSnapPreview.topPx}px`, height: `${dragSnapPreview.heightPx}px` }}
                 >
-                  <div className="bg-cyan-950/90 px-3 py-1.5 rounded-lg border border-cyan-400/60 shadow-lg text-cyan-300 font-mono text-xs flex items-center gap-2">
+                  <div className="bg-cyan-950/95 px-3 py-1.5 rounded-lg border border-cyan-400/60 shadow-lg text-cyan-300 font-mono text-xs flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
                     <span>Snap to {dragSnapPreview.startStr} ({dragSnapPreview.timeSlotStr})</span>
                   </div>
@@ -425,28 +450,20 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
               {/* LIVE TIME INDICATOR LINE (NOW LINE) */}
               {isToday && nowLineTop !== null && (
                 <div
-                  className="absolute left-0 right-0 h-[2px] bg-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.9)] z-12 pointer-events-none"
+                  className="absolute left-0 right-0 h-[2px] bg-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.9)] z-15 pointer-events-none"
                   style={{ top: `${nowLineTop}px` }}
                 />
               )}
 
-              {/* EVENT BLOCKS (WITH OVERLAP / CLASH DETECTION & SIDE-BY-SIDE SPLIT) */}
+              {/* EVENT BLOCKS */}
               {(() => {
                 const isTodayCol = dIndex === currentDayIndex;
                 const dayStartTime = state?.settings?.dayStartTime || '07:00';
-                const dayEndTime = state?.settings?.dayEndTime || '23:00';
                 const parseTimeVal = (val: string | undefined, fallback: number) => {
                   const p = parseInt(val || '', 10);
                   return isNaN(p) ? fallback : p;
                 };
                 const startHourVal = parseTimeVal(dayStartTime.split(':')[0], 7);
-                let endHour = parseTimeVal(dayEndTime.split(':')[0], 23);
-                let endMinute = parseTimeVal(dayEndTime.split(':')[1], 0);
-                let logicalEndHour = endHour;
-                if (logicalEndHour < startHourVal) {
-                  logicalEndHour += 24;
-                }
-                const endMinsTotal = logicalEndHour * 60 + endMinute;
 
                 let nowHour = nowDate.getHours();
                 const isOvernightCycle = nowHour < startHourVal;
@@ -459,7 +476,6 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
                     if (a.completed && !b.completed) return -1;
                     if (!a.completed && b.completed) return 1;
                   }
-                  // Always order chronologically by each block's own scheduled timeSlot
                   const getMins = (blk: WeeklyBlock) => {
                     const match = (blk.timeSlot || '').match(/(\d{1,2}):(\d{2})/);
                     return match ? parseInt(match[1]) * 60 + parseInt(match[2]) : 9999;
@@ -501,7 +517,6 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
                   let isPushedLive = false;
                   let effectiveSlot = block.timeSlot || '';
 
-                  // If on TODAY and block is UNCOMPLETED: push forward sequentially if behind real time during active daytime
                   if (isTodayCol && !block.completed && !isOvernightCycle) {
                     const shouldSnapToLive = !block.isManualOverride || startMins < runningPushMins;
                     
@@ -533,20 +548,17 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
                 return blockMetrics.map((item) => {
                   const { block, bIdx, topPx, heightPx, startPx, endPx, startMins, endMins } = item;
                   
-                  // Find all other blocks that overlap VISUALLY (to handle inflated heights)
                   const visualOverlaps = blockMetrics.filter((other) => {
                     if (other.block.id === block.id) return false;
                     return startPx < other.endPx && endPx > other.startPx;
                   });
 
-                  // Find blocks that overlap MATHEMATICALLY in time (to show true CLASH warning)
                   const timeOverlaps = blockMetrics.filter((other) => {
                     if (other.block.id === block.id) return false;
                     if (startMins === 0 || other.startMins === 0) return false;
                     return startMins < other.endMins && endMins > other.startMins;
                   });
 
-                  const isVisuallyClashing = visualOverlaps.length > 0;
                   const isTimeClashing = timeOverlaps.length > 0;
                   
                   let leftStyle = '3px';
@@ -576,27 +588,55 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
                     isPastStatus = item.endMins <= nowMins;
                   }
 
-                  // Keep base subject color class, only apply glowing border ring when LIVE
                   let blockStyleClass = colorClass;
                   if (isLiveStatus) {
-                    blockStyleClass = `${colorClass} border-2 border-amber-400 shadow-[0_0_18px_rgba(251,191,36,0.45)] ring-1 ring-amber-400/60 z-10`;
+                    blockStyleClass = `${colorClass} ring-2 ring-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.35)] z-15`;
                   } else if (isPastStatus) {
-                    blockStyleClass = 'bg-zinc-950/70 border-zinc-850 opacity-60 grayscale-[0.25] text-zinc-400 hover:opacity-90 transition-opacity';
+                    blockStyleClass = 'bg-zinc-950/80 border-zinc-850/80 opacity-55 text-zinc-400 hover:opacity-90 transition-opacity';
                   }
 
-                  const typeStr = (block.taskType || (block as any).type || '').toLowerCase();
-                  const actStr = (block.activity || '').toLowerCase();
-                  let aimLabel = 'Practice';
+                  // Smart Parsing for Clean, Untruncated Display
+                  const rawActivity = block.activity || '';
+                  const chapterName = block.chapterName || '';
+                  const timeSlotStr = item.effectiveSlot || block.timeSlot || '';
                   
-                  if (typeStr.includes('lecture') || actStr.includes('lecture') || actStr.includes('lec')) aimLabel = 'Lecture';
-                  else if (typeStr.includes('dpp') || actStr.includes('dpp')) aimLabel = 'DPP';
-                  else if (typeStr.includes('pyq') || actStr.includes('pyq')) aimLabel = 'PYQs';
-                  else if (typeStr.includes('formula') || actStr.includes('formula') || typeStr.includes('revision') || actStr.includes('revision')) aimLabel = 'Revision';
-                  else if (typeStr.includes('mistake') || actStr.includes('mistake')) aimLabel = 'Mistakes';
-                  else if (typeStr.includes('mock') || actStr.includes('mock') || actStr.includes('test')) aimLabel = 'Mock Exam';
-                  else if (typeStr.includes('break') || block.subject === 'break') aimLabel = 'Break';
-                  else if (block.taskType) aimLabel = block.taskType;
-                  else if ((block as any).type) aimLabel = (block as any).type;
+                  const startMatch = timeSlotStr.match(/(\d{1,2}:\d{2})/);
+                  const startTime = startMatch ? startMatch[1] : '';
+
+                  const lecMatch = rawActivity.match(/Lecture\s+(\d+\/\d+|\d+)/i) || rawActivity.match(/Lec\s+(\d+\/\d+|\d+)/i);
+                  const lecTag = lecMatch ? `Lec ${lecMatch[1]}` : null;
+
+                  const typeStr = (block.taskType || (block as any).type || '').toLowerCase();
+                  const actStr = rawActivity.toLowerCase();
+                  
+                  let tagLabel = 'Task';
+                  let displayTitle = rawActivity;
+
+                  if (block.subject === 'break' || typeStr.includes('break')) {
+                    tagLabel = 'Break';
+                    displayTitle = rawActivity || 'Break';
+                  } else if (lecTag) {
+                    tagLabel = lecTag;
+                    displayTitle = chapterName || rawActivity.replace(/Lecture\s+\d+\/\d+:\s*/i, '').trim();
+                  } else if (typeStr.includes('dpp') || actStr.includes('dpp')) {
+                    tagLabel = 'DPP';
+                    displayTitle = chapterName || rawActivity.replace(/Solve DPP:\s*/i, '').trim();
+                  } else if (typeStr.includes('pyq') || actStr.includes('pyq')) {
+                    tagLabel = 'PYQs';
+                    displayTitle = chapterName || rawActivity.replace(/Solve PYQs:\s*/i, '').trim();
+                  } else if (typeStr.includes('formula') || actStr.includes('formula') || typeStr.includes('revision') || actStr.includes('revision')) {
+                    tagLabel = 'Rev';
+                    displayTitle = chapterName || rawActivity.replace(/Revise\s*/i, '').trim();
+                  } else if (typeStr.includes('mistake') || actStr.includes('mistake')) {
+                    tagLabel = 'Mistake';
+                    displayTitle = chapterName || rawActivity;
+                  } else if (typeStr.includes('mock') || actStr.includes('mock') || actStr.includes('test')) {
+                    tagLabel = 'Mock';
+                    displayTitle = chapterName || rawActivity;
+                  } else {
+                    displayTitle = chapterName || rawActivity || 'Study Session';
+                    tagLabel = block.durationMinutes ? `${block.durationMinutes}m` : 'Study';
+                  }
 
                   return (
                     <div
@@ -616,7 +656,7 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
                         setDragSnapPreview(null);
                       }}
                       onClick={() => setSelectedBlock(block)}
-                      className={`absolute rounded-lg overflow-hidden cursor-grab active:cursor-grabbing hover:z-15 transition-all duration-150 ease-out border backdrop-blur-md select-none group flex flex-col justify-center ${blockStyleClass} ${viewMode === 'weekly' ? 'px-1 py-1' : 'px-2.5 py-1.5'}`}
+                      className={`absolute rounded-xl overflow-hidden cursor-grab active:cursor-grabbing hover:z-20 transition-all duration-150 ease-out border backdrop-blur-md select-none group flex flex-col justify-start gap-1 ${blockStyleClass} ${viewMode === 'weekly' ? 'p-1.5' : 'p-2.5'}`}
                       style={{
                         top: `${topPx + 2}px`,
                         height: `${heightPx}px`,
@@ -625,75 +665,56 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
                       }}
                     >
                       {block.subject === 'break' ? (
-                        <div className="flex items-center justify-between gap-1 w-full h-full">
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <span className="opacity-0 group-hover:opacity-60 transition-opacity font-space-mono text-[11px] text-zinc-400 shrink-0">⋮⋮</span>
-                            {isTimeClashing && (
-                              <span className="font-mono text-[11px] font-bold text-amber-300 bg-amber-950/80 border border-amber-500/60 px-1 py-0.2 rounded animate-pulse shrink-0">
-                                ⚠️
-                              </span>
-                            )}
-                            <span className={`font-space-grotesk font-bold ${viewMode === 'weekly' ? 'text-[11px]' : 'text-[11px]'} text-zinc-200 truncate`}>
-                              {block.activity || 'Take a Break'}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1 shrink-0">
-                            {isLiveStatus ? (
-                               <span className="bg-amber-500 text-black font-mono font-black text-[11px] px-2 py-0.2 rounded-full shadow-[0_0_10px_rgba(245,158,11,0.6)] flex items-center gap-1 shrink-0 animate-pulse">
-                                 <span className="w-1.5 h-1.5 rounded-full bg-black animate-ping" />
-                                 LIVE
-                               </span>
-                             ) : block.completed ? (
-                               <span className="text-[11px] font-space-mono font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.2 rounded border border-emerald-500/20">✓ DONE</span>
-                             ) : (
-                               <span className="text-[11px] font-space-mono font-medium text-zinc-400 leading-none">{getCleanTimeRange(item.effectiveSlot || block.timeSlot || '')}</span>
-                             )}
-                          </div>
+                        <div className="flex items-center justify-between gap-1 w-full h-full text-[10px] font-mono">
+                          <span className="font-bold text-zinc-300 truncate flex items-center gap-1">
+                            ☕ <span>{displayTitle}</span>
+                          </span>
+                          <span className="text-zinc-500 font-medium shrink-0">
+                            {startTime ? `${startTime}` : `${block.durationMinutes || 15}m`}
+                          </span>
                         </div>
                       ) : (
                         <>
-                          {/* ROW 1: Gripper + Clash Warning + LIVE / Time Badge */}
-                          <div className="flex items-center justify-between gap-1 leading-none">
+                          {/* TOP ROW: Start Time + LIVE / Tag Badge */}
+                          <div className="flex items-center justify-between gap-1 leading-none shrink-0">
                             <div className="flex items-center gap-1 min-w-0">
-                              <span className="opacity-0 group-hover:opacity-60 transition-opacity font-space-mono text-[11px] text-zinc-400 shrink-0">⋮⋮</span>
+                              <span className="opacity-0 group-hover:opacity-60 transition-opacity font-mono text-[9px] text-zinc-400 shrink-0">⋮⋮</span>
                               {isTimeClashing && (
-                                <span className={`font-mono text-[11px] font-bold text-amber-300 bg-amber-950/80 border border-amber-500/60 rounded animate-pulse shrink-0 ${viewMode === 'weekly' ? 'px-0.5' : 'px-1 py-0.2'}`}>
-                                  {viewMode === 'weekly' ? '⚠️' : '⚠️ CLASH'}
+                                <span className="font-mono text-[9px] font-bold text-amber-300 bg-amber-950/80 border border-amber-500/60 rounded px-0.5 shrink-0">
+                                  ⚠️
+                                </span>
+                              )}
+                              <span className="text-[10px] font-mono font-bold text-zinc-300">
+                                {viewMode === 'weekly' ? startTime : getCleanTimeRange(timeSlotStr)}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-1 shrink-0">
+                              {isLiveStatus ? (
+                                <span className="bg-emerald-500 text-zinc-950 font-mono font-extrabold text-[9px] px-1 py-0.2 rounded uppercase flex items-center gap-0.5 shadow-sm animate-pulse">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-zinc-950" />
+                                  LIVE
+                                </span>
+                              ) : block.completed ? (
+                                <span className="text-[9px] font-mono font-bold text-emerald-400 bg-emerald-500/20 px-1 py-0.2 rounded border border-emerald-500/30">✓</span>
+                              ) : (
+                                <span className="text-[9px] font-mono font-bold uppercase px-1 py-0.2 rounded bg-black/50 border border-white/10 text-zinc-300">
+                                  {tagLabel}
                                 </span>
                               )}
                             </div>
-                            <div className="flex items-center gap-1 shrink-0">
-                              {isLiveStatus ? (
-                                <div className="flex items-center gap-1">
-                                  <span className="bg-amber-500 text-black font-mono font-black text-[10px] px-1.5 py-0.2 rounded-full shadow-[0_0_10px_rgba(245,158,11,0.6)] flex items-center gap-1 shrink-0 animate-pulse">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-black animate-ping" />
-                                    LIVE
-                                  </span>
-                                  <span className="text-[10px] font-space-mono font-bold text-amber-300 bg-amber-950/70 border border-amber-500/40 px-1 py-0.2 rounded">
-                                    {getCleanTimeRange(item.effectiveSlot || block.timeSlot || '')}
-                                  </span>
-                                </div>
-                              ) : block.completed ? (
-                                <span className="text-[11px] font-space-mono font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.2 rounded border border-emerald-500/20">✓ DONE</span>
-                              ) : (
-                                <span className="text-[11px] font-space-mono font-medium text-zinc-300 leading-none">{getCleanTimeRange(item.effectiveSlot || block.timeSlot || '')}</span>
-                              )}
-                            </div>
                           </div>
 
-                          {/* ROW 2: Mission Title + Inline Aim Badge */}
-                          <div className="flex items-center gap-1.5 mt-1 min-w-0">
-                            <span className={`font-space-grotesk font-extrabold text-white truncate leading-tight tracking-tight shrink min-w-0 ${viewMode === 'weekly' ? 'text-[9.5px]' : 'text-[11px] md:text-[12px]'}`}>
-                              {block.activity || 'Study Session'}
-                            </span>
-                            <span className={`font-space-mono font-bold text-[11px] uppercase px-1.5 py-0.2 rounded bg-black/40 border border-white/10 text-zinc-300 tracking-wider shrink-0 ${viewMode === 'weekly' ? 'hidden' : ''}`}>
-                              {aimLabel}
-                            </span>
-                          </div>
-
-                          {/* ROW 3: Chapter Name */}
-                          <div className="font-sans font-medium text-[10px] text-zinc-300 truncate mt-0.5 leading-tight">
-                            {block.chapterName}
+                          {/* MAIN TITLE: Full wrap with line-clamp */}
+                          <div className="min-w-0 flex-1 flex flex-col justify-center overflow-hidden">
+                            <p 
+                              className={`font-bold text-white leading-tight tracking-tight break-words line-clamp-2 ${
+                                viewMode === 'weekly' ? 'text-[10.5px]' : 'text-xs'
+                              }`}
+                              title={rawActivity || chapterName}
+                            >
+                              {displayTitle}
+                            </p>
                           </div>
                         </>
                       )}

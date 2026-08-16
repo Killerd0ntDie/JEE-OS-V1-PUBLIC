@@ -155,7 +155,7 @@ export function FocusVaultPage() {
         <motion.div 
           animate={{ scale: breathingScale, opacity: breathingOpacity }}
           transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-indigo-900/20 rounded-full blur-[120px]"
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-[600px] aspect-square bg-indigo-900/20 rounded-full blur-[120px]"
         />
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] mix-blend-overlay"></div>
       </div>
@@ -303,7 +303,7 @@ export function FocusVaultPage() {
       </div>
 
       {/* Floating Lo-Fi Player (YouTube Embed) */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 md:translate-x-0 md:left-auto md:right-8 w-[350px] h-[80px] bg-zinc-950/80 backdrop-blur-md rounded-2xl border border-zinc-800/80 overflow-hidden shadow-2xl flex items-center p-3 gap-4 group transition-all duration-300 hover:border-indigo-500/30 hover:bg-zinc-900">
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 md:translate-x-0 md:left-auto md:right-8 w-[90vw] max-w-[350px] min-h-[80px] bg-zinc-950/80 backdrop-blur-md rounded-2xl border border-zinc-800/80 overflow-hidden shadow-2xl flex items-center p-3 gap-4 group transition-all duration-300 hover:border-indigo-500/30 hover:bg-zinc-900">
         <div className="w-14 h-14 rounded-xl overflow-hidden relative shrink-0 bg-black">
           {/* Lofi Girl YouTube Stream - Invisible click overlay to prevent navigating out */}
           <div className="absolute inset-0 z-10"></div>

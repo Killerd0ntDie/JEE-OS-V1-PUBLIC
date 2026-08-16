@@ -22,11 +22,11 @@ export class SpacedRepetitionEngine {
     // If quality is invalid, constrain it to 0-5
     quality = Math.max(0, Math.min(5, Math.round(quality)));
 
-    let { 
-      repetitions = 0, 
-      easeFactor = 2.5, 
-      interval = 0 
-    } = previousState || {};
+    let { repetitions, easeFactor, interval } = previousState || {
+      repetitions: 0,
+      easeFactor: 2.5,
+      interval: 0,
+    };
 
     // If the response was incorrect (0-2), reset repetitions but keep the modified ease factor
     if (quality < 3) {

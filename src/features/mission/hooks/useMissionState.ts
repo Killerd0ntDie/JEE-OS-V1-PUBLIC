@@ -294,13 +294,7 @@ export function useMissionState(props: MissionModeProps) {
 
   const timeProgressPercent = Math.min(100, (seconds / sessionDurationSecs) * 100);
 
-  const [hasPlayedStartChime, setHasPlayedStartChime] = useState(false);
-  useEffect(() => {
-    if (!hasPlayedStartChime && settings.soundEffects) {
-      audioEngine.playStartChime();
-      setHasPlayedStartChime(true);
-    }
-  }, [hasPlayedStartChime, settings]);
+
 
   useEffect(() => {
     let lastTick = Date.now();
@@ -669,6 +663,7 @@ export function useMissionState(props: MissionModeProps) {
       forcePracticeMode,
       isPracticeMission,
       sessionDurationSecs,
+      targetDurationMins: Math.round(sessionDurationSecs / 60),
       timeProgressPercent,
       checklistProgressPercent,
       filteredFormulas,

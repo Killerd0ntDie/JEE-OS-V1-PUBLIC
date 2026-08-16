@@ -2,6 +2,8 @@ import { SyllabusNode, ProgressState } from './types';
 
 export class KnowledgeEngine {
   private syllabus: Map<string, SyllabusNode> = new Map();
+  private dependencyTreeCache: Map<string, string[]> = new Map();
+  private prerequisiteTreeCache: Map<string, string[]> = new Map();
 
   constructor(nodes: SyllabusNode[]) {
     // Fast clone to avoid mutating the original source while maintaining high performance
@@ -48,8 +50,8 @@ export class KnowledgeEngine {
    * Returns all chapters that are fully unlocked (all prerequisites are mastered).
    */
   public getUnlockedChapters(progress: ProgressState[]): SyllabusNode[] {
-    // Bug 1.1: Prereqs are satisfied if completion >= 50, theory is complete, or fully mastered.
-    const passedPrereqIds = new Set(progress.filter(p => p.isMastered || p.completion >= 50 || p.theoryComplete).map(p => p.chapterId));
+    // Bug 1.4: Prereqs are satisfied if completion >= 70, or fully mastered, or theory + (dpp or pyqs)
+    const passedPrereqIds = new Set(progress.filter(p => p.isMastered || p.completion >= 70 || (p.theoryComplete && (p.dppComplete || p.pyqsComplete))).map(p => p.chapterId));
     
     const completedIds = new Set(progress.filter(p => p.isMastered || p.completion === 100).map(p => p.chapterId));
     
@@ -65,7 +67,7 @@ export class KnowledgeEngine {
    * Returns all chapters that are currently blocked by unmastered prerequisites.
    */
   public getBlockedChapters(progress: ProgressState[]): SyllabusNode[] {
-    const passedPrereqIds = new Set(progress.filter(p => p.isMastered || p.completion >= 50 || p.theoryComplete).map(p => p.chapterId));
+    const passedPrereqIds = new Set(progress.filter(p => p.isMastered || p.completion >= 70 || (p.theoryComplete && (p.dppComplete || p.pyqsComplete))).map(p => p.chapterId));
     
     return this.getAllNodes().filter(node => {
       const hasAllPrereqs = node.prerequisites.every(reqId => passedPrereqIds.has(reqId));
@@ -119,6 +121,10 @@ export class KnowledgeEngine {
    * Traverses upwards to find all prerequisites (recursive) for a given chapter.
    */
   public getPrerequisiteTree(chapterId: string): string[] {
+    if (this.prerequisiteTreeCache.has(chapterId)) {
+      return this.prerequisiteTreeCache.get(chapterId)!;
+    }
+
     const result = new Set<string>();
     
     const traverse = (currentId: string) => {
@@ -133,13 +139,19 @@ export class KnowledgeEngine {
     };
     
     traverse(chapterId);
-    return Array.from(result);
+    const deps = Array.from(result);
+    this.prerequisiteTreeCache.set(chapterId, deps);
+    return deps;
   }
 
   /**
    * Traverses downwards to find all chapters dependent on the given chapter.
    */
   public getDependencyTree(chapterId: string): string[] {
+    if (this.dependencyTreeCache.has(chapterId)) {
+      return this.dependencyTreeCache.get(chapterId)!;
+    }
+
     const result = new Set<string>();
     
     const traverse = (currentId: string) => {
@@ -154,7 +166,9 @@ export class KnowledgeEngine {
     };
     
     traverse(chapterId);
-    return Array.from(result);
+    const deps = Array.from(result);
+    this.dependencyTreeCache.set(chapterId, deps);
+    return deps;
   }
 
   /**

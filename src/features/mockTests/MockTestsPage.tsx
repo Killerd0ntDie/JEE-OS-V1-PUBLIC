@@ -670,7 +670,7 @@ export function MockTestsPage({ onNavigate }: MockTestsPageProps) {
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-[#09090b] overflow-y-auto p-4 sm:p-6 lg:p-8"
+            className="fixed inset-0 z-[100] glass-panel overflow-y-auto p-4 sm:p-6 lg:p-8"
           >
             <MockTestResult 
               test={selectedTest!} 
@@ -688,7 +688,7 @@ export function MockTestsPage({ onNavigate }: MockTestsPageProps) {
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-[#09090b] overflow-y-auto"
+            className="fixed inset-0 z-[100] glass-panel overflow-y-auto"
           >
             {selectedPastAttempt.testSnapshot && selectedPastAttempt.attemptData ? (
               <div className="p-4 sm:p-6 lg:p-8 min-h-screen">
@@ -727,7 +727,7 @@ export function MockTestsPage({ onNavigate }: MockTestsPageProps) {
         isOpen={showAiSelector} 
         onClose={() => setShowAiSelector(false)} 
         zIndex={60} 
-        backdropClassName="bg-black/40 backdrop-blur-md p-4" 
+        backdropClassName="bg-black/10 backdrop-blur-md p-4" 
         className="w-full max-w-lg glass-panel bg-zinc-900/60 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] relative text-left"
       >
         <button 
@@ -813,7 +813,7 @@ export function MockTestsPage({ onNavigate }: MockTestsPageProps) {
         isOpen={isGeneratingAiTest} 
         onClose={() => setIsGeneratingAiTest(false)} 
         zIndex={100} 
-        backdropClassName="bg-black/40 backdrop-blur-md flex flex-col items-center justify-center" 
+        backdropClassName="bg-black/10 backdrop-blur-md flex flex-col items-center justify-center" 
         className="flex flex-col items-center justify-center p-8 text-center glass-panel bg-zinc-900/60 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-2xl"
       >
         <div className="w-14 h-14 rounded-2xl bg-indigo-950/70 border border-indigo-500/40 flex items-center justify-center text-indigo-400 mb-3 shadow-xl shadow-indigo-600/20">

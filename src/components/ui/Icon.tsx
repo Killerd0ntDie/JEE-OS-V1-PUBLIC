@@ -69,6 +69,12 @@ import {
   Rocket,
   PieChart,
   Eye,
+  Layers,
+  ShieldCheck,
+  Compass,
+  Brain,
+  Trash,
+  EyeOff,
   LucideProps
 } from 'lucide-react';
 
@@ -116,6 +122,7 @@ export const iconMap = {
   SlidersHorizontal,
   Cpu,
   Trash2,
+  Trash,
   AlertCircle,
   BarChart3,
   SearchX,
@@ -141,7 +148,12 @@ export const iconMap = {
   WifiOff,
   Rocket,
   PieChart,
-  Eye
+  Eye,
+  EyeOff,
+  Layers,
+  ShieldCheck,
+  Compass,
+  Brain
 };
 
 export type IconName = keyof typeof iconMap;

@@ -26,38 +26,51 @@ export function useFocusTrap(ref: RefObject<HTMLElement | null>, isActive: boole
     const element = ref.current;
     if (!element) return;
 
-    const focusableEls = Array.from(element.querySelectorAll<HTMLElement>(FOCUSABLE_ELEMENTS)).filter(
-      (el) =>
-        !el.hasAttribute('hidden') &&
-        el.getAttribute('aria-hidden') !== 'true' &&
-        window.getComputedStyle(el).display !== 'none' &&
-        window.getComputedStyle(el).visibility !== 'hidden'
-    );
-    const firstFocusable = focusableEls[0];
-    const lastFocusable = focusableEls[focusableEls.length - 1];
+    const timeoutIds = new Set<NodeJS.Timeout>();
 
-    // Auto-focus first element
+    const getFocusableElements = () => {
+      const focusableEls = Array.from(element.querySelectorAll<HTMLElement>(FOCUSABLE_ELEMENTS)).filter(
+        (el) =>
+          !el.hasAttribute('hidden') &&
+          el.getAttribute('aria-hidden') !== 'true' &&
+          window.getComputedStyle(el).display !== 'none' &&
+          window.getComputedStyle(el).visibility !== 'hidden'
+      );
+      return focusableEls;
+    };
+
+    // Auto-focus first element on mount
+    const focusableEls = getFocusableElements();
+    const firstFocusable = focusableEls[0];
+
     if (firstFocusable) {
-      // Delay focus slightly to ensure modal animation doesn't disrupt it
-      setTimeout(() => firstFocusable.focus(), 50);
+      const id = setTimeout(() => { firstFocusable.focus(); timeoutIds.delete(id); }, 50);
+      timeoutIds.add(id);
     } else {
-      setTimeout(() => element.focus(), 50);
+      const id = setTimeout(() => { element.focus(); timeoutIds.delete(id); }, 50);
+      timeoutIds.add(id);
     }
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key !== 'Tab') return;
 
+      const els = getFocusableElements();
+      if (els.length === 0) return;
+      
+      const first = els[0];
+      const last = els[els.length - 1];
+
       if (e.shiftKey) {
         // Shift + Tab
-        if (document.activeElement === firstFocusable) {
+        if (document.activeElement === first) {
           e.preventDefault();
-          lastFocusable?.focus();
+          last?.focus();
         }
       } else {
         // Tab
-        if (document.activeElement === lastFocusable) {
+        if (document.activeElement === last) {
           e.preventDefault();
-          firstFocusable?.focus();
+          first?.focus();
         }
       }
     };
@@ -66,6 +79,7 @@ export function useFocusTrap(ref: RefObject<HTMLElement | null>, isActive: boole
 
     return () => {
       element.removeEventListener('keydown', handleKeyDown);
+      timeoutIds.forEach(id => clearTimeout(id));
       // Restore focus
       if (previousFocusRef.current) {
         previousFocusRef.current.focus();

@@ -130,7 +130,7 @@ export function Topbar({
   // Compute System Notifications from Real Engine Telemetry
   const notifications = useMemo(() => {
     const telemetryList = (Object.values(chapterTelemetryMap || {}) as ChapterTelemetry[]);
-    const lowRetentionChaps = telemetryList.filter(t => t && t.retentionConfidence === 'Low');
+    const lowRetentionChaps = telemetryList.filter(t => t && t.retentionConfidence === 'Low' && t.syllabusStage !== 'Not Started');
     const bottleneckChaps = telemetryList.filter(t => t && t.isBottleneck);
     const pendingMissionsCount = todayMissions.filter(m => !m.completed).length;
 

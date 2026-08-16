@@ -28,11 +28,10 @@ export class RevisionEngine {
     // Process chapters & formula cards
     chapters.forEach(chap => {
       if (chap.chapterOnHold || chap.revisionOnHold) return;
-
       const telemetry = (chapterTelemetryMap || {})[chap.id];
       const isStartedOrMastered = telemetry 
         ? (telemetry.syllabusStage === 'In Progress' || telemetry.syllabusStage === 'Mastered')
-        : (chap.completion > 0 || (chap.currentLecture && chap.currentLecture > 0) || chap.theoryComplete || chap.dppComplete || chap.pyqsComplete || chap.status === 'Mastered');
+        : (chap.status !== 'Not Started' && chap.syllabusStage !== 'Not Started' && (chap.completion > 0 || (chap.currentLecture && chap.currentLecture > 0) || chap.theoryComplete || chap.dppComplete || chap.pyqsComplete || chap.status === 'Mastered' || chap.status === 'Learning'));
 
       // BUGFIX: chapters that haven't been started have no memory to have decayed —
       // labeling them 'High'/95% retention is actively misleading (it previously made

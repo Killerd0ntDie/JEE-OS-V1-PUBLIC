@@ -33,7 +33,7 @@ export function ConfirmDeleteModal({
 
   return (
 
-        <Modal isOpen={isOpen} onClose={onClose} zIndex={9999} backdropClassName="bg-black/35 backdrop-blur-sm p-4" className="relative w-full max-w-md bg-zinc-950 border border-zinc-800 rounded-2xl p-6 shadow-2xl space-y-5 overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50">
+        <Modal isOpen={isOpen} onClose={onClose} zIndex={9999} backdropClassName="p-4" className="relative w-full max-w-md border border-zinc-800 rounded-2xl p-6 shadow-2xl space-y-5 overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 glass-panel">
             {/* Top Close Button */}
             <button
               type="button"

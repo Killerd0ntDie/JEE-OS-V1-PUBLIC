@@ -86,61 +86,70 @@ export function CommandOverviewBanner({
   const dailyCapHours = mentorProfile?.dailyAvailableHours || 6.5;
 
   return (
-    <div ref={containerRef} className="relative w-full z-20 mb-4 font-sans text-left">
+    <div ref={containerRef} className="w-full z-10 mb-2 font-sans text-left">
       
-      {/* Unified Compact Header Bar (Always Fixed in Normal Document Flow) */}
+      {/* Unified Compact Header Bar */}
       <div 
         onClick={handleToggle}
-        className="w-full glass-panel bg-zinc-900/80 backdrop-blur-2xl border border-white/15 rounded-2xl p-3.5 px-4 shadow-xl transition-all duration-200 cursor-pointer select-none group flex items-center justify-between"
+        className="w-full bg-zinc-900/60 hover:bg-zinc-900/90 border border-zinc-800/80 hover:border-zinc-700 rounded-2xl p-2.5 px-3.5 shadow-sm transition-all duration-150 cursor-pointer select-none group flex items-center justify-between"
       >
         <div className="flex items-center gap-3 flex-wrap min-w-0">
           <div className="p-1.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 group-hover:border-indigo-500/40 transition-colors">
-            <LayoutDashboard className="w-4 h-4" />
+            <LayoutDashboard className="w-3.5 h-3.5" />
           </div>
           
-          <span className="text-xs font-mono font-bold text-white uppercase tracking-wider">
+          <span className="text-xs font-semibold text-zinc-200 tracking-wide">
             Prep Command Center
           </span>
 
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap text-xs">
             {onHoldChapters.length > 0 && (
-              <span className="text-[10px] font-mono text-amber-300 bg-amber-950/50 border border-amber-500/30 px-2.5 py-0.5 rounded-lg font-bold flex items-center gap-1 shadow-sm">
+              <span className="text-amber-300 bg-amber-950/40 border border-amber-500/30 px-2.5 py-0.5 rounded-lg font-medium flex items-center gap-1">
                 <PauseCircle className="w-3 h-3 text-amber-400" />
                 {onHoldChapters.length} On Hold
               </span>
             )}
-            <span className="text-[10px] font-mono font-bold text-sky-300 bg-sky-950/40 px-2.5 py-0.5 rounded-lg border border-sky-500/30 shadow-sm">
+            <span className="text-sky-300 bg-sky-950/40 px-2.5 py-0.5 rounded-lg border border-sky-500/30 font-medium">
               {projectedReadiness}% Readiness
             </span>
-            <span className="text-[10px] font-mono font-bold text-emerald-300 bg-emerald-950/50 px-2.5 py-0.5 rounded-lg border border-emerald-500/30 shadow-sm">
-              {dailyCapHours}h/day Capacity
+            <span className="text-emerald-300 bg-emerald-950/40 px-2.5 py-0.5 rounded-lg border border-emerald-500/30 font-medium">
+              {dailyCapHours}h/day Cap
             </span>
           </div>
         </div>
 
-        <button
+        <motion.button
           type="button"
+          whileHover={{ scale: 1.04 }}
+          whileTap={{ scale: 0.95 }}
+          transition={springs.snappy}
           onClick={(e) => {
             e.stopPropagation();
             handleToggle();
           }}
-          className="flex items-center gap-1.5 text-indigo-300 hover:text-white bg-indigo-950/40 hover:bg-indigo-900/50 border border-indigo-500/30 px-3 py-1 rounded-xl text-xs font-mono font-bold transition-all duration-150 active:scale-95 cursor-pointer shadow-sm shrink-0"
+          className="flex items-center gap-1.5 text-zinc-300 hover:text-white bg-zinc-800/80 hover:bg-zinc-700/80 border border-zinc-700/60 px-3 py-1 rounded-xl text-xs font-medium transition-colors cursor-pointer shrink-0 shadow-sm"
         >
-          <span>{isExpanded ? 'Collapse Center' : 'Expand Center'}</span>
-          {isExpanded ? <ChevronUp className="w-3.5 h-3.5 text-indigo-400" /> : <ChevronDown className="w-3.5 h-3.5 text-indigo-400" />}
-        </button>
+          <span>{isExpanded ? 'Collapse' : 'Overview'}</span>
+          <motion.div
+            animate={{ rotate: isExpanded ? 180 : 0 }}
+            transition={springs.snappy}
+          >
+            <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
+          </motion.div>
+        </motion.button>
       </div>
 
-      {/* Overlapping Flyout Panel (Floats Above Content Without Pushing Anything Down) */}
-      <AnimatePresence>
+      {/* In-Flow Smooth Collapsible Panel (Pushes content down cleanly without obscuring) */}
+      <AnimatePresence initial={false}>
         {isExpanded && (
           <motion.div
-            initial={{ opacity: 0, y: -8, scale: 0.99 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -8, scale: 0.99 }}
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
             transition={springs.fluid}
-            className="absolute top-full left-0 right-0 mt-2 z-30 glass-panel bg-zinc-950/95 backdrop-blur-3xl border border-white/20 rounded-3xl p-5 md:p-6 shadow-2xl space-y-4 text-left"
+            className="overflow-hidden mt-3"
           >
+            <div className="glass-panel bg-zinc-950/80 backdrop-blur-2xl border border-white/10 rounded-3xl p-5 md:p-6 shadow-2xl space-y-4 text-left">
             {/* MONTHLY BOSS ENCOUNTER */}
             <MonthlyCampaignBanner />
 
@@ -254,6 +263,7 @@ export function CommandOverviewBanner({
                 </div>
                 <p className="text-[10px] text-zinc-400 font-mono mt-1">Planner quota (Click to configure)</p>
               </motion.div>
+            </div>
             </div>
           </motion.div>
         )}

@@ -7,7 +7,7 @@ export function calculateEffectiveMasteredChapters({
 }): number {
   if (!Number.isFinite(masteredChapters)) return 0;
   if (!hasRealStudyHistory) {
-    return Math.min(Math.max(masteredChapters, 0), 1);
+    return 0;
   }
   return Math.max(0, masteredChapters);
 }

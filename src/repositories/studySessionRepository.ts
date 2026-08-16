@@ -1,4 +1,4 @@
-import { collection, doc, getDocs, setDoc, updateDoc, writeBatch, deleteDoc, query, orderBy, limit } from 'firebase/firestore';
+import { collection, doc, getDocs, getDocsFromCache, setDoc, updateDoc, writeBatch, deleteDoc, query, orderBy, limit } from 'firebase/firestore';
 import { db } from '@/firebase';
 import { StudySession } from '@/types/index';
 import { sanitizeForFirestore } from '@/utils/firestoreSanitizer';
@@ -9,11 +9,16 @@ export const StudySessionRepository = {
     const sessionsCol = collection(db, 'users', userId, 'studySessions');
     let q = query(sessionsCol, orderBy('startTime', 'desc'));
     
-    if (limitCount) {
-      q = query(q, limit(limitCount));
-    }
+    // Apply a default limit to prevent unbounded queries
+    q = query(q, limit(limitCount || 50));
     
-    const snapshot = await getDocs(q);
+    let snapshot;
+    try {
+      snapshot = await getDocsFromCache(q);
+      if (snapshot.empty) throw new Error("Cache miss");
+    } catch (error) {
+      snapshot = await getDocs(q);
+    }
     return snapshot.docs.map(doc => doc.data() as StudySession);
   },
 

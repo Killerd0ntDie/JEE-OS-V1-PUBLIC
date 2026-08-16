@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { modalVariants, backdropVariants } from '@/constants/motion';
 
 export interface ModalProps {
@@ -15,6 +16,7 @@ export interface ModalProps {
   zIndex?: number;
   center?: boolean;
   fullScreen?: boolean;
+  ariaLabelledBy?: string;
 }
 
 export function Modal({
@@ -23,16 +25,19 @@ export function Modal({
   children,
   className = '',
   hideBackdrop = false,
-  backdropClassName = 'bg-black/35 backdrop-blur-sm',
+  backdropClassName = 'bg-black/10 backdrop-blur-sm',
   zIndex = 999,
   center = true,
-  fullScreen = false
+  fullScreen = false,
+  ariaLabelledBy
 }: ModalProps) {
   // Prevent scrolling on body when modal is open and handle ESC key
+  const modalRef = React.useRef<HTMLDivElement>(null);
   useLockBodyScroll(isOpen);
   useEscapeKey(() => {
     if (onClose) onClose();
   }, isOpen);
+  useFocusTrap(modalRef, isOpen);
 
   const modalContent = (
     <AnimatePresence mode="wait">
@@ -56,6 +61,7 @@ export function Modal({
 
           {/* Modal Dialog with Spring Physics Scale & Filter Transition */}
           <motion.div
+            ref={modalRef}
             variants={modalVariants}
             initial="initial"
             animate="animate"
@@ -64,6 +70,7 @@ export function Modal({
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
+            aria-labelledby={ariaLabelledBy}
           >
             {children}
           </motion.div>

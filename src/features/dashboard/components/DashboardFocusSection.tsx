@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Icon } from '@/components/ui/Icon';
+import { Target, BarChart3 } from 'lucide-react';
 import { SmartRevisionQueueWidget } from './SmartRevisionQueueWidget';
 import { ExamReadinessWidget } from './ExamReadinessWidget';
 import { DailyStudyTrackerWidget } from './DailyStudyTrackerWidget';
@@ -68,8 +68,8 @@ export function DashboardFocusSection({
   const [direction, setDirection] = useState<number>(0);
 
   const tabs = [
-    { id: 'focus', label: "Today's Focus & Revision Queue", icon: 'Target' as const },
-    { id: 'analytics', label: 'Analytics, Heatmap & Trajectory', icon: 'BarChart2' as const },
+    { id: 'focus', label: "Today's Focus & Revision Queue", icon: Target },
+    { id: 'analytics', label: 'Analytics, Heatmap & Trajectory', icon: BarChart3 },
   ];
 
   const handleTabChange = (newTabId: 'focus' | 'analytics') => {
@@ -82,10 +82,11 @@ export function DashboardFocusSection({
   return (
     <div className="space-y-4 pt-2">
       {/* Tab Toggle Navigation */}
-      <div className="flex items-center justify-between border-b border-zinc-850/80 pb-3 flex-wrap gap-3">
-        <div className="grid grid-cols-2 gap-1.5 p-1 bg-zinc-950/80 border border-zinc-850 rounded-2xl relative select-none w-full sm:w-auto">
+      <div className="flex items-center justify-between border-b border-zinc-800/80 pb-3 flex-wrap gap-3">
+        <div className="flex items-center gap-1.5 p-1 bg-zinc-900/90 border border-zinc-800 rounded-xl relative select-none w-full sm:w-auto shadow-inner">
           {tabs.map(tab => {
             const isActive = activeTab === tab.id;
+            const TabIcon = tab.icon;
             return (
               <motion.button
                 key={tab.id}
@@ -95,31 +96,31 @@ export function DashboardFocusSection({
                   e.preventDefault();
                   handleTabChange(tab.id as any);
                 }}
-                className={`relative px-4 py-2 sm:px-6 rounded-xl font-mono text-xs font-bold transition-colors cursor-pointer select-none z-10 flex items-center justify-center gap-2 min-w-[170px] sm:min-w-[260px] text-center ${
-                  isActive ? 'text-white' : 'text-zinc-400 hover:text-zinc-200'
+                className={`relative px-4 py-1.5 sm:px-5 rounded-lg text-xs font-semibold transition-colors cursor-pointer select-none z-10 flex items-center justify-center gap-2 min-w-[150px] sm:min-w-[200px] text-center ${
+                  isActive ? 'text-white font-bold' : 'text-zinc-400 hover:text-zinc-200'
                 }`}
               >
                 {isActive && (
                   <motion.div
-                    layoutId="dashboardFocusSectionPill"
-                    className="absolute inset-0 bg-indigo-600/25 border border-indigo-500/40 rounded-xl shadow-md shadow-indigo-600/20 -z-10"
+                    layoutId="dashboardFocusTabSlider"
+                    className="absolute inset-0 bg-indigo-600 rounded-lg shadow-sm -z-10"
                     transition={springs.snappy}
                   />
                 )}
-                <Icon name={tab.icon} className={`w-4 h-4 shrink-0 ${isActive ? 'text-indigo-400' : 'text-zinc-500'}`} />
+                <TabIcon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-white' : 'text-zinc-400'}`} />
                 <span className="truncate">{tab.label}</span>
               </motion.button>
             );
           })}
         </div>
 
-        <span className="text-xs font-mono text-zinc-400 hidden sm:inline-block">
+        <span className="text-xs text-zinc-400 font-medium hidden sm:inline-block">
           {activeTab === 'focus' ? 'Active study queues' : 'Long-term exam readiness'}
         </span>
       </div>
 
-      {/* Tab Content Panels - Directional Sliding Transition with locked equal height */}
-      <div className="relative min-h-[500px] lg:h-[500px] overflow-hidden">
+      {/* Tab Content Panels - Directional Sliding Transition with responsive auto-height on mobile */}
+      <div className="relative h-auto lg:h-[500px] overflow-visible lg:overflow-hidden">
         <AnimatePresence mode="wait" custom={direction} initial={false}>
           {activeTab === 'focus' ? (
             <motion.div
@@ -154,7 +155,7 @@ export function DashboardFocusSection({
             >
               <div className="flex flex-col gap-4 h-full justify-between">
                 <DailyStudyTrackerWidget
-                  studyTime={getTodayStudyMinutes(studySessions || [])}
+                  studyTime={React.useMemo(() => getTodayStudyMinutes(studySessions || []), [studySessions])}
                   dailyQuota={mentorProfile?.dailyAvailableHours || 6.5}
                   xpLevel={xp?.level || 1}
                   xpTotal={xp?.total || 0}

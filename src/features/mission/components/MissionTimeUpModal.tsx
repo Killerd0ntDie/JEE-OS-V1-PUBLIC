@@ -59,7 +59,7 @@ export function MissionTimeUpModal({
   const canSubmitProof = summary.length >= 50;
 
   return (
-    <Modal isOpen={isOpen} onClose={onComplete} zIndex={10000} className="max-w-md w-full bg-zinc-950 border border-zinc-800 rounded-3xl p-8 shadow-2xl relative z-10 space-y-6 text-left">
+    <Modal isOpen={isOpen} onClose={onComplete} zIndex={10000} className="max-w-md w-full border border-zinc-800 rounded-3xl p-8 shadow-2xl relative z-10 space-y-6 text-left glass-panel">
             
             {isCasinoActive ? (
               // CASINO PROOF OF WORK UI

@@ -58,43 +58,50 @@ export function WeeklyStrategyWidget({ chapters, mentorProfile, projectedReadine
   return (
     <div className="flex flex-col gap-4 h-full justify-between text-left">
       {/* 1. Core Weekly Strategy Focus Card */}
-      <div className="glass-card rounded-2xl p-5 border border-zinc-800/80 bg-zinc-950/40 backdrop-blur-xl shadow-2xl relative overflow-hidden flex-1 flex flex-col justify-between">
+      <div className="premium-card rounded-2xl p-5 border border-zinc-800 shadow-sm relative overflow-hidden flex-1 flex flex-col justify-between bg-gradient-to-br from-zinc-900/70 via-zinc-950/80 to-zinc-950">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Compass className="w-4 h-4 text-indigo-400" />
-            <span className="text-[11px] font-mono text-indigo-400 font-bold tracking-widest uppercase">
-              WEEKLY STRATEGY FOCUS
-            </span>
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center shadow-sm">
+              <Compass className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-white tracking-tight">
+                Weekly Strategy Focus
+              </h3>
+              <p className="text-[10px] text-zinc-500 font-mono">
+                Active Tactical Roadmap
+              </p>
+            </div>
           </div>
           <motion.button
             type="button"
-            whileTap={{ scale: 0.94 }}
-            whileHover={{ scale: 1.03 }}
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.95 }}
             transition={springs.snappy}
             onClick={() => navigate('/planner')}
-            className="px-2.5 py-1 text-xs font-mono font-bold text-indigo-300 bg-indigo-950/40 hover:bg-indigo-600/30 hover:text-white border border-indigo-500/30 rounded-xl flex items-center gap-1.5 cursor-pointer select-none transition-colors shadow-sm"
+            className="px-2.5 py-1 text-xs font-mono font-bold text-indigo-300 bg-indigo-950/40 hover:bg-indigo-600/30 hover:text-white border border-indigo-500/30 rounded-xl flex items-center gap-1.5 cursor-pointer select-none transition-colors shadow-sm uppercase tracking-wider"
           >
-            <span>Open Planner</span>
+            <span>Planner</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </motion.button>
         </div>
 
         {/* Roomy Full-Width Monthly Objective Banner */}
-        <div className="p-3.5 rounded-xl bg-zinc-900/40 border border-zinc-850/80 space-y-1 my-1">
-          <div className="flex items-center justify-between text-[10px] font-mono text-zinc-500 uppercase tracking-wider">
-            <span>Current Monthly Target</span>
-            <span className="text-indigo-400 font-bold">Active Sprint</span>
+        <div className="p-3.5 rounded-xl bg-zinc-900/60 border border-zinc-800/80 space-y-1 my-1">
+          <div className="flex items-center justify-between text-[10px] font-mono text-zinc-400 font-bold uppercase tracking-wider">
+            <span>Monthly Target</span>
+            <span className="text-indigo-400">Active Sprint</span>
           </div>
-          <h4 className="text-sm font-display font-bold text-white tracking-tight leading-snug">
+          <h4 className="text-sm font-bold text-white tracking-tight leading-snug">
             {activeFocus}
           </h4>
         </div>
 
         {/* 2 Telemetry Columns (Readiness & Daily Budget) */}
         <div className="grid grid-cols-2 gap-3 pt-0.5">
-          <div className="p-3 rounded-xl bg-zinc-900/40 border border-zinc-850/80 flex items-center justify-between gap-2">
+          <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800/80 flex items-center justify-between gap-2 shadow-sm">
             <div className="space-y-0.5">
-              <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider block">Target Readiness</span>
+              <span className="text-[10px] font-mono text-zinc-400 font-bold uppercase block">Target Readiness</span>
               <span className="text-sm font-bold font-mono text-sky-400">{projectedReadiness}% Projected</span>
             </div>
             <div className="w-8 h-8 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center shrink-0">
@@ -102,9 +109,9 @@ export function WeeklyStrategyWidget({ chapters, mentorProfile, projectedReadine
             </div>
           </div>
 
-          <div className="p-3 rounded-xl bg-zinc-900/40 border border-zinc-850/80 flex items-center justify-between gap-2">
+          <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800/80 flex items-center justify-between gap-2 shadow-sm">
             <div className="space-y-0.5">
-              <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider block">Daily Study Budget</span>
+              <span className="text-[10px] font-mono text-zinc-400 font-bold uppercase block">Study Budget</span>
               <span className="text-sm font-bold font-mono text-emerald-400">{dailyHours} hrs / day</span>
             </div>
             <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
@@ -115,16 +122,23 @@ export function WeeklyStrategyWidget({ chapters, mentorProfile, projectedReadine
       </div>
 
       {/* 2. Tri-Subject Velocity Balance Card */}
-      <div className="glass-card rounded-2xl p-5 border border-zinc-800/80 bg-zinc-950/40 backdrop-blur-xl shadow-2xl relative overflow-hidden flex-1 flex flex-col justify-between">
+      <div className="premium-card rounded-2xl p-5 border border-zinc-800 shadow-sm relative overflow-hidden flex-1 flex flex-col justify-between bg-gradient-to-br from-zinc-900/70 via-zinc-950/80 to-zinc-950">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Activity className="w-4 h-4 text-emerald-400" />
-            <span className="text-[11px] font-mono text-emerald-400 font-bold tracking-widest uppercase">
-              TRI-SUBJECT VELOCITY BALANCE
-            </span>
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shadow-sm">
+              <Activity className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-white tracking-tight">
+                Tri-Subject Mastery Balance
+              </h3>
+              <p className="text-[10px] text-zinc-500 font-mono">
+                Syllabus Proportions
+              </p>
+            </div>
           </div>
-          <span className="text-[10px] font-mono text-zinc-400 bg-zinc-900 border border-zinc-800 px-2.5 py-0.5 rounded-full font-bold">
-            Optimal Distribution
+          <span className="text-xs font-mono font-bold text-emerald-300 bg-emerald-950/40 border border-emerald-500/30 px-2.5 py-1 rounded-xl shadow-sm">
+            Optimal
           </span>
         </div>
 

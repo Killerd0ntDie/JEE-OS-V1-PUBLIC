@@ -24,7 +24,7 @@ export function CockpitPage() {
   }, [missionId, todayMissions]);
 
   return (
-    <div className="fixed inset-0 z-50 bg-zinc-950 flex flex-col">
+    <div className="fixed inset-0 z-[60] bg-zinc-950 flex flex-col overflow-hidden">
       <MissionMode 
         activeSubject={activeSubject as any}
         activeMissionId={missionId || undefined}

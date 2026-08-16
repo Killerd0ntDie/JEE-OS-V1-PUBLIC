@@ -35,13 +35,35 @@ export class PlannerEngine {
     input.chapterTelemetryMap = input.chapterTelemetryMap || {};
     const totalChapters = chaptersList.length || 56;
     const chapterById = new Map(chaptersList.map(c => [c.id, c]));
+
+    const mergedStateMap: Record<string, any> = {};
+    const allNodesForState = this.knowledgeEngine.getAllNodes();
+    for (const node of allNodesForState) {
+      const chapterMeta = chapterById.get(node.id);
+      const rawProg = input.chapterTelemetryMap[node.id] || {};
+      mergedStateMap[node.id] = {
+        ...rawProg,
+        chapterId: node.id,
+        completion: rawProg.masteryScore || chapterMeta?.completion || 0,
+        theoryComplete: chapterMeta?.theoryComplete ?? rawProg.theoryComplete ?? false,
+        currentLecture: chapterMeta?.currentLecture ?? rawProg.currentLecture ?? 0,
+        totalLectures: chapterMeta?.totalLectures ?? rawProg.totalLectures ?? node.lectureCount ?? 12,
+        dppComplete: chapterMeta?.dppComplete ?? rawProg.dppComplete ?? false,
+        pyqsComplete: chapterMeta?.pyqsComplete ?? rawProg.pyqsComplete ?? false,
+        avgLectureDuration: rawProg.avgLectureDuration || rawProg.lectureProgress?.avgLectureDurationMinutes || rawProg.estimatedDuration || undefined,
+        isMastered: rawProg.isMastered || chapterMeta?.status === 'Mastered' || false,
+        status: rawProg.status || chapterMeta?.status || 'Not Started',
+        syllabusStage: rawProg.syllabusStage || chapterMeta?.syllabusStage || 'Not Started',
+      };
+    }
+
     let completedChaptersCount = 0;
     let totalCompletionSum = 0;
 
     chaptersList.forEach(c => {
-      const telemetry = input.chapterTelemetryMap[c.id];
-      const completion = telemetry ? telemetry.masteryScore : (c.completion || 0);
-      const stage = telemetry ? telemetry.syllabusStage : (c.status === 'Mastered' ? 'Mastered' : 'Not Started');
+      const prog = mergedStateMap[c.id] || {};
+      const completion = prog.completion || 0;
+      const stage = prog.syllabusStage;
       totalCompletionSum += completion;
       if (stage === 'Mastered') completedChaptersCount++;
     });
@@ -60,14 +82,14 @@ export class PlannerEngine {
       const depTree = this.knowledgeEngine.getDependencyTree(node.id);
       nodeDependencyMap.set(node.id, depTree.map((n: any) => n.name || n));
 
-      const rawProg = input.chapterTelemetryMap[node.id];
-      const isCompleted = rawProg ? (rawProg.isMastered || rawProg.theoryComplete || rawProg.masteryScore > 60) : false;
+      const rawProg = mergedStateMap[node.id];
+      const isCompleted = rawProg ? (rawProg.isMastered || rawProg.theoryComplete || rawProg.completion > 60) : false;
 
       if (!isCompleted && node.prerequisites && node.prerequisites.length > 0) {
         for (const prereqId of node.prerequisites) {
-          const prereqProg = input.chapterTelemetryMap[prereqId];
+          const prereqProg = mergedStateMap[prereqId];
           const prereqNode = this.knowledgeEngine.getNode(prereqId);
-          if (prereqNode && (!prereqProg || (!prereqProg.theoryComplete && prereqProg.masteryScore < 50))) {
+          if (prereqNode && (!prereqProg || (!prereqProg.theoryComplete && prereqProg.completion < 50))) {
             const prereqName = (prereqNode as any).name || prereqNode;
             detectedPrerequisiteGaps.push(
               `${node.name} (${node.subject.toUpperCase()}) is blocked or at risk due to incomplete prerequisite ${prereqName}.`
@@ -95,8 +117,8 @@ export class PlannerEngine {
 
     if (input.chapters) {
       for (const chap of input.chapters) {
-        const telemetry = input.chapterTelemetryMap[chap.id];
-        const confidence = telemetry ? telemetry.retentionConfidence : 'High';
+        const telemetry = mergedStateMap[chap.id] || {};
+        const confidence = telemetry.retentionConfidence || 'High';
         if ((confidence === 'Medium' || confidence === 'Low') && !detectedRevisionDecay.some(d => d.includes(chap.name))) {
           detectedRevisionDecay.push(
             `${chap.name}: Retention confidence is ${confidence}.`
@@ -125,8 +147,8 @@ export class PlannerEngine {
 
     if (input.chapters) {
       for (const chap of input.chapters) {
-        const telemetry = input.chapterTelemetryMap[chap.id];
-        if (telemetry && telemetry.unresolvedMistakesCount >= 3 && !detectedWeakAreas.some(w => w.includes(chap.name))) {
+        const telemetry = mergedStateMap[chap.id] || {};
+        if (telemetry.unresolvedMistakesCount >= 3 && !detectedWeakAreas.some(w => w.includes(chap.name))) {
           detectedWeakAreas.push(`${chap.name}: ${telemetry.unresolvedMistakesCount} unresolved mistakes detected.`);
         }
       }
@@ -176,15 +198,17 @@ export class PlannerEngine {
     }
 
     // Prepare knowledge engine progress array for lookahead simulator
-    const progressStates: ProgressState[] = Object.entries(input.chapterTelemetryMap).map(([chapterId, data]) => ({
-      chapterId,
-      completion: data.masteryScore,
+    const progressStates: ProgressState[] = Object.values(mergedStateMap).map((data: any) => ({
+      chapterId: data.chapterId,
+      completion: data.completion,
       isMastered: data.isMastered,
-      theoryComplete: data.theoryComplete || false
+      theoryComplete: data.theoryComplete,
+      dppComplete: data.dppComplete,
+      pyqsComplete: data.pyqsComplete
     }));
 
     const availableMinutes = input.studyHours * 60;
-    const candidates: ScheduledTask[] = [];
+    let candidates: ScheduledTask[] = [];
 
     // Helper for generating base task and score
     const generateTask = (
@@ -295,12 +319,12 @@ export class PlannerEngine {
       const node = this.knowledgeEngine.getNode(rev.chapterId);
       const chapterMeta = input.chapters?.find(c => c.id === rev.chapterId);
       if (node && !chapterMeta?.chapterOnHold && !chapterMeta?.revisionOnHold) {
-        const rawProg: any = input.chapterTelemetryMap[node.id] || { masteryScore: 100, isMastered: true };
+        const prog = mergedStateMap[node.id] || { completion: 100, isMastered: true, chapterId: node.id };
         const todayStr = getLocalDateKey(input.currentDate ? new Date(input.currentDate) : new Date());
         candidates.push(generateTask(
           'Revise Formulas',
           node,
-          { chapterId: node.id, completion: rawProg.masteryScore, isMastered: rawProg.isMastered },
+          { chapterId: node.id, completion: prog.completion, isMastered: prog.isMastered },
           30,
           `rev-${rev.chapterId}-${todayStr}`,
           `Revise ${node.name}`,
@@ -315,12 +339,12 @@ export class PlannerEngine {
         if (chap.status === 'Revision Due' && !existingRevChapterIds.has(chap.id) && !chap.chapterOnHold && !chap.revisionOnHold) {
           const node = this.knowledgeEngine.getNode(chap.id);
           if (node) {
-            const rawProg: any = input.chapterTelemetryMap[node.id] || { masteryScore: chap.completion || 0, isMastered: false };
+            const prog = mergedStateMap[node.id] || { completion: chap.completion || 0, isMastered: false, chapterId: node.id };
             const todayStr = getLocalDateKey(input.currentDate ? new Date(input.currentDate) : new Date());
             candidates.push(generateTask(
               'Revise Formulas',
               node,
-              { chapterId: node.id, completion: rawProg.masteryScore, isMastered: rawProg.isMastered },
+              { chapterId: node.id, completion: prog.completion, isMastered: prog.isMastered },
               30,
               `rev-status-${chap.id}-${todayStr}`,
               `Revise ${chap.name}`,
@@ -341,12 +365,12 @@ export class PlannerEngine {
         const weakestChap = weakSubjectChapters[0];
         const node = this.knowledgeEngine.getNode(weakestChap.id);
         if (node) {
-          const rawProg: any = input.chapterTelemetryMap[node.id] || { masteryScore: weakestChap.completion || 0, isMastered: false };
+          const prog = mergedStateMap[node.id] || { completion: weakestChap.completion || 0, isMastered: false, chapterId: node.id };
           const todayStr = getLocalDateKey(input.currentDate ? new Date(input.currentDate) : new Date());
           candidates.push(generateTask(
             'Review Mistakes',
             node,
-            { chapterId: node.id, completion: rawProg.masteryScore, isMastered: rawProg.isMastered },
+            { chapterId: node.id, completion: prog.completion, isMastered: prog.isMastered },
             45,
             `remediation-${weakestChap.id}-${todayStr}`,
             `Mock Remediation: ${weakestChap.name}`,
@@ -358,9 +382,9 @@ export class PlannerEngine {
           if (injectedTask.reasoning) {
             injectedTask.reasoning.whySelected = mockRemediationReason;
             injectedTask.reasoning.rankingRationale = "Ranked extremely high to immediately patch mock exam failure points.";
-            // Bug 2.3: Use an absolute priority anchor (999) rather than a borderline score (95) 
-            // to guarantee this task ignores standard sorting modifiers and stays at the very top.
-            injectedTask.priorityScore = 999;
+            // Bug 1.5: Use an absolute priority anchor (100) instead of (999) to respect UI boundaries
+            // Ensures mock remediation is strictly first without breaking bounds
+            injectedTask.priorityScore = 100;
           }
         }
       }
@@ -372,13 +396,13 @@ export class PlannerEngine {
     // Identify subjects that currently have active in-progress chapters
     const activeSubjects = new Set<string>();
     for (const node of recommendedChapters) {
-      const rawProg: any = input.chapterTelemetryMap[node.id] || {};
-      const normalizedStatus = normalizeStageAlias(rawProg.status);
-      const normalizedStage = normalizeStageAlias(rawProg.syllabusStage);
-      const isStarted = (rawProg.masteryScore && rawProg.masteryScore > 0) || 
-                        (rawProg.rawCompletion && rawProg.rawCompletion > 0) ||
-                        (rawProg.currentLecture && rawProg.currentLecture > 0) || 
-                        rawProg.theoryComplete || 
+      const prog = mergedStateMap[node.id] || {};
+      const normalizedStatus = normalizeStageAlias(prog.status);
+      const normalizedStage = normalizeStageAlias(prog.syllabusStage);
+      const isStarted = (prog.completion && prog.completion > 0) || 
+                        (prog.rawCompletion && prog.rawCompletion > 0) ||
+                        (prog.currentLecture && prog.currentLecture > 0) || 
+                        prog.theoryComplete || 
                         (normalizedStatus && normalizedStatus !== 'Not Started') ||
                         (normalizedStage && normalizedStage !== 'Not Started');
       if (isStarted) {
@@ -395,52 +419,23 @@ export class PlannerEngine {
       subjects.forEach(subj => {
         const subjChapters = input.chapters!.filter(c => c.subject === subj);
 
-        // Only schedule chapters the user has explicitly started and that are NOT on hold.
-        // NEVER auto-schedule unstarted chapters.
         const activeNotOnHoldChapters = subjChapters.filter(c =>
           !c.chapterOnHold &&
-          ((c.completion > 0 && c.completion < 100) ||
-           (c.currentLecture && c.currentLecture > 0) ||
-           (c.theoryComplete && !c.pyqsComplete) ||
-           c.hasTelemetry)
+          c.status !== 'Not Started' &&
+          c.syllabusStage !== 'Not Started' &&
+          (
+            (c.currentLecture && c.currentLecture > 0) ||
+            (c.theoryComplete && !c.pyqsComplete) || 
+            c.dppComplete || 
+            (c.solvedQuestions && c.solvedQuestions > 0) ||
+            (c.completion && c.completion > 0 && c.completion < 100) ||
+            c.status === 'Learning'
+          )
         );
 
         activeNotOnHoldChapters.forEach(activeChap => {
           const n = this.knowledgeEngine.getNode(activeChap.id);
-          if (n) {
-             const prereqs = n.prerequisites || [];
-             const uncompletedPrereqs: string[] = [];
-             for (const reqId of prereqs) {
-                const reqNode = this.knowledgeEngine.getNode(reqId);
-                const p = progressStates.find(ps => ps.chapterId === reqId);
-                const isPassed = p && (p.isMastered || p.completion >= 50 || p.theoryComplete);
-                if (reqNode && !isPassed) {
-                   uncompletedPrereqs.push(reqId);
-                }
-             }
-
-             const strategy = input.userPreferences?.prerequisiteEnforcementStrategy || 'parallel';
-             
-             if (uncompletedPrereqs.length > 0) {
-                if (strategy === 'strict') {
-                   // Strict: Force prereqs first, block current chapter
-                   uncompletedPrereqs.forEach(reqId => {
-                      const reqNode = this.knowledgeEngine.getNode(reqId);
-                      if (reqNode) targetNodesMap.set(reqId, reqNode);
-                   });
-                } else {
-                   // Parallel: Schedule current chapter AND prereqs
-                   targetNodesMap.set(n.id, n);
-                   uncompletedPrereqs.forEach(reqId => {
-                      const reqNode = this.knowledgeEngine.getNode(reqId);
-                      if (reqNode) targetNodesMap.set(reqId, reqNode);
-                   });
-                }
-             } else {
-                // All prereqs met
-                targetNodesMap.set(n.id, n);
-             }
-          }
+          if (n) targetNodesMap.set(n.id, n);
         });
 
         // Bug 2.1 Reverted: We no longer auto-schedule unstarted chapters blindly.
@@ -462,28 +457,20 @@ export class PlannerEngine {
       const chapterMeta = chapterById.get(node.id);
       if (chapterMeta?.chapterOnHold) continue;
 
-      const rawProg: any = input.chapterTelemetryMap[node.id] || {};
-        // Merge chapter manual overrides with telemetry fields
-        const prog = {
-          ...rawProg,
-          completion: rawProg.masteryScore || 0,
-          theoryComplete: chapterById.get(node.id)?.theoryComplete ?? rawProg.theoryComplete ?? false,
-          currentLecture: chapterById.get(node.id)?.currentLecture ?? rawProg.currentLecture ?? 0,
-          totalLectures: chapterById.get(node.id)?.totalLectures ?? rawProg.totalLectures ?? node.lectureCount ?? 12,
-          dppComplete: chapterById.get(node.id)?.dppComplete ?? rawProg.dppComplete ?? false,
-          pyqsComplete: chapterById.get(node.id)?.pyqsComplete ?? rawProg.pyqsComplete ?? false,
-          avgLectureDuration: rawProg.avgLectureDuration || rawProg.lectureProgress?.avgLectureDurationMinutes || rawProg.estimatedDuration || undefined,
-          isMastered: rawProg.isMastered || false
-        };
+      if (chapterMeta?.chapterOnHold) continue;
 
-        if (!prog.theoryComplete) {
+      const prog = mergedStateMap[node.id] || {};
+
+      if (!prog.theoryComplete) {
           const remainingLectures = Math.max(1, (prog.totalLectures || 12) - prog.currentLecture);
           // Use exact telemetry duration, falling back to 75 if completely missing, capped at 120
           const lecDuration = Math.min(prog.avgLectureDuration || 75, 120);
 
-          // Generate up to 3 upcoming lectures so the queue doesn't look completely empty,
-          // but we will apply a progressive priority penalty later so they don't flood the schedule.
-          for (let l = 0; l < Math.min(remainingLectures, 3); l++) {
+          // Bug 4.1: Cap unstarted chapters to 1 lecture generation to prevent mission board flooding
+          const isUnstarted = !prog.currentLecture || prog.currentLecture === 0;
+          const maxLecturesToGenerate = isUnstarted ? 1 : Math.min(remainingLectures, 3);
+
+          for (let l = 0; l < maxLecturesToGenerate; l++) {
           const nextLec = prog.currentLecture + l + 1;
           candidates.push(generateTask(
             'Watch Lecture',
@@ -553,11 +540,11 @@ export class PlannerEngine {
         lectureCountPerChapter.set(task.chapterId, count + 1);
       }
 
-      const prog: any = input.chapterTelemetryMap[task.chapterId] || {};
+      const prog = mergedStateMap[task.chapterId] || {};
       const normalizedStatus = normalizeStageAlias(prog.status);
       const normalizedStage = normalizeStageAlias(prog.syllabusStage);
       const isStarted = prog && (
-        (prog.masteryScore > 0 && prog.masteryScore < 100) ||
+        (prog.completion > 0 && prog.completion < 100) ||
         (prog.rawCompletion > 0 && prog.rawCompletion < 100) ||
         (prog.currentLecture && prog.currentLecture > 0) ||
         (normalizedStatus && normalizedStatus !== 'Not Started') ||
@@ -566,10 +553,14 @@ export class PlannerEngine {
 
       if (isStarted) {
         // Bug 2.2: Proportional sunk-cost momentum curve instead of a flat +10
-        const completionPct = prog.masteryScore || prog.rawCompletion || (prog.currentLecture / (prog.totalLectures || 12) * 100) || 10;
+        const completionPct = prog.completion || prog.rawCompletion || (prog.currentLecture / (prog.totalLectures || 12) * 100) || 10;
         const momentumBoost = Math.max(2, Math.round(completionPct / 5)); // Up to +20 points for 99% complete
         task.priorityScore += momentumBoost;
       }
+    }
+
+    if (activeSubjects.size > 0) {
+      candidates = candidates.filter(c => activeSubjects.has(c.subjectId) || c.type === 'Revise Formulas' || c.type === 'Review Mistakes');
     }
 
     // Sort all candidates by priority score descending, with a tie-breaker for chronological lecture order
@@ -638,6 +629,9 @@ export class PlannerEngine {
     // =========================================================================
     // PIPELINE PHASE 8: MULTI-STRATEGY LOOKAHEAD SELECTION
     // =========================================================================
+    // Pre-compute active chapter IDs early so the mission builder can prioritize continuity
+    const activeChapterIds = new Set((input.todayMissions || []).filter(m => !m.completed && !m.dismissed).map(m => m.chapterId));
+
     const buildMissionWithHeuristic = (
       preferredTypes: ScheduledTask['type'][],
       subjectFocus?: SubjectId
@@ -645,6 +639,22 @@ export class PlannerEngine {
       const mission: ScheduledTask[] = [];
       let currentMinutes = 0;
       const usedIds = new Set<string>();
+
+      // Phase 0: Continuity — always include at least one task per active in-progress chapter first.
+      // This ensures that a slight dailyQuota change doesn't discard chapters mid-sequence.
+      for (const chapId of activeChapterIds) {
+        if (currentMinutes >= availableMinutes) break;
+        const chapTask = todaysCandidates.find(t =>
+          !usedIds.has(t.id) &&
+          t.chapterId === chapId &&
+          currentMinutes + t.duration <= availableMinutes
+        );
+        if (chapTask) {
+          mission.push(chapTask);
+          currentMinutes += chapTask.duration;
+          usedIds.add(chapTask.id);
+        }
+      }
 
       const addMatchingTasks = (types: ScheduledTask['type'][], focusOnSubject: boolean) => {
         const filtered = todaysCandidates.filter(t => 
@@ -756,16 +766,22 @@ export class PlannerEngine {
       score: 0, learningGain: 0, marksGain: 0, subjectBalance: 0, dependencyUnlock: 0, revisionHealth: 0, workloadRealism: 0, completionProb: 0
     });
 
-    // 7-Day Lookahead Simulator
+    // 7-Day Lookahead Simulator (activeChapterIds already computed above at Phase 8 start)
+
     for (const mission of candidateMissions) {
       if (mission.tasks.length === 0) continue;
 
       let totalSimMarksGained = 0;
       let totalSimLearningGain = 0;
+      let continuityScore = 0;
 
       for (const t of mission.tasks) {
         totalSimMarksGained += (t.expectedMarksGain || 0);
         totalSimLearningGain += (t.expectedLearningGain || 0);
+
+        if (activeChapterIds.has(t.chapterId)) {
+          continuityScore += 200; // Strong bias to preserve ongoing chapters
+        }
       }
 
       const marksGainNormalized = Math.min(100, totalSimMarksGained * 2);
@@ -784,7 +800,8 @@ export class PlannerEngine {
         learningGainNormalized * 0.25 + 
         mission.subjectBalance * 0.15 + 
         mission.dependencyUnlock * 0.15 + 
-        mission.revisionHealth * 0.15
+        mission.revisionHealth * 0.15 +
+        continuityScore
       );
     }
 
@@ -852,7 +869,7 @@ export class PlannerEngine {
           if (!baseTask || usedTasksInDay.has(baseTask.id)) continue;
           usedTasksInDay.add(baseTask.id);
 
-          let taskToPush = { ...baseTask, id: `plan-${day}-${baseTask.id}-${ptr}` };
+          let taskToPush = { ...baseTask, id: `plan-${day}-${baseTask.id}` };
           if (taskToPush.type === 'Watch Lecture') {
             const chapId = baseTask.chapterId;
             const chapter = input.chapters?.find(c => c.id === chapId);
@@ -864,6 +881,7 @@ export class PlannerEngine {
               continue; // Skip ghost lectures in weekly simulation
             }
             chapterSimulatedLecture[chapId] = currentSimLec;
+            taskToPush.id = `plan-${day}-lec-${chapId}-${currentSimLec}`;
             taskToPush.taskName = `Lecture ${currentSimLec}: ${baseTask.chapterName}`;
           }
 
@@ -1034,7 +1052,13 @@ export function generateWeeklyMatrix(
 
   // Only schedule chapters the user has explicitly started and that are NOT on hold.
   // NEVER auto-schedule unstarted chapters.
-  const activeChaps = chapters.filter(c => !c.chapterOnHold && c.completion > 0 && c.completion < 100);
+  const activeChaps = chapters.filter(c => 
+    !c.chapterOnHold && 
+    ((c.currentLecture && c.currentLecture > 0) || 
+     c.theoryComplete || c.dppComplete || 
+     (c.solvedQuestions && c.solvedQuestions > 0)) &&
+    c.completion < 100
+  );
 
   const getUniqueChap = (subj: SubjectId, offset: number): Chapter | null => {
     const subjActive = activeChaps.filter(c => c.subject === subj);
@@ -1315,8 +1339,9 @@ export function generateWeeklyMatrix(
       
       plannerWeekly[dayIndex].forEach((t: any, tIdx: number) => {
         const chap = chapters.find(c => c.id === t.chapterId);
+        const stableKey = `${t.chapterId}-${t.taskName.replace(/[^a-zA-Z0-9]/g, '-')}`;
         blocks.push({
-          id: `plan-${t.id}-${tIdx}`,
+          id: `plan-${stableKey}`,
           dayIndex,
           dayName,
           timeSlot: tIdx === 0 ? 'Morning (07:00 - 09:30)' : tIdx === 1 ? 'Afternoon (14:00 - 16:00)' : tIdx === 2 ? 'Evening (17:30 - 19:30)' : 'Night (21:30 - 22:30)',

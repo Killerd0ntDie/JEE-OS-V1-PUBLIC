@@ -21,7 +21,7 @@ export function Drawer({
   className = '',
   position = 'right',
   hideBackdrop = false,
-  backdropClassName = 'bg-black/35 backdrop-blur-sm',
+  backdropClassName = 'bg-black/10 backdrop-blur-sm',
   zIndex = 110,
 }: DrawerProps) {
   useEffect(() => {

@@ -23,11 +23,15 @@ export const MockResultRepository = {
   },
 
   async seedMockResults(userId: string, records: MockResult[]): Promise<void> {
-    const batch = writeBatch(db);
-    records.forEach(record => {
-      const mockDoc = doc(db, 'users', userId, 'mockResults', record.id);
-      batch.set(mockDoc, sanitizeForFirestore(record));
-    });
-    await batch.commit();
+    const CHUNK_SIZE = 450;
+    for (let i = 0; i < records.length; i += CHUNK_SIZE) {
+      const chunk = records.slice(i, i + CHUNK_SIZE);
+      const batch = writeBatch(db);
+      chunk.forEach(record => {
+        const mockDoc = doc(db, 'users', userId, 'mockResults', record.id);
+        batch.set(mockDoc, sanitizeForFirestore(record));
+      });
+      await batch.commit();
+    }
   }
 };

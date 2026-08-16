@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
 import { ListTodo, Check, ChevronRight, Play, Pause, CheckCircle2, Plus, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { springs } from '@/constants/motion';
+import { audioEngine } from '@/utils/audioEngine';
 
 export interface MissionChecklistWidgetProps {
   progressPercent: number;
   checklist: Record<string, boolean>;
+  activeSubject?: 'physics' | 'chemistry' | 'maths' | string;
   onToggleTask: (task: string) => void;
   isPaused: boolean;
   onTogglePause: () => void;
@@ -16,6 +20,7 @@ export interface MissionChecklistWidgetProps {
 export function MissionChecklistWidget({
   progressPercent,
   checklist,
+  activeSubject = 'physics',
   onToggleTask,
   isPaused,
   onTogglePause,
@@ -29,97 +34,178 @@ export function MissionChecklistWidget({
   const handleAddTask = () => {
     const trimmed = newTaskInput.trim();
     if (!trimmed || !onAddTask) return;
-    // Avoid duplicate keys clobbering existing checklist entries
     if (checklist[trimmed] !== undefined) {
       setNewTaskInput('');
       return;
     }
+    audioEngine.playRadioRelayClick().catch(() => {});
     onAddTask(trimmed);
     setNewTaskInput('');
   };
 
+  // Dynamic Subject Theme
+  const getTheme = () => {
+    const s = (activeSubject || '').toLowerCase();
+    if (s.includes('chem')) {
+      return {
+        accentText: 'text-emerald-400',
+        accentBg: 'bg-emerald-500/10',
+        accentBorder: 'border-emerald-500/20',
+        bar: 'bg-emerald-500',
+        checkboxActive: 'bg-emerald-500 border-emerald-400 text-white shadow-[0_0_8px_rgba(16,185,129,0.3)]',
+        doneText: 'text-emerald-400',
+        hoverBorder: 'group-hover:border-emerald-400',
+        focusBorder: 'focus:border-emerald-500',
+        buttonAdd: 'bg-emerald-600/15 hover:bg-emerald-600/30 border-emerald-500/30 text-emerald-300',
+      };
+    }
+    if (s.includes('math')) {
+      return {
+        accentText: 'text-purple-400',
+        accentBg: 'bg-purple-500/10',
+        accentBorder: 'border-purple-500/20',
+        bar: 'bg-purple-500',
+        checkboxActive: 'bg-purple-600 border-purple-500 text-white shadow-[0_0_8px_rgba(168,85,247,0.3)]',
+        doneText: 'text-purple-400',
+        hoverBorder: 'group-hover:border-purple-400',
+        focusBorder: 'focus:border-purple-500',
+        buttonAdd: 'bg-purple-600/15 hover:bg-purple-600/30 border-purple-500/30 text-purple-300',
+      };
+    }
+    // Default: Sky Blue
+    return {
+      accentText: 'text-sky-400',
+      accentBg: 'bg-sky-500/10',
+      accentBorder: 'border-sky-500/20',
+      bar: 'bg-sky-500',
+      checkboxActive: 'bg-sky-500 border-sky-400 text-white shadow-[0_0_8px_rgba(56,189,248,0.3)]',
+      doneText: 'text-sky-400',
+      hoverBorder: 'group-hover:border-sky-400',
+      focusBorder: 'focus:border-sky-500',
+      buttonAdd: 'bg-sky-600/15 hover:bg-sky-600/30 border-sky-500/30 text-sky-300',
+    };
+  };
+
+  const theme = getTheme();
+
   return (
-    <div className="w-full h-full flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-5">
+    <div className="w-full h-full flex flex-col justify-between p-5 sm:p-6 select-none text-left">
+      <div className="w-full flex-1 flex flex-col min-h-0 space-y-4">
         
-        <div className="flex flex-col gap-3 border-b border-zinc-900/60 pb-3">
+        {/* Header with Progress Bar */}
+        <div className="space-y-3 border-b border-zinc-800/80 pb-3.5 shrink-0">
           <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <ListTodo className="w-4 h-4 text-indigo-400" />
-              <span className="text-[11px] font-mono font-bold tracking-wider text-indigo-400 uppercase">
-                TODAY'S MISSION CHECKLIST
-              </span>
+            <div className="flex items-center gap-2.5">
+              <div className={`w-8 h-8 rounded-xl ${theme.accentBg} border ${theme.accentBorder} ${theme.accentText} flex items-center justify-center shadow-sm`}>
+                <ListTodo className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-xs font-mono font-bold tracking-wider text-white uppercase">
+                  任務項目 // DIRECTIVES
+                </h3>
+                <p className="text-[10px] text-zinc-500 font-mono mt-0.5">
+                  Complete targets to calibrate XP
+                </p>
+              </div>
             </div>
-            <span className="text-[10px] font-mono text-zinc-400 font-bold bg-zinc-900/80 border border-zinc-850 px-2 py-0.5 rounded">
+            <span className={`text-[11px] font-mono font-bold px-2.5 py-1 rounded-xl border shadow-sm transition-colors ${
+              progressPercent === 100 
+                ? 'bg-emerald-950/50 border-emerald-500/50 text-emerald-300 shadow-emerald-950/50' 
+                : `${theme.accentBg} ${theme.accentBorder} ${theme.accentText}`
+            }`}>
               {progressPercent}% DONE
             </span>
           </div>
           
-          {/* Top horizontal progress bar */}
-          <div className="w-full h-1.5 bg-zinc-900/60 rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-indigo-500 transition-all duration-700 ease-out" 
-              style={{ width: `${progressPercent}%` }} 
+          {/* Animated Top Progress Bar */}
+          <div className="w-full h-1.5 bg-zinc-900/90 rounded-full overflow-hidden border border-zinc-800/80">
+            <motion.div 
+              className={`h-full rounded-full transition-colors ${
+                progressPercent === 100 ? 'bg-emerald-500' : theme.bar
+              }`}
+              initial={{ width: 0 }}
+              animate={{ width: `${progressPercent}%` }}
+              transition={{ duration: 0.5, ease: 'easeOut' }}
             />
           </div>
         </div>
 
         {/* Checklist Entries */}
-        <div className="space-y-3">
+        <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-1 min-h-[140px] max-h-[320px]">
           {Object.keys(checklist).map((task) => {
             const isChecked = checklist[task];
             return (
-              <div
+              <motion.div
                 key={task}
-                onClick={() => onToggleTask(task)}
-                className={`group py-3 px-2 transition-all cursor-pointer flex items-center justify-between select-none border-b last:border-b-0 ${
+                whileHover={{ x: 2 }}
+                transition={springs.snappy}
+                onClick={() => {
+                  audioEngine.playTacticalSwitch().catch(() => {});
+                  onToggleTask(task);
+                }}
+                className={`group py-2.5 px-3.5 rounded-xl transition-all cursor-pointer flex items-center justify-between border ${
                   isChecked
-                    ? 'border-indigo-500/10 text-indigo-300'
-                    : 'border-zinc-900/60 text-zinc-400 hover:bg-white/[0.02]'
+                    ? 'border-zinc-850/50 bg-zinc-950/40 text-zinc-500'
+                    : 'border-zinc-800/80 bg-zinc-900/60 hover:bg-zinc-850/80 hover:border-zinc-700 text-zinc-200 shadow-sm'
                 }`}
               >
-                <div className="flex items-center gap-3">
-                  <div className={`w-4.5 h-4.5 rounded border flex items-center justify-center shrink-0 transition-all ${
-                    isChecked
-                      ? 'bg-indigo-600 border-indigo-500 text-white'
-                      : 'border-zinc-800 bg-transparent'
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <motion.div 
+                    whileTap={{ scale: 0.85 }}
+                    className={`w-5 h-5 rounded-lg border flex items-center justify-center shrink-0 transition-colors ${
+                      isChecked
+                        ? theme.checkboxActive
+                        : `border-zinc-700 bg-zinc-950/80 ${theme.hoverBorder}`
+                    }`}
+                  >
+                    {isChecked && (
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={springs.snappy}
+                      >
+                        <Check className="w-3.5 h-3.5 stroke-[3]" />
+                      </motion.div>
+                    )}
+                  </motion.div>
+                  <span className={`text-xs font-medium tracking-wide truncate ${
+                    isChecked ? 'line-through text-zinc-500' : 'text-zinc-200 group-hover:text-white'
                   }`}>
-                    {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
-                  </div>
-                  <span className={`text-[12px] font-medium tracking-wide ${isChecked ? 'line-through text-zinc-400' : 'text-zinc-200'}`}>
                     {task}
                   </span>
                 </div>
 
                 {/* Icon status indicator */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 shrink-0">
                   {isChecked ? (
-                    <span className="text-[10px] font-mono text-indigo-400 font-semibold uppercase tracking-wider">LOGGED ✓</span>
+                    <span className={`text-[10px] font-mono ${theme.doneText} font-bold uppercase tracking-wider`}>DONE ✓</span>
                   ) : (
-                    <ChevronRight className="w-3.5 h-3.5 text-zinc-600 hover:text-zinc-400" />
+                    <ChevronRight className="w-3.5 h-3.5 text-zinc-600 group-hover:text-zinc-400 transition-colors" />
                   )}
                   {onRemoveTask && (
-                    <button
+                    <motion.button
                       type="button"
+                      whileHover={{ scale: 1.15 }}
+                      whileTap={{ scale: 0.85 }}
                       onClick={(e) => {
                         e.stopPropagation();
                         onRemoveTask(task);
                       }}
                       title="Remove item"
-                      className="opacity-0 group-hover:opacity-100 transition-opacity text-zinc-600 hover:text-red-400 cursor-pointer"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity text-zinc-500 hover:text-red-400 p-0.5 rounded cursor-pointer"
                     >
                       <X className="w-3.5 h-3.5" />
-                    </button>
+                    </motion.button>
                   )}
                 </div>
-              </div>
+              </motion.div>
             );
           })}
         </div>
 
         {/* Add Custom Checklist Item */}
         {onAddTask && (
-          <div className="flex items-center gap-2 pt-1">
+          <div className="flex items-center gap-2 pt-1 shrink-0">
             <input
               type="text"
               value={newTaskInput}
@@ -129,52 +215,67 @@ export function MissionChecklistWidget({
                   e.preventDefault();
                   handleAddTask();
                 }
-                // Prevent the mission-mode global keyboard shortcuts (Enter/Tab/etc.)
-                // from firing while the user is typing a custom checklist item.
                 e.stopPropagation();
               }}
               placeholder="Add your own checklist item..."
-              className="flex-1 bg-zinc-900/60 border border-zinc-850 rounded-lg px-3 py-2 text-[12px] font-mono text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500 transition-all"
+              className={`flex-1 bg-zinc-900/60 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-xs font-mono text-zinc-200 placeholder:text-zinc-600 focus:outline-none ${theme.focusBorder} transition-colors shadow-inner`}
             />
-            <button
+            <motion.button
               type="button"
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.94 }}
+              transition={springs.snappy}
               onClick={handleAddTask}
               disabled={!newTaskInput.trim()}
-              className="shrink-0 flex items-center gap-1 px-3 py-2 rounded-lg bg-indigo-600/10 hover:bg-indigo-600/20 disabled:opacity-40 disabled:cursor-not-allowed border border-indigo-500/30 text-indigo-300 text-[11px] font-mono font-bold uppercase transition-colors cursor-pointer"
+              className={`shrink-0 flex items-center gap-1.5 px-4 py-2.5 rounded-xl ${theme.buttonAdd} disabled:opacity-40 disabled:cursor-not-allowed text-xs font-mono font-bold uppercase transition-colors cursor-pointer shadow-sm`}
             >
               <Plus className="w-3.5 h-3.5" />
               Add
-            </button>
+            </motion.button>
           </div>
         )}
 
-        {/* Primary Footer CTAs */}
-        <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 pt-4 mt-4">
-          <button
-            onClick={onStartPractice}
-            className="w-full sm:flex-1 py-2.5 sm:py-3 rounded-xl border border-zinc-800 bg-zinc-900/80 hover:bg-zinc-850 hover:border-zinc-700 text-zinc-300 text-[10px] sm:text-[11px] font-mono font-bold tracking-widest uppercase transition-all flex items-center justify-center gap-2 cursor-pointer"
-          >
-            <Play className="w-3.5 h-3.5 text-zinc-400" />
-            Practice Mode
-          </button>
-          <button
-            onClick={onTogglePause}
-            className="w-full sm:flex-1 py-2.5 sm:py-3 rounded-xl border border-amber-500/40 bg-amber-950/40 hover:bg-amber-900/60 text-amber-300 text-[10px] sm:text-[11px] font-mono font-bold tracking-widest uppercase transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
-          >
-            {isPaused ? <Play className="w-3.5 h-3.5 text-amber-400" /> : <Pause className="w-3.5 h-3.5 text-amber-400" />}
-            {isPaused ? 'Resume Session' : 'Pause Session'}
-          </button>
-
-          <button
-            onClick={onCompleteAll}
-            className="w-full sm:flex-1 py-2.5 sm:py-3 rounded-xl border border-emerald-500/50 bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] sm:text-[11px] font-mono font-bold tracking-widest uppercase transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-600/25"
-          >
-            <CheckCircle2 className="w-4 h-4" />
-            Complete
-          </button>
-        </div>
-
       </div>
+
+      {/* Primary Footer CTAs */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-4 border-t border-zinc-800/80 mt-4 shrink-0">
+        <motion.button
+          type="button"
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.96 }}
+          transition={springs.snappy}
+          onClick={onStartPractice}
+          className="w-full py-2.5 sm:py-3 rounded-xl border border-zinc-800 bg-zinc-900/90 hover:bg-zinc-850 text-zinc-300 hover:text-white text-[11px] font-mono font-bold tracking-wider uppercase transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+        >
+          <Play className="w-3.5 h-3.5 text-zinc-400" />
+          Practice Mode
+        </motion.button>
+
+        <motion.button
+          type="button"
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.96 }}
+          transition={springs.snappy}
+          onClick={onTogglePause}
+          className="w-full py-2.5 sm:py-3 rounded-xl border border-amber-500/40 bg-amber-950/40 hover:bg-amber-900/60 text-amber-300 text-[11px] font-mono font-bold tracking-wider uppercase transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+        >
+          {isPaused ? <Play className="w-3.5 h-3.5 text-amber-400" /> : <Pause className="w-3.5 h-3.5 text-amber-400" />}
+          {isPaused ? 'Resume Session' : 'Pause Session'}
+        </motion.button>
+
+        <motion.button
+          type="button"
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.96 }}
+          transition={springs.snappy}
+          onClick={onCompleteAll}
+          className="w-full py-2.5 sm:py-3 rounded-xl border border-emerald-500/50 bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-mono font-bold tracking-wider uppercase transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-emerald-600/20"
+        >
+          <CheckCircle2 className="w-4 h-4" />
+          Complete
+        </motion.button>
+      </div>
+
     </div>
   );
 }

@@ -138,7 +138,18 @@ export function AiCoachPage({ isActive }: { isActive?: boolean }) {
       messages
     };
 
-    localStorage.setItem('jeeos_chats', JSON.stringify(savedChats));
+    const chatArray = Object.values(savedChats).sort((a, b) => a.updatedAt - b.updatedAt);
+    if (chatArray.length > 30) {
+      const capped = chatArray.slice(-30);
+      for (const key in savedChats) delete savedChats[key];
+      capped.forEach(c => savedChats[c.id] = c);
+    }
+    
+    try {
+      localStorage.setItem('jeeos_chats', JSON.stringify(savedChats));
+    } catch (e) {
+      console.warn('Failed to save chats to local storage', e);
+    }
     refreshSessions();
   };
 
@@ -165,7 +176,17 @@ export function AiCoachPage({ isActive }: { isActive?: boolean }) {
     if (savedChatsStr) {
       const savedChats: Record<string, ChatSession> = safelyParseJSON<Record<string, ChatSession>>(savedChatsStr, {});
       delete savedChats[id];
-      localStorage.setItem('jeeos_chats', JSON.stringify(savedChats));
+      const chatArray = Object.values(savedChats).sort((a, b) => a.updatedAt - b.updatedAt);
+      if (chatArray.length > 30) {
+        const capped = chatArray.slice(-30);
+        for (const key in savedChats) delete savedChats[key];
+        capped.forEach(c => savedChats[c.id] = c);
+      }
+      try {
+        localStorage.setItem('jeeos_chats', JSON.stringify(savedChats));
+      } catch (e) {
+        console.warn('Failed to save chats to local storage', e);
+      }
       refreshSessions();
       if (sessionId === id) {
         handleNewChat();
@@ -481,6 +502,7 @@ export function AiCoachPage({ isActive }: { isActive?: boolean }) {
             value={customInput}
             onChange={(e) => setCustomInput(e.target.value)}
             placeholder="Ask AI Mentor anything..."
+            aria-label="Ask AI Mentor"
             className="flex-1 bg-transparent py-2.5 text-sm sm:text-base text-white placeholder-zinc-500 outline-none font-sans"
           />
 

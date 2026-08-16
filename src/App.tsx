@@ -5,13 +5,13 @@ import { Sidebar } from './components/layout/Sidebar';
 import { Topbar } from './components/layout/Topbar';
 import { CommandPalette } from './components/shared/CommandPalette';
 import { useStudyBrainStore } from './store/useStudyBrainStore';
-import { useAuth } from '@/features/auth';
-import { AuthPage } from './features/auth/AuthPage';
-import { PageSkeleton } from './components/shared/PageSkeleton';
+// Auth and Cockpit lazy imports will be below
+
+
 import { CockpitPage } from './features/mission/CockpitPage';
-
-
+const DevCockpitRipplePage = lazy(() => import('./features/mission/DevCockpitRipplePage').then(m => ({ default: m.DevCockpitRipplePage })));
 // Lazy-loaded Pages for Code-Splitting
+const AuthPage = lazy(() => import('./features/auth/AuthPage').then(m => ({ default: m.AuthPage })));
 const DashboardPage = lazy(() => import('./features/dashboard/DashboardPage').then(m => ({ default: m.DashboardPage })));
 const PhysicsPage = lazy(() => import('./features/subjects/PhysicsPage').then(m => ({ default: m.PhysicsPage })));
 const ChemistryPage = lazy(() => import('./features/subjects/ChemistryPage').then(m => ({ default: m.ChemistryPage })));
@@ -27,11 +27,14 @@ const SettingsPage = lazy(() => import('./features/dashboard/SettingsPage').then
 const MockTestsPage = lazy(() => import('./features/mockTests/MockTestsPage').then(m => ({ default: m.MockTestsPage })));
 const NeuralGraphPage = lazy(() => import('./features/neuralLink/NeuralGraphPage').then(m => ({ default: m.NeuralGraphPage })));
 const DiagnosticPage = lazy(() => import('./features/onboarding/DiagnosticPage').then(m => ({ default: m.DiagnosticPage })));
+// const DevDashboardPreviewPage = lazy(() => import('./features/dashboard/DevDashboardPreviewPage').then(m => ({ default: m.DevDashboardPreviewPage })));
 import { ChapterEditModal } from './components/shared/ChapterEditModal';
 import { ShortcutGuideModal } from './components/ui/ShortcutGuideModal';
 import { LevelUpCelebration } from './components/ui/LevelUpCelebration';
 import { ConfirmDeleteModal } from './components/ui/ConfirmDeleteModal';
 import { ErrorBoundary } from './components/shared/ErrorBoundary';
+import { PageSkeleton } from './components/shared/PageSkeleton';
+import { useAuth } from '@/features/auth';
 
 import { ProtectedRoute } from '@/features/auth/components/ProtectedRoute';
 
@@ -101,6 +104,7 @@ function AppLayout() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Monitor level up events
@@ -212,8 +216,8 @@ function AppLayout() {
 
       {/* Main Workspace Frame */}
       <div className={`flex-1 flex flex-col min-w-0 h-[100dvh] ${location.pathname.startsWith('/planner') || location.pathname.startsWith('/cockpit') || location.pathname.startsWith('/diagnostic') ? 'overflow-hidden' : 'overflow-y-auto scrollbar'} relative`}>
-        {/* Topbar Nav (Disabled for Planner, Cockpit, and Diagnostic pages) */}
-        {!location.pathname.startsWith('/planner') && !location.pathname.startsWith('/cockpit') && !location.pathname.startsWith('/diagnostic') && (
+        {/* Topbar Nav (Disabled for Planner and Diagnostic pages) */}
+        {!location.pathname.startsWith('/planner') && !location.pathname.startsWith('/diagnostic') && (
           <Topbar
             onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
             onOpenShortcutGuide={() => setIsShortcutGuideOpen(true)}
@@ -262,7 +266,9 @@ function AppLayout() {
                   <Suspense fallback={<PageSkeleton />}>
                     <Routes location={location} key={location.pathname}>
                       <Route path="/dashboard" element={<ErrorBoundary><DashboardPage /></ErrorBoundary>} />
+                      {/* <Route path="/dev-dashboard" element={<ErrorBoundary><DevDashboardPreviewPage /></ErrorBoundary>} /> */}
                       <Route path="/cockpit/:missionId?" element={<ErrorBoundary><CockpitPage /></ErrorBoundary>} />
+                      <Route path="/dev-cockpit" element={<ErrorBoundary><DevCockpitRipplePage /></ErrorBoundary>} />
                       <Route path="/physics" element={<ErrorBoundary><PhysicsPage /></ErrorBoundary>} />
                       <Route path="/chemistry" element={<ErrorBoundary><ChemistryPage /></ErrorBoundary>} />
                       <Route path="/maths" element={<ErrorBoundary><MathsPage /></ErrorBoundary>} />
@@ -327,7 +333,9 @@ export default function App() {
         path="/*"
         element={
           <ProtectedRoute>
-            <AppLayout />
+            <ErrorBoundary>
+              <AppLayout />
+            </ErrorBoundary>
           </ProtectedRoute>
         }
       />

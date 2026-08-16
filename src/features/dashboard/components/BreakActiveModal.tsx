@@ -68,7 +68,7 @@ export function BreakActiveModal({ isOpen, onClose, breakMission }: BreakActiveM
   const activeTip = RELAXATION_TIPS[tipIndex];
 
   return (
-    <Modal isOpen={isOpen} zIndex={120} className="max-w-lg w-full p-8 rounded-3xl bg-[#090a10] border border-amber-500/30 text-white shadow-[0_0_50px_rgba(245,158,11,0.15)] text-center relative overflow-hidden">
+    <Modal isOpen={isOpen} zIndex={120} className="max-w-lg w-full p-8 rounded-3xl border border-amber-500/30 text-white shadow-[0_0_50px_rgba(245,158,11,0.15)] text-center relative overflow-hidden glass-panel">
       {/* Background Ambient Aura */}
       <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-72 h-72 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
