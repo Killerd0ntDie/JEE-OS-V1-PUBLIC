@@ -120,7 +120,8 @@ export function ExamReadinessWidget({ targetYear, syllabusProgress, studySession
           </div>
           <div>
             <h3 className="text-sm font-bold font-mono text-white tracking-tight flex items-center gap-1.5 uppercase">
-              <span>{isDoomsday ? '警戒予測 // DOOMSDAY PACE' : isCalibrating ? '試験到達 // EXAM READINESS' : '到達弾道 // EXAM TRAJECTORY'}</span>
+              <span className="eva-japanese-badge">{isDoomsday ? '警戒予測 // ' : isCalibrating ? '試験到達 // ' : '到達弾道 // '}</span>
+              <span>{isDoomsday ? 'DOOMSDAY PACE' : isCalibrating ? 'EXAM READINESS' : 'EXAM TRAJECTORY'}</span>
             </h3>
             <p className="text-[10px] text-zinc-400 font-mono">
               {isCalibrating ? 'Calibrating Study Pace' : 'Target Velocity Engine'}
@@ -176,7 +177,7 @@ export function ExamReadinessWidget({ targetYear, syllabusProgress, studySession
           </div>
 
           <div className="space-y-0.5">
-            <span className={`text-5xl md:text-6xl font-black font-hud tracking-tight leading-none block ${isDoomsday ? 'text-rose-400' : 'text-white'}`}>
+            <span className={`text-5xl md:text-6xl font-black font-tactical tracking-wider leading-none block ${isDoomsday ? 'text-rose-400' : 'text-white'}`}>
               <AnimatedCounter value={daysRemaining} />
             </span>
             <span className="text-xs font-mono font-bold text-zinc-400 block pt-1 uppercase tracking-wider">

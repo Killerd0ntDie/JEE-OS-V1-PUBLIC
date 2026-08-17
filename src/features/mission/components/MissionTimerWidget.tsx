@@ -210,10 +210,14 @@ export const MissionTimerWidget = forwardRef<HTMLDivElement, MissionTimerWidgetP
           </span>
         </div>
         
-        {/* Massive Timer */}
+        {/* Massive Timer (Tactical Chakra Petch) */}
         <span 
-          style={{ fontFamily: '"Space Grotesk", "Inter", -apple-system, sans-serif' }}
-          className="text-4xl sm:text-5xl lg:text-6xl font-bold tabular-nums tracking-tight text-white leading-none block select-none"
+          style={{ 
+            fontFamily: 'var(--font-tactical), "Chakra Petch", sans-serif',
+            fontFeatureSettings: '"tnum" on, "zero" on',
+            letterSpacing: '0.04em'
+          }}
+          className="text-4xl sm:text-5xl lg:text-6xl font-black font-tactical tabular-nums text-white leading-none block select-none tracking-wider"
         >
           {formatTime(seconds)}
         </span>

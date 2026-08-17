@@ -120,13 +120,13 @@ export function Sidebar({
 
   const renderSidebarContent = (collapsed: boolean) => (
     <div
-      className={`h-full bg-black/45 backdrop-blur-2xl shadow-2xl border border-white/10 border-r-0 flex flex-col justify-between select-none transition-[width] duration-250 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+      className={`h-full bg-black/50 backdrop-blur-2xl shadow-2xl border-r border-zinc-800/80 flex flex-col justify-between select-none transition-[width] duration-250 ease-[cubic-bezier(0.16,1,0.3,1)] ${
         collapsed ? 'w-16 group-hover:w-64 shadow-2xl z-50' : 'w-64'
       }`}
     >
       {/* Sidebar Header / Brand */}
       <div
-        className={`h-14 border-b border-zinc-850/30 flex items-center justify-between shrink-0 bg-transparent transition-colors group/brand overflow-hidden px-2`}
+        className={`h-14 border-b border-zinc-800/60 flex items-center justify-between shrink-0 bg-transparent transition-colors group/brand overflow-hidden px-2`}
       >
         <button 
           onClick={() => {
@@ -174,7 +174,7 @@ export function Sidebar({
       </nav>
 
       {/* Footer / Leveling & User Profile */}
-      <div className={`shrink-0 border-t border-zinc-850/30 bg-transparent px-2 py-2 space-y-1.5`}>
+      <div className={`shrink-0 border-t border-zinc-800/60 bg-transparent px-2 py-2 space-y-1.5`}>
         {/* Level Progress Bar */}
         <div className={`transition-all duration-300 overflow-hidden ${collapsed ? 'h-0 opacity-0 group-hover:h-auto group-hover:opacity-100 group-hover:mb-1.5' : 'h-auto opacity-100 mb-1.5'}`}>
           <LevelProgress totalXP={xp?.total || 0} />

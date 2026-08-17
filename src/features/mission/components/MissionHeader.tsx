@@ -25,7 +25,7 @@ export function MissionHeader({
   onExit,
   animMode = 'positronSparkle',
   onAnimModeChange,
-  speedMultiplier = 0.5,
+  speedMultiplier = 0.25,
   onSpeedChange,
   onReplay,
   isZenMode = false,
@@ -246,8 +246,8 @@ export function MissionHeader({
                   <span className="text-zinc-400 font-mono">Speed Dilation:</span>
                   <div className="flex items-center gap-1 bg-zinc-900 p-0.5 rounded-lg border border-zinc-800">
                     {[
-                      { label: '0.25x', val: 0.25 },
-                      { label: '0.5x (Default)', val: 0.5 },
+                      { label: '0.25x (Default)', val: 0.25 },
+                      { label: '0.5x', val: 0.5 },
                       { label: '1x', val: 1 }
                     ].map(spd => (
                       <button

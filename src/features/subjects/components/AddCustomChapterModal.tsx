@@ -165,8 +165,8 @@ export function AddCustomChapterModal({ isOpen, onClose, defaultSubject, default
             <div>
               <label className="text-[10px] text-zinc-400 block mb-1 uppercase font-bold tracking-wide">Serial Number *</label>
               <input
-                type="number"
-                value={serialNumber === 0 ? '' : serialNumber} placeholder="0"
+                type="text"
+                value={serialNumber}
                 onChange={(e) => setSerialNumber(e.target.value)}
                 placeholder="e.g. 02"
                 className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500"

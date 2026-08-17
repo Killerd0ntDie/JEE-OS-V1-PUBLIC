@@ -79,7 +79,7 @@ export function SmartRevisionQueueWidget({
             </div>
             <div>
               <h3 className="text-sm font-bold font-mono text-white tracking-tight uppercase">
-                記憶同期 // REVISION QUEUE
+                <span className="eva-japanese-badge">記憶同期 // </span>REVISION QUEUE
               </h3>
               <p className="text-[10px] text-zinc-400 font-mono">
                 SM-2 Active Recall Engine

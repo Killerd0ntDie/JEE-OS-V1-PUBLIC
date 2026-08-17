@@ -311,18 +311,7 @@ export function DailyMissionTimeline({
 
             {/* Right: Actions */}
             <div className="flex items-center gap-1.5 text-xs">
-              <motion.button
-                type="button"
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.95 }}
-                transition={springs.snappy}
-                onClick={() => navigate('/dev-cockpit')}
-                className="px-2 py-1 text-indigo-300 hover:text-indigo-100 bg-indigo-950/40 hover:bg-indigo-900/50 border border-indigo-500/30 rounded-lg flex items-center gap-1.5 cursor-pointer transition-colors shadow-sm font-mono text-xs"
-                title="Preview Ripple Wave Transition Dev Page"
-              >
-                <Sparkles className="w-3 h-3 text-indigo-400 animate-pulse" />
-                <span className="hidden sm:inline">Ripple Dev</span>
-              </motion.button>
+
 
               <motion.button
                 type="button"

@@ -220,9 +220,9 @@ export const CustomMissionModal: React.FC<CustomMissionModalProps> = ({ isOpen, 
             <label className="text-xs font-mono uppercase tracking-wider text-zinc-400 font-semibold block">Target Questions (Optional)</label>
             <input 
               type="number" 
+              value={targetPYQs === 0 ? '' : targetPYQs}
               placeholder="e.g., 20"
-              value={targetPYQs === 0 ? '' : targetPYQs} placeholder="0"
-              onChange={e => setTargetPYQs(e.target.value === '' ? '' : parseInt(e.target.value))}
+              onChange={e => setTargetPYQs(e.target.value === '' ? '' : parseInt(e.target.value) || 0)}
               className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white font-mono text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500 transition-colors"
             />
           </div>

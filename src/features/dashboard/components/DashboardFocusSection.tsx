@@ -71,8 +71,26 @@ export function DashboardFocusSection({
   const todayStudyMinutes = useMemo(() => getTodayStudyMinutes(studySessions || []), [studySessions]);
 
   const tabs = [
-    { id: 'focus', label: "焦点復習 // Focus & Revision", icon: Target },
-    { id: 'analytics', label: '分析評価 // Analytics & Trajectory', icon: BarChart3 },
+    { 
+      id: 'focus', 
+      label: (
+        <span>
+          <span className="eva-japanese-badge">焦点復習 // </span>
+          <span>Focus & Revision</span>
+        </span>
+      ), 
+      icon: Target 
+    },
+    { 
+      id: 'analytics', 
+      label: (
+        <span>
+          <span className="eva-japanese-badge">分析評価 // </span>
+          <span>Analytics & Trajectory</span>
+        </span>
+      ), 
+      icon: BarChart3 
+    },
   ];
 
   const handleTabChange = (newTabId: 'focus' | 'analytics') => {
@@ -128,7 +146,8 @@ export function DashboardFocusSection({
         </div>
 
         <span className="text-xs text-zinc-400 font-mono hidden sm:inline-block">
-          {activeTab === 'focus' ? 'MAGI // ACTIVE REVISION QUEUE' : 'MAGI // SYLLABUS TRAJECTORY MATRIX'}
+          <span className="eva-japanese-badge">MAGI // </span>
+          <span>{activeTab === 'focus' ? 'ACTIVE REVISION QUEUE' : 'SYLLABUS TRAJECTORY MATRIX'}</span>
         </span>
       </div>
 

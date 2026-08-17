@@ -58,9 +58,37 @@ export function DashboardHeader({
       {/* AMBIENT COMPACT GREETING HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left px-0.5 pt-0.5 pb-0">
         <div className="space-y-1">
-          {/* MODERN GREETING */}
-          <h1 className="text-xl sm:text-2xl font-tactical font-black tracking-tight text-white flex items-center gap-2">
-            <span className="text-zinc-400 font-normal">{getGreeting()},</span>
+          {/* MODERN GREETING WITH CLEAN ATMOSPHERIC TIME-OF-DAY ACCENT */}
+          <h1 className="text-xl sm:text-2xl font-tactical font-black tracking-tight text-white flex items-center gap-2 flex-wrap">
+            {(() => {
+              const hour = new Date().getHours();
+              if (hour >= 4 && hour < 12) {
+                return (
+                  <span className="font-normal bg-gradient-to-r from-yellow-300 to-amber-400 bg-clip-text text-transparent">
+                    Good morning,
+                  </span>
+                );
+              }
+              if (hour >= 12 && hour < 17) {
+                return (
+                  <span className="font-normal bg-gradient-to-r from-sky-400 to-cyan-300 bg-clip-text text-transparent">
+                    Good afternoon,
+                  </span>
+                );
+              }
+              if (hour >= 17 && hour < 22) {
+                return (
+                  <span className="font-normal bg-gradient-to-r from-amber-400 via-amber-300 to-orange-400 bg-clip-text text-transparent">
+                    Good evening,
+                  </span>
+                );
+              }
+              return (
+                <span className="font-normal bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+                  Good night,
+                </span>
+              );
+            })()}
             <span className="font-extrabold text-zinc-100">{userName}</span>
           </h1>
 

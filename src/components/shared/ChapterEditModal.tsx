@@ -665,8 +665,8 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
                         <div className="p-4 rounded-2xl border border-zinc-850/80 bg-zinc-950/60 space-y-1.5">
                           <label className="block text-zinc-400 uppercase text-[10px] font-bold tracking-wider">Serial Number (Sorting)</label>
                           <input
-                            type="number"
-                            value={serialNumber === 0 ? '' : serialNumber} placeholder="0"
+                            type="text"
+                            value={serialNumber}
                             onChange={(e) => setSerialNumber(e.target.value)}
                             placeholder="e.g. 05"
                             className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3.5 py-2 text-xs text-white placeholder-zinc-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500 font-mono"

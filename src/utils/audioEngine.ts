@@ -65,54 +65,181 @@ class AudioEngine {
   }
 
   /**
-   * ⚡ Kinetic Pre-Glance Sound: Anime Laser Charge Glint ("shiiing!")
-   * Plays during the 0.15s moment the singularity sparkles from Expand -> Squeeze.
+   * 🌟 EVANGELION COCKPIT INTRO FLOURISH (Anacrusis / Pickup into "A Cruel Angel's Thesis")
+   * Synthesized using the exact same instrument timbre, tuning, and harmonics as the upcoming theme:
+   * - Maths (Unit-01): Brass-Piano Ascending Arpeggio (G3 -> Bb3 -> D4 -> G4 shimmer)
+   * - Physics (Unit-00): Celestial Glass Crystal Flourish (E4 -> G4 -> B4 -> E5 shimmer)
+   * - Chemistry (Unit-02): Punchy Horn Ignition Swell (B3 -> D4 -> F#4 -> B4 shimmer)
+   * Seamlessly blooms and resolves directly into the first note ("Zan-") of A Cruel Angel's Thesis!
    */
-  public async playAnimeLaserCharge() {
+  /**
+   * 🌟 EVANGELION COCKPIT INTRO & LINGERING HARMONIC BED (Anacrusis / Pickup into "A Cruel Angel's Thesis")
+   * Synthesized using the exact same instrument timbre, tuning, and harmonics as the upcoming theme:
+   * 1. Lingering Harmonic Ambient Drone (Sustains 2.2s in subject fundamental key: C Minor / A Minor / E Minor)
+   * 2. Subject-Tuned Ascending Arpeggio Flourish (G3 -> Bb3 -> D4 -> G4 shimmer)
+   * 3. Reverse-Filter Swell & Crystalline Octave Glint
+   * 4. Optional Tactical Fighter Jet Seeker HUD Tone Overlay for Missile Lock Mode
+   */
+  public async playAnimeLaserCharge(subject: SubjectThemeKey = 'maths', animMode?: string) {
     await this.init();
-    if (!this.ctx || !this.masterGain || !this.noiseBuffer) return;
+    if (!this.ctx || !this.masterGain) return;
     const t = this.ctx.currentTime;
+    const s = String(subject || '').toLowerCase();
 
-    // 1. High-Frequency Resonant Laser Sweep (1200Hz -> 3800Hz)
-    const osc = this.ctx.createOscillator();
-    const filter = this.ctx.createBiquadFilter();
-    const gain = this.ctx.createGain();
+    let pickupNotes: { freq: number; time: number; dur: number }[];
+    let rootFreq: number;
+    let droneFreqs: number[];
+    let timbre: 'brassPiano' | 'celestialGlass' | 'punchyHorn' = 'brassPiano';
 
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(1200, t);
-    osc.frequency.exponentialRampToValueAtTime(3800, t + 0.14);
+    if (s.includes('phys')) {
+      // Physics (Unit-00): Celestial A Minor dominant pickup & lingering A Minor drone
+      pickupNotes = [
+        { freq: 329.63, time: 0.00, dur: 0.10 }, // E4
+        { freq: 392.00, time: 0.10, dur: 0.10 }, // G4
+        { freq: 493.88, time: 0.20, dur: 0.12 }, // B4
+        { freq: 659.25, time: 0.32, dur: 0.28 }, // E5 (Glint)
+      ];
+      rootFreq = 220.00; // A3 swell
+      droneFreqs = [110.00, 220.00, 329.63]; // A2, A3, E4
+      timbre = 'celestialGlass';
+    } else if (s.includes('chem')) {
+      // Chemistry (Unit-02): Energetic E Minor dominant pickup & lingering E Minor drone
+      pickupNotes = [
+        { freq: 246.94, time: 0.00, dur: 0.10 }, // B3
+        { freq: 293.66, time: 0.10, dur: 0.10 }, // D4
+        { freq: 369.99, time: 0.20, dur: 0.12 }, // F#4
+        { freq: 493.88, time: 0.32, dur: 0.28 }, // B4 (Glint)
+      ];
+      rootFreq = 164.81; // E3 swell
+      droneFreqs = [82.41, 164.81, 246.94]; // E2, E3, B3
+      timbre = 'punchyHorn';
+    } else {
+      // Maths (Unit-01): Authentic C Minor dominant pickup & lingering C Minor drone
+      pickupNotes = [
+        { freq: 196.00, time: 0.00, dur: 0.10 }, // G3
+        { freq: 233.08, time: 0.10, dur: 0.10 }, // Bb3
+        { freq: 293.66, time: 0.20, dur: 0.12 }, // D4
+        { freq: 392.00, time: 0.32, dur: 0.28 }, // G4 (Glint)
+      ];
+      rootFreq = 130.81; // C3 swell
+      droneFreqs = [65.41, 130.81, 196.00]; // C2, C3, G3
+      timbre = 'brassPiano';
+    }
 
-    filter.type = 'bandpass';
-    filter.frequency.setValueAtTime(1400, t);
-    filter.frequency.exponentialRampToValueAtTime(4200, t + 0.14);
-    filter.Q.value = 8.5; // High resonant bite
+    // 1. Lingering Harmonic Drone / Ambient Resonance Bed (Sustains 2.2s beneath the song entry)
+    droneFreqs.forEach((freq, idx) => {
+      if (!this.ctx || !this.masterGain) return;
+      const osc = this.ctx.createOscillator();
+      const oscWarmth = this.ctx.createOscillator();
+      const droneGain = this.ctx.createGain();
+      const filter = this.ctx.createBiquadFilter();
 
-    gain.gain.setValueAtTime(0.001, t);
-    gain.gain.linearRampToValueAtTime(0.55, t + 0.08);
-    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, t);
 
-    osc.connect(filter);
-    filter.connect(gain);
-    gain.connect(this.masterGain);
+      oscWarmth.type = 'sine';
+      oscWarmth.frequency.setValueAtTime(freq * 1.002, t); // gentle chorus shimmer
 
-    osc.start(t);
-    osc.stop(t + 0.17);
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(320, t);
+      filter.frequency.exponentialRampToValueAtTime(1400, t + 0.45);
+      filter.frequency.exponentialRampToValueAtTime(450, t + 2.2);
 
-    // 2. Crystal Sparkle Whistle
-    const chimeOsc = this.ctx.createOscillator();
-    const chimeGain = this.ctx.createGain();
-    chimeOsc.type = 'sine';
-    chimeOsc.frequency.setValueAtTime(2400, t);
-    chimeOsc.frequency.exponentialRampToValueAtTime(5600, t + 0.14);
+      // Smooth atmospheric envelope: gently ramps in, stays warm, slowly decays
+      droneGain.gain.setValueAtTime(0.001, t);
+      droneGain.gain.linearRampToValueAtTime(0.20 / (idx + 1), t + 0.35);
+      droneGain.gain.exponentialRampToValueAtTime(0.0001, t + 2.4);
 
-    chimeGain.gain.setValueAtTime(0.001, t);
-    chimeGain.gain.linearRampToValueAtTime(0.35, t + 0.07);
-    chimeGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
+      osc.connect(filter);
+      oscWarmth.connect(filter);
+      filter.connect(droneGain);
+      droneGain.connect(this.masterGain);
 
-    chimeOsc.connect(chimeGain);
-    chimeGain.connect(this.masterGain);
-    chimeOsc.start(t);
-    chimeOsc.stop(t + 0.17);
+      osc.start(t);
+      oscWarmth.start(t);
+      osc.stop(t + 2.5);
+      oscWarmth.stop(t + 2.5);
+    });
+
+    // 2. Special: Tactical Fighter Jet Missile Lock-On Tone Overlay
+    if (animMode === 'missileLock') {
+      [0.00, 0.12].forEach(offset => {
+        const chirpOsc = this.ctx!.createOscillator();
+        const chirpGain = this.ctx!.createGain();
+        chirpOsc.type = 'sawtooth';
+        chirpOsc.frequency.setValueAtTime(880, t + offset);
+        chirpOsc.frequency.linearRampToValueAtTime(1174, t + offset + 0.045);
+
+        chirpGain.gain.setValueAtTime(0.001, t + offset);
+        chirpGain.gain.linearRampToValueAtTime(0.20, t + offset + 0.01);
+        chirpGain.gain.exponentialRampToValueAtTime(0.001, t + offset + 0.05);
+
+        chirpOsc.connect(chirpGain);
+        chirpGain.connect(this.masterGain!);
+        chirpOsc.start(t + offset);
+        chirpOsc.stop(t + offset + 0.055);
+      });
+
+      // Solid High-Frequency Target Lock Tone (1760Hz Fox-3 Beep into lingering reverb)
+      const lockOsc = this.ctx.createOscillator();
+      const lockGain = this.ctx.createGain();
+      lockOsc.type = 'sine';
+      lockOsc.frequency.setValueAtTime(1760, t + 0.22);
+
+      lockGain.gain.setValueAtTime(0.001, t + 0.22);
+      lockGain.gain.linearRampToValueAtTime(0.25, t + 0.24);
+      lockGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.65);
+
+      lockOsc.connect(lockGain);
+      lockGain.connect(this.masterGain);
+      lockOsc.start(t + 0.22);
+      lockOsc.stop(t + 0.68);
+    }
+
+    // 3. Ascending Arpeggio Lead (Matches exact instrument tone of the main melody)
+    pickupNotes.forEach(note => {
+      this.playDistinctMelodyNote(note.freq, t + note.time, note.dur, true, timbre);
+    });
+
+    // 4. Harmonic Reverse-Filter Swell into Downbeat
+    const swellOsc = this.ctx.createOscillator();
+    const swellGain = this.ctx.createGain();
+    const swellFilter = this.ctx.createBiquadFilter();
+
+    swellOsc.type = 'triangle';
+    swellOsc.frequency.setValueAtTime(rootFreq, t);
+    swellOsc.frequency.exponentialRampToValueAtTime(rootFreq * 2, t + 0.42);
+
+    swellFilter.type = 'lowpass';
+    swellFilter.frequency.setValueAtTime(250, t);
+    swellFilter.frequency.exponentialRampToValueAtTime(3200, t + 0.40);
+    swellFilter.Q.value = 2.5;
+
+    swellGain.gain.setValueAtTime(0.001, t);
+    swellGain.gain.linearRampToValueAtTime(0.22, t + 0.35);
+    swellGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.55);
+
+    swellOsc.connect(swellFilter);
+    swellFilter.connect(swellGain);
+    swellGain.connect(this.masterGain);
+
+    swellOsc.start(t);
+    swellOsc.stop(t + 0.58);
+
+    // 5. Shimmering Crystal Sparkle on the peak note
+    const sparkleOsc = this.ctx.createOscillator();
+    const sparkleGain = this.ctx.createGain();
+    sparkleOsc.type = 'sine';
+    sparkleOsc.frequency.setValueAtTime(pickupNotes[pickupNotes.length - 1].freq * 2, t + 0.32);
+
+    sparkleGain.gain.setValueAtTime(0.001, t + 0.32);
+    sparkleGain.gain.linearRampToValueAtTime(0.18, t + 0.35);
+    sparkleGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.60);
+
+    sparkleOsc.connect(sparkleGain);
+    sparkleGain.connect(this.masterGain);
+    sparkleOsc.start(t + 0.32);
+    sparkleOsc.stop(t + 0.62);
   }
 
   /**

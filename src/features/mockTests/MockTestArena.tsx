@@ -506,7 +506,7 @@ export function MockTestArena({ test, onComplete, onExit }: MockTestArenaProps) 
                   </label>
                   <input 
                     type="number"
-                    value={currentAnswer === 0 ? '' : currentAnswer} placeholder="0"
+                    value={currentAnswer}
                     onChange={(e) => setCurrentAnswer(e.target.value)}
                     placeholder="e.g. 40"
                     className="w-full bg-[#121318] border border-zinc-700 focus:border-indigo-500 rounded-xl px-4 py-3 text-lg font-mono text-white focus:outline-none transition-colors"

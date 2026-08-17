@@ -5,6 +5,7 @@ import { audioEngine } from '@/utils/audioEngine';
 
 export type CockpitAnimMode = 
   | 'positronSparkle'
+  | 'missileLock'
   | 'lclFluid' 
   | 'neuralSynapse' 
   | 'hexArray' 
@@ -27,6 +28,7 @@ export interface CockpitTransitionEngineProps {
 
 export const ANIM_MODES_META: Record<CockpitAnimMode, { label: string; desc: string }> = {
   positronSparkle: { label: 'Anime Pulse Sparkle', desc: 'Expand -> Implode -> Mega-Expand Singularity' },
+  missileLock: { label: 'Missile Lock-On', desc: 'Fighter Jet HUD reticle snap, lead crosshairs & FOX-3 launch' },
   lclFluid: { label: 'LCL Fluid Immersion', desc: 'Rising golden liquid & effervescent bubbles' },
   neuralSynapse: { label: 'Neural Synapse Arc', desc: 'Dual brainwave spark nodes & fractal perimeter lightning' },
   hexArray: { label: 'Hex Honeycomb Array', desc: '7-tile honeycomb rosette assembly & matrix lock' },
@@ -41,7 +43,7 @@ export const ANIM_MODES_META: Record<CockpitAnimMode, { label: string; desc: str
 export function CockpitTransitionEngine({
   activeSubject = 'physics',
   animMode = 'positronSparkle',
-  speedMultiplier = 0.5,
+  speedMultiplier = 0.25,
   originCoords,
   stage,
   onStageChange,
@@ -82,8 +84,8 @@ export function CockpitTransitionEngine({
 
   useEffect(() => {
     onStageChange('standby');
-    // Kinetic Laser Charge Glint ("shiiing!") on Expand -> Squeeze
-    audioEngine.playAnimeLaserCharge().catch(() => {});
+    // Tactical Evangelion Entry Stinger & AT-Field Resonance Glint
+    audioEngine.playAnimeLaserCharge(activeSubject, animMode).catch(() => {});
 
     if (animMode === 'awakened') {
       const magiTimer = setTimeout(() => {
@@ -112,6 +114,7 @@ export function CockpitTransitionEngine({
 
         const duration = (
           animMode === 'positronSparkle' ? 520 :
+          animMode === 'missileLock' ? 480 :
           animMode === 'lclFluid' ? 440 :
           animMode === 'neuralSynapse' ? 400 :
           animMode === 'hexArray' ? 420 :
@@ -126,7 +129,7 @@ export function CockpitTransitionEngine({
         }, duration);
 
         return () => clearTimeout(revealTimer);
-      }, 120 / speedMultiplier);
+      }, 360 / speedMultiplier);
 
       return () => clearTimeout(activeTimer);
     }
@@ -215,6 +218,8 @@ export function CockpitTransitionEngine({
               <span>
                 {animMode === 'positronSparkle'
                   ? '[ ANIME SINGULARITY // EXPAND-SHRINK-EXPAND ]'
+                  : animMode === 'missileLock'
+                  ? '[ TACTICAL MISSILE LOCK // FOX 3 ARMED ]'
                   : animMode === 'lclFluid'
                   ? '[ LCL LIQUID INJECTION : 100% // IMMERSION ]'
                   : animMode === 'neuralSynapse'
@@ -248,110 +253,98 @@ export function CockpitTransitionEngine({
                       key={`inflow-spark-${i}`}
                       initial={{ x: Math.cos(rad) * dist, y: Math.sin(rad) * dist, scale: 0, opacity: 0 }}
                       animate={{ 
-                        x: [Math.cos(rad) * dist, Math.cos(rad) * (dist * 0.7), 0, 0], 
-                        y: [Math.sin(rad) * dist, Math.sin(rad) * (dist * 0.7), 0, 0], 
-                        scale: [0, 1.2, 0.3, 0], 
-                        opacity: [0, 0.9, 1, 0] 
+                        x: [Math.cos(rad) * dist, 0, Math.cos(rad) * (dist * 1.5)], 
+                        y: [Math.sin(rad) * dist, 0, Math.sin(rad) * (dist * 1.5)],
+                        scale: [0, 1.2, 0],
+                        opacity: [0, 0.9, 0]
                       }}
                       transition={{ 
                         duration: 0.5 / speedMultiplier, 
-                        times: [0, 0.28, 0.58, 1],
+                        times: [0, 0.45, 1],
                         delay: (i * 0.01) / speedMultiplier, 
-                        ease: [0.16, 1, 0.3, 1] 
+                        ease: "easeInOut" 
                       }}
-                      className="absolute w-2 h-2 rounded-full"
-                      style={{
-                        backgroundColor: i % 2 === 0 ? '#38bdf8' : '#c084fc',
-                        boxShadow: `0 0 10px ${i % 2 === 0 ? '#38bdf8' : '#c084fc'}`
-                      }}
+                      className="absolute w-1.5 h-1.5 rounded-full bg-cyan-300 shadow-[0_0_8px_#38bdf8]"
                     />
                   );
                 })}
 
-                {/* Caliper Rings */}
+                {/* Outer Pulsing Compression Rings */}
                 <motion.div
-                  initial={{ scale: 0, rotate: 0, opacity: 0 }}
+                  initial={{ scale: 0, opacity: 0 }}
                   animate={{ 
-                    scale: [0, 1.4, 0.2, 2.2, 0], 
-                    rotate: [0, 45, 180, 360, 420], 
-                    opacity: [0, 0.85, 0.3, 0.9, 0] 
+                    scale: [0, 1.4, 0.25, 2.8, 4.0], 
+                    opacity: [0, 0.9, 0.4, 0.95, 0] 
                   }}
                   transition={{ duration: 0.5 / speedMultiplier, times: [0, 0.28, 0.55, 0.85, 1], ease: "easeInOut" }}
-                  style={{ width: `${radius * 1.5}px`, height: `${radius * 1.5}px` }}
-                  className="absolute rounded-full border border-dashed border-sky-400/60"
+                  className="absolute w-36 h-36 rounded-full border-2 border-cyan-400/80 shadow-[0_0_24px_rgba(56,189,248,0.6)]"
                 />
+
                 <motion.div
-                  initial={{ scale: 0, rotate: 0, opacity: 0 }}
+                  initial={{ scale: 0, opacity: 0 }}
                   animate={{ 
-                    scale: [0, 1.1, 0.15, 1.8, 0], 
-                    rotate: [0, -45, -180, -360, -420], 
-                    opacity: [0, 0.9, 0.4, 1, 0] 
+                    scale: [0, 1.1, 0.18, 2.2, 3.4], 
+                    opacity: [0, 0.8, 0.3, 0.85, 0] 
                   }}
                   transition={{ duration: 0.5 / speedMultiplier, times: [0, 0.28, 0.55, 0.85, 1], ease: "easeInOut" }}
-                  style={{ width: `${radius}px`, height: `${radius}px` }}
-                  className="absolute rounded-full border border-purple-400/70"
+                  className="absolute w-28 h-28 rounded-full border border-indigo-400/90 shadow-[0_0_20px_rgba(99,102,241,0.5)]"
                 />
 
-                {/* Anamorphic Horizontal Needle Flare */}
-                <motion.div
-                  initial={{ width: 0, height: '2px', opacity: 0 }}
-                  animate={{ 
-                    width: ['0px', '160px', '12px', '320px', '0px'],
-                    height: ['2px', '3px', '1px', '4px', '0px'],
-                    opacity: [0, 0.95, 0.6, 1, 0] 
-                  }}
-                  transition={{ 
-                    duration: 0.5 / speedMultiplier, 
-                    times: [0, 0.28, 0.55, 0.85, 1],
-                    ease: [0.16, 1, 0.3, 1] 
-                  }}
-                  className="absolute rounded-full"
-                  style={{
-                    background: 'linear-gradient(90deg, transparent, #38bdf8, #ffffff, #c084fc, transparent)',
-                    boxShadow: '0 0 15px rgba(56, 189, 248, 0.8), 0 0 30px rgba(192, 132, 252, 0.6)'
-                  }}
-                />
+                {/* 4 Concentric Cardinal Energy Blades */}
+                {[0, 90, 180, 270].map((deg, i) => (
+                  <motion.div
+                    key={`cardinal-blade-${i}`}
+                    initial={{ scaleY: 0, opacity: 0 }}
+                    animate={{ 
+                      scaleY: [0, 1.5, 0.1, 3.2, 0], 
+                      opacity: [0, 0.9, 0.4, 1, 0] 
+                    }}
+                    transition={{ 
+                      duration: 0.5 / speedMultiplier, 
+                      times: [0, 0.28, 0.55, 0.85, 1], 
+                      ease: "easeInOut" 
+                    }}
+                    style={{ transform: `rotate(${deg}deg)` }}
+                    className="absolute w-1 h-32 bg-gradient-to-t from-transparent via-cyan-300 to-transparent shadow-[0_0_12px_#38bdf8]"
+                  />
+                ))}
 
-                {/* Vertical Needle Flare */}
-                <motion.div
-                  initial={{ height: 0, width: '2px', opacity: 0 }}
-                  animate={{ 
-                    height: ['0px', '110px', '8px', '220px', '0px'],
-                    width: ['2px', '3px', '1px', '4px', '0px'],
-                    opacity: [0, 0.95, 0.6, 1, 0] 
-                  }}
-                  transition={{ 
-                    duration: 0.5 / speedMultiplier, 
-                    times: [0, 0.28, 0.55, 0.85, 1],
-                    ease: [0.16, 1, 0.3, 1] 
-                  }}
-                  className="absolute rounded-full"
-                  style={{
-                    background: 'linear-gradient(180deg, transparent, #38bdf8, #ffffff, #c084fc, transparent)',
-                    boxShadow: '0 0 12px rgba(56, 189, 248, 0.8)'
-                  }}
-                />
+                {/* 4 Diagonal Kinetic Prongs */}
+                {[45, 135, 225, 315].map((deg, i) => (
+                  <motion.div
+                    key={`diag-blade-${i}`}
+                    initial={{ scaleY: 0, opacity: 0 }}
+                    animate={{ 
+                      scaleY: [0, 1.2, 0.08, 2.6, 0], 
+                      opacity: [0, 0.7, 0.3, 0.85, 0] 
+                    }}
+                    transition={{ 
+                      duration: 0.5 / speedMultiplier, 
+                      times: [0, 0.28, 0.55, 0.85, 1], 
+                      ease: "easeInOut" 
+                    }}
+                    style={{ transform: `rotate(${deg}deg)` }}
+                    className="absolute w-0.5 h-24 bg-gradient-to-t from-transparent via-indigo-300 to-transparent"
+                  />
+                ))}
 
-                {/* 45° Diagonal Cross Rays */}
+                {/* Rotating High-Tech Reticle */}
                 <motion.div
-                  initial={{ scale: 0, rotate: 45, opacity: 0 }}
+                  initial={{ rotate: 0, scale: 0, opacity: 0 }}
                   animate={{ 
-                    scale: [0, 1.4, 0.1, 2.8, 0], 
-                    rotate: [45, 90, 225, 360, 405],
-                    opacity: [0, 0.85, 0.5, 0.95, 0] 
+                    rotate: [0, 90, 270, 450], 
+                    scale: [0, 1.3, 0.2, 2.4, 0],
+                    opacity: [0, 0.8, 0.3, 0.9, 0]
                   }}
                   transition={{ 
                     duration: 0.5 / speedMultiplier, 
                     times: [0, 0.28, 0.55, 0.85, 1],
                     ease: "easeInOut" 
                   }}
-                  className="absolute w-28 h-28 flex items-center justify-center"
-                >
-                  <div className="w-full h-0.5 bg-gradient-to-r from-transparent via-white to-transparent" />
-                  <div className="h-full w-0.5 bg-gradient-to-b from-transparent via-white to-transparent absolute" />
-                </motion.div>
+                  className="absolute w-24 h-24 rounded-full border border-dashed border-cyan-300/80"
+                />
 
-                {/* Singularity Diamond Star */}
+                {/* Dynamic Center Anime Star Singularity */}
                 <motion.div
                   initial={{ scale: 0, rotate: 0 }}
                   animate={{ 
@@ -369,6 +362,173 @@ export function CockpitTransitionEngine({
                     boxShadow: '0 0 16px 4px #ffffff, 0 0 28px 8px #38bdf8'
                   }}
                 />
+              </div>
+            )}
+
+            {/* 2. TACTICAL FIGHTER JET MISSILE LOCK-ON HUD */}
+            {animMode === 'missileLock' && (
+              <div className="absolute flex items-center justify-center pointer-events-none">
+                {/* Tactical Circular Seeker Gimbal Reticle */}
+                <motion.div
+                  initial={{ scale: 2.4, opacity: 0, rotate: -45 }}
+                  animate={{ 
+                    scale: [2.4, 1.2, 0.95, 1.05, 3.2], 
+                    opacity: [0, 0.85, 1, 1, 0], 
+                    rotate: [-45, 0, 90, 180, 270] 
+                  }}
+                  transition={{ 
+                    duration: 0.48 / speedMultiplier, 
+                    times: [0, 0.25, 0.6, 0.85, 1], 
+                    ease: "easeInOut" 
+                  }}
+                  className="absolute rounded-full border border-dashed border-emerald-400/80 flex items-center justify-center"
+                  style={{
+                    width: 200,
+                    height: 200,
+                    boxShadow: `0 0 30px rgba(16, 185, 129, 0.35)`,
+                  }}
+                >
+                  {/* 4 Cardinal Seeker Brackets */}
+                  {['top-0 left-1/2 -translate-x-1/2 -translate-y-1/2', 'bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2', 'left-0 top-1/2 -translate-y-1/2 -translate-x-1/2', 'right-0 top-1/2 -translate-y-1/2 translate-x-1/2'].map((pos, i) => (
+                    <div key={`bracket-${i}`} className={`absolute w-3 h-3 border-2 border-emerald-400 ${pos}`} />
+                  ))}
+                </motion.div>
+
+                {/* Target Acquisition Diamond & Fast Converging Box */}
+                <motion.div
+                  initial={{ scale: 3, opacity: 0 }}
+                  animate={{ 
+                    scale: [3, 1.3, 0.8, 1, 0], 
+                    opacity: [0, 1, 1, 1, 0] 
+                  }}
+                  transition={{ 
+                    duration: 0.45 / speedMultiplier, 
+                    times: [0, 0.3, 0.65, 0.85, 1], 
+                    ease: [0.16, 1, 0.3, 1] 
+                  }}
+                  className="absolute flex items-center justify-center"
+                >
+                  {/* Corner Brackets for Lock Box */}
+                  <div className="relative w-24 h-24 flex items-center justify-center">
+                    <div className="absolute top-0 left-0 w-3.5 h-3.5 border-t-2 border-l-2 border-amber-400" />
+                    <div className="absolute top-0 right-0 w-3.5 h-3.5 border-t-2 border-r-2 border-amber-400" />
+                    <div className="absolute bottom-0 left-0 w-3.5 h-3.5 border-b-2 border-l-2 border-amber-400" />
+                    <div className="absolute bottom-0 right-0 w-3.5 h-3.5 border-b-2 border-r-2 border-amber-400" />
+                    
+                    {/* Flashing Target Diamond */}
+                    <motion.div
+                      animate={{ rotate: 45, scale: [0.8, 1.1, 0.9, 1.2] }}
+                      transition={{ repeat: Infinity, duration: 0.15 / speedMultiplier }}
+                      className="w-8 h-8 border-2 border-rose-500 bg-rose-500/15 shadow-[0_0_15px_rgba(244,63,94,0.7)]"
+                    />
+                  </div>
+                </motion.div>
+
+                {/* Lead Computing Crosshairs & Precision Center Pip */}
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.5 }}
+                  animate={{ opacity: [0, 1, 1, 0], scale: [0.5, 1, 1.2, 0] }}
+                  transition={{ duration: 0.45 / speedMultiplier, times: [0, 0.2, 0.85, 1] }}
+                  className="absolute flex items-center justify-center"
+                >
+                  <div className="w-16 h-0.5 bg-emerald-400 shadow-[0_0_8px_#34d399]" />
+                  <div className="h-16 w-0.5 bg-emerald-400 shadow-[0_0_8px_#34d399] absolute" />
+                  <div className="w-2.5 h-2.5 rounded-full border border-emerald-300 absolute animate-ping" />
+                </motion.div>
+
+                {/* Fighter Jet HUD Flight Data Readout Overlay */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: [0, 1, 1, 0] }}
+                  transition={{ duration: 0.45 / speedMultiplier, times: [0, 0.2, 0.85, 1] }}
+                  className="absolute font-mono text-[9px] font-black tracking-widest text-emerald-400 flex flex-col gap-1 pointer-events-none"
+                  style={{
+                    transform: 'translate(70px, -55px)',
+                    textShadow: '0 0 8px rgba(16, 185, 129, 0.8)'
+                  }}
+                >
+                  <div className="flex items-center gap-1.5 text-rose-400 animate-pulse font-extrabold text-[10px]">
+                    <span>LOCK-ON</span>
+                    <span className="bg-rose-500 text-black px-1 rounded-xs">FOX-3</span>
+                  </div>
+                  <div>RNG: 8.4 NM</div>
+                  <div>MACH: 2.65</div>
+                  <div>G-LOAD: 8.2G</div>
+                  <div>AIM-120D ARMED</div>
+                </motion.div>
+
+                {/* Left Azimuth Pitch Ladder */}
+                <motion.div
+                  initial={{ opacity: 0, x: -15 }}
+                  animate={{ opacity: [0, 0.85, 0.85, 0], x: [-15, 0, 0, -10] }}
+                  transition={{ duration: 0.45 / speedMultiplier, times: [0, 0.2, 0.85, 1] }}
+                  className="absolute font-mono text-[8px] text-emerald-500/80 flex flex-col gap-1.5 pointer-events-none"
+                  style={{ transform: 'translate(-115px, -35px)' }}
+                >
+                  <div>── 20 ──</div>
+                  <div>── 10 ──</div>
+                  <div className="text-emerald-300 font-bold">──  0 ──</div>
+                  <div>── -10 ──</div>
+                </motion.div>
+
+                {/* 5. Perfectly Centered Kinetic Missile Launch Radial Streak Rays & Mach Cones */}
+                <div className="absolute w-0 h-0 flex items-center justify-center pointer-events-none">
+                  {/* Concentric Mach Shockwave Expansion Rings */}
+                  <motion.div
+                    initial={{ scale: 0.1, opacity: 0 }}
+                    animate={{ 
+                      scale: [0.1, 1.8, 4.5], 
+                      opacity: [0, 1, 0] 
+                    }}
+                    transition={{ 
+                      duration: 0.45 / speedMultiplier, 
+                      delay: 0.15 / speedMultiplier,
+                      ease: "easeOut" 
+                    }}
+                    className="absolute w-28 h-28 rounded-full border-2 border-rose-500/80 shadow-[0_0_30px_rgba(244,63,94,0.8)]"
+                  />
+                  <motion.div
+                    initial={{ scale: 0.1, opacity: 0 }}
+                    animate={{ 
+                      scale: [0.1, 2.2, 5.5], 
+                      opacity: [0, 0.7, 0] 
+                    }}
+                    transition={{ 
+                      duration: 0.48 / speedMultiplier, 
+                      delay: 0.20 / speedMultiplier,
+                      ease: "easeOut" 
+                    }}
+                    className="absolute w-36 h-36 rounded-full border border-amber-400/70 shadow-[0_0_20px_rgba(251,191,36,0.6)]"
+                  />
+
+                  {/* 8-Axis Centered Laser Streak Beams */}
+                  {[...Array(8)].map((_, i) => (
+                    <motion.div
+                      key={`missile-ray-${i}`}
+                      initial={{ scaleX: 0.05, opacity: 0 }}
+                      animate={{ 
+                        scaleX: [0.05, 1.4, 3.8], 
+                        opacity: [0, 0.95, 0]
+                      }}
+                      transition={{ 
+                        duration: 0.42 / speedMultiplier, 
+                        delay: (0.16 + (i % 4) * 0.02) / speedMultiplier,
+                        ease: "easeOut" 
+                      }}
+                      style={{
+                        position: 'absolute',
+                        width: 220,
+                        height: 2,
+                        left: -110,
+                        top: -1,
+                        transformOrigin: 'center center',
+                        transform: `rotate(${i * 45}deg)`,
+                        background: 'linear-gradient(90deg, transparent, rgba(244, 63, 94, 0.95), #ffffff, rgba(251, 191, 36, 0.95), transparent)',
+                        boxShadow: '0 0 12px rgba(244, 63, 94, 0.85)'
+                      }}
+                    />
+                  ))}
+                </div>
               </div>
             )}
 

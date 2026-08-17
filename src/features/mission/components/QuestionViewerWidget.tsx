@@ -294,7 +294,7 @@ export function QuestionViewerWidget({ chapterId, chapterName, subject, onExitPr
               <input
                 type="number"
                 step="any"
-                value={numericalInput === 0 ? '' : numericalInput} placeholder="0"
+                value={numericalInput}
                 onChange={(e) => setNumericalInput(e.target.value)}
                 disabled={showSolution}
                 className={`w-full bg-zinc-900/80 border ${

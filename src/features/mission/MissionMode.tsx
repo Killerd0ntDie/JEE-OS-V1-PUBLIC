@@ -64,7 +64,7 @@ export function MissionMode(props: MissionModeProps) {
         if (!isNaN(val) && val > 0) return val;
       }
     } catch { /* ignore */ }
-    return 0.5;
+    return 0.25;
   });
 
   const [stage, setStage] = useState<'standby' | 'magi' | 'active' | 'revealed'>('standby');

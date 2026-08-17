@@ -90,7 +90,7 @@ export function WeeklyStrategyWidget({ chapters, mentorProfile, projectedReadine
             </div>
             <div>
               <h3 className="text-sm font-bold font-mono text-white tracking-tight uppercase">
-                作戦方針 // WEEKLY STRATEGY
+                <span className="eva-japanese-badge">作戦方針 // </span>WEEKLY STRATEGY
               </h3>
               <p className="text-[10px] text-zinc-400 font-mono">
                 Active Tactical Roadmap

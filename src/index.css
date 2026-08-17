@@ -75,7 +75,8 @@
 }
 
 /* Revert/Hide Japanese anime telemetry badges in Modern mode */
-.theme-modern .eva-japanese-badge {
+.theme-modern .eva-japanese-badge,
+.theme-modern .eva-tactical-only {
   display: none !important;
 }
 
