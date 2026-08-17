@@ -40,7 +40,7 @@ export class PlannerEngine {
     const allNodesForState = this.knowledgeEngine.getAllNodes();
     for (const node of allNodesForState) {
       const chapterMeta = chapterById.get(node.id);
-      const rawProg = input.chapterTelemetryMap[node.id] || {};
+      const rawProg: any = input.chapterTelemetryMap[node.id] || {};
       mergedStateMap[node.id] = {
         ...rawProg,
         chapterId: node.id,

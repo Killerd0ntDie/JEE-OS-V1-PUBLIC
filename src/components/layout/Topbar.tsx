@@ -420,7 +420,7 @@ export function Topbar({
                               className={`w-6 h-6 rounded-md flex items-center justify-center text-[10px] relative transition-colors ${
                                 isFuture ? 'bg-zinc-800/20 border border-zinc-800/60 text-transparent' :
                                 active ? 'bg-amber-950/40 border border-amber-900/50 text-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.15)]' : 
-                                'bg-red-950/20 border border-red-900/30 text-red-900/60'
+                                'bg-red-950/20 border border-red-900/30 text-red-400/80'
                               } ${isToday ? 'ring-1 ring-white/30 ring-offset-1 ring-offset-zinc-950' : ''}`}
                               title={isFuture ? `${currentMonthStr} ${day}` : `${currentMonthStr} ${day} - ${hours > 0 ? formatStudyTime(hours) : (active ? 'Active' : 'Missed')}`}
                             >

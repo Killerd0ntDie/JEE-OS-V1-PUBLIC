@@ -185,6 +185,113 @@ export function DailyMissionTimeline({
     displayXp = targetPYQs ? Math.round(targetPYQs * 2) : Math.round((activeMission?.duration || 60) * 1.5);
   }
 
+  const memoizedTimelineState = React.useMemo(() => {
+    const sortedMissions = [...todayMissions].sort((a, b) => {
+      // Sort order: active → completed → dismissed
+      const rank = (m: typeof a) => m.dismissed ? 2 : m.completed ? 1 : 0;
+      const rankDiff = rank(a) - rank(b);
+      if (rankDiff !== 0) return rankDiff;
+
+      // Secondary sort by chronological timeSlot if available to sync with Planner's Single Source of Truth
+      const minA = getStartMinutesFromTimeSlot(a.timeSlot);
+      const minB = getStartMinutesFromTimeSlot(b.timeSlot);
+      if (minA !== minB) return minA - minB;
+
+      // Tertiary sort: same-chapter lectures must be in sequential order (Lecture 5 before Lecture 7)
+      const sameChapter = (a.chapter || '').toLowerCase() === (b.chapter || '').toLowerCase();
+      const extractLecNum = (name: string): number => {
+        const match = (name || '').match(/Lecture\s+(\d+)/i);
+        return match ? parseInt(match[1], 10) : Number.MAX_SAFE_INTEGER;
+      };
+      const aIsLec = (a.type === 'Watch Lecture' || /Lecture\s+\d+/i.test(a.taskName || ''));
+      const bIsLec = (b.type === 'Watch Lecture' || /Lecture\s+\d+/i.test(b.taskName || ''));
+      if (sameChapter && aIsLec && bIsLec) {
+        return extractLecNum(a.taskName) - extractLecNum(b.taskName);
+      }
+      return 0;
+    });
+
+    const uncompletedMissions = sortedMissions.filter(m => !m.completed && !m.dismissed);
+    
+    const nowMins = realMinsTotal;
+
+    let liveMissionId: string | null = null;
+    let nextUpMissionId: string | null = null;
+    const pushedSlotsMap = new Map<string, { slot: string; isPushed: boolean }>();
+    const overBudgetMissionIds = new Set<string>();
+    
+    // When past bedtime, don't run push cascade — keep original slots and mark all as over-budget
+    if (isPastDayEnd) {
+      uncompletedMissions.forEach(m => {
+        overBudgetMissionIds.add(m.id);
+      });
+    } else {
+      let runningPushMins = nowMins;
+
+      uncompletedMissions.forEach((m, idx) => {
+        let duration = m.duration || 60;
+        let startMins = runningPushMins;
+        let endMins = startMins + duration;
+        
+        if (m.timeSlot) {
+          const range = parseTimeSlotToRange(m.timeSlot);
+          if (range) {
+            const origStart = range.startMins;
+            const origEnd = range.endMins;
+            if (origEnd > origStart) duration = origEnd - origStart;
+            if (m.isManualOverride && origStart >= runningPushMins) {
+              startMins = origStart;
+              endMins = startMins + duration;
+            }
+          }
+        }
+
+        const shouldSnapToLive = !m.isManualOverride || startMins < runningPushMins;
+        if (shouldSnapToLive) {
+          startMins = runningPushMins;
+          endMins = startMins + duration;
+          
+          const sH = Math.floor((startMins % 1440) / 60).toString().padStart(2, '0');
+          const sM = (startMins % 60).toString().padStart(2, '0');
+          const eH = Math.floor((endMins % 1440) / 60).toString().padStart(2, '0');
+          const eM = (endMins % 60).toString().padStart(2, '0');
+          
+          pushedSlotsMap.set(m.id, {
+            slot: `${sH}:${sM} - ${eH}:${eM}`,
+            isPushed: true
+          });
+        }
+
+        // If this uncompleted mission's cascaded start time reaches bedtime or spills past bedtime (and it's not the live mission), mark as over budget
+        if (startMins >= endMinsTotal || (endMins > endMinsTotal && idx > 0)) {
+          overBudgetMissionIds.add(m.id);
+        }
+
+        if (nowMins >= startMins && nowMins < endMins && startMins < endMinsTotal) {
+          if (!liveMissionId) {
+            liveMissionId = m.id;
+          }
+        }
+
+        runningPushMins = endMins;
+      });
+    }
+
+    // Find Next Up Mission
+    if (liveMissionId) {
+      const liveIdx = uncompletedMissions.findIndex(m => m.id === liveMissionId);
+      nextUpMissionId = uncompletedMissions[liveIdx + 1]?.id || null;
+    } else if (uncompletedMissions.length > 0) {
+      nextUpMissionId = uncompletedMissions[0].id;
+    }
+
+    const visibleMissions = sortedMissions;
+
+    return { visibleMissions, liveMissionId, nextUpMissionId, pushedSlotsMap, overBudgetMissionIds };
+  }, [todayMissions, isPastDayEnd, endMinsTotal, realMinsTotal]);
+
+  const { visibleMissions, liveMissionId, nextUpMissionId, pushedSlotsMap, overBudgetMissionIds } = memoizedTimelineState;
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 text-left items-start">
       
@@ -196,9 +303,9 @@ export function DailyMissionTimeline({
           <div className="flex items-center justify-between gap-3 border-b border-zinc-850 pb-2.5 px-0.5">
             {/* Left: Modern Title + Counter */}
             <div className="flex items-center gap-2">
-              <h2 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
-                <span>Execution Queue</span>
-                <span className="text-xs font-normal text-zinc-500 font-sans">({completedCount} of {totalCount} completed)</span>
+              <h2 className="text-base font-tactical font-black text-white tracking-tight flex items-center gap-2 uppercase">
+                <span><span className="eva-japanese-badge">出撃指令 // </span>EXECUTION QUEUE</span>
+                <span className="text-xs font-mono font-bold text-zinc-500">({completedCount}/{totalCount})</span>
               </h2>
             </div>
 
@@ -210,7 +317,7 @@ export function DailyMissionTimeline({
                 whileTap={{ scale: 0.95 }}
                 transition={springs.snappy}
                 onClick={() => navigate('/dev-cockpit')}
-                className="px-2 py-1 text-indigo-300 hover:text-indigo-100 bg-indigo-950/40 hover:bg-indigo-900/50 border border-indigo-500/30 rounded-lg flex items-center gap-1.5 cursor-pointer transition-colors shadow-sm font-mono text-[11px]"
+                className="px-2 py-1 text-indigo-300 hover:text-indigo-100 bg-indigo-950/40 hover:bg-indigo-900/50 border border-indigo-500/30 rounded-lg flex items-center gap-1.5 cursor-pointer transition-colors shadow-sm font-mono text-xs"
                 title="Preview Ripple Wave Transition Dev Page"
               >
                 <Sparkles className="w-3 h-3 text-indigo-400 animate-pulse" />
@@ -344,109 +451,7 @@ export function DailyMissionTimeline({
                   </button>
                 </div>
               </div>
-            ) : (() => {
-              const sortedMissions = [...todayMissions].sort((a, b) => {
-                // Sort order: active → completed → dismissed
-                const rank = (m: typeof a) => m.dismissed ? 2 : m.completed ? 1 : 0;
-                const rankDiff = rank(a) - rank(b);
-                if (rankDiff !== 0) return rankDiff;
-
-                // Secondary sort by chronological timeSlot if available to sync with Planner's Single Source of Truth
-                const minA = getStartMinutesFromTimeSlot(a.timeSlot);
-                const minB = getStartMinutesFromTimeSlot(b.timeSlot);
-                if (minA !== minB) return minA - minB;
-
-                // Tertiary sort: same-chapter lectures must be in sequential order (Lecture 5 before Lecture 7)
-                const sameChapter = (a.chapter || '').toLowerCase() === (b.chapter || '').toLowerCase();
-                const extractLecNum = (name: string): number => {
-                  const match = (name || '').match(/Lecture\s+(\d+)/i);
-                  return match ? parseInt(match[1], 10) : Number.MAX_SAFE_INTEGER;
-                };
-                const aIsLec = (a.type === 'Watch Lecture' || /Lecture\s+\d+/i.test(a.taskName || ''));
-                const bIsLec = (b.type === 'Watch Lecture' || /Lecture\s+\d+/i.test(b.taskName || ''));
-                if (sameChapter && aIsLec && bIsLec) {
-                  return extractLecNum(a.taskName) - extractLecNum(b.taskName);
-                }
-                return 0;
-              });
-
-              const uncompletedMissions = sortedMissions.filter(m => !m.completed && !m.dismissed);
-              
-              const nowMins = realMinsTotal;
-
-              let liveMissionId: string | null = null;
-              let nextUpMissionId: string | null = null;
-              const pushedSlotsMap = new Map<string, { slot: string; isPushed: boolean }>();
-              const overBudgetMissionIds = new Set<string>();
-              
-              // When past bedtime, don't run push cascade — keep original slots and mark all as over-budget
-              if (isPastDayEnd) {
-                uncompletedMissions.forEach(m => {
-                  overBudgetMissionIds.add(m.id);
-                });
-              } else {
-                let runningPushMins = nowMins;
-
-                uncompletedMissions.forEach((m, idx) => {
-                  let duration = m.duration || 60;
-                  let startMins = runningPushMins;
-                  let endMins = startMins + duration;
-                  
-                  if (m.timeSlot) {
-                    const range = parseTimeSlotToRange(m.timeSlot);
-                    if (range) {
-                      const origStart = range.startMins;
-                      const origEnd = range.endMins;
-                      if (origEnd > origStart) duration = origEnd - origStart;
-                      if (m.isManualOverride && origStart >= runningPushMins) {
-                        startMins = origStart;
-                        endMins = startMins + duration;
-                      }
-                    }
-                  }
-
-                  const shouldSnapToLive = !m.isManualOverride || startMins < runningPushMins;
-                  if (shouldSnapToLive) {
-                    startMins = runningPushMins;
-                    endMins = startMins + duration;
-                    
-                    const sH = Math.floor((startMins % 1440) / 60).toString().padStart(2, '0');
-                    const sM = (startMins % 60).toString().padStart(2, '0');
-                    const eH = Math.floor((endMins % 1440) / 60).toString().padStart(2, '0');
-                    const eM = (endMins % 60).toString().padStart(2, '0');
-                    
-                    pushedSlotsMap.set(m.id, {
-                      slot: `${sH}:${sM} - ${eH}:${eM}`,
-                      isPushed: true
-                    });
-                  }
-
-                  // If this uncompleted mission's cascaded start time reaches bedtime or spills past bedtime (and it's not the live mission), mark as over budget
-                  if (startMins >= endMinsTotal || (endMins > endMinsTotal && idx > 0)) {
-                    overBudgetMissionIds.add(m.id);
-                  }
-
-                  if (nowMins >= startMins && nowMins < endMins && startMins < endMinsTotal) {
-                    if (!liveMissionId) {
-                      liveMissionId = m.id;
-                    }
-                  }
-
-                  runningPushMins = endMins;
-                });
-              }
-
-              // Find Next Up Mission
-              if (liveMissionId) {
-                const liveIdx = uncompletedMissions.findIndex(m => m.id === liveMissionId);
-                nextUpMissionId = uncompletedMissions[liveIdx + 1]?.id || null;
-              } else if (uncompletedMissions.length > 0) {
-                nextUpMissionId = uncompletedMissions[0].id;
-              }
-
-              const visibleMissions = sortedMissions;
-
-              return (
+            ) : (
                 <AnimatePresence mode="popLayout">
                   {visibleMissions.map((mission, idx) => {
                   const isDismissed = !!mission.dismissed;
@@ -497,19 +502,35 @@ export function DailyMissionTimeline({
                           }
                           setSelectedMissionId?.(mission.id);
                         }}
-                        className={`group transition-colors duration-150 cursor-pointer focus:outline-none flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 px-4 py-2.5 rounded-xl border relative mb-2 ${
-                          isLive 
-                            ? 'border-emerald-500/40 bg-emerald-950/20 shadow-[0_0_10px_rgba(16,185,129,0.05)]' 
-                            : isDismissed
-                            ? 'border-zinc-900/40 bg-zinc-950/30 opacity-40 grayscale cursor-default'
+                        style={{
+                          background: 'rgba(20, 14, 10, 0.85)',
+                          backdropFilter: 'blur(20px)',
+                          border: '1px solid rgba(245, 158, 11, 0.3)',
+                          borderTop: '1.5px solid rgba(245, 158, 11, 0.6)',
+                          boxShadow: '0 8px 25px rgba(0, 0, 0, 0.5)'
+                        }}
+                        className={`group transition-all duration-150 cursor-pointer focus:outline-none flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 px-4 py-3 rounded-2xl relative mb-3 overflow-hidden ${
+                          isDismissed
+                            ? 'opacity-40 grayscale cursor-default'
                             : mission.completed
-                            ? 'border-zinc-800/40 bg-zinc-900/40 opacity-60'
-                            : isSelected
-                            ? 'border-indigo-500/30 bg-[#0d0e12]'
-                            : 'border-zinc-800/60 bg-zinc-900/30 hover:bg-zinc-900/60 hover:border-zinc-700/60'
+                            ? 'opacity-60'
+                            : 'hover:border-amber-500/50'
                         }`}
                       >
-                         <div className="flex items-center gap-3">
+                         {/* Top Amber Hazard Stripes Ribbon */}
+                         <div 
+                           className="absolute top-0 inset-x-0 h-1 opacity-75 pointer-events-none"
+                           style={{
+                             background: 'repeating-linear-gradient(-45deg, #f59e0b 0px, #f59e0b 8px, transparent 8px, transparent 16px)'
+                           }}
+                         />
+                         {/* Caliper Crosshairs */}
+                         <span className="absolute top-2 left-2 text-xs opacity-50 font-mono text-zinc-600 select-none pointer-events-none">+</span>
+                         <span className="absolute top-2 right-2 text-xs opacity-50 font-mono text-zinc-600 select-none pointer-events-none">+</span>
+                         <span className="absolute bottom-2 left-2 text-xs opacity-50 font-mono text-zinc-600 select-none pointer-events-none">+</span>
+                         <span className="absolute bottom-2 right-2 text-xs opacity-50 font-mono text-zinc-600 select-none pointer-events-none">+</span>
+
+                         <div className="flex items-center gap-3 relative z-10">
                            {!isDismissed && (
                            <button
                              type="button"
@@ -524,8 +545,8 @@ export function DailyMissionTimeline({
                              }}
                              className={`rounded-full border flex items-center justify-center transition-all cursor-pointer ${
                                mission.completed
-                                 ? 'w-5 h-5 bg-emerald-500 border-emerald-400 text-white'
-                                 : 'w-5 h-5 border-zinc-700 bg-zinc-950/50 text-transparent hover:border-emerald-500 hover:text-emerald-500/60'
+                                 ? 'w-5 h-5 bg-amber-500 border-amber-400 text-zinc-950 font-bold'
+                                 : 'w-5 h-5 border-zinc-700 bg-zinc-950/50 text-transparent hover:border-amber-500 hover:text-amber-500/60'
                              }`}
                            >
                              <Check className="w-3 h-3 stroke-[3]" />
@@ -537,25 +558,25 @@ export function DailyMissionTimeline({
                              </div>
                            )}
                            
-                           <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${isLive ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : mission.completed ? 'bg-emerald-900/30 text-emerald-600' : 'bg-zinc-800/50 text-zinc-500 border border-zinc-800'}`}>
-                             <Coffee className="w-3.5 h-3.5" />
+                           <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${isLive ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40' : mission.completed ? 'bg-amber-950/40 text-amber-600' : 'bg-zinc-900/80 text-zinc-400 border border-white/10'}`}>
+                             <Coffee className="w-3.5 h-3.5 text-amber-400" />
                            </div>
                            <div className="flex flex-col">
-                             <p className={`text-xs font-medium tracking-tight ${isLive ? 'text-emerald-300 font-bold' : mission.completed ? 'text-zinc-500 line-through' : 'text-zinc-300'}`}>
+                             <p className={`text-xs font-tactical font-bold tracking-tight uppercase ${isLive ? 'text-amber-300' : mission.completed ? 'text-zinc-500 line-through' : 'text-zinc-200'}`}>
                                {mission.taskName}
                              </p>
-                             <div className="flex items-center gap-2 text-[10px] font-mono text-zinc-500 mt-0.5">
-                               {isLive && <span className="text-emerald-400 font-bold tracking-wider animate-pulse">LIVE NOW</span>}
+                             <div className="flex items-center gap-2 text-xs opacity-75 font-mono text-zinc-400 mt-0.5">
+                               {isLive && <span className="text-amber-400 font-bold tracking-wider animate-pulse">LIVE NOW</span>}
                                {pushedSlotsMap.has(mission.id) && (
-                                 <span className="text-emerald-500/70 flex items-center gap-1">
+                                 <span className="text-amber-400/80 flex items-center gap-1">
                                    <Clock className="w-3 h-3 inline" /> {pushedSlotsMap.get(mission.id)?.slot}
                                  </span>
                                )}
                              </div>
                            </div>
                          </div>
-                         <div className="flex items-center gap-2.5 ml-auto">
-                           <span className="text-[11px] font-mono text-zinc-500 bg-zinc-950/60 border border-zinc-800/80 px-2 py-0.5 rounded">
+                         <div className="flex items-center gap-2.5 ml-auto relative z-10 font-mono">
+                           <span className="text-xs font-mono font-bold text-amber-300 bg-amber-950/60 border border-amber-500/40 px-2.5 py-0.5 rounded-lg">
                              {mission.duration}m
                            </span>
                            {!isDismissed && (
@@ -565,7 +586,7 @@ export function DailyMissionTimeline({
                                  e.stopPropagation();
                                  setMissionToDelete(mission.id);
                                }}
-                               className="w-6 h-6 rounded border border-zinc-800 bg-zinc-900/40 hover:bg-red-500/20 hover:border-red-500/40 text-zinc-500 hover:text-red-400 flex items-center justify-center transition-colors cursor-pointer"
+                               className="w-6 h-6 rounded-lg border border-white/10 bg-zinc-950/60 hover:bg-red-500/20 hover:border-red-500/40 text-zinc-500 hover:text-red-400 flex items-center justify-center transition-colors cursor-pointer"
                                title="Delete break"
                              >
                                <Trash2 className="w-3 h-3" />
@@ -578,9 +599,9 @@ export function DailyMissionTimeline({
                                  e.stopPropagation();
                                  handleStartSession(mission.id);
                                }}
-                               className="px-3 py-1 bg-emerald-500 hover:bg-emerald-400 text-white shadow-[0_0_10px_rgba(16,185,129,0.3)] text-[10px] font-mono font-bold rounded flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                               className="px-3.5 py-1 bg-amber-500 hover:bg-amber-400 text-zinc-950 shadow-[0_0_12px_rgba(245,158,11,0.4)] text-xs opacity-75 font-mono font-bold uppercase tracking-wider rounded-lg flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
                              >
-                               <Play className="w-3 h-3 fill-white" /> START
+                               <Play className="w-3 h-3 fill-current" /> START
                              </button>
                            )}
                          </div>
@@ -604,19 +625,58 @@ export function DailyMissionTimeline({
                             actions.setRadarFocusedChapter(chap.id);
                           }
                         }}
-                      className={`group transition-colors duration-150 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 active:scale-[0.99] relative overflow-hidden ${
+                      style={{
+                        background: isLive
+                          ? 'rgba(10, 22, 18, 0.88)'
+                          : isSelected
+                          ? 'rgba(18, 14, 28, 0.88)'
+                          : 'rgba(10, 14, 23, 0.80)',
+                        backdropFilter: 'blur(24px) saturate(190%)',
+                        border: isLive
+                          ? '1.5px solid rgba(16, 185, 129, 0.55)'
+                          : isSelected
+                          ? '1.5px solid rgba(99, 102, 241, 0.5)'
+                          : '1px solid rgba(255, 255, 255, 0.08)',
+                        borderTop: isLive
+                          ? '2px solid rgba(16, 185, 129, 0.85)'
+                          : isSelected
+                          ? '2px solid rgba(99, 102, 241, 0.75)'
+                          : '1.5px solid rgba(255, 255, 255, 0.18)',
+                        boxShadow: isLive
+                          ? '0 16px 40px rgba(0, 0, 0, 0.7), 0 0 30px rgba(16, 185, 129, 0.12)'
+                          : isSelected
+                          ? '0 12px 30px rgba(0, 0, 0, 0.6), 0 0 20px rgba(99, 102, 241, 0.1)'
+                          : '0 8px 24px rgba(0, 0, 0, 0.4)'
+                      }}
+                      className={`group transition-all duration-150 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 active:scale-[0.99] relative overflow-hidden ${
                           isLive
-                            ? 'premium-card p-4.5 sm:p-5 rounded-2xl !border-2 !border-emerald-500 mb-3 shadow-md'
+                            ? 'p-4.5 sm:p-5 rounded-2xl mb-3'
                             : isDismissed
-                            ? 'premium-card p-3.5 rounded-xl border-red-900/20 opacity-40 cursor-default'
+                            ? 'p-3.5 rounded-2xl opacity-40 cursor-default'
                             : mission.completed
-                            ? 'premium-card p-3.5 rounded-xl border-zinc-900/40 opacity-60'
-                            : isSelected
-                            ? 'glass-card p-4 rounded-xl border-indigo-500/40 shadow-lg'
-                            : 'premium-card p-4 rounded-xl hover:border-zinc-750'
+                            ? 'p-3.5 rounded-2xl opacity-60'
+                            : 'p-4 rounded-2xl hover:border-indigo-500/40 mb-2.5'
                         }`}
-                      style={isLive ? { borderColor: '#10b981', borderWidth: '2px', borderStyle: 'solid' } : undefined}
                       >
+                      {/* Top Hazard Warning Stripes Ribbon for Live Sortie */}
+                      {isLive && (
+                        <div 
+                          className="absolute top-0 inset-x-0 h-1 opacity-85 pointer-events-none"
+                          style={{
+                            background: mission.subject === 'maths' 
+                              ? 'repeating-linear-gradient(-45deg, #a855f7 0px, #a855f7 8px, transparent 8px, transparent 16px)'
+                              : mission.subject === 'physics'
+                              ? 'repeating-linear-gradient(-45deg, #0ea5e9 0px, #0ea5e9 8px, transparent 8px, transparent 16px)'
+                              : 'repeating-linear-gradient(-45deg, #10b981 0px, #10b981 8px, transparent 8px, transparent 16px)'
+                          }}
+                        />
+                      )}
+
+                      {/* Caliper Crosshairs */}
+                      <span className="absolute top-2 left-2 text-xs opacity-50 font-mono text-zinc-600 select-none pointer-events-none">+</span>
+                      <span className="absolute top-2 right-2 text-xs opacity-50 font-mono text-zinc-600 select-none pointer-events-none">+</span>
+                      <span className="absolute bottom-2 left-2 text-xs opacity-50 font-mono text-zinc-600 select-none pointer-events-none">+</span>
+                      <span className="absolute bottom-2 right-2 text-xs opacity-50 font-mono text-zinc-600 select-none pointer-events-none">+</span>
                       <div className="flex items-start justify-between gap-4 relative z-10">
                         
                         {/* Circular Checkbox — hidden for dismissed missions */}
@@ -660,29 +720,29 @@ export function DailyMissionTimeline({
                           {/* Consolidated Decluttered 1-Row Label Header with Merged Time */}
                           <div className="flex items-center gap-2 flex-wrap text-xs leading-none">
                             {isDismissed && (
-                              <span className="font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border bg-red-950/30 text-red-400/70 border-red-900/30 text-[10px] shrink-0">
+                              <span className="font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border bg-red-950/30 text-red-400/70 border-red-900/30 text-xs opacity-75 shrink-0">
                                 Dismissed
                               </span>
                             )}
 
                             {/* Subject Badge */}
-                            <span className={`font-bold uppercase tracking-wider ${isLive ? 'px-2.5 py-0.5 text-[10.5px]' : 'px-2 py-0.5 text-[10px]'} rounded-md border shrink-0 ${badgeStyle}`}>
+                            <span className={`font-bold uppercase tracking-wider ${isLive ? 'px-2.5 py-0.5 text-xs opacity-90' : 'px-2 py-0.5 text-xs opacity-75'} rounded-md border shrink-0 ${badgeStyle}`}>
                               {mission.subject.toUpperCase()}
                             </span>
 
                             {/* Merged Status + Time Pill for Live & Next Up */}
                             {isLive ? (
-                              <span className="bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-bold px-2.5 py-0.5 rounded-md uppercase tracking-wider flex items-center gap-1.5 shadow-sm text-[10.5px] shrink-0">
+                              <span className="bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-bold px-2.5 py-0.5 rounded-md uppercase tracking-wider flex items-center gap-1.5 shadow-sm text-xs opacity-90 shrink-0">
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                                 LIVE {pushedSlotsMap.has(mission.id) ? `· ${pushedSlotsMap.get(mission.id)?.slot}` : ''}
                               </span>
                             ) : isNextUp ? (
-                              <span className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-bold px-2 py-0.5 rounded-md uppercase tracking-wider flex items-center gap-1.5 text-[10px] shrink-0">
+                              <span className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-bold px-2 py-0.5 rounded-md uppercase tracking-wider flex items-center gap-1.5 text-xs opacity-75 shrink-0">
                                 <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
                                 NEXT UP {pushedSlotsMap.has(mission.id) ? `· ${pushedSlotsMap.get(mission.id)?.slot}` : ''}
                               </span>
                             ) : pushedSlotsMap.has(mission.id) ? (
-                              <span className="text-zinc-400 flex items-center gap-1 text-[11px] font-mono shrink-0">
+                              <span className="text-zinc-400 flex items-center gap-1 text-xs font-mono shrink-0">
                                 <Clock className="w-3 h-3 text-zinc-500" />
                                 <span>{pushedSlotsMap.get(mission.id)?.slot}</span>
                               </span>
@@ -706,7 +766,7 @@ export function DailyMissionTimeline({
                             {/* Urgent Memory Decay Badge */}
                             {retentionScore !== undefined && (retentionScore < 60 || mission.type === 'Revise Formulas' || mission.type === 'Review Mistakes') && (
                               <span 
-                                className={`px-1.5 py-0.5 rounded border flex items-center gap-1 font-mono text-[10px] font-bold ${
+                                className={`px-1.5 py-0.5 rounded border flex items-center gap-1 font-mono text-xs opacity-75 font-bold ${
                                   retentionScore < 50 
                                     ? 'bg-rose-950/50 border-rose-500/40 text-rose-300 animate-pulse' 
                                     : 'bg-amber-950/40 border-amber-500/40 text-amber-300'
@@ -719,7 +779,7 @@ export function DailyMissionTimeline({
 
                             {/* Bedtime badge */}
                             {!mission.completed && !isDismissed && overBudgetMissionIds.has(mission.id) && (
-                              <span className="text-amber-400 bg-amber-950/30 border border-amber-800/40 text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1">
+                              <span className="text-amber-400 bg-amber-950/30 border border-amber-800/40 text-xs opacity-75 px-1.5 py-0.5 rounded flex items-center gap-1">
                                 <Moon className="w-2.5 h-2.5 text-amber-400" /> Bedtime
                               </span>
                             )}
@@ -728,39 +788,39 @@ export function DailyMissionTimeline({
                           {/* Title */}
                           <p className={`tracking-tight transition-colors ${
                               isLive
-                                ? 'text-lg sm:text-xl font-bold text-white group-hover:text-emerald-300 leading-snug'
-                                : isDismissed ? 'text-xs md:text-sm text-zinc-600 line-through' 
-                                : mission.completed ? 'text-xs md:text-sm text-zinc-400 line-through' 
-                                : 'text-xs md:text-sm font-semibold text-zinc-100 group-hover:text-indigo-300'
+                                ? 'text-lg sm:text-xl font-tactical font-black text-white group-hover:text-emerald-300 leading-snug'
+                                : isDismissed ? 'text-xs md:text-sm font-tactical text-zinc-600 line-through' 
+                                : mission.completed ? 'text-xs md:text-sm font-tactical text-zinc-400 line-through' 
+                                : 'text-xs md:text-sm font-tactical font-bold text-zinc-100 group-hover:text-indigo-300'
                             }`}>
                             {mission.taskName}
                           </p>
 
                           {/* Sub-line */}
-                          <div className={`flex items-center gap-2 text-zinc-400 flex-wrap ${isLive ? 'text-xs sm:text-sm' : 'text-xs'}`}>
+                          <div className={`flex items-center gap-2 text-zinc-400 flex-wrap ${isLive ? 'text-xs sm:text-sm' : 'text-xs'} font-sans`}>
                             <span>
-                              Unit: <strong className="text-zinc-300 font-medium">{unitName}</strong>
+                              Unit: <strong className="text-zinc-200 font-medium">{unitName}</strong>
                             </span>
 
                             {chap && (
                               <>
                                 <span className="text-zinc-600">•</span>
-                                <div className="flex items-center gap-1.5 font-mono text-[10px] shrink-0">
+                                <div className="flex items-center gap-1.5 font-mono text-xs opacity-75 shrink-0">
                                   <span className="text-zinc-400">Lec {currentLec}/{totalLec}</span>
-                                  <div className={`${isLive ? 'w-20 h-1.5' : 'w-16 h-1.5'} bg-zinc-900 rounded-full overflow-hidden border border-zinc-800`}>
+                                  <div className={`${isLive ? 'w-20 h-1.5' : 'w-16 h-1.5'} bg-zinc-950 rounded-full overflow-hidden border border-white/10`}>
                                     <div
                                       className="bg-indigo-400 h-full rounded-full transition-all duration-300"
                                       style={{ width: `${lecPercent}%` }}
                                     />
                                   </div>
-                                  <span className="text-indigo-400 font-medium">{lecPercent}%</span>
+                                  <span className="text-indigo-400 font-medium font-mono">{lecPercent}%</span>
                                 </div>
                               </>
                             )}
                           </div>
 
                           {/* Action Buttons: 1-Row Sleek Layout */}
-                          <div className="pt-2 flex items-center gap-2 flex-wrap">
+                          <div className="pt-2 flex items-center gap-2 flex-wrap font-mono">
                             {isLive && (
                               <motion.button
                                 type="button"
@@ -771,7 +831,7 @@ export function DailyMissionTimeline({
                                   e.stopPropagation();
                                   handleStartSession(mission.id);
                                 }}
-                                className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-white font-sans text-xs font-bold rounded-xl flex items-center gap-1.5 cursor-pointer transition-colors shadow-sm"
+                                className="px-5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-mono text-xs font-bold uppercase tracking-wider rounded-xl flex items-center gap-1.5 cursor-pointer transition-all shadow-[0_0_15px_rgba(16,185,129,0.35)] border border-emerald-400/40 active:scale-95"
                               >
                                 <Play className="w-3.5 h-3.5 fill-white text-white" />
                                 <span>{localStorage.getItem(`jeeos_mission_state_${mission.id}`) ? 'Resume Mission' : 'Start Mission'}</span>
@@ -788,7 +848,7 @@ export function DailyMissionTimeline({
                                   e.stopPropagation();
                                   actions.openChapterEditModal(chap.id);
                                 }}
-                                className="text-xs bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 hover:text-white px-3 py-1.5 rounded-xl cursor-pointer transition-colors border border-zinc-800 flex items-center gap-1.5 shadow-sm font-medium select-none"
+                                className="text-xs bg-zinc-950/70 hover:bg-zinc-850 text-zinc-300 hover:text-white px-3 py-1.5 rounded-xl cursor-pointer transition-colors border border-white/10 flex items-center gap-1.5 shadow-sm font-mono font-bold uppercase select-none"
                                 title="Configure Chapter"
                               >
                                 <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-400" />
@@ -805,7 +865,7 @@ export function DailyMissionTimeline({
                                 e.stopPropagation();
                                 onEditMission?.(mission);
                               }}
-                              className="text-xs bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 hover:text-white px-3 py-1.5 rounded-xl cursor-pointer transition-colors border border-zinc-800 flex items-center gap-1.5 shadow-sm font-medium select-none"
+                              className="text-xs bg-zinc-950/70 hover:bg-zinc-850 text-zinc-300 hover:text-white px-3 py-1.5 rounded-xl cursor-pointer transition-colors border border-white/10 flex items-center gap-1.5 shadow-sm font-mono font-bold uppercase select-none"
                               title="Edit Mission Details"
                             >
                               <Edit className="w-3.5 h-3.5 text-zinc-400" />
@@ -815,8 +875,8 @@ export function DailyMissionTimeline({
                         </div>
 
                         {/* Duration & Chevron */}
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span className="text-xs font-mono text-zinc-300 bg-zinc-900/90 border border-zinc-800 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
+                        <div className="flex items-center gap-2 shrink-0 font-mono">
+                          <span className="text-xs font-mono font-bold text-zinc-300 bg-zinc-950/80 border border-white/10 px-2.5 py-1 rounded-xl flex items-center gap-1.5 shadow-sm">
                             <Clock className="w-3 h-3 text-indigo-400" /> {mission.duration}m
                           </span>
 
@@ -868,7 +928,7 @@ export function DailyMissionTimeline({
                             className="overflow-hidden border-t border-zinc-900/60"
                           >
                             <div className="px-3 py-2.5 mt-2.5 bg-zinc-950/40 text-xs text-zinc-400 space-y-2 rounded-xl">
-                              <div className="flex items-center justify-between text-zinc-300 font-mono text-[10px]">
+                              <div className="flex items-center justify-between text-zinc-300 font-mono text-xs opacity-75">
                                 <span>Estimated Time: <strong className="text-white">{mission.duration} mins</strong></span>
                                 <span>XP Award: <strong className="text-indigo-400">+{mission.xp} XP</strong></span>
                               </div>
@@ -885,7 +945,7 @@ export function DailyMissionTimeline({
                                       audioEngine.playAlert();
                                     }
                                   }}
-                                  className={`text-[10px] font-bold py-1.5 px-3 rounded-md transition-all cursor-pointer border active:scale-[0.98] hover:scale-[1.02] ${
+                                  className={`text-xs opacity-75 font-bold py-1.5 px-3 rounded-md transition-all cursor-pointer border active:scale-[0.98] hover:scale-[1.02] ${
                                     mission.completed 
                                       ? 'bg-emerald-950/40 text-emerald-400 border-emerald-900/60 hover:bg-emerald-950/60 hover:text-emerald-300' 
                                       : 'bg-zinc-800 hover:bg-emerald-600/90 text-zinc-300 hover:text-white border-zinc-700 hover:border-emerald-500 shadow-sm'
@@ -899,7 +959,7 @@ export function DailyMissionTimeline({
                                     setMissionToDelete(mission.id);
                                     setExpandedMission(null);
                                   }}
-                                  className="bg-transparent hover:bg-red-950/40 text-zinc-400 hover:text-red-300 text-[10px] py-1.5 px-3 rounded-md transition-all active:scale-[0.98] hover:scale-[1.02] cursor-pointer border border-zinc-800 hover:border-red-900/60 flex items-center gap-1"
+                                  className="bg-transparent hover:bg-red-950/40 text-zinc-400 hover:text-red-300 text-xs opacity-75 py-1.5 px-3 rounded-md transition-all active:scale-[0.98] hover:scale-[1.02] cursor-pointer border border-zinc-800 hover:border-red-900/60 flex items-center gap-1"
                                 >
                                   <Trash2 className="w-3 h-3" />
                                   <span>Remove Mission</span>
@@ -914,13 +974,12 @@ export function DailyMissionTimeline({
                   );
                 })}
                 </AnimatePresence>
-              );
-            })()}
+              )}
           </div>
         </div>
 
         {/* Footer info bar */}
-        <div className="flex items-center justify-between gap-3 pt-3 mt-4 border-t border-zinc-900/60 text-[11px] font-mono text-zinc-400 px-1">
+        <div className="flex items-center justify-between gap-3 pt-3 mt-4 border-t border-zinc-900/60 text-xs font-mono text-zinc-400 px-1">
           <div className="flex items-center gap-3">
             <span>Remaining: <strong className="text-white">{estimatedRemainingHours} hrs</strong></span>
             <span>•</span>
@@ -933,7 +992,7 @@ export function DailyMissionTimeline({
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 px-2 text-[10px] font-mono text-zinc-400 hover:text-zinc-300 uppercase"
+              className="h-6 px-2 text-xs opacity-75 font-mono text-zinc-400 hover:text-zinc-300 uppercase"
               onClick={handleResetSession}
             >
               RESET
@@ -945,16 +1004,44 @@ export function DailyMissionTimeline({
 
       {/* RIGHT COLUMN: 35% width (~400px) — Sleek Strategy & Formula Radar */}
       <div className="lg:col-span-5 xl:col-span-5 self-start sticky top-4 max-h-[calc(100vh-2rem)] overflow-y-auto custom-scrollbar">
-        <div className="premium-card p-4 md:p-5 rounded-2xl border border-zinc-800 space-y-3.5 shadow-sm">
+        <div 
+          style={{
+            background: 'rgba(10, 14, 23, 0.85)',
+            backdropFilter: 'blur(24px) saturate(190%)',
+            border: '1px solid rgba(255, 255, 255, 0.10)',
+            borderTop: '1.5px solid rgba(255, 255, 255, 0.25)',
+            boxShadow: '0 12px 35px rgba(0, 0, 0, 0.6)'
+          }}
+          className="p-4 md:p-5 rounded-2xl space-y-3.5 shadow-sm relative overflow-hidden text-left font-sans"
+        >
+          {/* Top Hazard Warning Tape Ribbon */}
+          <div 
+            className="absolute top-0 inset-x-0 h-1 opacity-75 pointer-events-none"
+            style={{
+              background: 'repeating-linear-gradient(-45deg, #6366f1 0px, #6366f1 8px, transparent 8px, transparent 16px)'
+            }}
+          />
+
+          {/* Caliper Crosshairs */}
+          <span className="absolute top-2.5 left-2.5 text-xs opacity-50 font-mono text-zinc-600 select-none pointer-events-none">+</span>
+          <span className="absolute top-2.5 right-2.5 text-xs opacity-50 font-mono text-zinc-600 select-none pointer-events-none">+</span>
+          <span className="absolute bottom-2.5 left-2.5 text-xs opacity-50 font-mono text-zinc-600 select-none pointer-events-none">+</span>
+          <span className="absolute bottom-2.5 right-2.5 text-xs opacity-50 font-mono text-zinc-600 select-none pointer-events-none">+</span>
           
-          <div className="space-y-4">
+          <div className="space-y-4 relative z-10">
             
             {/* Compact Header Radar */}
-            <div className="flex items-center justify-between border-b border-zinc-850 pb-2.5">
-              <div className="flex items-center gap-2">
-                <span className="flex h-2 w-2 rounded-full bg-indigo-400 animate-pulse" />
-                <h3 className="text-base font-bold text-white tracking-tight">
-                  Strategy Radar
+            <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
+              <div className="flex items-center gap-2.5">
+                {/* Animated Kinetic Rings Indicator */}
+                <div className="relative w-7 h-7 flex items-center justify-center shrink-0">
+                  <svg viewBox="0 0 30 30" className="eva-kinetic-ring w-full h-full absolute inset-0 animate-[spin_8s_linear_infinite]">
+                    <circle cx="15" cy="15" r="13" className="stroke-indigo-400/40 fill-none" strokeWidth="1.5" strokeDasharray="3 3" />
+                  </svg>
+                  <span className="w-2 h-2 rounded-full bg-indigo-400 animate-ping" />
+                </div>
+                <h3 className="text-base font-bold font-mono text-white tracking-tight uppercase">
+                  <span className="eva-japanese-badge">戦略誘導 // </span>STRATEGY RADAR
                 </h3>
               </div>
               
@@ -964,8 +1051,11 @@ export function DailyMissionTimeline({
                   whileHover={{ scale: 1.04 }}
                   whileTap={{ scale: 0.95 }}
                   transition={springs.snappy}
-                  onClick={() => actions.openChapterEditModal(activeChap.id)}
-                  className="text-[11px] font-mono font-medium text-zinc-300 hover:text-white bg-zinc-900 hover:bg-zinc-800 border border-zinc-750 px-2.5 py-1 rounded-lg cursor-pointer transition-colors select-none flex items-center gap-1.5 shadow-sm"
+                  onClick={() => {
+                    audioEngine.playRadioRelayClick().catch(() => {});
+                    actions.openChapterEditModal(activeChap.id);
+                  }}
+                  className="text-xs font-mono font-bold text-zinc-300 hover:text-white bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-700/60 px-2.5 py-1 rounded-xl cursor-pointer transition-colors select-none flex items-center gap-1.5 shadow-sm uppercase tracking-wider"
                 >
                   <SlidersHorizontal className="w-3 h-3 text-indigo-400" />
                   <span>Configure</span>
@@ -987,10 +1077,10 @@ export function DailyMissionTimeline({
                 {/* Active Module Header */}
                 <div className="space-y-1.5">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className={`text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-lg border shadow-sm ${getSubjectBadgeStyle(activeMission.subject)}`}>
+                    <span className={`text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-lg border shadow-sm ${getSubjectBadgeStyle(activeMission.subject)}`}>
                       {activeMission.subject.toUpperCase()}
                     </span>
-                    <span className="text-[11px] font-semibold text-amber-300 bg-amber-950/40 border border-amber-500/30 px-2.5 py-0.5 rounded-lg shadow-sm">
+                    <span className="text-xs font-semibold text-amber-300 bg-amber-950/40 border border-amber-500/30 px-2.5 py-0.5 rounded-lg shadow-sm">
                       +{strategyRadar.weightageGain} Marks Gain
                     </span>
                   </div>
@@ -1053,16 +1143,16 @@ export function DailyMissionTimeline({
                 {/* Performance Metrics: Clean 3-Box Row */}
                 <div className="grid grid-cols-3 gap-2.5 pt-1">
                   <div className="p-3 rounded-xl bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 transition-colors text-center flex flex-col justify-center">
-                    <span className="text-[11px] text-zinc-400 font-medium">Est. Time</span>
-                    <span className="text-sm font-bold text-white font-mono mt-0.5">{strategyRadar.estimatedMinutes}m</span>
+                    <span className="text-xs text-zinc-400 font-medium">Est. Time</span>
+                    <span className="text-sm font-bold text-white font-mono mt-0.5">{(strategyRadar as any).estimatedMinutes || activeMission?.duration || 45}m</span>
                   </div>
                   <div className="p-3 rounded-xl bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 transition-colors text-center flex flex-col justify-center">
-                    <span className="text-[11px] text-zinc-400 font-medium">Target PYQs</span>
+                    <span className="text-xs text-zinc-400 font-medium">Target PYQs</span>
                     <span className="text-sm font-bold text-indigo-400 font-mono mt-0.5">{strategyRadar.recommendedPYQs} Qs</span>
                   </div>
                   <div className="p-3 rounded-xl bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 transition-colors text-center flex flex-col justify-center">
-                    <span className="text-[11px] text-zinc-400 font-medium">XP Reward</span>
-                    <span className="text-sm font-bold text-emerald-400 font-mono mt-0.5">+{strategyRadar.estimatedMinutes > 45 ? 83 : 45}</span>
+                    <span className="text-xs text-zinc-400 font-medium">XP Reward</span>
+                    <span className="text-sm font-bold text-emerald-400 font-mono mt-0.5">+{((strategyRadar as any).estimatedMinutes || activeMission?.duration || 45) > 45 ? 83 : 45}</span>
                   </div>
                 </div>
 
@@ -1086,17 +1176,11 @@ export function DailyMissionTimeline({
               whileTap={{ scale: 0.97 }}
               transition={springs.snappy}
               onClick={() => {
-                if (sessionState === 'active') {
-                  actions.pauseCockpitSession();
-                } else if (sessionState === 'paused') {
-                  actions.resumeCockpitSession();
-                } else {
-                  if (activeChap) {
-                    actions.setRadarFocusedChapter(activeChap.id);
-                    actions.setActiveSubject(activeChap.subject);
-                  }
-                  handleStartSession(activeMission?.id);
+                if (activeChap) {
+                  actions.setRadarFocusedChapter(activeChap.id);
+                  actions.setActiveSubject(activeChap.subject);
                 }
+                handleStartSession(activeMission?.id);
               }}
               className={`w-full py-3 px-4 font-mono text-xs font-bold uppercase tracking-wider rounded-xl transition-colors cursor-pointer shadow-lg flex items-center justify-center gap-2 ${
                 sessionState === 'active'

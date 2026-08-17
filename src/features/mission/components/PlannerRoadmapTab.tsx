@@ -7,7 +7,7 @@ import { Chapter } from '@/types';
 export function PlannerRoadmapTab({ state }: { state: any }) {
   const { setViewMode, setSelectedDayIndex } = state;
   const chapters = useStudyBrainStore(state => state.chapters) || [];
-  const weeklyMatrix = useStudyBrainStore(state => state.weeklyMatrix) || [];
+  const weeklyMatrix = useStudyBrainStore(state => (state as any).weeklyMatrix) || [];
   const studySessions = useStudyBrainStore(state => state.studySessions) || [];
   const mentorProfile = useStudyBrainStore(state => state.mentorProfile);
   const settings = useStudyBrainStore(state => state.settings);
@@ -133,7 +133,7 @@ export function PlannerRoadmapTab({ state }: { state: any }) {
                   Full Syllabus Benchmark Sessions
                 </div>
               </div>
-              <span className="text-[10px] font-mono text-rose-300">Target Score: {mentorProfile?.targetScore || 220}+</span>
+              <span className="text-[10px] font-mono text-rose-300">Target Score: {(mentorProfile as any)?.targetScore || 220}+</span>
             </div>
 
             <div className="p-4 rounded-2xl border border-zinc-850/80 bg-zinc-950/70 backdrop-blur-md flex flex-col justify-between">

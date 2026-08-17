@@ -1,10 +1,12 @@
 import React from 'react';
 import { motion } from 'motion/react';
+import { useNavigate } from 'react-router-dom';
 import { Coffee, Battery, Activity, Zap } from 'lucide-react';
 import { CommandOverviewBanner } from './CommandOverviewBanner';
 import { MonthlyCampaignBanner } from '@/features/mission/components/MonthlyCampaignBanner';
 import { Chapter } from '@/types/index';
 import { springs } from '@/constants/motion';
+import { audioEngine } from '@/utils/audioEngine';
 
 interface DashboardHeaderProps {
   getGreeting: () => string;
@@ -39,6 +41,7 @@ export function DashboardHeader({
   isHeaderExpanded,
   onToggleExpand
 }: DashboardHeaderProps) {
+  const navigate = useNavigate();
   const getSubjectTextColor = (subj?: string) => {
     const s = (subj || '').toLowerCase();
     if (s.includes('phys')) return 'text-sky-400';
@@ -56,35 +59,37 @@ export function DashboardHeader({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left px-0.5 pt-0.5 pb-0">
         <div className="space-y-1">
           {/* MODERN GREETING */}
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-            <span className="text-zinc-300 font-normal">{getGreeting()},</span>
+          <h1 className="text-xl sm:text-2xl font-tactical font-black tracking-tight text-white flex items-center gap-2">
+            <span className="text-zinc-400 font-normal">{getGreeting()},</span>
             <span className="font-extrabold text-zinc-100">{userName}</span>
           </h1>
 
           {/* INTEL SUBTITLE */}
-          <div className="flex items-center gap-2 text-xs text-zinc-400 font-sans flex-wrap">
+          <div className="flex items-center gap-2 text-xs text-zinc-400 font-mono flex-wrap">
             {incompleteTasks.length > 0 ? (
               <>
-                <span className="text-zinc-300 font-medium font-mono">{incompleteTasks.length} missions scheduled</span>
+                <span className="text-zinc-300 font-bold">{incompleteTasks.length} MISSIONS SCHEDULED</span>
                 <span className="text-zinc-600 font-bold">•</span>
-                <span className="text-zinc-300 font-mono">~{estimatedRemainingHours}h study load</span>
+                <span className="text-zinc-300">~{estimatedRemainingHours}H STUDY LOAD</span>
                 {nextTaskName && (
                   <>
                     <span className="text-zinc-600 font-bold">•</span>
                     <span className="text-zinc-400 truncate max-w-[280px]">
-                      Next up: <span className={`font-semibold ${targetColorClass}`}>{nextTaskName}</span>
+                      NEXT: <span className={`font-bold ${targetColorClass}`}>{nextTaskName}</span>
                     </span>
                   </>
                 )}
               </>
             ) : (
-              <span className="text-emerald-400 font-medium">All daily missions completed · Great work!</span>
+              <span className="text-emerald-400 font-bold">ALL DAILY MISSIONS COMPLETED · 100% NOMINAL</span>
             )}
           </div>
         </div>
 
-        {/* Action Controls: Routine Break + Energy Switcher */}
+        {/* Action Controls: Routine Break + Tactical HUD + Energy Switcher */}
         <div className="shrink-0 flex items-center gap-2.5 flex-wrap">
+
+
           {onOpenRoutineBreak && (
             <motion.button
               type="button"

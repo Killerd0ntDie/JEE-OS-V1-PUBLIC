@@ -7,6 +7,7 @@ import { Chapter } from '@/types';
 import { MonthlyCampaignBanner } from '@/features/mission/components/MonthlyCampaignBanner';
 import { Modal } from '@/components/ui/Modal';
 import { springs } from '@/constants/motion';
+import { audioEngine } from '@/utils/audioEngine';
 
 interface CommandOverviewBannerProps {
   chapters: Chapter[];
@@ -90,19 +91,31 @@ export function CommandOverviewBanner({
       
       {/* Unified Compact Header Bar */}
       <div 
-        onClick={handleToggle}
-        className="w-full bg-zinc-900/60 hover:bg-zinc-900/90 border border-zinc-800/80 hover:border-zinc-700 rounded-2xl p-2.5 px-3.5 shadow-sm transition-all duration-150 cursor-pointer select-none group flex items-center justify-between"
+        onClick={() => {
+          audioEngine.playRadioRelayClick().catch(() => {});
+          handleToggle();
+        }}
+        style={{
+          background: 'rgba(10, 14, 23, 0.78)',
+          backdropFilter: 'blur(20px)',
+          border: '1px solid rgba(255, 255, 255, 0.10)',
+          borderTop: '1.5px solid rgba(255, 255, 255, 0.20)',
+          boxShadow: '0 8px 30px rgba(0, 0, 0, 0.5)'
+        }}
+        className="w-full hover:border-indigo-500/40 rounded-2xl p-2.5 px-3.5 shadow-sm transition-all duration-150 cursor-pointer select-none group flex items-center justify-between"
       >
         <div className="flex items-center gap-3 flex-wrap min-w-0">
-          <div className="p-1.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 group-hover:border-indigo-500/40 transition-colors">
+          <div className="p-1.5 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 group-hover:border-indigo-500/60 transition-colors shadow-sm">
             <LayoutDashboard className="w-3.5 h-3.5" />
           </div>
           
-          <span className="text-xs font-semibold text-zinc-200 tracking-wide">
-            Prep Command Center
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-mono font-bold text-white tracking-wide uppercase">
+              <span className="eva-japanese-badge">全般統制 // </span>PREP COMMAND
+            </span>
+          </div>
 
-          <div className="flex items-center gap-2 flex-wrap text-xs">
+          <div className="flex items-center gap-2 flex-wrap text-xs font-mono">
             {onHoldChapters.length > 0 && (
               <span className="text-amber-300 bg-amber-950/40 border border-amber-500/30 px-2.5 py-0.5 rounded-lg font-medium flex items-center gap-1">
                 <PauseCircle className="w-3 h-3 text-amber-400" />
@@ -125,9 +138,10 @@ export function CommandOverviewBanner({
           transition={springs.snappy}
           onClick={(e) => {
             e.stopPropagation();
+            audioEngine.playRadioRelayClick().catch(() => {});
             handleToggle();
           }}
-          className="flex items-center gap-1.5 text-zinc-300 hover:text-white bg-zinc-800/80 hover:bg-zinc-700/80 border border-zinc-700/60 px-3 py-1 rounded-xl text-xs font-medium transition-colors cursor-pointer shrink-0 shadow-sm"
+          className="flex items-center gap-1.5 text-zinc-300 hover:text-white bg-zinc-800/80 hover:bg-zinc-700/80 border border-zinc-700/60 px-3 py-1 rounded-xl text-xs font-mono font-bold transition-colors cursor-pointer shrink-0 shadow-sm"
         >
           <span>{isExpanded ? 'Collapse' : 'Overview'}</span>
           <motion.div
@@ -149,19 +163,57 @@ export function CommandOverviewBanner({
             transition={springs.fluid}
             className="overflow-hidden mt-3"
           >
-            <div className="glass-panel bg-zinc-950/80 backdrop-blur-2xl border border-white/10 rounded-3xl p-5 md:p-6 shadow-2xl space-y-4 text-left">
+            <div 
+              style={{
+                background: 'rgba(10, 14, 23, 0.90)',
+                backdropFilter: 'blur(24px) saturate(190%)',
+                border: '1px solid rgba(255, 255, 255, 0.10)',
+                borderTop: '1.5px solid rgba(255, 255, 255, 0.25)',
+                boxShadow: '0 25px 60px rgba(0, 0, 0, 0.8)'
+              }}
+              className="rounded-3xl p-5 md:p-6 space-y-4 text-left relative overflow-hidden"
+            >
+            {/* Top Hazard Caution Tape Ribbon */}
+            <div 
+              className="absolute top-0 inset-x-0 h-1 opacity-75 pointer-events-none"
+              style={{
+                background: 'repeating-linear-gradient(-45deg, #6366f1 0px, #6366f1 8px, transparent 8px, transparent 16px)'
+              }}
+            />
+
+            {/* Caliper Crosshairs */}
+            <span className="absolute top-2.5 left-2.5 text-[9px] font-mono text-zinc-600 select-none pointer-events-none">+</span>
+            <span className="absolute top-2.5 right-2.5 text-[9px] font-mono text-zinc-600 select-none pointer-events-none">+</span>
+            <span className="absolute bottom-2.5 left-2.5 text-[9px] font-mono text-zinc-600 select-none pointer-events-none">+</span>
+            <span className="absolute bottom-2.5 right-2.5 text-[9px] font-mono text-zinc-600 select-none pointer-events-none">+</span>
+
             {/* MONTHLY BOSS ENCOUNTER */}
             <MonthlyCampaignBanner />
 
             {/* Integrated On-Hold Chapters Box */}
             {onHoldChapters.length > 0 && (
-              <div className="w-full bg-amber-950/30 border border-amber-500/30 rounded-2xl p-3.5 text-left shadow-inner">
+              <div 
+                style={{
+                  background: 'rgba(25, 16, 10, 0.85)',
+                  backdropFilter: 'blur(16px)',
+                  border: '1px solid rgba(245, 158, 11, 0.35)',
+                  borderTop: '1.5px solid rgba(245, 158, 11, 0.65)'
+                }}
+                className="w-full rounded-2xl p-4 text-left shadow-inner relative overflow-hidden"
+              >
+                {/* Top Amber Hazard Stripes */}
+                <div 
+                  className="absolute top-0 inset-x-0 h-0.5 opacity-70 pointer-events-none"
+                  style={{
+                    background: 'repeating-linear-gradient(-45deg, #f59e0b 0px, #f59e0b 8px, transparent 8px, transparent 16px)'
+                  }}
+                />
                 <div className="flex items-center gap-2 mb-2.5">
                   <PauseCircle className="w-4 h-4 text-amber-400 shrink-0" />
-                  <span className="text-xs font-mono font-bold text-amber-300 uppercase tracking-wider">
+                  <span className="text-xs font-mono font-bold text-amber-300 uppercase tracking-widest">
                     {allStartedOnHold
-                      ? 'All started chapters are on hold — remove hold or start a new chapter to generate plan'
-                      : `${onHoldChapters.length} chapter${onHoldChapters.length > 1 ? 's' : ''} on hold — not being scheduled`}
+                      ? 'ALL STARTED CHAPTERS ON HOLD — GENERATE PLAN BY RESUMING'
+                      : `${onHoldChapters.length} CHAPTER${onHoldChapters.length > 1 ? 'S' : ''} ON HOLD — NOT BEING SCHEDULED`}
                   </span>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -173,12 +225,12 @@ export function CommandOverviewBanner({
                         e.stopPropagation();
                         onOpenChapter(c.id);
                       }}
-                      className="text-xs font-mono px-3 py-1 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-200 hover:bg-amber-500/25 transition-all active:scale-95 cursor-pointer select-none shadow-sm"
+                      className="text-xs font-mono font-bold uppercase px-3 py-1 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-200 hover:bg-amber-500/25 transition-all active:scale-95 cursor-pointer select-none shadow-sm"
                       title="Click to review or resume"
                     >
                       {c.name}
                       {c.chapterOnHold
-                        ? ' (Entire Chapter)'
+                        ? ' (ENTIRE CHAPTER)'
                         : c.dppOnHold && c.pyqOnHold
                         ? ' (DPP + PYQ)'
                         : c.dppOnHold
@@ -196,26 +248,44 @@ export function CommandOverviewBanner({
               <motion.div 
                 whileTap={{ scale: 0.98 }}
                 onClick={onSetMonthlyObjective}
-                className="p-4 glass-panel bg-zinc-900/70 hover:bg-zinc-850/80 border border-white/10 hover:border-indigo-500/40 rounded-2xl transition-all cursor-pointer group flex flex-col justify-between select-none shadow-sm"
+                style={{
+                  background: 'rgba(12, 16, 26, 0.85)',
+                  backdropFilter: 'blur(16px)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderTop: '1.5px solid rgba(255, 255, 255, 0.20)'
+                }}
+                className="p-4 rounded-2xl hover:border-indigo-500/40 transition-all cursor-pointer group flex flex-col justify-between select-none shadow-sm relative overflow-hidden"
               >
+                <span className="absolute top-2 left-2 text-[9px] font-mono text-zinc-600 select-none pointer-events-none">+</span>
+                <span className="absolute top-2 right-2 text-[9px] font-mono text-zinc-600 select-none pointer-events-none">+</span>
                 <div className="flex items-center justify-between text-zinc-400 mb-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wider font-mono">Monthly Target</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest font-mono text-indigo-300">Monthly Target</span>
                   <Target className="w-4 h-4 text-indigo-400 group-hover:scale-110 transition-transform" />
                 </div>
-                <span className="text-sm font-bold text-white line-clamp-1 group-hover:text-indigo-300 transition-colors">
+                <span className="text-sm font-tactical font-black text-white line-clamp-1 group-hover:text-indigo-300 transition-colors uppercase">
                   {mentorProfile?.monthlyObjective?.category || 'Set Monthly Focus'}
                 </span>
                 <p className="text-[10px] text-zinc-400 font-mono mt-1">Milestone goal (Click to edit)</p>
               </motion.div>
 
               {/* Card 2: Projected Readiness */}
-              <div className="p-4 glass-panel bg-zinc-900/70 border border-white/10 rounded-2xl flex flex-col justify-between shadow-sm">
+              <div 
+                style={{
+                  background: 'rgba(12, 16, 26, 0.85)',
+                  backdropFilter: 'blur(16px)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderTop: '1.5px solid rgba(255, 255, 255, 0.20)'
+                }}
+                className="p-4 rounded-2xl flex flex-col justify-between shadow-sm relative overflow-hidden"
+              >
+                <span className="absolute top-2 left-2 text-[9px] font-mono text-zinc-600 select-none pointer-events-none">+</span>
+                <span className="absolute top-2 right-2 text-[9px] font-mono text-zinc-600 select-none pointer-events-none">+</span>
                 <div className="flex items-center justify-between text-zinc-400 mb-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wider font-mono">Exam Readiness</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest font-mono text-sky-300">Exam Readiness</span>
                   <TrendingUp className="w-4 h-4 text-sky-400" />
                 </div>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-display font-black text-white tracking-tight">{projectedReadiness}%</span>
+                  <span className="text-2xl font-mono font-black text-white tracking-tight">{projectedReadiness}%</span>
                   <span className="text-[10px] font-mono text-zinc-400">weighted</span>
                 </div>
                 <div className="w-full bg-zinc-950 h-1.5 rounded-full overflow-hidden mt-1.5 border border-white/5">
@@ -230,15 +300,23 @@ export function CommandOverviewBanner({
               <motion.div 
                 whileTap={{ scale: 0.98 }}
                 onClick={() => setIsBottlenecksModalOpen(true)}
-                className="p-4 glass-panel bg-zinc-900/70 hover:bg-zinc-850/80 border border-white/10 hover:border-amber-500/40 rounded-2xl transition-all cursor-pointer group flex flex-col justify-between select-none shadow-sm"
+                style={{
+                  background: 'rgba(12, 16, 26, 0.85)',
+                  backdropFilter: 'blur(16px)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderTop: '1.5px solid rgba(255, 255, 255, 0.20)'
+                }}
+                className="p-4 rounded-2xl hover:border-amber-500/40 transition-all cursor-pointer group flex flex-col justify-between select-none shadow-sm relative overflow-hidden"
               >
+                <span className="absolute top-2 left-2 text-[9px] font-mono text-zinc-600 select-none pointer-events-none">+</span>
+                <span className="absolute top-2 right-2 text-[9px] font-mono text-zinc-600 select-none pointer-events-none">+</span>
                 <div className="flex items-center justify-between text-zinc-400 mb-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wider font-mono">Bottlenecks</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest font-mono text-amber-300">Bottlenecks</span>
                   <AlertTriangle className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" />
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
-                  <span className="text-sm font-bold text-amber-300 line-clamp-1">
+                  <span className="text-sm font-mono font-bold text-amber-300 line-clamp-1 uppercase">
                     {activeBottlenecks.length === 1 && activeBottlenecks[0].includes('None')
                       ? '0 Active'
                       : `${activeBottlenecks.length} Identified`}
@@ -251,14 +329,22 @@ export function CommandOverviewBanner({
               <motion.div 
                 whileTap={{ scale: 0.98 }}
                 onClick={onSetDailyCapacity}
-                className="p-4 glass-panel bg-zinc-900/70 hover:bg-zinc-850/80 border border-white/10 hover:border-emerald-500/40 rounded-2xl transition-all cursor-pointer group flex flex-col justify-between select-none shadow-sm"
+                style={{
+                  background: 'rgba(12, 16, 26, 0.85)',
+                  backdropFilter: 'blur(16px)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderTop: '1.5px solid rgba(255, 255, 255, 0.20)'
+                }}
+                className="p-4 rounded-2xl hover:border-emerald-500/40 transition-all cursor-pointer group flex flex-col justify-between select-none shadow-sm relative overflow-hidden"
               >
+                <span className="absolute top-2 left-2 text-[9px] font-mono text-zinc-600 select-none pointer-events-none">+</span>
+                <span className="absolute top-2 right-2 text-[9px] font-mono text-zinc-600 select-none pointer-events-none">+</span>
                 <div className="flex items-center justify-between text-zinc-400 mb-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wider font-mono">Daily Capacity</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest font-mono text-emerald-300">Daily Capacity</span>
                   <Clock className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform" />
                 </div>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-display font-black text-white tracking-tight">{dailyCapHours}</span>
+                  <span className="text-2xl font-mono font-black text-white tracking-tight">{dailyCapHours}</span>
                   <span className="text-xs font-mono text-zinc-400">hours/day</span>
                 </div>
                 <p className="text-[10px] text-zinc-400 font-mono mt-1">Planner quota (Click to configure)</p>

@@ -17,6 +17,7 @@ export interface ModalProps {
   center?: boolean;
   fullScreen?: boolean;
   ariaLabelledBy?: string;
+  style?: React.CSSProperties;
 }
 
 export function Modal({
@@ -29,7 +30,8 @@ export function Modal({
   zIndex = 999,
   center = true,
   fullScreen = false,
-  ariaLabelledBy
+  ariaLabelledBy,
+  style
 }: ModalProps) {
   // Prevent scrolling on body when modal is open and handle ESC key
   const modalRef = React.useRef<HTMLDivElement>(null);
@@ -66,6 +68,7 @@ export function Modal({
             initial="initial"
             animate="animate"
             exit="exit"
+            style={style}
             className={`relative flex flex-col glass-panel overflow-hidden shadow-2xl ${fullScreen ? 'w-full h-full rounded-none' : 'rounded-2xl'} ${className}`}
             onClick={(e) => e.stopPropagation()}
             role="dialog"

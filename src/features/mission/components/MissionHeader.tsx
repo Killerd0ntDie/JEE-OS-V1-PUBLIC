@@ -226,10 +226,10 @@ export function MissionHeader({
                       >
                         <div className="min-w-0 flex-1">
                           <div className="font-bold flex items-center gap-1.5">
-                            <span>{meta.title}</span>
-                            {meta.subjectTag && (
+                            <span>{(meta as any).title || (meta as any).label}</span>
+                            {(meta as any).subjectTag && (
                               <span className="text-[9px] px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-400 uppercase font-semibold">
-                                {meta.subjectTag}
+                                {(meta as any).subjectTag}
                               </span>
                             )}
                           </div>

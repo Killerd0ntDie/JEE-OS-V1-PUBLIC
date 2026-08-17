@@ -1,31 +1,56 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
+import { useShallow } from 'zustand/react/shallow';
 import { useAuth } from '@/features/auth';
 import { RevisionCard } from '@/services/revisionEngineService';
 import { audioEngine } from '@/utils/audioEngine';
 
 export function useDashboardState() {
   const navigate = useNavigate();
-  const actions = useStudyBrainStore(s => s.actions);
-  const chapterTelemetryMap = useStudyBrainStore(s => s.chapterTelemetryMap);
-  const mentorProfile = useStudyBrainStore(s => s.mentorProfile);
-  const estimatedRemainingHours = useStudyBrainStore(s => s.estimatedRemainingHours);
-  const plannedQuestions = useStudyBrainStore(s => s.plannedQuestions);
-  const targetFinishTime = useStudyBrainStore(s => s.targetFinishTime);
-  const todayMissions = useStudyBrainStore(s => s.todayMissions);
-  const activeSubject = useStudyBrainStore(s => s.activeSubject);
-  const isMissionModeActive = useStudyBrainStore(s => s.isMissionModeActive);
-  const energyLevel = useStudyBrainStore(s => s.energyLevel);
-  const chapters = useStudyBrainStore(s => s.chapters);
-  const revisionQueue = useStudyBrainStore(s => s.revisionQueue);
-  const settings = useStudyBrainStore(s => s.settings);
-  const syllabusProgress = useStudyBrainStore(s => s.syllabusProgress);
-  const analytics = useStudyBrainStore(s => s.analytics);
-  const xp = useStudyBrainStore(s => s.xp);
-  const studySessions = useStudyBrainStore(s => s.studySessions);
-  const projectedReadiness = useStudyBrainStore(s => s.projectedReadiness);
-  const loading = useStudyBrainStore(s => s.loading);
+  
+  const {
+    actions,
+    chapterTelemetryMap,
+    mentorProfile,
+    estimatedRemainingHours,
+    plannedQuestions,
+    targetFinishTime,
+    todayMissions,
+    activeSubject,
+    isMissionModeActive,
+    energyLevel,
+    chapters,
+    revisionQueue,
+    settings,
+    syllabusProgress,
+    analytics,
+    xp,
+    studySessions,
+    projectedReadiness,
+    loading
+  } = useStudyBrainStore(useShallow(s => ({
+    actions: s.actions,
+    chapterTelemetryMap: s.chapterTelemetryMap,
+    mentorProfile: s.mentorProfile,
+    estimatedRemainingHours: s.estimatedRemainingHours,
+    plannedQuestions: s.plannedQuestions,
+    targetFinishTime: s.targetFinishTime,
+    todayMissions: s.todayMissions,
+    activeSubject: s.activeSubject,
+    isMissionModeActive: s.isMissionModeActive,
+    energyLevel: s.energyLevel,
+    chapters: s.chapters,
+    revisionQueue: s.revisionQueue,
+    settings: s.settings,
+    syllabusProgress: s.syllabusProgress,
+    analytics: s.analytics,
+    xp: s.xp,
+    studySessions: s.studySessions,
+    projectedReadiness: s.projectedReadiness,
+    loading: s.loading
+  })));
+
   const { user } = useAuth();
 
   // Focus session state

@@ -508,14 +508,32 @@ export function MissionMode(props: MissionModeProps) {
                 exit={{ opacity: 0, scale: 0.95, x: 25 }}
                 transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
                 style={{
-                  background: 'rgba(10, 14, 23, 0.78)',
+                  background: 'rgba(10, 14, 23, 0.85)',
                   backdropFilter: 'blur(24px) saturate(190%) contrast(105%)',
                   border: '1px solid rgba(255, 255, 255, 0.12)',
-                  borderTop: '1.5px solid rgba(255, 255, 255, 0.25)',
-                  boxShadow: '0 25px 60px rgba(0, 0, 0, 0.7), inset 0 1px 1px rgba(255, 255, 255, 0.2)'
+                  borderTop: '1.5px solid rgba(255, 255, 255, 0.28)',
+                  boxShadow: '0 25px 60px rgba(0, 0, 0, 0.8), inset 0 1px 1px rgba(255, 255, 255, 0.15)'
                 }}
                 className="flex-1 w-full max-w-xl mx-auto flex flex-col h-full rounded-3xl overflow-hidden shadow-2xl relative"
               >
+                {/* Top Hazard Warning Stripes Ribbon */}
+                <div 
+                  className="absolute top-0 inset-x-0 h-1 opacity-80 pointer-events-none"
+                  style={{
+                    background: state.activeSubject === 'maths' 
+                      ? 'repeating-linear-gradient(-45deg, #a855f7 0px, #a855f7 8px, transparent 8px, transparent 16px)'
+                      : state.activeSubject === 'physics'
+                      ? 'repeating-linear-gradient(-45deg, #0ea5e9 0px, #0ea5e9 8px, transparent 8px, transparent 16px)'
+                      : 'repeating-linear-gradient(-45deg, #10b981 0px, #10b981 8px, transparent 8px, transparent 16px)'
+                  }}
+                />
+
+                {/* Caliper Crosshairs */}
+                <span className="absolute top-2.5 left-2.5 text-[9px] font-mono text-zinc-600 select-none pointer-events-none">+</span>
+                <span className="absolute top-2.5 right-2.5 text-[9px] font-mono text-zinc-600 select-none pointer-events-none">+</span>
+                <span className="absolute bottom-2.5 left-2.5 text-[9px] font-mono text-zinc-600 select-none pointer-events-none">+</span>
+                <span className="absolute bottom-2.5 right-2.5 text-[9px] font-mono text-zinc-600 select-none pointer-events-none">+</span>
+
                 <div className="flex-1 flex flex-col min-h-0 relative z-10">
                   {children ? (
                     children

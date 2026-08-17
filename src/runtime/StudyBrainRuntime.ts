@@ -53,6 +53,7 @@ export interface StudyBrainState {
     dayEndTime?: string;
     minStreakHours?: number;
     enablePomodoroCasino?: boolean;
+    themeMode?: 'evangelion' | 'modern';
   };
   weeklyGoals?: {
     weekIndex: number;
@@ -307,11 +308,6 @@ export class StudyBrainRuntime {
 
     if (optimisticData) {
       this.updateStateOptimistic(optimisticData);
-    }
-
-    if (reason === 'INIT') {
-      await this.executeRefresh(reason);
-      return;
     }
 
     return new Promise<void>((resolve) => {

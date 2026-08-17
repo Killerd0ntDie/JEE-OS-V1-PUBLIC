@@ -1,10 +1,12 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Noto+Sans+JP:wght@400;500;700;900&family=Share+Tech+Mono&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Space Grotesk", sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-sans: "Inter", "Noto Sans JP", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", "Space Mono", ui-monospace, monospace;
+  --font-hud: "Share Tech Mono", "JetBrains Mono", monospace;
+  --font-tactical: "Chakra Petch", "Space Grotesk", sans-serif;
   
   /* Sophisticated Dark Theme Color Palette */
   --color-zinc-950: #09090b;
@@ -20,6 +22,76 @@
 
   --font-size-3xs: 0.68rem; /* ~10.9px */
   --font-size-2xs: 0.75rem; /* ~12px */
+}
+
+/* Tactical NERV / Evangelion Typography Utilities */
+.font-hud {
+  font-family: var(--font-hud), "JetBrains Mono", monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.font-tactical {
+  font-family: var(--font-tactical), "Chakra Petch", "Space Grotesk", sans-serif;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.font-telemetry {
+  font-family: var(--font-mono), "JetBrains Mono", monospace;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-feature-settings: "tnum" on, "zero" on;
+}
+
+/* --- THEME MODES (MODERN MINIMALIST OVERRIDES) --- */
+.theme-modern {
+  --font-display: "Space Grotesk", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-tactical: "Space Grotesk", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-hud: "JetBrains Mono", monospace;
+}
+
+.theme-modern .font-tactical {
+  font-family: "Space Grotesk", "Inter", sans-serif !important;
+  letter-spacing: normal !important;
+  text-transform: none !important;
+}
+
+.theme-modern .font-hud {
+  font-family: "JetBrains Mono", monospace !important;
+  letter-spacing: normal !important;
+}
+
+/* Revert/Hide hazard caution tape ribbons in Modern mode */
+.theme-modern [style*="repeating-linear-gradient"],
+.theme-modern .hazard-ribbon {
+  display: none !important;
+}
+
+/* Revert/Hide tactical corner crosshair calipers in Modern mode */
+.theme-modern span.select-none.pointer-events-none:is([class*="font-mono"]),
+.theme-modern .corner-caliper {
+  display: none !important;
+}
+
+/* Revert/Hide Japanese anime telemetry badges in Modern mode */
+.theme-modern .eva-japanese-badge {
+  display: none !important;
+}
+
+.theme-modern .modern-badge-text {
+  display: inline !important;
+}
+
+/* Revert/Hide rotating kinetic circle animations in Modern mode */
+.theme-modern .eva-kinetic-ring,
+.theme-modern svg[class*="animate-[spin_"] {
+  display: none !important;
+}
+
+/* Revert high-voltage neon glow outlines back to subtle modern shadows */
+.theme-modern [class*="shadow-[0_0_"] {
+  box-shadow: none !important;
 }
 
 /* --- THEME SHIFTS (GOD MODE & ROT MODE) --- */
@@ -101,7 +173,7 @@ body {
 }
 
 /* Glassmorphism Design Tokens & Utilities */
-@utility glass-card {
+.glass-card {
   background: rgba(18, 19, 26, 0.80);
   border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.08);
@@ -109,13 +181,13 @@ body {
   transform: translateZ(0);
 }
 
-@utility glass-card-hover {
+.glass-card-hover {
   background: rgba(24, 25, 34, 0.90);
   border-color: rgba(99, 102, 241, 0.4);
   box-shadow: 0 12px 40px 0 rgba(99, 102, 241, 0.2);
 }
 
-@utility glass-panel {
+.glass-panel {
   background: rgba(0, 0, 0, 0.45) !important;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
   backdrop-filter: blur(16px) !important;
@@ -130,7 +202,7 @@ body {
    Nested backdrop-filter is a no-op per the CSS spec — the child can
    only blur the parent's already-composited surface, not the page
    content behind it, so the blur appears invisible.                     */
-@utility glass-dropdown {
+.glass-dropdown {
   background: rgba(12, 12, 14, 0.92) !important;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
   border: 1px solid rgba(255, 255, 255, 0.10) !important;

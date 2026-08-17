@@ -54,12 +54,12 @@ export function MissionSubjectSwitcherWidget({
           </span>
         </div>
 
-        <h1 className="text-xl md:text-2xl lg:text-3xl font-extrabold text-white tracking-tight leading-tight px-4">
+        <h1 className="text-xl md:text-2xl lg:text-3xl font-tactical font-black text-white tracking-tight leading-tight px-4 uppercase">
           {activeDetails.lecture}
         </h1>
 
-        <p className="text-xs text-zinc-400 font-sans">
-          Unit: <strong className="text-zinc-300 font-medium">{activeDetails.chapter}</strong>
+        <p className="text-xs text-zinc-400 font-mono uppercase tracking-wider">
+          Unit: <strong className="text-zinc-200 font-bold">{activeDetails.chapter}</strong>
         </p>
       </div>
     </motion.div>

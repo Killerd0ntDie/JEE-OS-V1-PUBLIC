@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Target, BarChart3 } from 'lucide-react';
 import { SmartRevisionQueueWidget } from './SmartRevisionQueueWidget';
 import { ExamReadinessWidget } from './ExamReadinessWidget';
@@ -10,6 +10,7 @@ import { getTodayStudyMinutes } from '@/utils/streakCalculations';
 
 import { motion, AnimatePresence, Variants } from 'motion/react';
 import { springs } from '@/constants/motion';
+import { audioEngine } from '@/utils/audioEngine';
 
 interface DashboardFocusSectionProps {
   activeTab: 'focus' | 'analytics';
@@ -67,23 +68,35 @@ export function DashboardFocusSection({
 }: DashboardFocusSectionProps) {
   const [direction, setDirection] = useState<number>(0);
 
+  const todayStudyMinutes = useMemo(() => getTodayStudyMinutes(studySessions || []), [studySessions]);
+
   const tabs = [
-    { id: 'focus', label: "Today's Focus & Revision Queue", icon: Target },
-    { id: 'analytics', label: 'Analytics, Heatmap & Trajectory', icon: BarChart3 },
+    { id: 'focus', label: "焦点復習 // Focus & Revision", icon: Target },
+    { id: 'analytics', label: '分析評価 // Analytics & Trajectory', icon: BarChart3 },
   ];
 
   const handleTabChange = (newTabId: 'focus' | 'analytics') => {
     if (newTabId === activeTab) return;
+    audioEngine.playRadioRelayClick().catch(() => {});
     const dir = newTabId === 'analytics' ? 1 : -1;
     setDirection(dir);
     setActiveTab(newTabId);
   };
 
   return (
-    <div className="space-y-4 pt-2">
+    <div className="space-y-4 pt-2 font-sans">
       {/* Tab Toggle Navigation */}
       <div className="flex items-center justify-between border-b border-zinc-800/80 pb-3 flex-wrap gap-3">
-        <div className="flex items-center gap-1.5 p-1 bg-zinc-900/90 border border-zinc-800 rounded-xl relative select-none w-full sm:w-auto shadow-inner">
+        <div 
+          style={{
+            background: 'rgba(10, 14, 23, 0.78)',
+            backdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255, 255, 255, 0.10)',
+            borderTop: '1.5px solid rgba(255, 255, 255, 0.20)',
+            boxShadow: '0 8px 30px rgba(0, 0, 0, 0.5)'
+          }}
+          className="flex items-center gap-1.5 p-1 rounded-2xl relative select-none w-full sm:w-auto shadow-inner"
+        >
           {tabs.map(tab => {
             const isActive = activeTab === tab.id;
             const TabIcon = tab.icon;
@@ -96,26 +109,26 @@ export function DashboardFocusSection({
                   e.preventDefault();
                   handleTabChange(tab.id as any);
                 }}
-                className={`relative px-4 py-1.5 sm:px-5 rounded-lg text-xs font-semibold transition-colors cursor-pointer select-none z-10 flex items-center justify-center gap-2 min-w-[150px] sm:min-w-[200px] text-center ${
-                  isActive ? 'text-white font-bold' : 'text-zinc-400 hover:text-zinc-200'
+                className={`relative px-4 py-2 sm:px-5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer select-none z-10 flex items-center justify-center gap-2 min-w-[150px] sm:min-w-[200px] text-center ${
+                  isActive ? 'text-white' : 'text-zinc-400 hover:text-zinc-200'
                 }`}
               >
                 {isActive && (
                   <motion.div
                     layoutId="dashboardFocusTabSlider"
-                    className="absolute inset-0 bg-indigo-600 rounded-lg shadow-sm -z-10"
+                    className="absolute inset-0 bg-indigo-600/40 border border-indigo-400/60 rounded-xl shadow-md -z-10"
                     transition={springs.snappy}
                   />
                 )}
-                <TabIcon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-white' : 'text-zinc-400'}`} />
+                <TabIcon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-indigo-300' : 'text-zinc-500'}`} />
                 <span className="truncate">{tab.label}</span>
               </motion.button>
             );
           })}
         </div>
 
-        <span className="text-xs text-zinc-400 font-medium hidden sm:inline-block">
-          {activeTab === 'focus' ? 'Active study queues' : 'Long-term exam readiness'}
+        <span className="text-xs text-zinc-400 font-mono hidden sm:inline-block">
+          {activeTab === 'focus' ? 'MAGI // ACTIVE REVISION QUEUE' : 'MAGI // SYLLABUS TRAJECTORY MATRIX'}
         </span>
       </div>
 
@@ -155,7 +168,7 @@ export function DashboardFocusSection({
             >
               <div className="flex flex-col gap-4 h-full justify-between">
                 <DailyStudyTrackerWidget
-                  studyTime={React.useMemo(() => getTodayStudyMinutes(studySessions || []), [studySessions])}
+                  studyTime={todayStudyMinutes}
                   dailyQuota={mentorProfile?.dailyAvailableHours || 6.5}
                   xpLevel={xp?.level || 1}
                   xpTotal={xp?.total || 0}

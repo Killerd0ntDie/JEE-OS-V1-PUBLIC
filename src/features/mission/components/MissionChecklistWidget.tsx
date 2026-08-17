@@ -93,22 +93,22 @@ export function MissionChecklistWidget({
       <div className="w-full flex-1 flex flex-col min-h-0 space-y-4">
         
         {/* Header with Progress Bar */}
-        <div className="space-y-3 border-b border-zinc-800/80 pb-3.5 shrink-0">
+        <div className="space-y-3 border-b border-white/10 pb-3.5 shrink-0">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2.5">
               <div className={`w-8 h-8 rounded-xl ${theme.accentBg} border ${theme.accentBorder} ${theme.accentText} flex items-center justify-center shadow-sm`}>
                 <ListTodo className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-xs font-mono font-bold tracking-wider text-white uppercase">
-                  任務項目 // DIRECTIVES
+                <h3 className="text-xs font-tactical font-black tracking-wider text-white uppercase">
+                  <span className="eva-japanese-badge">任務項目 // </span>DIRECTIVES
                 </h3>
-                <p className="text-[10px] text-zinc-500 font-mono mt-0.5">
+                <p className="text-[10px] text-zinc-400 font-mono mt-0.5 uppercase">
                   Complete targets to calibrate XP
                 </p>
               </div>
             </div>
-            <span className={`text-[11px] font-mono font-bold px-2.5 py-1 rounded-xl border shadow-sm transition-colors ${
+            <span className={`text-[11px] font-mono font-bold px-2.5 py-1 rounded-xl border shadow-sm transition-colors uppercase tracking-wider ${
               progressPercent === 100 
                 ? 'bg-emerald-950/50 border-emerald-500/50 text-emerald-300 shadow-emerald-950/50' 
                 : `${theme.accentBg} ${theme.accentBorder} ${theme.accentText}`
@@ -118,10 +118,10 @@ export function MissionChecklistWidget({
           </div>
           
           {/* Animated Top Progress Bar */}
-          <div className="w-full h-1.5 bg-zinc-900/90 rounded-full overflow-hidden border border-zinc-800/80">
+          <div className="w-full h-1.5 bg-zinc-950 rounded-full overflow-hidden border border-white/10">
             <motion.div 
               className={`h-full rounded-full transition-colors ${
-                progressPercent === 100 ? 'bg-emerald-500' : theme.bar
+                progressPercent === 100 ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : theme.bar
               }`}
               initial={{ width: 0 }}
               animate={{ width: `${progressPercent}%` }}
@@ -145,8 +145,8 @@ export function MissionChecklistWidget({
                 }}
                 className={`group py-2.5 px-3.5 rounded-xl transition-all cursor-pointer flex items-center justify-between border ${
                   isChecked
-                    ? 'border-zinc-850/50 bg-zinc-950/40 text-zinc-500'
-                    : 'border-zinc-800/80 bg-zinc-900/60 hover:bg-zinc-850/80 hover:border-zinc-700 text-zinc-200 shadow-sm'
+                    ? 'border-white/5 bg-zinc-950/40 text-zinc-500'
+                    : 'border-white/10 bg-zinc-900/70 hover:bg-zinc-850/80 hover:border-emerald-500/40 text-zinc-200 shadow-sm'
                 }`}
               >
                 <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -168,15 +168,15 @@ export function MissionChecklistWidget({
                       </motion.div>
                     )}
                   </motion.div>
-                  <span className={`text-xs font-medium tracking-wide truncate ${
-                    isChecked ? 'line-through text-zinc-500' : 'text-zinc-200 group-hover:text-white'
+                  <span className={`text-xs font-tactical font-bold tracking-wide truncate uppercase ${
+                    isChecked ? 'line-through text-zinc-600' : 'text-zinc-200 group-hover:text-white'
                   }`}>
                     {task}
                   </span>
                 </div>
 
                 {/* Icon status indicator */}
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-2 shrink-0 font-mono">
                   {isChecked ? (
                     <span className={`text-[10px] font-mono ${theme.doneText} font-bold uppercase tracking-wider`}>DONE ✓</span>
                   ) : (
@@ -205,7 +205,7 @@ export function MissionChecklistWidget({
 
         {/* Add Custom Checklist Item */}
         {onAddTask && (
-          <div className="flex items-center gap-2 pt-1 shrink-0">
+          <div className="flex items-center gap-2 pt-1 shrink-0 font-mono">
             <input
               type="text"
               value={newTaskInput}
@@ -218,7 +218,7 @@ export function MissionChecklistWidget({
                 e.stopPropagation();
               }}
               placeholder="Add your own checklist item..."
-              className={`flex-1 bg-zinc-900/60 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-xs font-mono text-zinc-200 placeholder:text-zinc-600 focus:outline-none ${theme.focusBorder} transition-colors shadow-inner`}
+              className={`flex-1 bg-zinc-950/80 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs font-mono text-zinc-200 placeholder:text-zinc-600 focus:outline-none ${theme.focusBorder} transition-colors shadow-inner`}
             />
             <motion.button
               type="button"
@@ -238,14 +238,14 @@ export function MissionChecklistWidget({
       </div>
 
       {/* Primary Footer CTAs */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-4 border-t border-zinc-800/80 mt-4 shrink-0">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-4 border-t border-white/10 mt-4 shrink-0 font-mono">
         <motion.button
           type="button"
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.96 }}
           transition={springs.snappy}
           onClick={onStartPractice}
-          className="w-full py-2.5 sm:py-3 rounded-xl border border-zinc-800 bg-zinc-900/90 hover:bg-zinc-850 text-zinc-300 hover:text-white text-[11px] font-mono font-bold tracking-wider uppercase transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+          className="w-full py-2.5 sm:py-3 rounded-xl border border-white/10 bg-zinc-950/80 hover:bg-zinc-900 text-zinc-300 hover:text-white text-[11px] font-mono font-bold tracking-wider uppercase transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
         >
           <Play className="w-3.5 h-3.5 text-zinc-400" />
           Practice Mode
@@ -257,7 +257,7 @@ export function MissionChecklistWidget({
           whileTap={{ scale: 0.96 }}
           transition={springs.snappy}
           onClick={onTogglePause}
-          className="w-full py-2.5 sm:py-3 rounded-xl border border-amber-500/40 bg-amber-950/40 hover:bg-amber-900/60 text-amber-300 text-[11px] font-mono font-bold tracking-wider uppercase transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+          className="w-full py-2.5 sm:py-3 rounded-xl border border-amber-500/40 bg-amber-950/40 hover:bg-amber-900/60 text-amber-300 text-[11px] font-mono font-bold tracking-wider uppercase transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-[0_0_12px_rgba(245,158,11,0.15)] active:scale-95"
         >
           {isPaused ? <Play className="w-3.5 h-3.5 text-amber-400" /> : <Pause className="w-3.5 h-3.5 text-amber-400" />}
           {isPaused ? 'Resume Session' : 'Pause Session'}
@@ -269,7 +269,7 @@ export function MissionChecklistWidget({
           whileTap={{ scale: 0.96 }}
           transition={springs.snappy}
           onClick={onCompleteAll}
-          className="w-full py-2.5 sm:py-3 rounded-xl border border-emerald-500/50 bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-mono font-bold tracking-wider uppercase transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-emerald-600/20"
+          className="w-full py-2.5 sm:py-3 rounded-xl border border-emerald-400/50 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 hover:from-emerald-500 hover:to-teal-500 text-white text-[11px] font-mono font-bold tracking-wider uppercase transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-[0_0_20px_rgba(16,185,129,0.35)] active:scale-95"
         >
           <CheckCircle2 className="w-4 h-4" />
           Complete

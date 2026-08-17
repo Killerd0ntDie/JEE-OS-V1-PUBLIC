@@ -1,7 +1,7 @@
 import React from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { motion } from 'motion/react';
-import { Brain, Sparkles, CheckCircle2, AlertTriangle, Zap, Flame, Award } from 'lucide-react';
+import { Sparkles, CheckCircle2, Zap, Flame, Award } from 'lucide-react';
 import { NeuralNodeData } from '@jee-os/engines';
 
 export const TopicNode = ({ data, selected }: { data: NeuralNodeData; selected?: boolean }) => {
@@ -11,9 +11,13 @@ export const TopicNode = ({ data, selected }: { data: NeuralNodeData; selected?:
   const isDecaying = data.isDecaying;
   const isSelected = selected || data.isSelected;
 
+  // Extract index/serial for Japanese Stamp
+  const serialMatch = (data.id || '').match(/\d+/);
+  const chapterNumber = serialMatch ? serialMatch[0].padStart(2, '0') : '01';
+
   // Dynamic styling based on Graph Mode (Flow, Decay, Weightage)
   let modeBadge = null;
-  let modeBorder = 'border-zinc-800/80';
+  let modeBorder = 'border-white/10';
   let modeGlow = '';
 
   if (data.graphMode === 'decay' && isDecaying) {
@@ -24,7 +28,7 @@ export const TopicNode = ({ data, selected }: { data: NeuralNodeData; selected?:
       </span>
     );
     modeBorder = 'border-amber-500/80';
-    modeGlow = 'shadow-[0_0_20px_rgba(245,158,11,0.25)] ring-1 ring-amber-500/50';
+    modeGlow = 'shadow-[0_0_25px_rgba(245,158,11,0.3)] ring-1 ring-amber-500/50';
   } else if (data.graphMode === 'weightage' && data.isHighWeightage) {
     modeBadge = (
       <span className="text-[9px] font-mono font-bold text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-800/60 flex items-center gap-1 shrink-0">
@@ -33,28 +37,34 @@ export const TopicNode = ({ data, selected }: { data: NeuralNodeData; selected?:
       </span>
     );
     modeBorder = 'border-emerald-500/80';
-    modeGlow = 'shadow-[0_0_20px_rgba(16,185,129,0.25)] ring-1 ring-emerald-500/50';
+    modeGlow = 'shadow-[0_0_25px_rgba(16,185,129,0.3)] ring-1 ring-emerald-500/50';
   }
 
   // Base subject color mapping
-  const subjectThemes: Record<string, { border: string; glow: string; text: string; bg: string }> = {
+  const subjectThemes: Record<string, { ribbon: string; border: string; glow: string; text: string; bg: string; dot: string }> = {
     physics: {
+      ribbon: 'repeating-linear-gradient(-45deg, #0ea5e9 0px, #0ea5e9 8px, transparent 8px, transparent 16px)',
       border: 'hover:border-sky-500/60',
-      glow: 'shadow-[0_0_25px_rgba(56,189,248,0.2)]',
+      glow: 'shadow-[0_0_25px_rgba(14,165,233,0.25)]',
       text: 'text-sky-400',
-      bg: 'bg-sky-500/10'
+      bg: 'bg-sky-500/10 border-sky-500/20',
+      dot: '#0ea5e9'
     },
     chemistry: {
+      ribbon: 'repeating-linear-gradient(-45deg, #10b981 0px, #10b981 8px, transparent 8px, transparent 16px)',
       border: 'hover:border-emerald-500/60',
-      glow: 'shadow-[0_0_25px_rgba(16,185,129,0.2)]',
+      glow: 'shadow-[0_0_25px_rgba(16,185,129,0.25)]',
       text: 'text-emerald-400',
-      bg: 'bg-emerald-500/10'
+      bg: 'bg-emerald-500/10 border-emerald-500/20',
+      dot: '#10b981'
     },
     maths: {
+      ribbon: 'repeating-linear-gradient(-45deg, #a855f7 0px, #a855f7 8px, transparent 8px, transparent 16px)',
       border: 'hover:border-violet-500/60',
-      glow: 'shadow-[0_0_25px_rgba(139,92,246,0.2)]',
-      text: 'text-violet-400',
-      bg: 'bg-violet-500/10'
+      glow: 'shadow-[0_0_25px_rgba(168,85,247,0.25)]',
+      text: 'text-purple-400',
+      bg: 'bg-purple-500/10 border-purple-500/20',
+      dot: '#a855f7'
     },
   };
 
@@ -64,21 +74,47 @@ export const TopicNode = ({ data, selected }: { data: NeuralNodeData; selected?:
     <motion.div 
       initial={{ scale: 0.95, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
-      whileHover={{ scale: 1.02 }}
-      className={`relative w-64 glass-panel bg-zinc-950/90 backdrop-blur-2xl rounded-2xl p-3.5 border transition-all duration-200 cursor-pointer select-none text-left ${
+      whileHover={{ scale: 1.03, y: -2 }}
+      style={{
+        background: 'rgba(10, 14, 23, 0.90)',
+        backdropFilter: 'blur(20px) saturate(180%)',
+      }}
+      className={`relative w-64 rounded-2xl p-3.5 border transition-all duration-200 cursor-pointer select-none text-left overflow-hidden ${
         isSelected
-          ? 'border-indigo-500 shadow-[0_0_30px_rgba(99,102,241,0.4)] ring-2 ring-indigo-400/80'
-          : modeGlow ? `${modeBorder} ${modeGlow}` : `border-zinc-800 ${theme.border} hover:shadow-xl`
+          ? 'border-indigo-500 shadow-[0_0_35px_rgba(99,102,241,0.5)] ring-2 ring-indigo-400/80'
+          : modeGlow ? `${modeBorder} ${modeGlow}` : `border-white/10 ${theme.border} hover:shadow-xl`
       }`}
     >
-      <Handle type="target" position={Position.Left} className="!w-2.5 !h-2.5 !bg-indigo-400 !border-2 !border-zinc-900" />
+      {/* Top Subject Hazard Caution Stripes Ribbon */}
+      <div 
+        className="absolute top-0 inset-x-0 h-0.5 opacity-80 pointer-events-none"
+        style={{ background: theme.ribbon }}
+      />
+
+      {/* 4 Corner Caliper Crosshairs */}
+      <span className="absolute top-1.5 left-1.5 text-[8px] font-mono text-zinc-600 select-none pointer-events-none">+</span>
+      <span className="absolute top-1.5 right-1.5 text-[8px] font-mono text-zinc-600 select-none pointer-events-none">+</span>
+      <span className="absolute bottom-1.5 left-1.5 text-[8px] font-mono text-zinc-600 select-none pointer-events-none">+</span>
+      <span className="absolute bottom-1.5 right-1.5 text-[8px] font-mono text-zinc-600 select-none pointer-events-none">+</span>
+
+      <Handle 
+        type="target" 
+        position={Position.Left} 
+        className="!w-2.5 !h-2.5 !bg-indigo-400 !border-2 !border-zinc-950 shadow-[0_0_8px_rgba(99,102,241,0.8)]" 
+      />
       
       <div className="flex flex-col gap-2 relative z-10">
-        {/* Unit & Status Line */}
+        {/* Header: Node Stamp & Status Badge */}
         <div className="flex items-center justify-between gap-1.5">
-          <span className={`text-[10px] font-mono font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border border-white/5 truncate max-w-[120px] ${theme.bg} ${theme.text}`}>
-            {data.unit}
-          </span>
+          <div className="flex items-center gap-1.5 truncate">
+            <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-zinc-400 uppercase">
+              <span className="eva-japanese-badge">第{chapterNumber}章</span>
+              <span className="modern-badge-text hidden">CH.{chapterNumber}</span>
+            </span>
+            <span className={`text-[9px] font-mono font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border truncate max-w-[100px] ${theme.bg} ${theme.text}`}>
+              {data.unit}
+            </span>
+          </div>
           
           {modeBadge ? modeBadge : isMastered ? (
             <span className="text-[9px] font-mono font-bold text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-800/60 flex items-center gap-1 shrink-0">
@@ -96,28 +132,34 @@ export const TopicNode = ({ data, selected }: { data: NeuralNodeData; selected?:
               Practiced
             </span>
           ) : (
-            <span className="text-[9px] font-mono text-zinc-500 bg-zinc-900 px-1.5 py-0.5 rounded shrink-0">
+            <span className="text-[9px] font-mono text-zinc-500 bg-zinc-900/80 px-1.5 py-0.5 rounded border border-white/5 shrink-0">
               Not Started
             </span>
           )}
         </div>
         
-        {/* Chapter Title */}
-        <h3 className="text-xs font-display font-bold text-white leading-snug line-clamp-2">
+        {/* Chapter Title in Tactical Typography */}
+        <h3 className="text-xs font-tactical font-black text-white leading-snug line-clamp-2 uppercase tracking-tight">
           {data.label}
         </h3>
         
-        {/* Progress Bar & Telemetry */}
+        {/* Progress Bar & Telemetry in HUD Font */}
         <div className="space-y-1 pt-0.5">
           <div className="flex items-center justify-between text-[10px] font-mono text-zinc-400">
-            <span>Mastery: <strong className="text-white font-bold">{data.masteryScore}%</strong></span>
-            <span>{data.completedLectures}/{data.totalLectures} Lec</span>
+            <span>MASTERY: <strong className="text-white font-hud font-bold">{data.masteryScore}%</strong></span>
+            <span className="font-hud">{data.completedLectures}/{data.totalLectures} LEC</span>
           </div>
           
-          <div className="h-1.5 w-full bg-zinc-900 rounded-full overflow-hidden border border-white/5">
+          <div className="h-1.5 w-full bg-zinc-950 rounded-full overflow-hidden border border-white/10 p-0.25">
             <div 
               className={`h-full transition-all duration-500 rounded-full ${
-                isMastered ? 'bg-emerald-500' : isInProgress ? 'bg-indigo-500' : isCompleted ? 'bg-sky-500' : 'bg-zinc-700'
+                isMastered 
+                  ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]' 
+                  : isInProgress 
+                  ? 'bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)]' 
+                  : isCompleted 
+                  ? 'bg-sky-500 shadow-[0_0_8px_rgba(14,165,233,0.6)]' 
+                  : 'bg-zinc-700'
               }`}
               style={{ width: `${Math.max(4, data.masteryScore)}%` }}
             />
@@ -125,7 +167,11 @@ export const TopicNode = ({ data, selected }: { data: NeuralNodeData; selected?:
         </div>
       </div>
 
-      <Handle type="source" position={Position.Right} className="!w-2.5 !h-2.5 !bg-indigo-400 !border-2 !border-zinc-900" />
+      <Handle 
+        type="source" 
+        position={Position.Right} 
+        className="!w-2.5 !h-2.5 !bg-indigo-400 !border-2 !border-zinc-950 shadow-[0_0_8px_rgba(99,102,241,0.8)]" 
+      />
     </motion.div>
   );
 };

@@ -1822,7 +1822,7 @@ export class StudyBrainActions {
       currentPosition: plan?.reasoningPipelineSummary?.academicStateOverview || `Class ${mentorData.currentClass} student preparing for ${mentorData.targetExams.join(', ')} (${mentorData.targetYear}).`,
       remainingSyllabusPercent: safeRemainingPct,
       estimatedCompletionDate: opt?.predictedCompletionDate?.split('T')[0] || `${mentorData.targetYear}-11-30`,
-      riskLevel: (opt?.scheduleStatus === 'Behind Schedule' ? 'At Risk' : opt?.scheduleStatus) || 'On Track',
+      riskLevel: opt?.scheduleStatus === 'Behind Schedule' ? 'Critical' : opt?.scheduleStatus === 'At Risk' ? 'At Risk' : 'On Track',
       currentBottlenecks: [
         ...(plan?.reasoningPipelineSummary?.detectedPrerequisiteGaps || []),
         ...(plan?.reasoningPipelineSummary?.detectedWeakAreas || [])

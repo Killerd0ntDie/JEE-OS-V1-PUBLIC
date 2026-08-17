@@ -533,14 +533,17 @@ export function DevCockpitRipplePage() {
                     className="absolute -right-3 w-4 h-4 rounded-full bg-purple-300 shadow-[0_0_15px_#c084fc]"
                   />
 
-                  <motion.div
-                    initial={{ rotate: 0, opacity: 0 }}
-                    animate={{ rotate: 360, opacity: [0, 1, 0.8, 1] }}
-                    transition={{ duration: 0.38 / speedMultiplier, ease: "linear" }}
-                    style={{ width: `${radius * 2}px`, height: `${radius * 2}px` }}
-                    className="absolute rounded-full border-2 border-dashed border-sky-400"
-                    style={{ boxShadow: `0 0 20px ${currentTheme.primary}` }}
-                  />
+                    <motion.div
+                      initial={{ rotate: 0, opacity: 0 }}
+                      animate={{ rotate: 360, opacity: [0, 1, 0.8, 1] }}
+                      transition={{ duration: 0.38 / speedMultiplier, ease: "linear" }}
+                      style={{ 
+                        width: `${radius * 2}px`, 
+                        height: `${radius * 2}px`,
+                        boxShadow: `0 0 20px ${currentTheme.primary}` 
+                      }}
+                      className="absolute rounded-full border-2 border-dashed border-sky-400"
+                    />
                 </div>
               )}
 
@@ -751,9 +754,11 @@ export function DevCockpitRipplePage() {
                     {[0, 60, 120, 180, 240, 300].map(deg => (
                       <div
                         key={deg}
-                        style={{ transform: `rotate(${deg}deg) translate(68px)` }}
+                        style={{ 
+                          transform: `rotate(${deg}deg) translate(68px)`,
+                          backgroundColor: currentTheme.primary 
+                        }}
                         className="absolute w-2 h-0.5"
-                        style={{ backgroundColor: currentTheme.primary }}
                       />
                     ))}
                   </motion.div>

@@ -671,5 +671,6 @@ export interface UserProfile {
     enablePomodoroCasino?: boolean;
     sessionExtensionDate?: string;
     sessionExtensionEnd?: string;
+    themeMode?: 'evangelion' | 'modern';
   };
 }

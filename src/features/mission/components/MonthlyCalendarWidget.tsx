@@ -11,7 +11,7 @@ export interface MonthlyCalendarWidgetProps {
 export function MonthlyCalendarWidget({ state }: MonthlyCalendarWidgetProps) {
   const studySessions = useStudyBrainStore(state => state.studySessions);
   const chapters = useStudyBrainStore(state => state.chapters);
-  const weeklyMatrix = useStudyBrainStore(state => state.weeklyMatrix) || [];
+  const weeklyMatrix = useStudyBrainStore(state => (state as any).weeklyMatrix) || [];
   const settings = useStudyBrainStore(state => state.settings);
   const dailyQuota = settings.dailyQuota || 6;
 

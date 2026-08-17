@@ -206,14 +206,14 @@ export const MissionTimerWidget = forwardRef<HTMLDivElement, MissionTimerWidgetP
         <div className="flex items-center justify-center gap-1.5">
           <span className={`w-1.5 h-1.5 rounded-full ${isBerserk ? 'bg-red-400' : theme.dot} animate-pulse`} />
           <span className={`text-[10px] font-mono tracking-[0.25em] ${isBerserk ? 'text-red-300' : theme.text} uppercase font-bold text-center`}>
-            {isBerserk ? '暴走状態 // OVERDRIVE' : '集中持続 // FOCUS RUNTIME'}
+            {isBerserk ? <><span className="eva-japanese-badge">暴走状態 // </span>OVERDRIVE</> : <><span className="eva-japanese-badge">集中持続 // </span>FOCUS RUNTIME</>}
           </span>
         </div>
         
-        {/* Massive High-Contrast Timer */}
+        {/* Massive Timer */}
         <span 
-          className="text-4xl sm:text-5xl lg:text-6xl font-black font-mono tabular-nums tracking-tight text-white leading-none block select-none drop-shadow-sm"
-          style={{ fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"zero" 0' }}
+          style={{ fontFamily: '"Space Grotesk", "Inter", -apple-system, sans-serif' }}
+          className="text-4xl sm:text-5xl lg:text-6xl font-bold tabular-nums tracking-tight text-white leading-none block select-none"
         >
           {formatTime(seconds)}
         </span>

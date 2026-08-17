@@ -27,7 +27,7 @@ const SettingsPage = lazy(() => import('./features/dashboard/SettingsPage').then
 const MockTestsPage = lazy(() => import('./features/mockTests/MockTestsPage').then(m => ({ default: m.MockTestsPage })));
 const NeuralGraphPage = lazy(() => import('./features/neuralLink/NeuralGraphPage').then(m => ({ default: m.NeuralGraphPage })));
 const DiagnosticPage = lazy(() => import('./features/onboarding/DiagnosticPage').then(m => ({ default: m.DiagnosticPage })));
-// const DevDashboardPreviewPage = lazy(() => import('./features/dashboard/DevDashboardPreviewPage').then(m => ({ default: m.DevDashboardPreviewPage })));
+const DevDashboardPage = lazy(() => import('./features/dashboard/DevDashboardPage').then(m => ({ default: m.DevDashboardPage })));
 import { ChapterEditModal } from './components/shared/ChapterEditModal';
 import { ShortcutGuideModal } from './components/ui/ShortcutGuideModal';
 import { LevelUpCelebration } from './components/ui/LevelUpCelebration';
@@ -200,7 +200,8 @@ function AppLayout() {
   // God Mode & Rot Mode Logic (Based on Streak)
   const isGodMode = (xp?.streak || 0) >= 7 && (settings?.enableGodMode !== false);
   const isRotMode = (xp?.streak || 0) > 0 && (xp?.streak || 0) < 3 && settings?.enableGodMode === true;
-  const themeClass = isGodMode ? 'theme-god-mode' : isRotMode ? 'theme-rot-mode' : '';
+  const themeMode = settings?.themeMode || 'evangelion';
+  const themeClass = `${isGodMode ? 'theme-god-mode' : isRotMode ? 'theme-rot-mode' : ''} ${themeMode === 'modern' ? 'theme-modern' : 'theme-evangelion'}`;
 
   return (
     <div className={`flex min-h-screen bg-zinc-950 text-zinc-400 font-sans antialiased overflow-x-hidden selection:bg-indigo-500/30 selection:text-zinc-100 ${themeClass}`}>
@@ -266,7 +267,7 @@ function AppLayout() {
                   <Suspense fallback={<PageSkeleton />}>
                     <Routes location={location} key={location.pathname}>
                       <Route path="/dashboard" element={<ErrorBoundary><DashboardPage /></ErrorBoundary>} />
-                      {/* <Route path="/dev-dashboard" element={<ErrorBoundary><DevDashboardPreviewPage /></ErrorBoundary>} /> */}
+                      <Route path="/dev-dashboard" element={<ErrorBoundary><DevDashboardPage /></ErrorBoundary>} />
                       <Route path="/cockpit/:missionId?" element={<ErrorBoundary><CockpitPage /></ErrorBoundary>} />
                       <Route path="/dev-cockpit" element={<ErrorBoundary><DevCockpitRipplePage /></ErrorBoundary>} />
                       <Route path="/physics" element={<ErrorBoundary><PhysicsPage /></ErrorBoundary>} />

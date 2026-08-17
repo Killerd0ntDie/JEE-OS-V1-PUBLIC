@@ -52,7 +52,29 @@ export function MonthlyCampaignBanner() {
   }, [xp?.monthly]);
 
   return (
-    <div className="px-4 py-3 rounded-xl border border-red-900/40 bg-red-950/10 flex flex-col md:flex-row gap-4 relative overflow-hidden items-center shadow-sm">
+    <div 
+      style={{
+        background: 'rgba(25, 10, 15, 0.88)',
+        backdropFilter: 'blur(20px)',
+        border: '1px solid rgba(239, 68, 68, 0.35)',
+        borderTop: '1.5px solid rgba(239, 68, 68, 0.75)',
+        boxShadow: '0 8px 30px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+      }}
+      className="px-4 sm:px-5 py-3.5 rounded-2xl flex flex-col md:flex-row gap-4 relative overflow-hidden items-center shadow-lg"
+    >
+      {/* Top Crimson Hazard Warning Stripes Ribbon */}
+      <div 
+        className="absolute top-0 inset-x-0 h-1 opacity-80 pointer-events-none"
+        style={{
+          background: 'repeating-linear-gradient(-45deg, #ef4444 0px, #ef4444 8px, transparent 8px, transparent 16px)'
+        }}
+      />
+
+      {/* Caliper Crosshairs */}
+      <span className="absolute top-2 left-2 text-[9px] font-mono text-red-500/60 select-none pointer-events-none">+</span>
+      <span className="absolute top-2 right-2 text-[9px] font-mono text-red-500/60 select-none pointer-events-none">+</span>
+      <span className="absolute bottom-2 left-2 text-[9px] font-mono text-red-500/60 select-none pointer-events-none">+</span>
+      <span className="absolute bottom-2 right-2 text-[9px] font-mono text-red-500/60 select-none pointer-events-none">+</span>
       
       {/* Background styling for gaming feel */}
       <div className="absolute -right-4 -top-4 opacity-5 pointer-events-none">
@@ -61,11 +83,11 @@ export function MonthlyCampaignBanner() {
 
       {/* Left: Info */}
       <div className="w-full md:w-1/3 space-y-1 z-10">
-        <div className="flex items-center gap-1.5 text-red-400 font-mono text-[10px] font-bold uppercase tracking-wider">
+        <div className="flex items-center gap-1.5 text-red-400 font-mono text-[10px] font-bold uppercase tracking-widest">
           <Target className="w-3.5 h-3.5" />
-          <span>Campaign Boss: Lv. {xp?.level || 1}</span>
+          <span>CAMPAIGN BOSS: LV. {xp?.level || 1}</span>
         </div>
-        <h3 className="text-sm font-display font-bold text-white truncate" title={boss.desc}>
+        <h3 className="text-sm font-tactical font-black text-white truncate uppercase tracking-tight" title={boss.desc}>
           {boss.title}
         </h3>
       </div>
@@ -74,25 +96,25 @@ export function MonthlyCampaignBanner() {
       <div className="w-full md:w-1/3 space-y-1.5 z-10">
         <div className="flex justify-between text-[11px] font-mono font-bold uppercase tracking-wider">
           <span className="text-red-400 flex items-center gap-1"><Skull className="w-3 h-3" /> BOSS HP</span>
-          <span className="text-zinc-400">{boss.currentHealth} / {boss.baseHealth} ({Math.round(boss.healthPercent)}%)</span>
+          <span className="text-zinc-300 font-mono font-bold">{boss.currentHealth} / {boss.baseHealth} ({Math.round(boss.healthPercent)}%)</span>
         </div>
-        <div className="h-1.5 rounded-full bg-red-950/50 border border-red-900/50 overflow-hidden flex justify-end">
+        <div className="h-2 rounded-full bg-red-950/80 border border-red-900/60 overflow-hidden flex justify-end">
           <div 
-            className="h-full bg-gradient-to-l from-red-600 to-red-500 transition-all duration-1000 ease-out"
+            className="h-full bg-gradient-to-l from-red-600 via-rose-500 to-red-500 transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(239,68,68,0.5)]"
             style={{ width: `${boss.healthPercent}%` }}
           />
         </div>
       </div>
 
       {/* Right: Ghost Race */}
-      <div className="w-full md:w-1/3 bg-black/30 rounded-lg p-2 px-3 border border-zinc-800/50 z-10">
+      <div className="w-full md:w-1/3 bg-black/40 rounded-xl p-2.5 px-3.5 border border-white/10 z-10 shadow-inner">
         <div className="flex justify-between items-center mb-2">
           <div className="flex items-center gap-1.5">
             <Crosshair className="w-3 h-3 text-zinc-400" />
-            <span className="text-[11px] font-mono font-bold text-zinc-300 uppercase tracking-wider">XP Race</span>
+            <span className="text-[11px] font-mono font-bold text-zinc-300 uppercase tracking-wider">XP RACE</span>
           </div>
-          <div className="text-[8.5px] font-mono font-bold text-zinc-400">
-            {ghost.isAhead ? <span className="text-emerald-400">Winning</span> : `Ghost +${ghost.ghostXp - ghost.userXp}`}
+          <div className="text-[9px] font-mono font-bold text-zinc-400">
+            {ghost.isAhead ? <span className="text-emerald-400">WINNING</span> : `GHOST +${ghost.ghostXp - ghost.userXp}`}
           </div>
         </div>
 

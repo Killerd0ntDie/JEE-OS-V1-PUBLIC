@@ -113,11 +113,39 @@ export class NeuralGraphEngine {
         type: 'topicNode',
       });
 
-      // Connect sequential syllabus progression with glowing energy edges
-      if (prevNodeId) {
-        const isEnergyActive = uiStatus === 'Mastered' || uiStatus === 'Completed';
-        const color = subjectColors[activeSubject];
+      // Connect explicit prerequisites or sequential progression with live glowing energy pulses
+      let hasPrerequisiteEdge = false;
+      const color = subjectColors[activeSubject];
 
+      if (chapter.dependencies && Array.isArray(chapter.dependencies) && chapter.dependencies.length > 0) {
+        chapter.dependencies.forEach((dep) => {
+          const parentChap = subjectChapters.find(
+            c => c.name.toLowerCase() === dep.toLowerCase() || c.id === dep
+          );
+          if (parentChap) {
+            const parentNodeId = `node-${parentChap.id}`;
+            const isEnergyActive = true;
+            edges.push({
+              id: `edge-prereq-${parentChap.id}-${chapter.id}`,
+              source: parentNodeId,
+              target: nodeId,
+              type: 'animatedEnergyEdge',
+              animated: true,
+              style: { 
+                stroke: color.stroke,
+                strokeWidth: 2,
+                opacity: 0.95
+              },
+              data: { isActive: isEnergyActive, isPrerequisite: true, subject: activeSubject }
+            });
+            hasPrerequisiteEdge = true;
+          }
+        });
+      }
+
+      // Fallback: Connect sequential syllabus progression if no custom prerequisite was linked
+      if (!hasPrerequisiteEdge && prevNodeId) {
+        const isEnergyActive = uiStatus === 'Mastered' || uiStatus === 'Completed' || uiStatus === 'In Progress';
         edges.push({
           id: `edge-${prevNodeId}-${nodeId}`,
           source: prevNodeId,
@@ -129,7 +157,7 @@ export class NeuralGraphEngine {
             strokeWidth: isEnergyActive ? 2 : 1,
             opacity: isEnergyActive ? 0.9 : 0.25
           },
-          data: { isActive: isEnergyActive, subject: activeSubject }
+          data: { isActive: isEnergyActive, isPrerequisite: false, subject: activeSubject }
         });
       }
 
