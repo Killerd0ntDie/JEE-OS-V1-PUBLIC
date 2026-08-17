@@ -161,7 +161,7 @@ export function DevCockpitRipplePage() {
     setStage('standby');
     updateOriginCoords();
     // Kinetic Laser Charge Glint ("shiiing!") on Expand -> Squeeze
-    audioEngine.playAnimeLaserCharge().catch(() => {});
+    audioEngine.playAnimeLaserCharge(subject, evaMode).catch(() => {});
 
     if (evaMode === 'awakened') {
       const magiTimer = setTimeout(() => {
@@ -176,7 +176,7 @@ export function DevCockpitRipplePage() {
           }, 450 / speedMultiplier);
 
           return () => clearTimeout(revealTimer);
-        }, 300 / speedMultiplier);
+        }, 550 / speedMultiplier);
 
         return () => clearTimeout(activeTimer);
       }, 80 / speedMultiplier);
@@ -202,7 +202,7 @@ export function DevCockpitRipplePage() {
         }, duration);
 
         return () => clearTimeout(revealTimer);
-      }, 360 / speedMultiplier);
+      }, 610 / speedMultiplier);
 
       return () => clearTimeout(activeTimer);
     }
@@ -211,6 +211,9 @@ export function DevCockpitRipplePage() {
   // Run on mount & when mode or subject changes
   useEffect(() => {
     runSequence();
+    return () => {
+      audioEngine.stopEntrancePlayback();
+    };
   }, [evaMode, subject]);
 
   // Keyboard shortcut: Space to replay

@@ -87,28 +87,28 @@ export function CockpitTransitionEngine({
     // Tactical Evangelion Entry Stinger & AT-Field Resonance Glint
     audioEngine.playAnimeLaserCharge(activeSubject, animMode).catch(() => {});
 
+    let magiTimer: ReturnType<typeof setTimeout> | undefined;
+    let activeTimer: ReturnType<typeof setTimeout> | undefined;
+    let revealTimer: ReturnType<typeof setTimeout> | undefined;
+
     if (animMode === 'awakened') {
-      const magiTimer = setTimeout(() => {
+      magiTimer = setTimeout(() => {
         onStageChange('magi');
 
-        const activeTimer = setTimeout(() => {
+        // Added 250ms gap for laser charge / stinger to breathe before theme downbeat
+        activeTimer = setTimeout(() => {
           onStageChange('active');
           audioEngine.playCruelAngelsThesisEntrance(activeSubject).catch(() => {});
 
-          const revealTimer = setTimeout(() => {
+          revealTimer = setTimeout(() => {
             onStageChange('revealed');
             onComplete?.();
           }, 450 / speedMultiplier);
-
-          return () => clearTimeout(revealTimer);
-        }, 300 / speedMultiplier);
-
-        return () => clearTimeout(activeTimer);
+        }, 550 / speedMultiplier);
       }, 80 / speedMultiplier);
-
-      return () => clearTimeout(magiTimer);
     } else {
-      const activeTimer = setTimeout(() => {
+      // Added 250ms gap (360 + 250 = 610ms) for laser charge / stinger to breathe before theme downbeat
+      activeTimer = setTimeout(() => {
         onStageChange('active');
         audioEngine.playCruelAngelsThesisEntrance(activeSubject).catch(() => {});
 
@@ -123,16 +123,19 @@ export function CockpitTransitionEngine({
           animMode === 'hexIris' ? 400 : 380
         ) / speedMultiplier;
 
-        const revealTimer = setTimeout(() => {
+        revealTimer = setTimeout(() => {
           onStageChange('revealed');
           onComplete?.();
         }, duration);
-
-        return () => clearTimeout(revealTimer);
-      }, 360 / speedMultiplier);
-
-      return () => clearTimeout(activeTimer);
+      }, 610 / speedMultiplier);
     }
+
+    return () => {
+      if (magiTimer) clearTimeout(magiTimer);
+      if (activeTimer) clearTimeout(activeTimer);
+      if (revealTimer) clearTimeout(revealTimer);
+      audioEngine.stopEntrancePlayback();
+    };
   }, [animMode, activeSubject, speedMultiplier]);
 
   return (
