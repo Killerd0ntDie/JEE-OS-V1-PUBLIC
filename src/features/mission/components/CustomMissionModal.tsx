@@ -103,7 +103,7 @@ export const CustomMissionModal: React.FC<CustomMissionModalProps> = ({ isOpen, 
       onClose={onClose} 
       zIndex={100} 
       backdropClassName="bg-black/40 backdrop-blur-sm p-4"
-      className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] overflow-hidden w-full max-w-lg text-left"
+      className="bg-zinc-950/98 border border-zinc-800 rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] overflow-hidden w-full max-w-lg text-left"
     >
       {/* Header */}
       <div className="flex items-center justify-between p-6 border-b border-zinc-800/80 bg-zinc-950/40">

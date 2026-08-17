@@ -48,7 +48,7 @@ export const AcademicSettingsSection: React.FC<AcademicSettingsSectionProps> = (
   ];
 
   return (
-    <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 rounded-3xl p-6 md:p-8 shadow-xl space-y-5 text-left relative z-20 overflow-visible">
+    <div className="rounded-3xl p-6 md:p-8 shadow-xl space-y-5 text-left relative z-20 overflow-visible">
       <div className="flex items-center gap-3 border-b border-white/10 pb-4">
         <div className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
           <Target className="w-5 h-5" />

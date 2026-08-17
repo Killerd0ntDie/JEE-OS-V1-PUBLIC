@@ -71,7 +71,7 @@ export function GlassSelect<T extends string = string>({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.14, ease: [0.16, 1, 0.3, 1] }}
-            className={`absolute right-0 top-full mt-1.5 z-[100] min-w-[220px] max-h-[300px] overflow-y-auto rounded-2xl bg-zinc-950/98 border border-zinc-800 backdrop-blur-2xl p-1.5 shadow-2xl space-y-0.5 hide-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden ${menuClassName}`}
+            className={`absolute right-0 top-full mt-1.5 z-[100] min-w-[220px] max-h-[300px] overflow-y-auto rounded-2xl bg-zinc-950/98 border border-zinc-800  p-1.5 shadow-2xl space-y-0.5 hide-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden ${menuClassName}`}
           >
             {options.map(opt => {
               const isSelected = opt.value === value;

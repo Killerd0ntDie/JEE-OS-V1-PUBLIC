@@ -382,7 +382,7 @@ export function DailyMissionTimeline({
                     </button>
                     
                     {/* Dropdown for extension */}
-                    <div className="absolute top-full right-0 mt-1 w-36 bg-zinc-950/95 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900 border border-white/10 rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 overflow-hidden flex flex-col z-30 font-mono text-xs">
+                    <div className="absolute top-full right-0 mt-1 w-36 bg-zinc-950/95 bg-zinc-900 border border-white/10 rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 overflow-hidden flex flex-col z-30 font-mono text-xs">
                       <button onClick={() => actions.extendSession(0.5)} className="px-3 py-2 text-zinc-300 hover:bg-indigo-600 hover:text-white text-left cursor-pointer transition-colors border-b border-white/5">+30 mins</button>
                       <button onClick={() => actions.extendSession(1)} className="px-3 py-2 text-zinc-300 hover:bg-indigo-600 hover:text-white text-left cursor-pointer transition-colors border-b border-white/5">+1 hour</button>
                       <button onClick={() => actions.extendSession(2)} className="px-3 py-2 text-zinc-300 hover:bg-indigo-600 hover:text-white text-left cursor-pointer transition-colors">+2 hours</button>

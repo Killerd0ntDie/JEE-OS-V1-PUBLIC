@@ -39,7 +39,7 @@ export const MistakeAnalyticsStage: React.FC<MistakeAnalyticsStageProps> = ({
       />
 
       {/* Subject Distribution Bar */}
-      <div className="p-5 rounded-2xl border border-zinc-850/80 bg-zinc-950/60 backdrop-blur-xl shadow-xl space-y-3 text-left">
+      <div className="p-5 rounded-2xl border border-zinc-850/80 bg-zinc-950/90 shadow-xl space-y-3 text-left">
         <div className="flex items-center justify-between">
           <span className="text-xs font-mono font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
             <Brain className="w-4 h-4 text-indigo-400" />

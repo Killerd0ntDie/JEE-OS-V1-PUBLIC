@@ -124,7 +124,7 @@ export const BatchReviewModal: React.FC<BatchReviewModalProps> = ({
         initial="initial"
         animate="animate"
         exit="exit"
-        className="w-full max-w-4xl max-h-[92vh] rounded-2xl border border-zinc-850/80 bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 shadow-2xl flex flex-col overflow-hidden text-left"
+        className="w-full max-w-4xl max-h-[92vh] rounded-2xl border border-zinc-850/80 shadow-2xl flex flex-col overflow-hidden text-left"
       >
         {/* CBT TOP BAR */}
         <div className="p-4 sm:p-5 border-b border-zinc-850/80 bg-zinc-950 flex items-center justify-between gap-4 shrink-0">

@@ -396,7 +396,7 @@ export function MockTestArena({ test, onComplete, onExit }: MockTestArenaProps) 
   };
 
   return (
-    <Modal isOpen={true} onClose={onExit} zIndex={50} backdropClassName="bg-[#020202] text-zinc-300 font-sans flex overflow-hidden" className="flex-1 flex flex-col lg:flex-row overflow-hidden p-4 md:p-6 gap-6 max-w-[1600px] mx-auto w-full bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10">
+    <Modal isOpen={true} onClose={onExit} zIndex={50} backdropClassName="bg-[#020202] text-zinc-300 font-sans flex overflow-hidden" className="flex-1 flex flex-col lg:flex-row overflow-hidden p-4 md:p-6 gap-6 max-w-[1600px] mx-auto w-full">
         {/* Left Panel: Question Area */}
         <div className="flex-1 flex flex-col bg-[#070708] rounded-[22px] border border-zinc-800/50 shadow-2xl overflow-hidden">
           {/* Subject Tabs */}

@@ -1156,7 +1156,7 @@ export function DevCockpitRipplePage() {
 
       {/* 3. DEV PLAYGROUND CONTROLLER TOOLBAR */}
       <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 transition-all duration-300">
-        <div className="bg-zinc-900/95 border border-zinc-700/80 backdrop-blur-2xl rounded-2xl p-2.5 sm:p-3 shadow-2xl flex items-center gap-2 sm:gap-2.5 flex-wrap max-w-6xl text-xs font-mono">
+        <div className="bg-zinc-900/95 border border-zinc-700/80 rounded-2xl p-2.5 sm:p-3 shadow-2xl flex items-center gap-2 sm:gap-2.5 flex-wrap max-w-6xl text-xs font-mono">
           
           {/* Replay Sequence Button */}
           <motion.button

@@ -37,7 +37,7 @@ export const AiInterrogationModal: React.FC<AiInterrogationModalProps> = ({
   };
 
   return (
-    <Modal isOpen={isOpen && !!mistake} onClose={handleClose} className="w-full h-[90vh] max-w-5xl rounded-3xl overflow-hidden shadow-[0_0_80px_rgba(220,38,38,0.15)] flex flex-col border border-red-900/50 bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10">
+    <Modal isOpen={isOpen && !!mistake} onClose={handleClose} className="w-full h-[90vh] max-w-5xl rounded-3xl overflow-hidden shadow-[0_0_80px_rgba(220,38,38,0.15)] flex flex-col border border-red-900/50">
           {/* Header */}
           <div className="px-6 py-4 border-b border-red-950/50 bg-red-950/20 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-3">

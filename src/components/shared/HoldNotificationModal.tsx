@@ -36,7 +36,7 @@ export const HoldNotificationModal: React.FC<HoldNotificationModalProps> = ({
 
   return (
     
-      <Modal isOpen={isOpen} onClose={onClose} zIndex={999} backdropClassName="p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200" className="relative border border-amber-500/40 rounded-3xl max-w-md w-full p-6 shadow-2xl z-50 text-left space-y-5 bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10">
+      <Modal isOpen={isOpen} onClose={onClose} zIndex={999} backdropClassName="p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200" className="relative border border-amber-500/40 rounded-3xl max-w-md w-full p-6 shadow-2xl z-50 text-left space-y-5">
           {/* Header */}
           <div className="flex items-start justify-between gap-3 border-b border-zinc-800 pb-4">
             <div className="flex items-center gap-3">

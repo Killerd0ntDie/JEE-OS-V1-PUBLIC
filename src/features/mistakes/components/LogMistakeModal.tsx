@@ -136,7 +136,7 @@ export const LogMistakeModal: React.FC<LogMistakeModalProps> = ({
         initial="initial"
         animate="animate"
         exit="exit"
-        className="w-full max-w-2xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 border border-zinc-850/90 rounded-2xl shadow-2xl overflow-hidden my-auto text-left"
+        className="w-full max-w-2xl border border-zinc-850/90 rounded-2xl shadow-2xl overflow-hidden my-auto text-left"
       >
         {/* Modal Header */}
         <div className="p-5 border-b border-zinc-850/80 flex justify-between items-center bg-zinc-950/60">

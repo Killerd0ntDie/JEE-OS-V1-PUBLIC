@@ -29,7 +29,7 @@ export const MistakeExplanationPane: React.FC<MistakeExplanationPaneProps> = ({
 }) => {
   if (!item) {
     return (
-      <div className="h-full min-h-[560px] flex flex-col items-center justify-center p-8 text-center rounded-2xl border border-dashed border-zinc-850 bg-zinc-950/40 backdrop-blur-xl space-y-3 select-none">
+      <div className="h-full min-h-[560px] flex flex-col items-center justify-center p-8 text-center rounded-2xl border border-dashed border-zinc-850 bg-zinc-950/90 space-y-3 select-none">
         <div className="w-14 h-14 rounded-2xl bg-indigo-950/40 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-xl shadow-indigo-600/10">
           <BookOpen className="w-7 h-7" />
         </div>
@@ -51,7 +51,7 @@ export const MistakeExplanationPane: React.FC<MistakeExplanationPaneProps> = ({
   const explanationText = item.correctMethod || item.correctSolution || 'No step-by-step analytical explanation recorded for this problem.';
 
   return (
-    <div className="h-full flex flex-col rounded-2xl border border-zinc-850/80 bg-zinc-950/70 backdrop-blur-2xl shadow-2xl overflow-hidden text-left">
+    <div className="h-full flex flex-col rounded-2xl border border-zinc-850/80 bg-zinc-950/95 shadow-2xl overflow-hidden text-left">
       
       {/* 1. STUDIO HEADER */}
       <div className="p-4 sm:p-5 border-b border-zinc-850/80 bg-zinc-950/90 space-y-2.5 shrink-0">

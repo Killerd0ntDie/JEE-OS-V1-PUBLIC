@@ -179,7 +179,7 @@ export function AnalyticsPage() {
     <div className="space-y-6 max-w-6xl mx-auto text-left relative pb-12 font-sans select-none">
       
       {/* 1. HEADER BANNER WITH LEVEL CARD */}
-      <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900/70 backdrop-blur-2xl border border-white/15 p-5 md:p-6 rounded-3xl shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-zinc-900/90 border border-white/15 p-5 md:p-6 rounded-3xl shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-indigo-400 font-mono text-[10px] uppercase font-bold tracking-widest">
             <Activity className="w-3.5 h-3.5 text-indigo-400" />
@@ -194,7 +194,7 @@ export function AnalyticsPage() {
         </div>
 
         {/* Level Badge Card */}
-        <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-indigo-950/60 border border-indigo-500/40 p-3.5 rounded-2xl shrink-0 font-mono text-left space-y-1.5 shadow-lg shadow-indigo-600/10">
+        <div className="bg-indigo-950/60 border border-indigo-500/40 p-3.5 rounded-2xl shrink-0 font-mono text-left space-y-1.5 shadow-lg shadow-indigo-600/10">
           <div className="flex items-center justify-between gap-3 text-xs">
             <span className="font-bold text-indigo-200">Level {level} • {title}</span>
             <span className="text-zinc-300 text-[10px]">{Math.round(progressPercent)}% to Lv.{level + 1}</span>
@@ -207,7 +207,7 @@ export function AnalyticsPage() {
 
       {/* 2. 4 CORE STAT CARDS (LIGHTER FROSTED GLASS) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 font-mono">
-        <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900/70 border border-emerald-500/30 backdrop-blur-xl p-4 rounded-2xl space-y-1 shadow-xl">
+        <div className="bg-zinc-900/70 border border-emerald-500/30 backdrop-blur-xl p-4 rounded-2xl space-y-1 shadow-xl">
           <span className="text-[10px] text-emerald-400 uppercase font-bold block tracking-wider">Overall Accuracy</span>
           <div className="flex items-baseline gap-2">
             <span className="text-2xl font-bold text-emerald-400 font-display">{accuracyPct}%</span>
@@ -215,7 +215,7 @@ export function AnalyticsPage() {
           </div>
         </div>
 
-        <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900/70 border border-indigo-500/30 backdrop-blur-xl p-4 rounded-2xl space-y-1 shadow-xl">
+        <div className="bg-zinc-900/70 border border-indigo-500/30 backdrop-blur-xl p-4 rounded-2xl space-y-1 shadow-xl">
           <span className="text-[10px] text-indigo-300 uppercase font-bold block tracking-wider">Cumulative Study Time</span>
           <div className="flex items-baseline gap-2">
             <span className="text-2xl font-bold text-indigo-300 font-display">{studyHours}h</span>
@@ -223,7 +223,7 @@ export function AnalyticsPage() {
           </div>
         </div>
 
-        <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900/70 border border-amber-500/30 backdrop-blur-xl p-4 rounded-2xl space-y-1 shadow-xl">
+        <div className="bg-zinc-900/70 border border-amber-500/30 backdrop-blur-xl p-4 rounded-2xl space-y-1 shadow-xl">
           <span className="text-[10px] text-amber-300 uppercase font-bold block tracking-wider">Active Daily Streak</span>
           <div className="flex items-baseline gap-2">
             <span className="text-2xl font-bold text-amber-400 font-display">{calculateCurrentStreak(studySessions || [], Math.round((settings?.minStreakHours ?? 0.5) * 60))} Days</span>
@@ -231,7 +231,7 @@ export function AnalyticsPage() {
           </div>
         </div>
 
-        <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900/70 border border-white/15 backdrop-blur-xl p-4 rounded-2xl space-y-1 shadow-xl">
+        <div className="bg-zinc-900/70 border border-white/15 backdrop-blur-xl p-4 rounded-2xl space-y-1 shadow-xl">
           <span className="text-[10px] text-zinc-300 uppercase font-bold block tracking-wider">Total Preparation XP</span>
           <div className="flex items-baseline gap-2">
             <span className="text-2xl font-bold text-white font-display">{totalXP}</span>
@@ -242,7 +242,7 @@ export function AnalyticsPage() {
 
       {/* 3. POMODORO & DEEP WORK SESSION VITALS */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 font-mono">
-        <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900/70 border border-white/15 backdrop-blur-xl p-4 rounded-2xl space-y-2 shadow-xl">
+        <div className="bg-zinc-900/70 border border-white/15 backdrop-blur-xl p-4 rounded-2xl space-y-2 shadow-xl">
           <span className="text-[10px] text-zinc-400 uppercase font-bold tracking-wider">Deep Focus Ratio</span>
           <div className="flex justify-between items-end">
             <span className="text-2xl font-bold text-indigo-300 font-display">
@@ -255,7 +255,7 @@ export function AnalyticsPage() {
           </div>
         </div>
 
-        <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900/70 border border-white/15 backdrop-blur-xl p-4 rounded-2xl space-y-2 shadow-xl">
+        <div className="bg-zinc-900/70 border border-white/15 backdrop-blur-xl p-4 rounded-2xl space-y-2 shadow-xl">
           <span className="text-[10px] text-zinc-400 uppercase font-bold tracking-wider">Total Interruptions & Idle</span>
           <div className="flex justify-between items-end">
             <span className="text-2xl font-bold text-amber-400 font-display">
@@ -265,7 +265,7 @@ export function AnalyticsPage() {
           </div>
         </div>
 
-        <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900/70 border border-white/15 backdrop-blur-xl p-4 rounded-2xl space-y-2 shadow-xl">
+        <div className="bg-zinc-900/70 border border-white/15 backdrop-blur-xl p-4 rounded-2xl space-y-2 shadow-xl">
           <span className="text-[10px] text-zinc-400 uppercase font-bold tracking-wider">Recovery & Break Time</span>
           <div className="flex justify-between items-end">
             <span className="text-2xl font-bold text-emerald-400 font-display">
@@ -280,7 +280,7 @@ export function AnalyticsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         
         {/* A. Subject Mastery Distribution (Radar Chart) */}
-        <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900/70 border border-white/15 backdrop-blur-2xl rounded-3xl p-5 space-y-3.5 text-left flex flex-col shadow-2xl">
+        <div className="bg-zinc-900/70 border border-white/15 rounded-3xl p-5 space-y-3.5 text-left flex flex-col shadow-2xl">
           <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
             <div className="flex items-center gap-2">
               <Target className="w-4 h-4 text-indigo-400" />
@@ -357,7 +357,7 @@ export function AnalyticsPage() {
         </div>
 
         {/* B. Subject Time Distribution Donut Chart */}
-        <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900/70 border border-white/15 backdrop-blur-2xl rounded-3xl p-5 space-y-3.5 text-left flex flex-col shadow-2xl">
+        <div className="bg-zinc-900/70 border border-white/15 rounded-3xl p-5 space-y-3.5 text-left flex flex-col shadow-2xl">
           <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
             <div className="flex items-center gap-2">
               <PieChart className="w-4 h-4 text-amber-400" />
@@ -380,7 +380,7 @@ export function AnalyticsPage() {
               }}
             >
               {/* Inner cutout for frosted donut core */}
-              <div className="w-24 h-24 bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-950/90 backdrop-blur-md rounded-full flex items-center justify-center flex-col shadow-inner border border-white/15">
+              <div className="w-24 h-24 bg-zinc-950/90 backdrop-blur-md rounded-full flex items-center justify-center flex-col shadow-inner border border-white/15">
                 <span className="text-[9px] text-zinc-400 font-mono font-bold">TOTAL</span>
                 <span className="text-base text-white font-bold font-display">{studyHours}h</span>
               </div>
@@ -404,7 +404,7 @@ export function AnalyticsPage() {
         </div>
 
         {/* C. 7-Day Velocity Chart with Fluid Sliding Spring Glider */}
-        <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900/70 border border-white/15 backdrop-blur-2xl rounded-3xl p-5 space-y-3.5 text-left flex flex-col shadow-2xl">
+        <div className="bg-zinc-900/70 border border-white/15 rounded-3xl p-5 space-y-3.5 text-left flex flex-col shadow-2xl">
           <div className="flex items-center justify-between border-b border-white/10 pb-2.5 gap-2">
             <div className="flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-indigo-400" />
@@ -457,7 +457,7 @@ export function AnalyticsPage() {
                   onClick={() => setActiveVelocityBar(prev => prev === idx ? null : idx)}
                   className="flex-1 flex flex-col items-center gap-2 h-full justify-end group relative cursor-pointer"
                 >
-                  <div className={`absolute -top-7 bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900 border border-white/20 text-white text-[10px] font-mono px-2 py-0.5 rounded-md pointer-events-none transition-opacity z-10 whitespace-nowrap shadow-lg ${
+                  <div className={`absolute -top-7 bg-zinc-900 border border-white/20 text-white text-[10px] font-mono px-2 py-0.5 rounded-md pointer-events-none transition-opacity z-10 whitespace-nowrap shadow-lg ${
                     isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
                   }`}>
                     {val} {velocityView === 'time' ? 'm' : velocityView === 'accuracy' ? '%' : 'done'}
@@ -480,7 +480,7 @@ export function AnalyticsPage() {
       </div>
 
       {/* 5. CHAPTER RISK & BOTTLENECK HEATMAP WITH SLIDING GLIDER */}
-      <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900/70 border border-white/15 backdrop-blur-2xl rounded-3xl p-5 md:p-6 space-y-4 text-left shadow-2xl">
+      <div className="bg-zinc-900/70 border border-white/15 rounded-3xl p-5 md:p-6 space-y-4 text-left shadow-2xl">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
           <div className="flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 text-rose-400" />
@@ -556,7 +556,7 @@ export function AnalyticsPage() {
       </div>
 
       {/* 6. ADVANCED RETENTION DECAY & SPACED REPETITION SIMULATOR (LIGHTER FROSTED GLASS HUD) */}
-      <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900/70 border border-white/15 backdrop-blur-2xl rounded-3xl p-5 md:p-6 space-y-4 text-left shadow-2xl relative overflow-hidden">
+      <div className="bg-zinc-900/70 border border-white/15 rounded-3xl p-5 md:p-6 space-y-4 text-left shadow-2xl relative overflow-hidden">
         
         {/* Header & Status Chips */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-white/10 pb-3.5">
@@ -783,7 +783,7 @@ export function AnalyticsPage() {
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.9 }}
                   transition={springs.snappy}
-                  className="absolute top-2 left-1/2 -translate-x-1/2 bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900/95 backdrop-blur-2xl border border-white/20 p-3 rounded-2xl shadow-2xl font-mono text-xs pointer-events-none z-30 space-y-1 min-w-[240px]"
+                  className="absolute top-2 left-1/2 -translate-x-1/2 bg-zinc-900/95 bg-zinc-950/98 border border-zinc-800 p-3 rounded-2xl shadow-2xl font-mono text-xs pointer-events-none z-30 space-y-1 min-w-[240px]"
                 >
                   <div className="flex items-center justify-between gap-2 border-b border-white/10 pb-1.5">
                     <span className="font-bold text-white font-sans text-xs truncate">

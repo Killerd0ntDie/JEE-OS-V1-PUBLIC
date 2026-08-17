@@ -125,7 +125,7 @@ export const MistakeRetestStage: React.FC<MistakeRetestStageProps> = ({
   const hasDistinctMethod = currentItem && !!currentItem.correctMethod && currentItem.correctMethod !== currentItem.correctSolution;
 
   return (
-    <div className="w-full rounded-2xl border border-zinc-850/90 bg-zinc-950/80 backdrop-blur-2xl shadow-2xl flex flex-col overflow-hidden text-left">
+    <div className="w-full rounded-2xl border border-zinc-850/90 bg-zinc-950/95 shadow-2xl flex flex-col overflow-hidden text-left">
       
       {/* 1. ARENA TOP BAR */}
       <div className="p-4 sm:p-5 border-b border-zinc-850/80 bg-zinc-950 flex items-center justify-between gap-4 shrink-0">

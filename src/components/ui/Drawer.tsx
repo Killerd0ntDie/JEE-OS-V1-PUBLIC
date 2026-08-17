@@ -66,7 +66,7 @@ export function Drawer({
             initial="initial"
             animate="animate"
             exit="exit"
-            className={`absolute ${getPositionClasses()} flex flex-col shadow-2xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 ${className}`}
+            className={`absolute ${getPositionClasses()} flex flex-col shadow-2xl ${className}`}
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"

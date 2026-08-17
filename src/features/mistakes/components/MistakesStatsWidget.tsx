@@ -19,7 +19,7 @@ export function MistakesStatsWidget({
     <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 font-mono">
       <motion.div 
         whileHover={{ y: -2, scale: 1.01 }}
-        className="glass-card rounded-2xl p-4 border border-zinc-800/80 bg-zinc-950/40 backdrop-blur-xl relative overflow-hidden group shadow-lg"
+        className="glass-card rounded-2xl p-4 border border-zinc-800/80 bg-zinc-950/90 relative overflow-hidden group shadow-lg"
       >
         <div className="flex items-center justify-between mb-1">
           <span className="text-[10px] text-zinc-400 uppercase font-semibold block tracking-wider">Total Logged Errors</span>

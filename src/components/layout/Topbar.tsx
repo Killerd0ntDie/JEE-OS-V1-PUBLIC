@@ -201,8 +201,8 @@ export function Topbar({
 
   return (
     <header className="h-14 shrink-0 relative border-b border-zinc-850/80 flex items-center justify-between px-4 sticky top-0 z-50 select-none shadow-xl">
-      {/* Frosted Glass Background Layer (Keeps the glass effect on Topbar without trapping dropdowns) */}
-      <div className="absolute inset-0 bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border-b border-white/10 -z-10 pointer-events-none" />
+      {/* Frosted Glass Background Layer */}
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-xl border-b border-zinc-850/80 -z-10 pointer-events-none" />
 
       {/* Ambient background glow */}
       <div className="absolute top-0 left-1/4 w-96 h-12 bg-indigo-600/10 filter blur-3xl pointer-events-none -z-10" />
@@ -255,7 +255,7 @@ export function Topbar({
             </button>
 
             {/* Quick Page Jump Popover Menu */}
-            <div className={`absolute top-full left-0 mt-2 w-48 bg-zinc-950/95 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 rounded-2xl p-1.5 z-50 transition-all duration-150 ease-out transform-gpu will-change-transform origin-top-left ${
+            <div className={`absolute top-full left-0 mt-2 w-48 bg-zinc-950/98 border border-zinc-800/90 shadow-2xl rounded-2xl p-1.5 z-50 transition-all duration-150 ease-out transform-gpu will-change-transform origin-top-left ${
               isBreadcrumbMenuOpen ? 'opacity-100 scale-100 translate-y-0 visible pointer-events-auto' : 'opacity-0 scale-95 -translate-y-2 invisible pointer-events-none'
             }`}>
               <div className="text-[11px] font-mono font-bold uppercase text-zinc-400 px-2.5 py-1 tracking-wider">
@@ -346,7 +346,7 @@ export function Topbar({
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: -4 }}
                 transition={springs.snappy}
-                className="absolute top-full right-0 mt-2 p-4 bg-zinc-950/95 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 rounded-2xl z-50 origin-top-right text-left select-none"
+                className="absolute top-full right-0 mt-2 p-4 bg-zinc-950/98 border border-zinc-800/90 shadow-2xl rounded-2xl z-50 origin-top-right text-left select-none"
               >
                 {(() => {
                   const now = new Date();
@@ -468,7 +468,7 @@ export function Topbar({
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: -4 }}
                 transition={springs.snappy}
-                className="absolute top-full right-0 mt-2 p-4 bg-zinc-950/95 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 rounded-2xl z-50 origin-top-right text-left select-none"
+                className="absolute top-full right-0 mt-2 p-4 bg-zinc-950/98 border border-zinc-800/90 shadow-2xl rounded-2xl z-50 origin-top-right text-left select-none"
               >
                 {(() => {
                   const now = new Date();
@@ -570,7 +570,7 @@ export function Topbar({
           </button>
 
           {/* NOTIFICATION CENTER DROPDOWN PANEL */}
-          <div className={`absolute top-full right-0 mt-2 w-80 sm:w-96 max-w-[calc(100vw-2rem)] bg-zinc-950/95 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 rounded-2xl p-4 z-50 text-left space-y-3 transition-all duration-150 ease-out transform-gpu will-change-transform origin-top-right ${
+          <div className={`absolute top-full right-0 mt-2 w-80 sm:w-96 max-w-[calc(100vw-2rem)] bg-zinc-950/98 border border-zinc-800/90 shadow-2xl rounded-2xl p-4 z-50 text-left space-y-3 transition-all duration-150 ease-out transform-gpu will-change-transform origin-top-right ${
             isNotificationsOpen ? 'opacity-100 scale-100 translate-y-0 visible pointer-events-auto' : 'opacity-0 scale-95 -translate-y-2 invisible pointer-events-none'
           }`}>
             
@@ -670,7 +670,7 @@ export function Topbar({
           </button>
 
           {/* USER PROFILE DROPDOWN */}
-          <div className={`absolute top-full right-0 mt-2 w-56 bg-zinc-950/95 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 rounded-2xl p-2 z-50 text-left transition-all duration-150 ease-out transform-gpu will-change-transform origin-top-right ${
+          <div className={`absolute top-full right-0 mt-2 w-56 bg-zinc-950/98 border border-zinc-800/90 shadow-2xl rounded-2xl p-2 z-50 text-left transition-all duration-150 ease-out transform-gpu will-change-transform origin-top-right ${
             isProfileOpen ? 'opacity-100 scale-100 translate-y-0 visible pointer-events-auto' : 'opacity-0 scale-95 -translate-y-2 invisible pointer-events-none'
           }`}>
             <div className="px-3 py-2 border-b border-zinc-850 mb-1">

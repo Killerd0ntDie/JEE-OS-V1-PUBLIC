@@ -24,7 +24,7 @@ export function PlannerHeader({ state }: { state: any }) {
   } = state;
 
   return (
-    <div className="relative z-20 p-5 md:p-6 rounded-2xl border border-zinc-800/80 bg-zinc-950/40 backdrop-blur-xl space-y-4 text-left">
+    <div className="relative z-20 p-5 md:p-6 rounded-2xl border border-zinc-800/80 bg-zinc-950/90 space-y-4 text-left">
       {/* Row 1: Header Title + Status Pills + On Hold Pill */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div className="space-y-1">

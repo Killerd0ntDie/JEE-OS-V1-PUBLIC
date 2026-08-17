@@ -564,7 +564,7 @@ export function AiCoachPage({ isActive }: { isActive?: boolean }) {
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={springs.fluid}
-              className="w-full max-w-sm h-full bg-zinc-950/95 backdrop-blur-2xl border-l border-zinc-800 p-6 shadow-2xl relative z-10 flex flex-col justify-between"
+              className="w-full max-w-sm h-full bg-zinc-950/98 border-l border-zinc-800 p-6 shadow-2xl relative z-10 flex flex-col justify-between"
             >
               <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
                 <div className="flex items-center justify-between border-b border-zinc-800 pb-4">

@@ -70,17 +70,6 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     <ToastContext.Provider value={{ toast }}>
       {children}
       
-      {/* Background Blur Overlay */}
-      {toasts.length > 0 && (
-        <div 
-          className="fixed inset-x-0 top-0 z-[90] pointer-events-none h-64 bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10"
-          style={{
-            WebkitMaskImage: 'linear-gradient(to bottom, black 0%, transparent 100%)',
-            maskImage: 'linear-gradient(to bottom, black 0%, transparent 100%)',
-          }}
-        />
-      )}
-
       {/* Modern Dynamic Island Style Toast UI Container */}
       <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center gap-3 pointer-events-none max-w-md w-full px-4">
         <AnimatePresence>

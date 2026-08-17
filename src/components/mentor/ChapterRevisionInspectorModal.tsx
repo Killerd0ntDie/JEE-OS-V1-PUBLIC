@@ -108,7 +108,7 @@ export const ChapterRevisionInspectorModal: React.FC<ChapterRevisionInspectorMod
       onClose={onClose} 
       zIndex={999} 
       backdropClassName="p-4 bg-black/40 backdrop-blur-sm animate-fade-in font-sans text-left overflow-y-auto flex items-center justify-center" 
-      className="relative w-full max-w-2xl min-h-[500px] h-[80vh] max-h-[90vh] bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 backdrop-blur-2xl border border-white/20 rounded-3xl shadow-2xl overflow-hidden flex flex-col my-auto"
+      className="relative w-full max-w-2xl min-h-[500px] h-[80vh] max-h-[90vh] bg-zinc-950/98 border border-zinc-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col my-auto"
     >
       {/* Ambient Top Glow */}
       <div className={`absolute top-0 right-0 w-80 h-32 rounded-full filter blur-3xl pointer-events-none ${
@@ -123,7 +123,7 @@ export const ChapterRevisionInspectorModal: React.FC<ChapterRevisionInspectorMod
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={springs.snappy}
-            className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-emerald-950/90 border border-emerald-500/50 text-emerald-200 text-xs px-4 py-2 rounded-2xl shadow-xl flex items-center gap-2 font-mono"
+            className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-emerald-950/90 border border-emerald-500/50 text-emerald-200 text-xs px-4 py-2 rounded-2xl shadow-xl flex items-center gap-2 font-mono"
           >
             <Check className="w-3.5 h-3.5 text-emerald-400" />
             <span>{recalledToast}</span>
@@ -160,7 +160,7 @@ export const ChapterRevisionInspectorModal: React.FC<ChapterRevisionInspectorMod
           type="button"
           whileTap={{ scale: 0.92 }}
           onClick={onClose}
-          className="p-2 rounded-2xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-950/60 hover:bg-zinc-800 border border-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer shrink-0 shadow-sm"
+          className="p-2 rounded-2xl bg-zinc-950/60 hover:bg-zinc-800 border border-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer shrink-0 shadow-sm"
         >
           <X className="w-4 h-4" />
         </motion.button>
@@ -204,7 +204,7 @@ export const ChapterRevisionInspectorModal: React.FC<ChapterRevisionInspectorMod
             
             <div className="space-y-4">
               {/* Real-time Retention Status Meter Card */}
-              <div className="p-4 rounded-2xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-950/60 border border-white/10 space-y-3 shadow-inner">
+              <div className="p-4 rounded-2xl bg-zinc-950/60 border border-white/10 space-y-3 shadow-inner">
                 <div className="flex items-center justify-between text-xs font-mono">
                   <span className="text-zinc-300 font-bold flex items-center gap-1.5">
                     <Activity className="w-3.5 h-3.5 text-indigo-400" />
@@ -255,19 +255,19 @@ export const ChapterRevisionInspectorModal: React.FC<ChapterRevisionInspectorMod
 
               {/* Practical Chapter Vitals */}
               <div className="grid grid-cols-3 gap-3 font-mono text-xs">
-                <div className="p-3 rounded-2xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-950/60 border border-white/10 text-center space-y-1 shadow-sm">
+                <div className="p-3 rounded-2xl bg-zinc-950/60 border border-white/10 text-center space-y-1 shadow-sm">
                   <span className="text-[10px] text-zinc-400 uppercase font-bold block">SM-2 Interval</span>
                   <span className="text-sm font-bold text-emerald-400 font-display">
                     {retentionConfidence === 'Not Started' ? 'N/A' : retentionConfidence === 'Low' ? '1 Day' : retentionConfidence === 'Medium' ? '3 Days' : '7+ Days'}
                   </span>
                 </div>
                 
-                <div className="p-3 rounded-2xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-950/60 border border-white/10 text-center space-y-1 shadow-sm">
+                <div className="p-3 rounded-2xl bg-zinc-950/60 border border-white/10 text-center space-y-1 shadow-sm">
                   <span className="text-[10px] text-zinc-400 uppercase font-bold block">Formula Cards</span>
                   <span className="text-sm font-bold text-indigo-300 font-display">{formulas.length} Formulas</span>
                 </div>
                 
-                <div className="p-3 rounded-2xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-950/60 border border-white/10 text-center space-y-1 shadow-sm">
+                <div className="p-3 rounded-2xl bg-zinc-950/60 border border-white/10 text-center space-y-1 shadow-sm">
                   <span className="text-[10px] text-zinc-400 uppercase font-bold block">Logged Errors</span>
                   <span className="text-sm font-bold text-red-400 font-display">{chapterMistakes.length} Mistakes</span>
                 </div>
@@ -280,7 +280,7 @@ export const ChapterRevisionInspectorModal: React.FC<ChapterRevisionInspectorMod
                 type="button"
                 whileTap={{ scale: 0.96 }}
                 onClick={() => setActiveTab('formulas')}
-                className="flex-1 h-11 px-4 rounded-xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900/60 hover:bg-zinc-800/80 border border-white/15 text-zinc-200 hover:text-white text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 shadow-sm"
+                className="flex-1 h-11 px-4 rounded-xl bg-zinc-900/60 hover:bg-zinc-800/80 border border-white/15 text-zinc-200 hover:text-white text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 shadow-sm"
               >
                 <Zap className="w-3.5 h-3.5 text-amber-400" />
                 <span>Practice Formulas ({formulas.length})</span>
@@ -294,7 +294,7 @@ export const ChapterRevisionInspectorModal: React.FC<ChapterRevisionInspectorMod
                     onClose();
                     onPracticeWithAI(chapter.id, chapter.subject);
                   }}
-                  className="flex-1 h-11 px-4 rounded-xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-indigo-950/60 hover:bg-indigo-900/70 border border-indigo-500/40 text-indigo-200 hover:text-white text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 shadow-sm"
+                  className="flex-1 h-11 px-4 rounded-xl bg-indigo-950/60 hover:bg-indigo-900/70 border border-indigo-500/40 text-indigo-200 hover:text-white text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 shadow-sm"
                 >
                   <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
                   <span>Generate AI Practice</span>
@@ -308,7 +308,7 @@ export const ChapterRevisionInspectorModal: React.FC<ChapterRevisionInspectorMod
                   onClose();
                   actions.openChapterEditModal(chapter.id);
                 }}
-                className="h-11 px-4 rounded-xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900/60 hover:bg-zinc-800/80 border border-white/15 text-zinc-300 hover:text-white text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 shrink-0 shadow-sm"
+                className="h-11 px-4 rounded-xl bg-zinc-900/60 hover:bg-zinc-800/80 border border-white/15 text-zinc-300 hover:text-white text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 shrink-0 shadow-sm"
                 title="Adjust lectures, DPPs, and chapter status"
               >
                 <SlidersHorizontal className="w-3.5 h-3.5 text-zinc-400" />
@@ -323,7 +323,7 @@ export const ChapterRevisionInspectorModal: React.FC<ChapterRevisionInspectorMod
         {activeTab === 'formulas' && (
           <div className="space-y-3">
             {formulas.length === 0 ? (
-              <div className="p-12 text-center text-zinc-400 font-mono text-xs bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-950/60 border border-white/10 rounded-2xl flex flex-col items-center justify-center gap-2">
+              <div className="p-12 text-center text-zinc-400 font-mono text-xs bg-zinc-950/60 border border-white/10 rounded-2xl flex flex-col items-center justify-center gap-2">
                 <BookOpen className="w-6 h-6 text-zinc-600" />
                 <span>No formula cards indexed for this chapter yet.</span>
               </div>
@@ -333,7 +333,7 @@ export const ChapterRevisionInspectorModal: React.FC<ChapterRevisionInspectorMod
                 return (
                   <div 
                     key={idx}
-                    className={`p-4 rounded-2xl border transition-all text-left space-y-3 bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 backdrop-blur-xl shadow-md ${
+                    className={`p-4 rounded-2xl border transition-all text-left space-y-3 backdrop-blur-xl shadow-md ${
                       isFlipped 
                         ? 'bg-zinc-900/80 border-indigo-500/50 shadow-xl' 
                         : 'bg-zinc-950/60 border-white/10 hover:border-white/20'
@@ -416,13 +416,13 @@ export const ChapterRevisionInspectorModal: React.FC<ChapterRevisionInspectorMod
             </div>
 
             {chapSessions.length === 0 ? (
-              <div className="p-12 text-center text-zinc-400 font-mono text-xs bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-950/60 border border-white/10 rounded-2xl flex flex-col items-center justify-center gap-2">
+              <div className="p-12 text-center text-zinc-400 font-mono text-xs bg-zinc-950/60 border border-white/10 rounded-2xl flex flex-col items-center justify-center gap-2">
                 <Clock className="w-6 h-6 text-zinc-600" />
                 <span>No previous revision sessions logged for this chapter yet.</span>
               </div>
             ) : (
               chapSessions.map((sess, idx) => (
-                <div key={idx} className="p-3.5 rounded-2xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-950/60 border border-white/10 flex items-center justify-between text-xs font-mono shadow-sm">
+                <div key={idx} className="p-3.5 rounded-2xl bg-zinc-950/60 border border-white/10 flex items-center justify-between text-xs font-mono shadow-sm">
                   <div className="flex items-center gap-2.5">
                     <Clock className="w-4 h-4 text-indigo-400" />
                     <span className="text-zinc-200">{new Date(sess.startTime).toLocaleDateString()}</span>

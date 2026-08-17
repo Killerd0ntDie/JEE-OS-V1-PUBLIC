@@ -72,7 +72,7 @@ export function QuickRevisionModal({ revision, isOpen, onClose, onAction }: Quic
       onClose={onClose}
       zIndex={999}
       backdropClassName="bg-black/40 backdrop-blur-sm"
-      className="relative w-full max-w-2xl border border-zinc-850 rounded-2xl shadow-2xl shadow-indigo-500/5 overflow-hidden flex flex-col z-10 my-6 focus:outline-none bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10"
+      className="relative w-full max-w-2xl border border-zinc-850 rounded-2xl shadow-2xl shadow-indigo-500/5 overflow-hidden flex flex-col z-10 my-6 focus:outline-none"
     >
           {/* Header */}
           <div className="p-5 border-b border-zinc-900 flex items-center justify-between bg-zinc-900/10">

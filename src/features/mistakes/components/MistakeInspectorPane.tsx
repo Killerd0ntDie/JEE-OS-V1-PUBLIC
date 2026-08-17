@@ -29,7 +29,7 @@ export const MistakeInspectorPane: React.FC<MistakeInspectorPaneProps> = ({
 }) => {
   if (!item) {
     return (
-      <div className="h-full min-h-[500px] flex flex-col items-center justify-center p-8 text-center rounded-2xl border border-dashed border-zinc-850 bg-zinc-950/40 backdrop-blur-xl space-y-3 select-none">
+      <div className="h-full min-h-[500px] flex flex-col items-center justify-center p-8 text-center rounded-2xl border border-dashed border-zinc-850 bg-zinc-950/90 space-y-3 select-none">
         <div className="w-12 h-12 rounded-2xl bg-indigo-950/40 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
           <BookOpen className="w-6 h-6" />
         </div>
@@ -47,7 +47,7 @@ export const MistakeInspectorPane: React.FC<MistakeInspectorPaneProps> = ({
   const statusInfo = getStatusBadge(item.revisionStatus);
 
   return (
-    <div className="rounded-2xl border border-zinc-850/80 bg-zinc-950/60 backdrop-blur-xl shadow-2xl flex flex-col overflow-hidden text-left">
+    <div className="rounded-2xl border border-zinc-850/80 bg-zinc-950/90 shadow-2xl flex flex-col overflow-hidden text-left">
       {/* INSPECTOR HEADER */}
       <div className="p-5 border-b border-zinc-850/80 bg-zinc-950/80 space-y-3">
         <div className="flex items-center justify-between gap-3 flex-wrap">

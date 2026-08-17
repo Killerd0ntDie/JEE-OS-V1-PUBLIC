@@ -174,7 +174,7 @@ export function SubjectCommandCenter({
   return (
     <div className="space-y-6 pb-12 text-left">
       {/* STREAMLINED HEADER CONTAINER */}
-      <div className="p-5 md:p-6 lg:p-7 rounded-2xl border border-zinc-850/80 bg-zinc-950/40 backdrop-blur-xl space-y-5 shadow-2xl">
+      <div className="p-5 md:p-6 lg:p-7 rounded-2xl border border-zinc-850/80 bg-zinc-950/90 space-y-5 shadow-2xl">
         
         {/* Title & Header Stats */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -420,7 +420,7 @@ export function SubjectCommandCenter({
             )}
 
             {/* 2. Subject Telemetry Radar */}
-            <div className="p-5 rounded-2xl border border-zinc-850/80 bg-zinc-950/40 backdrop-blur-xl space-y-4 shadow-xl">
+            <div className="p-5 rounded-2xl border border-zinc-850/80 bg-zinc-950/90 space-y-4 shadow-xl">
               <div className="flex items-center justify-between border-b border-zinc-850/80 pb-3">
                 <div className="flex items-center gap-2">
                   <Activity className="w-4 h-4 text-emerald-400" />
@@ -471,7 +471,7 @@ export function SubjectCommandCenter({
             </div>
 
             {/* 3. Quick Action Filter Shortcuts */}
-            <div className="p-4 rounded-2xl border border-zinc-850/80 bg-zinc-950/40 backdrop-blur-xl space-y-2.5 shadow-xl">
+            <div className="p-4 rounded-2xl border border-zinc-850/80 bg-zinc-950/90 space-y-2.5 shadow-xl">
               <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider block font-bold">
                 Quick Shortcuts
               </span>

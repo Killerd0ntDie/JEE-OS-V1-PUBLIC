@@ -97,7 +97,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
             role="dialog"
             aria-modal="true"
             aria-label="Command Palette"
-            className="w-full max-w-xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col relative border border-zinc-800/80"
+            className="w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden flex flex-col relative border border-zinc-800/80"
             onClick={e => e.stopPropagation()}
           >
             {/* Search header */}

@@ -111,7 +111,7 @@ export function PlannerStickySidebar({ state }: PlannerStickySidebarProps) {
         initial={{ width: 320, opacity: 0.8 }}
         animate={{ width: 56, opacity: 1 }}
         transition={{ type: 'spring', stiffness: 400, damping: 35 }}
-        className="w-14 shrink-0 sticky top-0 h-full rounded-2xl border border-zinc-850/90 bg-zinc-950/90 backdrop-blur-2xl py-4 px-2 shadow-2xl flex flex-col items-center justify-between select-none z-20"
+        className="w-14 shrink-0 sticky top-0 h-full rounded-2xl border border-zinc-850/90 bg-zinc-950/95 py-4 px-2 shadow-2xl flex flex-col items-center justify-between select-none z-20"
       >
         {/* Top: Expand Toggle & Target Icon */}
         <div className="flex flex-col items-center gap-3 w-full">
@@ -213,7 +213,7 @@ export function PlannerStickySidebar({ state }: PlannerStickySidebarProps) {
       initial={{ width: 56, opacity: 0.8 }}
       animate={{ width: 320, opacity: 1 }}
       transition={{ type: 'spring', stiffness: 400, damping: 35 }}
-      className="w-[320px] shrink-0 sticky top-0 h-full overflow-y-auto no-scrollbar rounded-2xl border border-zinc-850/90 bg-zinc-950/85 backdrop-blur-2xl p-4 md:p-5 shadow-2xl flex flex-col gap-3.5 select-none z-20"
+      className="w-[320px] shrink-0 sticky top-0 h-full overflow-y-auto no-scrollbar rounded-2xl border border-zinc-850/90 bg-zinc-950/95 p-4 md:p-5 shadow-2xl flex flex-col gap-3.5 select-none z-20"
     >
       {/* HEADER WITH COLLAPSE BUTTON */}
       <div className="flex items-center justify-between border-b border-zinc-850/80 pb-3">
@@ -399,7 +399,7 @@ export function PlannerStickySidebar({ state }: PlannerStickySidebarProps) {
 
           {isAuditDropdownOpen && (
             <div 
-              className="absolute right-0 left-0 bottom-12 rounded-2xl border border-zinc-800 bg-zinc-950/95 backdrop-blur-2xl p-2 shadow-2xl z-50 space-y-1 text-xs font-mono"
+              className="absolute right-0 left-0 bottom-12 rounded-2xl border border-zinc-800 bg-zinc-950/98 p-2 shadow-2xl z-50 space-y-1 text-xs font-mono"
               onClick={() => setIsAuditDropdownOpen(false)}
             >
               <button

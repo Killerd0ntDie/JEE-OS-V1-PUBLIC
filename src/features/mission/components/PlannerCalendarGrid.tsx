@@ -261,7 +261,7 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
     <div className="flex-1 overflow-hidden flex flex-col rounded-2xl border border-zinc-850/90 bg-zinc-950/80 shadow-2xl select-none min-w-0 backdrop-blur-xl">
       {/* DAY HEADER ROW */}
       <div 
-        className="grid border-b border-zinc-800/80 bg-zinc-950/95 sticky top-0 z-25 backdrop-blur-2xl"
+        className="grid border-b border-zinc-800/80 bg-zinc-950/95 sticky top-0 z-25"
         style={{ gridTemplateColumns: `60px repeat(${visibleDayIndices.length}, minmax(0, 1fr))` }}
       >
         <div className="border-r border-zinc-800/70 flex items-center justify-center font-mono text-[10px] font-bold text-zinc-500 uppercase tracking-widest">

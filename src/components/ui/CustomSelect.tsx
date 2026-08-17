@@ -66,7 +66,7 @@ export function CustomSelect({
         disabled={disabled}
         whileTap={disabled ? undefined : { scale: 0.99 }}
         onClick={() => !disabled && setIsOpen(!isOpen)}
-        className={`w-full bg-zinc-950/95 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 border ${
+        className={`w-full bg-zinc-950/95  border ${
           disabled
             ? 'opacity-50 cursor-not-allowed border-white/5'
             : isOpen 
@@ -96,7 +96,7 @@ export function CustomSelect({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.98 }}
             transition={springs.snappy}
-            className="absolute top-full left-0 right-0 mt-2 z-50 rounded-2xl p-1.5 max-h-64 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden bg-zinc-950/95 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10"
+            className="absolute top-full left-0 right-0 mt-2 z-50 rounded-2xl p-1.5 max-h-64 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden bg-zinc-950/95"
           >
             {options.map((opt) => {
               const isSelected = opt.value === value;
