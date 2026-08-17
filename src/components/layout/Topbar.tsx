@@ -201,11 +201,11 @@ export function Topbar({
 
   return (
     <header className="h-14 shrink-0 relative border-b border-zinc-850/80 flex items-center justify-between px-4 sticky top-0 z-50 select-none shadow-xl">
-  {/* Frosted Glass Background Layer (Keeps the glass effect on Topbar without trapping dropdowns) */}
-  <div className="absolute inset-0 glass-panel -z-10 pointer-events-none" />
+      {/* Frosted Glass Background Layer (Keeps the glass effect on Topbar without trapping dropdowns) */}
+      <div className="absolute inset-0 bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border-b border-white/10 -z-10 pointer-events-none" />
 
-  {/* Ambient background glow */}
-  <div className="absolute top-0 left-1/4 w-96 h-12 bg-indigo-600/10 filter blur-3xl pointer-events-none -z-10" />
+      {/* Ambient background glow */}
+      <div className="absolute top-0 left-1/4 w-96 h-12 bg-indigo-600/10 filter blur-3xl pointer-events-none -z-10" />
       
       {/* Left: Interactive Brand Logo & Breadcrumb Navigation */}
       <div className="flex items-center gap-3">

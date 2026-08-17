@@ -120,7 +120,7 @@ export function Sidebar({
 
   const renderSidebarContent = (collapsed: boolean) => (
     <div
-      className={`h-full glass-panel border-r-0 flex flex-col justify-between select-none transition-[width] duration-250 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+      className={`h-full bg-black/45 backdrop-blur-2xl shadow-2xl border border-white/10 border-r-0 flex flex-col justify-between select-none transition-[width] duration-250 ease-[cubic-bezier(0.16,1,0.3,1)] ${
         collapsed ? 'w-16 group-hover:w-64 shadow-2xl z-50' : 'w-64'
       }`}
     >
