@@ -203,10 +203,14 @@ function AppLayout() {
   const themeMode = settings?.themeMode || 'evangelion';
   const themeClass = `${isGodMode ? 'theme-god-mode' : isRotMode ? 'theme-rot-mode' : ''} ${themeMode === 'modern' ? 'theme-modern' : 'theme-evangelion'}`;
 
+  const isCockpit = location.pathname.startsWith('/cockpit') || location.pathname.startsWith('/dev-cockpit');
+  const isDiagnostic = location.pathname.startsWith('/diagnostic');
+  const isStandalone = isCockpit || isDiagnostic;
+
   return (
     <div className={`flex min-h-screen bg-zinc-950 text-zinc-400 font-sans antialiased overflow-x-hidden selection:bg-indigo-500/30 selection:text-zinc-100 ${themeClass}`}>
       {/* Sidebar Navigation */}
-      {!location.pathname.startsWith('/diagnostic') && (
+      {!isStandalone && (
         <Sidebar
           isOpenMobile={isSidebarMobileOpen}
           onCloseMobile={() => setIsSidebarMobileOpen(false)}
@@ -216,9 +220,9 @@ function AppLayout() {
       )}
 
       {/* Main Workspace Frame */}
-      <div className={`flex-1 flex flex-col min-w-0 h-[100dvh] ${location.pathname.startsWith('/planner') || location.pathname.startsWith('/cockpit') || location.pathname.startsWith('/diagnostic') ? 'overflow-hidden' : 'overflow-y-auto scrollbar'} relative`}>
-        {/* Topbar Nav (Disabled for Planner and Diagnostic pages) */}
-        {!location.pathname.startsWith('/planner') && !location.pathname.startsWith('/diagnostic') && (
+      <div className={`flex-1 flex flex-col min-w-0 h-[100dvh] ${location.pathname.startsWith('/planner') || isStandalone ? 'overflow-hidden' : 'overflow-y-auto scrollbar'} relative`}>
+        {/* Topbar Nav (Disabled for Planner, Cockpit, and Diagnostic pages) */}
+        {!isStandalone && !location.pathname.startsWith('/planner') && (
           <Topbar
             onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
             onOpenShortcutGuide={() => setIsShortcutGuideOpen(true)}
@@ -229,7 +233,7 @@ function AppLayout() {
         )}
 
         {/* Central Router Stage with Smooth Framer Motion Transition */}
-        <main id="main-content" className={`flex-1 flex flex-col relative min-h-0 ${location.pathname.startsWith('/diagnostic') ? '' : 'px-3 sm:px-4 md:px-6 lg:px-8 py-4 md:py-6 pb-12'}`}>
+        <main id="main-content" className={`flex-1 flex flex-col relative min-h-0 ${isStandalone ? 'p-0 overflow-hidden' : 'px-3 sm:px-4 md:px-6 lg:px-8 py-4 md:py-6 pb-12'}`}>
           {!isOnline && (
             <div className="bg-amber-500/10 border border-amber-500/30 text-amber-300 px-4 py-3 rounded-xl mb-4 flex items-center justify-center font-mono text-xs shadow-lg animate-fade-in shrink-0">
               <div className="flex items-center gap-2">
