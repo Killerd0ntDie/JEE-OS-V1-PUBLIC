@@ -170,7 +170,7 @@ export function MissionDebriefModal({ isOpen, onSubmit, onSkip }: MissionDebrief
               <input
                 type="number"
                 min="0"
-                value={questions}
+                value={questions === 0 ? '' : questions} placeholder="0"
                 onChange={(e) => handleQuestionsChange(Math.max(0, parseInt(e.target.value) || 0))}
                 className="flex-1 bg-zinc-950/80 border border-white/10 rounded-xl px-4 py-2.5 text-white font-mono font-bold text-center text-base focus:border-indigo-500 outline-none transition-all"
               />
@@ -201,7 +201,7 @@ export function MissionDebriefModal({ isOpen, onSubmit, onSkip }: MissionDebrief
                 type="number"
                 min="0"
                 max={questions}
-                value={correct}
+                value={correct === 0 ? '' : correct} placeholder="0"
                 onChange={(e) => handleCorrectChange(Math.max(0, parseInt(e.target.value) || 0))}
                 className="flex-1 bg-zinc-950/80 border border-white/10 rounded-xl px-4 py-2.5 text-white font-mono font-bold text-center text-base focus:border-emerald-500 outline-none transition-all"
               />

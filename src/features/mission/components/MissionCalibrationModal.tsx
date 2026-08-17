@@ -162,7 +162,7 @@ export function MissionCalibrationModal({
                   <input
                     type="number"
                     min={1}
-                    value={currentLecInput}
+                    value={currentLecInput === 0 ? '' : currentLecInput} placeholder="0"
                     onChange={e => {
                       const val = e.target.value;
                       if (val === '') {
@@ -190,7 +190,7 @@ export function MissionCalibrationModal({
                     type="number"
                     min={1}
                     max={100}
-                    value={totalLecInput}
+                    value={totalLecInput === 0 ? '' : totalLecInput} placeholder="0"
                     onChange={e => {
                       const val = e.target.value;
                       if (val === '') {

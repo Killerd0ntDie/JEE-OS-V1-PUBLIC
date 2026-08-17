@@ -563,9 +563,19 @@ export class StudyBrainRuntime {
       });
 
       // Priority 2: AI-generated missions (medium priority)
-      const aiMissions = this.state.todayMissions.filter(m => 
-        m.id.startsWith('mission-ai-') && !userCustomMissions.some(uc => uc.id === m.id)
-      );
+      const aiMissions = this.state.todayMissions.filter(m => {
+        if (!m.id.startsWith('mission-ai-')) return false;
+        if (userCustomMissions.some(uc => uc.id === m.id)) return false;
+        
+        // Filter out AI missions if their chapter was put on hold
+        const chap = this.state.chapters.find(c => c.name === m.chapter || c.id === m.chapterId);
+        if (chap) {
+          if (chap.chapterOnHold) return false;
+          if (chap.dppOnHold && m.taskName?.toLowerCase().includes('dpp')) return false;
+          if (chap.pyqOnHold && m.taskName?.toLowerCase().includes('pyq')) return false;
+        }
+        return true;
+      });
 
       // Priority 3: Planner-generated missions (lowest priority - system suggestions)
       const plannerMissions = (plannerOutput?.todaysMission || []).map(t => {

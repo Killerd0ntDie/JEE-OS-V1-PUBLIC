@@ -131,7 +131,7 @@ export function EbbinghausDecayCurve({
   const retentionGain = currentSpaced - currentUnreinforced;
 
   return (
-    <div className="glass-panel bg-zinc-900/70 backdrop-blur-2xl border border-white/15 rounded-3xl p-5 md:p-6 space-y-5 text-left select-none shadow-2xl relative overflow-hidden">
+    <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900/70 backdrop-blur-2xl border border-white/15 rounded-3xl p-5 md:p-6 space-y-5 text-left select-none shadow-2xl relative overflow-hidden">
       
       {/* Ambient Top Glow */}
       <div className="absolute top-0 right-0 w-80 h-32 bg-indigo-500/10 rounded-full filter blur-3xl pointer-events-none" />
@@ -153,11 +153,11 @@ export function EbbinghausDecayCurve({
 
         {/* Real-time Stability & Gain Pill */}
         <div className="flex items-center gap-2.5 shrink-0 font-mono text-xs">
-          <div className="glass-panel bg-zinc-950/70 border border-white/10 p-2.5 px-3.5 rounded-2xl space-y-0.5 text-center shadow-md">
+          <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-950/70 border border-white/10 p-2.5 px-3.5 rounded-2xl space-y-0.5 text-center shadow-md">
             <span className="text-[9px] text-zinc-400 uppercase font-bold block">Memory Stability (S)</span>
             <span className="text-sm font-bold text-indigo-300 font-display">{memoryStabilityS} Days</span>
           </div>
-          <div className="glass-panel bg-emerald-950/60 border border-emerald-500/40 p-2.5 px-3.5 rounded-2xl space-y-0.5 text-center shadow-md">
+          <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-emerald-950/60 border border-emerald-500/40 p-2.5 px-3.5 rounded-2xl space-y-0.5 text-center shadow-md">
             <span className="text-[9px] text-emerald-300 uppercase font-bold block">Retention Gain</span>
             <span className="text-sm font-bold text-emerald-400 font-display">+{retentionGain}%</span>
           </div>
@@ -166,7 +166,7 @@ export function EbbinghausDecayCurve({
 
       {/* Navigation Sub-tabs */}
       <div className="flex flex-wrap items-center justify-between gap-3 font-mono text-xs">
-        <div className="flex gap-1 glass-dropdown border border-white/10 p-1 rounded-2xl">
+        <div className="flex gap-1 bg-zinc-950/95 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 border border-white/10 p-1 rounded-2xl">
           <button
             onClick={() => setActiveTab('curve')}
             className={`px-3.5 py-1.5 rounded-xl font-bold transition-colors cursor-pointer flex items-center gap-1.5 ${
@@ -218,7 +218,7 @@ export function EbbinghausDecayCurve({
       {/* ── TAB 1: VISUAL DECAY SIMULATION GRAPH ── */}
       {activeTab === 'curve' && (
         <div className="space-y-4">
-          <div className="relative glass-panel bg-zinc-950/80 border border-white/10 rounded-2xl p-4 md:p-5 shadow-inner">
+          <div className="relative bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-950/80 border border-white/10 rounded-2xl p-4 md:p-5 shadow-inner">
             
             {/* SVG Chart Container with preserved aspect ratio */}
             <div className="relative w-full h-44 sm:h-52">
@@ -395,7 +395,7 @@ export function EbbinghausDecayCurve({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             
             {/* Decaying / Overdue Column */}
-            <div className="glass-panel bg-zinc-950/60 border border-red-500/30 rounded-2xl p-4 space-y-3 shadow-md">
+            <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-950/60 border border-red-500/30 rounded-2xl p-4 space-y-3 shadow-md">
               <div className="flex items-center justify-between border-b border-red-500/20 pb-2">
                 <span className="text-xs font-mono font-bold text-red-400 flex items-center gap-1.5">
                   <Flame className="w-3.5 h-3.5" />
@@ -430,7 +430,7 @@ export function EbbinghausDecayCurve({
             </div>
 
             {/* Upcoming Review Column */}
-            <div className="glass-panel bg-zinc-950/60 border border-amber-500/30 rounded-2xl p-4 space-y-3 shadow-md">
+            <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-950/60 border border-amber-500/30 rounded-2xl p-4 space-y-3 shadow-md">
               <div className="flex items-center justify-between border-b border-amber-500/20 pb-2">
                 <span className="text-xs font-mono font-bold text-amber-400 flex items-center gap-1.5">
                   <Activity className="w-3.5 h-3.5" />
@@ -465,7 +465,7 @@ export function EbbinghausDecayCurve({
             </div>
 
             {/* Secure / Mastered Column */}
-            <div className="glass-panel bg-zinc-950/60 border border-emerald-500/30 rounded-2xl p-4 space-y-3 shadow-md">
+            <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-950/60 border border-emerald-500/30 rounded-2xl p-4 space-y-3 shadow-md">
               <div className="flex items-center justify-between border-b border-emerald-500/20 pb-2">
                 <span className="text-xs font-mono font-bold text-emerald-400 flex items-center gap-1.5">
                   <ShieldCheck className="w-3.5 h-3.5" />
@@ -519,7 +519,7 @@ export function EbbinghausDecayCurve({
 
       {/* ── TAB 3: MATHEMATICAL MODEL EXPLAINER ── */}
       {activeTab === 'math' && (
-        <div className="glass-panel bg-zinc-950/70 border border-white/10 rounded-2xl p-5 space-y-4 font-sans text-xs leading-relaxed text-zinc-300 shadow-inner">
+        <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-950/70 border border-white/10 rounded-2xl p-5 space-y-4 font-sans text-xs leading-relaxed text-zinc-300 shadow-inner">
           <div className="flex items-center gap-2 text-indigo-400 font-mono font-bold uppercase tracking-wider">
             <Info className="w-4 h-4 text-indigo-400" />
             <span>Mathematical Mechanics: Ebbinghaus & SuperMemo-2 (SM-2)</span>

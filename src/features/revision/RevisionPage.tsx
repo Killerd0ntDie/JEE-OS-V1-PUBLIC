@@ -64,7 +64,7 @@ export function RevisionPage() {
             className="space-y-6"
           >
             {/* 1. COMPACT HERO BANNER & REAL-TIME VITALS */}
-            <div className="glass-panel bg-zinc-900/70 backdrop-blur-2xl border border-white/15 p-5 md:p-6 rounded-3xl shadow-2xl flex flex-col lg:flex-row lg:items-center justify-between gap-5 relative overflow-hidden">
+            <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900/70 backdrop-blur-2xl border border-white/15 p-5 md:p-6 rounded-3xl shadow-2xl flex flex-col lg:flex-row lg:items-center justify-between gap-5 relative overflow-hidden">
               {/* Ambient glow */}
               <div className={`absolute top-0 right-0 w-80 h-32 rounded-full filter blur-3xl pointer-events-none ${
                 stats.totalOverdue > 0 ? 'bg-red-600/15' : 'bg-indigo-600/15'
@@ -102,23 +102,23 @@ export function RevisionPage() {
 
               {/* 5-Point Unified Vitals Strip */}
               <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 font-mono text-xs shrink-0 relative z-10">
-                <div className="glass-panel bg-zinc-950/60 border border-red-500/30 p-2.5 px-3 rounded-2xl text-center shadow-md">
+                <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-950/60 border border-red-500/30 p-2.5 px-3 rounded-2xl text-center shadow-md">
                   <span className="text-[9px] text-zinc-400 uppercase font-bold block">Overdue</span>
                   <span className="text-sm font-bold text-red-400 font-display">{stats.totalOverdue}</span>
                 </div>
-                <div className="glass-panel bg-zinc-950/60 border border-amber-500/30 p-2.5 px-3 rounded-2xl text-center shadow-md">
+                <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-950/60 border border-amber-500/30 p-2.5 px-3 rounded-2xl text-center shadow-md">
                   <span className="text-[9px] text-zinc-400 uppercase font-bold block">Review Soon</span>
                   <span className="text-sm font-bold text-amber-400 font-display">{stats.totalUpcoming}</span>
                 </div>
-                <div className="glass-panel bg-zinc-950/60 border border-emerald-500/30 p-2.5 px-3 rounded-2xl text-center shadow-md">
+                <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-950/60 border border-emerald-500/30 p-2.5 px-3 rounded-2xl text-center shadow-md">
                   <span className="text-[9px] text-zinc-400 uppercase font-bold block">Safe</span>
                   <span className="text-sm font-bold text-emerald-400 font-display">{stats.totalMastered}</span>
                 </div>
-                <div className="glass-panel bg-zinc-950/60 border border-white/10 p-2.5 px-3 rounded-2xl text-center shadow-md">
+                <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-950/60 border border-white/10 p-2.5 px-3 rounded-2xl text-center shadow-md">
                   <span className="text-[9px] text-zinc-400 uppercase font-bold block">Unstarted</span>
                   <span className="text-sm font-bold text-zinc-400 font-display">{stats.totalNotStarted}</span>
                 </div>
-                <div className="glass-panel bg-zinc-950/60 border border-indigo-500/40 p-2.5 px-3 rounded-2xl text-center shadow-md col-span-2 sm:col-span-1">
+                <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-950/60 border border-indigo-500/40 p-2.5 px-3 rounded-2xl text-center shadow-md col-span-2 sm:col-span-1">
                   <span className="text-[9px] text-indigo-300 uppercase font-bold block">Avg Score</span>
                   <span className="text-sm font-bold text-indigo-300 font-display">{stats.avgRetentionScore}%</span>
                 </div>
@@ -129,9 +129,9 @@ export function RevisionPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               
               {/* Card 1: Active Recall Vault & Syllabus Retention Matrix */}
-              <div className="glass-panel bg-zinc-900/70 backdrop-blur-2xl border border-white/15 hover:border-indigo-500/40 rounded-3xl p-6 relative overflow-hidden transition-all shadow-xl flex flex-col justify-between space-y-4">
+              <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900/70 backdrop-blur-2xl border border-white/15 hover:border-indigo-500/40 rounded-3xl p-6 relative overflow-hidden transition-all shadow-xl flex flex-col justify-between space-y-4">
                 <div className="space-y-2">
-                  <div className="w-10 h-10 rounded-2xl glass-panel bg-indigo-950/60 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-sm">
+                  <div className="w-10 h-10 rounded-2xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-indigo-950/60 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-sm">
                     <Sparkles className="w-5 h-5 text-indigo-400" />
                   </div>
                   <h3 className="text-lg font-display font-bold text-white tracking-tight">
@@ -146,7 +146,7 @@ export function RevisionPage() {
                   type="button"
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setActiveView('vault')}
-                  className="w-full py-3.5 rounded-2xl glass-panel bg-indigo-600/30 hover:bg-indigo-600/40 border border-indigo-500/40 text-indigo-100 font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-indigo-950/40 transition-all cursor-pointer"
+                  className="w-full py-3.5 rounded-2xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-indigo-600/30 hover:bg-indigo-600/40 border border-indigo-500/40 text-indigo-100 font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-indigo-950/40 transition-all cursor-pointer"
                 >
                   <span>Open Vault & Matrix ({revisionData?.cards?.length || 0} Cards • 70 Ch)</span>
                   <ArrowRight className="w-4 h-4" />
@@ -154,11 +154,11 @@ export function RevisionPage() {
               </div>
 
               {/* Card 2: Timed Spaced Recall Arena (Color-Sensitive to Decay State) */}
-              <div className={`glass-panel bg-zinc-900/70 backdrop-blur-2xl border rounded-3xl p-6 relative overflow-hidden transition-all shadow-xl flex flex-col justify-between space-y-4 ${
+              <div className={`bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900/70 backdrop-blur-2xl border rounded-3xl p-6 relative overflow-hidden transition-all shadow-xl flex flex-col justify-between space-y-4 ${
                 stats.totalOverdue > 0 ? 'border-red-500/40 hover:border-red-500/60' : 'border-emerald-500/30 hover:border-emerald-500/50'
               }`}>
                 <div className="space-y-2">
-                  <div className={`w-10 h-10 rounded-2xl glass-panel border flex items-center justify-center shadow-sm ${
+                  <div className={`w-10 h-10 rounded-2xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 border flex items-center justify-center shadow-sm ${
                     stats.totalOverdue > 0 
                       ? 'bg-red-950/60 border-red-500/40 text-red-400' 
                       : 'bg-emerald-950/60 border-emerald-500/30 text-emerald-400'
@@ -183,7 +183,7 @@ export function RevisionPage() {
                   type="button"
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setActiveView('arena')}
-                  className={`w-full py-3.5 rounded-2xl glass-panel border font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer ${
+                  className={`w-full py-3.5 rounded-2xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 border font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer ${
                     stats.totalOverdue > 0
                       ? 'bg-red-950/40 hover:bg-red-900/50 border-red-500/40 text-red-300'
                       : 'bg-emerald-950/40 hover:bg-emerald-900/50 border-emerald-500/40 text-emerald-300'
@@ -204,9 +204,9 @@ export function RevisionPage() {
               </div>
 
               {/* Card 3: 30-Second Rapid Speed Drill */}
-              <div className="glass-panel bg-zinc-900/70 backdrop-blur-2xl border border-white/15 hover:border-amber-500/40 rounded-3xl p-6 relative overflow-hidden transition-all shadow-xl flex flex-col justify-between space-y-4">
+              <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900/70 backdrop-blur-2xl border border-white/15 hover:border-amber-500/40 rounded-3xl p-6 relative overflow-hidden transition-all shadow-xl flex flex-col justify-between space-y-4">
                 <div className="space-y-2">
-                  <div className="w-10 h-10 rounded-2xl glass-panel bg-amber-950/60 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-sm">
+                  <div className="w-10 h-10 rounded-2xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-amber-950/60 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-sm">
                     <Zap className="w-5 h-5 text-amber-400" />
                   </div>
                   <h3 className="text-lg font-display font-bold text-white tracking-tight">
@@ -221,7 +221,7 @@ export function RevisionPage() {
                   type="button"
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setActiveView('speed_drill')}
-                  className="w-full py-3.5 rounded-2xl glass-panel bg-amber-950/40 hover:bg-amber-900/40 border border-amber-500/40 text-amber-300 font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-colors cursor-pointer"
+                  className="w-full py-3.5 rounded-2xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-amber-950/40 hover:bg-amber-900/40 border border-amber-500/40 text-amber-300 font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-colors cursor-pointer"
                 >
                   <Zap className="w-4 h-4" />
                   <span>Launch 30s Speed Drill</span>
@@ -229,9 +229,9 @@ export function RevisionPage() {
               </div>
 
               {/* Card 4: Feynman Technique Sandbox */}
-              <div className="glass-panel bg-zinc-900/70 backdrop-blur-2xl border border-white/15 hover:border-indigo-500/40 rounded-3xl p-6 relative overflow-hidden transition-all shadow-xl flex flex-col justify-between space-y-4">
+              <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900/70 backdrop-blur-2xl border border-white/15 hover:border-indigo-500/40 rounded-3xl p-6 relative overflow-hidden transition-all shadow-xl flex flex-col justify-between space-y-4">
                 <div className="space-y-2">
-                  <div className="w-10 h-10 rounded-2xl glass-panel bg-indigo-950/60 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-sm">
+                  <div className="w-10 h-10 rounded-2xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-indigo-950/60 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-sm">
                     <Brain className="w-5 h-5 text-indigo-400" />
                   </div>
                   <h3 className="text-lg font-display font-bold text-white tracking-tight">
@@ -246,7 +246,7 @@ export function RevisionPage() {
                   type="button"
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setActiveView('feynman')}
-                  className="w-full py-3.5 rounded-2xl glass-panel bg-indigo-950/40 hover:bg-indigo-900/40 border border-indigo-500/40 text-indigo-300 font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-colors cursor-pointer"
+                  className="w-full py-3.5 rounded-2xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-indigo-950/40 hover:bg-indigo-900/40 border border-indigo-500/40 text-indigo-300 font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-colors cursor-pointer"
                 >
                   <Brain className="w-4 h-4" />
                   <span>Open Feynman Studio</span>

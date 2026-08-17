@@ -86,7 +86,7 @@ const PracticeModule = ({
             type="number"
             min="0"
             max={total}
-            value={completed}
+            value={completed === 0 ? '' : completed} placeholder="0"
             onChange={(e) => {
               const val = parseInt(e.target.value) || 0;
               setCompleted(Math.max(0, Math.min(total, val)));
@@ -99,8 +99,8 @@ const PracticeModule = ({
           <input
             type="number"
             min="1"
-            value={total}
-            onChange={(e) => setTotal(Math.max(1, parseInt(e.target.value) || 1))}
+            value={total === 0 ? '' : total} placeholder="0"
+            onChange={(e) => setTotal(Math.max(0, parseInt(e.target.value) || 0))}
             className="w-full bg-zinc-900/90 border border-zinc-800 rounded-xl px-3 py-1.5 text-white font-mono text-xs focus:border-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 transition-colors"
           />
         </div>
@@ -214,7 +214,23 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
       setPyqOnHold(!!chapter.pyqOnHold);
       setChapterOnHold(!!chapter.chapterOnHold);
     }
-  }, [chapter?.id, telemetry?.weightagePercent]);
+  }, [chapter, isOpen]);
+
+  const toggleChapterHold = async () => {
+    const newVal = !chapterOnHold;
+    setChapterOnHold(newVal);
+    if (chapter) await actions.updateChapter(chapter.id, { chapterOnHold: newVal });
+  };
+
+  const toggleDppHold = async (newVal: boolean) => {
+    setDppOnHold(newVal);
+    if (chapter) await actions.updateChapter(chapter.id, { dppOnHold: newVal });
+  };
+
+  const togglePyqHold = async (newVal: boolean) => {
+    setPyqOnHold(newVal);
+    if (chapter) await actions.updateChapter(chapter.id, { pyqOnHold: newVal });
+  };
 
   const estimatedHours = Math.round(((Math.max(0, totalLectures - currentLecture)) * (avgLectureDuration || 0)) / 60);
 
@@ -333,9 +349,9 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
       <Modal 
         isOpen={effectiveIsOpen} 
         onClose={handleClose} 
-        zIndex={50} 
-        backdropClassName="bg-black/10 backdrop-blur-sm"
-        className="w-full max-w-2xl min-h-[500px] h-[80vh] max-h-[92vh] flex flex-col border border-zinc-800/90 rounded-3xl shadow-2xl overflow-hidden focus:outline-none text-left glass-panel"
+        zIndex={999} 
+        backdropClassName="bg-black/40 backdrop-blur-sm"
+        className="w-full max-w-2xl min-h-[500px] h-[95vh] max-h-[95vh] flex flex-col border border-zinc-800/90 rounded-3xl shadow-2xl overflow-hidden focus:outline-none text-left bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10"
       >
         {/* Toast */}
         {showSuccessToast && (
@@ -390,7 +406,7 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
                 <div className="flex items-center gap-2 shrink-0 pt-0.5">
                   <button
                     type="button"
-                    onClick={() => setChapterOnHold(!chapterOnHold)}
+                    onClick={toggleChapterHold}
                     className={`text-xs font-mono font-bold px-3 py-1.5 rounded-xl border transition-all cursor-pointer select-none active:scale-95 ${
                       chapterOnHold
                         ? 'bg-amber-500/20 border-amber-500/50 text-amber-300 shadow-sm'
@@ -465,7 +481,7 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
                               type="number"
                               min="0"
                               max={totalLectures}
-                              value={currentLecture}
+                              value={currentLecture === 0 ? '' : currentLecture} placeholder="0"
                               onChange={(e) => {
                                 const val = parseInt(e.target.value) || 0;
                                 setCurrentLecture(Math.max(0, Math.min(totalLectures, val)));
@@ -479,8 +495,8 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
                               type="number"
                               min="1"
                               max="100"
-                              value={totalLectures}
-                              onChange={(e) => setTotalLectures(parseInt(e.target.value) || 1)}
+                              value={totalLectures === 0 ? '' : totalLectures} placeholder="0"
+                              onChange={(e) => setTotalLectures(parseInt(e.target.value) || 0)}
                               className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-white font-mono text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500"
                             />
                           </div>
@@ -502,8 +518,8 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
                           <span className="text-[11px] text-zinc-400 block font-mono uppercase tracking-wider">Avg Duration (mins)</span>
                           <input
                             type="number"
-                            value={avgLectureDuration}
-                            onChange={(e) => setAvgLectureDuration(parseInt(e.target.value) || 60)}
+                            value={avgLectureDuration === 0 ? '' : avgLectureDuration} placeholder="0"
+                            onChange={(e) => setAvgLectureDuration(parseInt(e.target.value) || 0)}
                             className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2 text-white font-mono text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500"
                           />
                         </div>
@@ -546,7 +562,7 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
                           holdMsg="DPPs won't be scheduled for this chapter until you turn this off."
                           recommendedMsg={`* Recommended: ${Math.max(5, Math.round((totalLectures || 10) * 0.8))} sets for completion.`}
                           onHold={dppOnHold}
-                          setOnHold={setDppOnHold}
+                          setOnHold={toggleDppHold}
                           completed={completedDpp}
                           setCompleted={setCompletedDpp}
                           total={totalDpp}
@@ -561,7 +577,7 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
                           holdMsg="PYQs won't be scheduled for this chapter until you turn this off."
                           recommendedMsg="* Recommended: ~50-80 PYQs per chapter."
                           onHold={pyqOnHold}
-                          setOnHold={setPyqOnHold}
+                          setOnHold={togglePyqHold}
                           completed={completedPyq}
                           setCompleted={setCompletedPyq}
                           total={totalPyq}
@@ -611,7 +627,7 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
                           <label className="block text-zinc-400 uppercase text-[10px] font-bold tracking-wider">JEE Weightage %</label>
                           <input
                             type="number"
-                            value={weightage}
+                            value={weightage === 0 ? '' : weightage} placeholder="0"
                             readOnly
                             className="w-full bg-zinc-900/60 border border-zinc-800/80 rounded-xl px-3.5 py-2 text-zinc-400 cursor-not-allowed font-bold"
                           />
@@ -650,7 +666,7 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
                           <label className="block text-zinc-400 uppercase text-[10px] font-bold tracking-wider">Serial Number (Sorting)</label>
                           <input
                             type="number"
-                            value={serialNumber}
+                            value={serialNumber === 0 ? '' : serialNumber} placeholder="0"
                             onChange={(e) => setSerialNumber(e.target.value)}
                             placeholder="e.g. 05"
                             className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3.5 py-2 text-xs text-white placeholder-zinc-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500 font-mono"

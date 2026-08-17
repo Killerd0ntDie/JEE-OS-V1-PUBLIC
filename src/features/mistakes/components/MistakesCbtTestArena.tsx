@@ -192,7 +192,7 @@ export const MistakesCbtTestArena: React.FC<MistakesCbtTestArenaProps> = ({
   const testAccuracy = answeredCount > 0 ? Math.round((totalSolvedInTest / mistakes.length) * 100) : 0;
 
   return (
-    <div className="fixed inset-0 z-50 glass-panel text-zinc-100 flex flex-col overflow-hidden select-none font-sans">
+    <div className="fixed inset-0 z-50 bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 text-zinc-100 flex flex-col overflow-hidden select-none font-sans">
       
       {/* 1. CBT TOP NAVBAR */}
       <div className="h-14 border-b border-zinc-850 bg-zinc-950 px-4 sm:px-6 flex items-center justify-between shrink-0">
@@ -540,7 +540,7 @@ export const MistakesCbtTestArena: React.FC<MistakesCbtTestArenaProps> = ({
       {/* SUBMISSION CONFIRMATION MODAL */}
       {isConfirmSubmitOpen && (
         <div className="fixed inset-0 z-[60] bg-black/10 backdrop-blur-sm flex items-center justify-center p-4">
-          <motion.div variants={modalVariants} initial="initial" animate="animate" exit="exit" className="w-full max-w-md glass-panel border border-zinc-800 rounded-2xl p-6 space-y-4 text-left">
+          <motion.div variants={modalVariants} initial="initial" animate="animate" exit="exit" className="w-full max-w-md bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 border border-zinc-800 rounded-2xl p-6 space-y-4 text-left">
             <h3 className="text-base font-display font-bold text-white">Submit Retest Exam?</h3>
             <p className="text-xs font-mono text-zinc-400 leading-relaxed">
               You have answered <strong className="text-emerald-400">{answeredCount}</strong> of {mistakes.length} questions. Are you ready to finish and review the step-by-step solution derivations?

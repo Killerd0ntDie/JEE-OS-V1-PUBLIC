@@ -201,7 +201,7 @@ export const RevisionFlashcardVault: React.FC<RevisionFlashcardVaultProps> = ({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
             transition={{ duration: 0.15 }}
-            className="fixed top-6 right-6 z-50 glass-panel bg-emerald-950/90 border border-emerald-500/50 text-emerald-200 text-xs px-4 py-2.5 rounded-2xl shadow-2xl flex items-center gap-2 font-mono"
+            className="fixed top-6 right-6 z-50 bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-emerald-950/90 border border-emerald-500/50 text-emerald-200 text-xs px-4 py-2.5 rounded-2xl shadow-2xl flex items-center gap-2 font-mono"
           >
             <Check className="w-4 h-4 text-emerald-400" />
             <span>Recalled <strong>{recalledToast.title}</strong> (+{recalledToast.xp} XP)</span>
@@ -215,7 +215,7 @@ export const RevisionFlashcardVault: React.FC<RevisionFlashcardVaultProps> = ({
           <button
             type="button"
             onClick={onBackToHub}
-            className="p-2.5 rounded-2xl glass-panel bg-zinc-900/60 hover:bg-zinc-800 border border-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer shrink-0 shadow-sm"
+            className="p-2.5 rounded-2xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900/60 hover:bg-zinc-800 border border-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer shrink-0 shadow-sm"
             title="Back to Command Center"
             aria-label="Back to Command Center"
           >
@@ -233,7 +233,7 @@ export const RevisionFlashcardVault: React.FC<RevisionFlashcardVaultProps> = ({
         </div>
 
         {/* View Switcher: Flashcards vs Matrix */}
-        <div className="flex items-center gap-1 glass-dropdown border border-white/10 p-1 rounded-2xl font-mono text-xs relative shrink-0">
+        <div className="flex items-center gap-1 bg-zinc-950/95 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 border border-white/10 p-1 rounded-2xl font-mono text-xs relative shrink-0">
           <button
             onClick={() => {
               setVaultView('cards');
@@ -277,7 +277,7 @@ export const RevisionFlashcardVault: React.FC<RevisionFlashcardVaultProps> = ({
       </div>
 
       {/* Filter Toolbar (Search & Scope Selectors) */}
-      <div className="glass-panel bg-zinc-900/60 backdrop-blur-2xl border border-white/10 rounded-3xl p-4 md:p-5 space-y-3.5 shadow-xl">
+      <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900/60 backdrop-blur-2xl border border-white/10 rounded-3xl p-4 md:p-5 space-y-3.5 shadow-xl">
         
         {/* Row 1: Search Bar & Subject Filter Buttons */}
         <div className="flex flex-col sm:flex-row gap-3">
@@ -301,7 +301,7 @@ export const RevisionFlashcardVault: React.FC<RevisionFlashcardVaultProps> = ({
           </div>
 
           {/* Subject Switcher Glider */}
-          <div className="flex gap-1 glass-dropdown border border-white/10 p-1 rounded-2xl font-mono text-xs shrink-0">
+          <div className="flex gap-1 bg-zinc-950/95 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 border border-white/10 p-1 rounded-2xl font-mono text-xs shrink-0">
             {(['all', 'physics', 'chemistry', 'maths'] as const).map(sub => {
               const isActive = activeSubject === sub;
               return (
@@ -408,8 +408,8 @@ export const RevisionFlashcardVault: React.FC<RevisionFlashcardVaultProps> = ({
       {vaultView === 'cards' && (
         <>
           {cardsToDisplay.length === 0 ? (
-            <div className="p-12 text-center glass-panel bg-zinc-900/60 border border-white/10 rounded-3xl space-y-3 font-mono shadow-xl">
-              <div className="w-12 h-12 rounded-2xl glass-panel bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 flex items-center justify-center mx-auto shadow-inner">
+            <div className="p-12 text-center bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900/60 border border-white/10 rounded-3xl space-y-3 font-mono shadow-xl">
+              <div className="w-12 h-12 rounded-2xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 flex items-center justify-center mx-auto shadow-inner">
                 <Sparkles className="w-6 h-6" />
               </div>
               <h3 className="text-base font-display font-bold text-white uppercase tracking-wider">
@@ -437,7 +437,7 @@ export const RevisionFlashcardVault: React.FC<RevisionFlashcardVaultProps> = ({
                       scale: isAnimating ? (animatingCard?.type === 'success' ? 1.02 : 0.98) : 1 
                     }}
                     transition={{ duration: 0.15 }}
-                    className={`p-5 rounded-3xl border text-left flex flex-col justify-between space-y-4 glass-panel backdrop-blur-2xl transition-all shadow-lg ${
+                    className={`p-5 rounded-3xl border text-left flex flex-col justify-between space-y-4 bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 backdrop-blur-2xl transition-all shadow-lg ${
                       isFlipped
                         ? 'bg-indigo-950/25 border-indigo-500/40 shadow-indigo-950/20'
                         : isUrgent 
@@ -473,7 +473,7 @@ export const RevisionFlashcardVault: React.FC<RevisionFlashcardVaultProps> = ({
                     {/* Upright Clean Flip Card Body */}
                     <div 
                       onClick={() => toggleFlip(card.id)}
-                      className={`cursor-pointer min-h-[140px] flex flex-col justify-between rounded-2xl p-4 glass-panel transition-all shadow-inner group relative select-none ${
+                      className={`cursor-pointer min-h-[140px] flex flex-col justify-between rounded-2xl p-4 bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 transition-all shadow-inner group relative select-none ${
                         isFlipped 
                           ? 'bg-zinc-950/90 border border-indigo-500/40' 
                           : 'bg-zinc-950/80 border border-white/5 hover:border-white/15'
@@ -500,7 +500,7 @@ export const RevisionFlashcardVault: React.FC<RevisionFlashcardVaultProps> = ({
                       )}
 
                       <div className="flex justify-end pt-2">
-                        <span className={`px-2 py-0.5 rounded-lg glass-panel border text-[9px] font-mono transition-colors flex items-center gap-1 shadow-sm ${
+                        <span className={`px-2 py-0.5 rounded-lg bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 border text-[9px] font-mono transition-colors flex items-center gap-1 shadow-sm ${
                           isFlipped
                             ? 'bg-indigo-900/60 border-indigo-500/30 text-indigo-300'
                             : 'bg-zinc-900/90 border border-white/10 text-zinc-400 group-hover:text-indigo-300'
@@ -516,7 +516,7 @@ export const RevisionFlashcardVault: React.FC<RevisionFlashcardVaultProps> = ({
                       <button
                         type="button"
                         onClick={() => markCardRecall(card, 'Low')}
-                        className="flex-1 py-2 px-2.5 rounded-xl glass-panel bg-red-950/60 hover:bg-red-900/80 text-red-300 border border-red-800/60 font-mono text-[10px] font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-1 cursor-pointer active:scale-95 shadow-sm"
+                        className="flex-1 py-2 px-2.5 rounded-xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-red-950/60 hover:bg-red-900/80 text-red-300 border border-red-800/60 font-mono text-[10px] font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-1 cursor-pointer active:scale-95 shadow-sm"
                         title="Blackout: Reset interval to 1 day"
                       >
                         <Skull className="w-3 h-3" />
@@ -526,7 +526,7 @@ export const RevisionFlashcardVault: React.FC<RevisionFlashcardVaultProps> = ({
                       <button
                         type="button"
                         onClick={() => markCardRecall(card, 'Medium')}
-                        className="flex-1 py-2 px-2.5 rounded-xl glass-panel bg-amber-950/60 hover:bg-amber-900/80 text-amber-300 border border-amber-800/60 font-mono text-[10px] font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-1 cursor-pointer active:scale-95 shadow-sm"
+                        className="flex-1 py-2 px-2.5 rounded-xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-amber-950/60 hover:bg-amber-900/80 text-amber-300 border border-amber-800/60 font-mono text-[10px] font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-1 cursor-pointer active:scale-95 shadow-sm"
                         title="Hard: Reinforce interval to 3 days"
                       >
                         <Timer className="w-3 h-3" />
@@ -536,7 +536,7 @@ export const RevisionFlashcardVault: React.FC<RevisionFlashcardVaultProps> = ({
                       <button
                         type="button"
                         onClick={() => markCardRecall(card, 'High')}
-                        className="flex-1 py-2 px-2.5 rounded-xl glass-panel bg-emerald-950/60 hover:bg-emerald-900/80 text-emerald-300 border border-emerald-800/60 font-mono text-[10px] font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-1 cursor-pointer active:scale-95 shadow-sm"
+                        className="flex-1 py-2 px-2.5 rounded-xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-emerald-950/60 hover:bg-emerald-900/80 text-emerald-300 border border-emerald-800/60 font-mono text-[10px] font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-1 cursor-pointer active:scale-95 shadow-sm"
                         title="Good: Expand interval to 7+ days"
                       >
                         <CheckCircle2 className="w-3 h-3" />
@@ -555,8 +555,8 @@ export const RevisionFlashcardVault: React.FC<RevisionFlashcardVaultProps> = ({
       {vaultView === 'matrix' && (
         <>
           {matrixChaptersToDisplay.length === 0 ? (
-            <div className="p-12 text-center glass-panel bg-zinc-900/60 border border-white/10 rounded-3xl space-y-3 font-mono shadow-xl">
-              <div className="w-12 h-12 rounded-2xl glass-panel bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 flex items-center justify-center mx-auto shadow-inner">
+            <div className="p-12 text-center bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900/60 border border-white/10 rounded-3xl space-y-3 font-mono shadow-xl">
+              <div className="w-12 h-12 rounded-2xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 flex items-center justify-center mx-auto shadow-inner">
                 <Sparkles className="w-6 h-6" />
               </div>
               <h3 className="text-base font-display font-bold text-white uppercase tracking-wider">
@@ -577,7 +577,7 @@ export const RevisionFlashcardVault: React.FC<RevisionFlashcardVaultProps> = ({
                   <div
                     key={chap.chapterId}
                     onClick={() => onInspectChapter(chap.chapterId)}
-                    className={`p-4 rounded-3xl border glass-panel backdrop-blur-2xl transition-all cursor-pointer flex flex-col justify-between space-y-3 group shadow-md ${
+                    className={`p-4 rounded-3xl border bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 backdrop-blur-2xl transition-all cursor-pointer flex flex-col justify-between space-y-3 group shadow-md ${
                       isOverdue
                         ? 'bg-red-950/25 border-red-500/40 hover:border-red-500/70 shadow-red-950/20'
                         : isMastered

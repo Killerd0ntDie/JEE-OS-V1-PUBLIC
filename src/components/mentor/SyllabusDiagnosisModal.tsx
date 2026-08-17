@@ -161,7 +161,7 @@ export const SyllabusDiagnosisModal: React.FC<Props> = ({ isOpen, onClose }) => 
 
   return (
     
-    <Modal isOpen={isOpen} onClose={onClose} zIndex={50} backdropClassName="p-4 bg-black/10 backdrop-blur-sm animate-fade-in overflow-y-auto" className="relative w-full max-w-5xl border border-indigo-900/50 rounded-2xl shadow-2xl overflow-hidden my-6 text-left glass-panel">
+    <Modal isOpen={isOpen} onClose={onClose} zIndex={999} backdropClassName="p-4 bg-black/40 backdrop-blur-sm animate-fade-in overflow-y-auto" className="relative w-full max-w-5xl border border-indigo-900/50 rounded-2xl shadow-2xl overflow-hidden my-6 text-left bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10">
         
         {/* Header */}
         <div className="px-6 py-4 bg-indigo-950/30 border-b border-indigo-900/40 flex items-center justify-between">
@@ -328,7 +328,7 @@ export const SyllabusDiagnosisModal: React.FC<Props> = ({ isOpen, onClose }) => 
                     <input
                       type="number"
                       value={selectedChapter.lectureProgress?.totalLectures || selectedChapter.totalLectures || 18}
-                      onChange={(e) => handleUpdateLectureProgress(selectedChapter.id, 'totalLectures', parseInt(e.target.value) || 1)}
+                      onChange={(e) => handleUpdateLectureProgress(selectedChapter.id, 'totalLectures', parseInt(e.target.value) || 0)}
                       className="w-full bg-[#121318] border border-zinc-800 rounded px-2.5 py-1.5 text-white font-mono text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
                     />
                   </div>
@@ -348,7 +348,7 @@ export const SyllabusDiagnosisModal: React.FC<Props> = ({ isOpen, onClose }) => 
                     <input
                       type="number"
                       value={selectedChapter.lectureProgress?.avgLectureDurationMinutes || 75}
-                      onChange={(e) => handleUpdateLectureProgress(selectedChapter.id, 'avgLectureDurationMinutes', parseInt(e.target.value) || 75)}
+                      onChange={(e) => handleUpdateLectureProgress(selectedChapter.id, 'avgLectureDurationMinutes', parseInt(e.target.value) || 0)}
                       className="w-full bg-[#121318] border border-zinc-800 rounded px-2.5 py-1.5 text-white font-mono text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
                     />
                   </div>

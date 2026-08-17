@@ -206,7 +206,7 @@ export function ActiveRecallArena({ cards, onExit }: ActiveRecallArenaProps) {
             type="button"
             whileTap={{ scale: 0.92 }}
             onClick={onExit}
-            className="p-2.5 rounded-2xl glass-panel bg-zinc-900/60 hover:bg-zinc-800 border border-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer shrink-0 shadow-sm"
+            className="p-2.5 rounded-2xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900/60 hover:bg-zinc-800 border border-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer shrink-0 shadow-sm"
             title="Back to Command Center"
             aria-label="Back to Command Center"
           >
@@ -214,8 +214,8 @@ export function ActiveRecallArena({ cards, onExit }: ActiveRecallArenaProps) {
           </motion.button>
         </div>
 
-        <div className="glass-panel bg-zinc-900/70 backdrop-blur-2xl border border-white/15 p-12 rounded-3xl text-center space-y-6 shadow-2xl">
-          <div className="w-16 h-16 mx-auto glass-panel bg-emerald-950/60 rounded-full flex items-center justify-center border border-emerald-500/40 text-emerald-400 shadow-lg">
+        <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900/70 backdrop-blur-2xl border border-white/15 p-12 rounded-3xl text-center space-y-6 shadow-2xl">
+          <div className="w-16 h-16 mx-auto bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-emerald-950/60 rounded-full flex items-center justify-center border border-emerald-500/40 text-emerald-400 shadow-lg">
             <ShieldCheck className="w-8 h-8" />
           </div>
           <div className="space-y-2">
@@ -254,7 +254,7 @@ export function ActiveRecallArena({ cards, onExit }: ActiveRecallArenaProps) {
             type="button"
             whileTap={{ scale: 0.92 }}
             onClick={onExit}
-            className="p-2.5 rounded-2xl glass-panel bg-zinc-900/60 hover:bg-zinc-800 border border-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer shrink-0 shadow-sm"
+            className="p-2.5 rounded-2xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900/60 hover:bg-zinc-800 border border-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer shrink-0 shadow-sm"
             title="Back to Command Center"
             aria-label="Back to Command Center"
           >
@@ -270,11 +270,11 @@ export function ActiveRecallArena({ cards, onExit }: ActiveRecallArenaProps) {
           initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={springs.fluid}
-          className="glass-panel bg-zinc-900/70 backdrop-blur-2xl border border-white/15 p-8 md:p-12 rounded-3xl text-center space-y-8 shadow-2xl relative overflow-hidden"
+          className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900/70 backdrop-blur-2xl border border-white/15 p-8 md:p-12 rounded-3xl text-center space-y-8 shadow-2xl relative overflow-hidden"
         >
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-36 bg-indigo-600/20 rounded-full filter blur-3xl pointer-events-none" />
 
-          <div className="w-20 h-20 mx-auto glass-panel bg-indigo-950/60 rounded-full flex items-center justify-center border border-indigo-500/40 shadow-xl shadow-indigo-600/30">
+          <div className="w-20 h-20 mx-auto bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-indigo-950/60 rounded-full flex items-center justify-center border border-indigo-500/40 shadow-xl shadow-indigo-600/30">
             <Trophy className="w-10 h-10 text-indigo-400" />
           </div>
 
@@ -299,21 +299,21 @@ export function ActiveRecallArena({ cards, onExit }: ActiveRecallArenaProps) {
 
           {/* Core Metrics */}
           <div className="grid grid-cols-3 gap-4 max-w-xl mx-auto font-mono text-xs">
-            <div className="glass-panel bg-zinc-950/60 border border-emerald-500/30 p-4 rounded-2xl text-center shadow-md">
+            <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-950/60 border border-emerald-500/30 p-4 rounded-2xl text-center shadow-md">
               <div className="text-2xl font-display font-bold text-emerald-400">{successCount}</div>
               <div className="text-[10px] uppercase tracking-wider text-zinc-400 font-bold mt-1">Recalled</div>
             </div>
-            <div className="glass-panel bg-zinc-950/60 border border-red-500/30 p-4 rounded-2xl text-center shadow-md">
+            <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-950/60 border border-red-500/30 p-4 rounded-2xl text-center shadow-md">
               <div className="text-2xl font-display font-bold text-red-400">{cards.length - successCount}</div>
               <div className="text-[10px] uppercase tracking-wider text-zinc-400 font-bold mt-1">Needs Work</div>
             </div>
-            <div className="glass-panel bg-zinc-950/60 border border-indigo-500/30 p-4 rounded-2xl text-center shadow-md">
+            <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-950/60 border border-indigo-500/30 p-4 rounded-2xl text-center shadow-md">
               <div className="text-2xl font-display font-bold text-indigo-300">{accuracy}%</div>
               <div className="text-[10px] uppercase tracking-wider text-zinc-400 font-bold mt-1">Accuracy</div>
             </div>
           </div>
 
-          <div className="py-3.5 px-6 rounded-2xl glass-panel bg-indigo-950/50 border border-indigo-500/30 max-w-md mx-auto flex items-center justify-center gap-3">
+          <div className="py-3.5 px-6 rounded-2xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-indigo-950/50 border border-indigo-500/30 max-w-md mx-auto flex items-center justify-center gap-3">
             <Zap className="w-5 h-5 text-amber-400 animate-pulse" />
             <span className="font-mono font-bold text-sm tracking-wider text-indigo-200">
               +{totalXp} XP EARNED FOR MEMORY EXPANSION
@@ -342,7 +342,7 @@ export function ActiveRecallArena({ cards, onExit }: ActiveRecallArenaProps) {
               type="button"
               whileTap={{ scale: 0.95 }}
               onClick={handleRestart}
-              className="w-full sm:w-auto px-6 py-3.5 rounded-2xl glass-panel bg-zinc-900/80 hover:bg-zinc-800 border border-white/15 text-zinc-200 hover:text-white font-mono text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+              className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900/80 hover:bg-zinc-800 border border-white/15 text-zinc-200 hover:text-white font-mono text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
             >
               <RotateCcw className="w-4 h-4" />
               <span>Retry Arena</span>
@@ -407,7 +407,7 @@ export function ActiveRecallArena({ cards, onExit }: ActiveRecallArenaProps) {
             type="button"
             whileTap={{ scale: 0.92 }}
             onClick={onExit}
-            className="p-2.5 rounded-2xl glass-panel bg-zinc-900/60 hover:bg-zinc-800 border border-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer shrink-0 shadow-sm"
+            className="p-2.5 rounded-2xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900/60 hover:bg-zinc-800 border border-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer shrink-0 shadow-sm"
             title="Exit Arena"
             aria-label="Exit Arena"
           >
@@ -430,7 +430,7 @@ export function ActiveRecallArena({ cards, onExit }: ActiveRecallArenaProps) {
 
         {/* Live Timer Meter */}
         <div className="flex items-center gap-3 font-mono text-xs">
-          <div className={`p-2.5 px-4 rounded-2xl glass-panel border flex items-center gap-2.5 shadow-md ${
+          <div className={`p-2.5 px-4 rounded-2xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 border flex items-center gap-2.5 shadow-md ${
             isCritical 
               ? 'bg-red-950/60 border-red-500/50 text-red-400 animate-pulse' 
               : 'bg-zinc-950/60 border-white/10 text-zinc-300'
@@ -460,7 +460,7 @@ export function ActiveRecallArena({ cards, onExit }: ActiveRecallArenaProps) {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -15 }}
           transition={springs.fluid}
-          className={`p-6 md:p-10 rounded-3xl glass-panel border text-left flex flex-col justify-between space-y-6 shadow-2xl relative overflow-hidden transition-all ${
+          className={`p-6 md:p-10 rounded-3xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 border text-left flex flex-col justify-between space-y-6 shadow-2xl relative overflow-hidden transition-all ${
             isCritical
               ? 'bg-red-950/20 border-red-500/40 shadow-red-950/20'
               : 'bg-zinc-900/70 backdrop-blur-2xl border-white/15'
@@ -498,7 +498,7 @@ export function ActiveRecallArena({ cards, onExit }: ActiveRecallArenaProps) {
               </h2>
             </div>
 
-            <div className="p-4 rounded-2xl glass-panel bg-zinc-950/70 border border-white/5 space-y-1 shadow-inner">
+            <div className="p-4 rounded-2xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-950/70 border border-white/5 space-y-1 shadow-inner">
               <span className="text-[10px] font-mono uppercase text-zinc-400 font-bold tracking-wider block">
                 Concept Prompt:
               </span>
@@ -520,7 +520,7 @@ export function ActiveRecallArena({ cards, onExit }: ActiveRecallArenaProps) {
                   <span className="text-[10px] font-mono uppercase text-emerald-400 font-bold tracking-wider block">
                     Formula Expression & Mechanism:
                   </span>
-                  <div className="p-5 rounded-2xl glass-panel bg-zinc-950/90 border border-emerald-500/30 text-emerald-200 font-mono text-sm leading-relaxed overflow-x-auto shadow-inner">
+                  <div className="p-5 rounded-2xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-950/90 border border-emerald-500/30 text-emerald-200 font-mono text-sm leading-relaxed overflow-x-auto shadow-inner">
                     {renderMathText(currentCard.formula || 'No formula string mapped')}
                   </div>
                 </motion.div>
@@ -540,7 +540,7 @@ export function ActiveRecallArena({ cards, onExit }: ActiveRecallArenaProps) {
                   whileTap={{ scale: 0.94 }}
                   onClick={() => setIsRevealed(true)}
                   disabled={isTransitioning}
-                  className="px-3.5 py-1.5 rounded-xl glass-panel bg-indigo-950/60 hover:bg-indigo-900/70 border border-indigo-500/40 text-indigo-300 hover:text-white text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                  className="px-3.5 py-1.5 rounded-xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-indigo-950/60 hover:bg-indigo-900/70 border border-indigo-500/40 text-indigo-300 hover:text-white text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
                 >
                   <Zap className="w-3.5 h-3.5 text-indigo-400" />
                   <span>Reveal Formula Answer [Space]</span>
@@ -554,7 +554,7 @@ export function ActiveRecallArena({ cards, onExit }: ActiveRecallArenaProps) {
                 whileTap={{ scale: 0.94 }}
                 onClick={() => handleDecision(0, 'Blackout')}
                 disabled={isTransitioning}
-                className={`p-3.5 rounded-2xl glass-panel bg-red-950/40 hover:bg-red-900/60 text-red-300 border border-red-500/40 flex flex-col items-center justify-center gap-1 transition-all shadow-sm ${
+                className={`p-3.5 rounded-2xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-red-950/40 hover:bg-red-900/60 text-red-300 border border-red-500/40 flex flex-col items-center justify-center gap-1 transition-all shadow-sm ${
                   isTransitioning ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
                 }`}
               >
@@ -570,7 +570,7 @@ export function ActiveRecallArena({ cards, onExit }: ActiveRecallArenaProps) {
                 whileTap={{ scale: 0.94 }}
                 onClick={() => handleDecision(2, 'Hard')}
                 disabled={isTransitioning}
-                className={`p-3.5 rounded-2xl glass-panel bg-amber-950/40 hover:bg-amber-900/60 text-amber-300 border border-amber-500/40 flex flex-col items-center justify-center gap-1 transition-all shadow-sm ${
+                className={`p-3.5 rounded-2xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-amber-950/40 hover:bg-amber-900/60 text-amber-300 border border-amber-500/40 flex flex-col items-center justify-center gap-1 transition-all shadow-sm ${
                   isTransitioning ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
                 }`}
               >
@@ -586,7 +586,7 @@ export function ActiveRecallArena({ cards, onExit }: ActiveRecallArenaProps) {
                 whileTap={{ scale: 0.94 }}
                 onClick={() => handleDecision(4, 'Good')}
                 disabled={isTransitioning}
-                className={`p-3.5 rounded-2xl glass-panel bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-300 border border-emerald-500/40 flex flex-col items-center justify-center gap-1 transition-all shadow-sm ${
+                className={`p-3.5 rounded-2xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-300 border border-emerald-500/40 flex flex-col items-center justify-center gap-1 transition-all shadow-sm ${
                   isTransitioning ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
                 }`}
               >
@@ -602,7 +602,7 @@ export function ActiveRecallArena({ cards, onExit }: ActiveRecallArenaProps) {
                 whileTap={{ scale: 0.94 }}
                 onClick={() => handleDecision(5, 'Perfect')}
                 disabled={isTransitioning}
-                className={`p-3.5 rounded-2xl glass-panel bg-indigo-950/50 hover:bg-indigo-900/70 text-indigo-200 border border-indigo-500/40 flex flex-col items-center justify-center gap-1 transition-all shadow-sm ${
+                className={`p-3.5 rounded-2xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-indigo-950/50 hover:bg-indigo-900/70 text-indigo-200 border border-indigo-500/40 flex flex-col items-center justify-center gap-1 transition-all shadow-sm ${
                   isTransitioning ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
                 }`}
               >

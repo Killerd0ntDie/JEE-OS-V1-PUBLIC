@@ -36,7 +36,7 @@ export function EditWeeklyGoalsModal({ initialGoals, onClose, onSave, isOpen = t
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} zIndex={200} className="w-full max-w-2xl glass-panel">
+    <Modal isOpen={isOpen} onClose={onClose} zIndex={200} className="w-full max-w-2xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10">
       <div className="p-6 md:p-8 flex flex-col gap-6 text-left">
         <div className="flex justify-between items-center border-b border-zinc-900 pb-4">
           <div>

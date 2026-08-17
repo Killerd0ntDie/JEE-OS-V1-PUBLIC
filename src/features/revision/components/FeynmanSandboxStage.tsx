@@ -116,7 +116,7 @@ export const FeynmanSandboxStage: React.FC<FeynmanSandboxStageProps> = ({
             type="button"
             whileTap={{ scale: 0.92 }}
             onClick={onBackToHub}
-            className="p-2.5 rounded-2xl glass-panel bg-zinc-900/60 hover:bg-zinc-800 border border-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer shrink-0 shadow-sm"
+            className="p-2.5 rounded-2xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900/60 hover:bg-zinc-800 border border-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer shrink-0 shadow-sm"
             title="Back to Command Center"
             aria-label="Back to Command Center"
           >
@@ -124,8 +124,8 @@ export const FeynmanSandboxStage: React.FC<FeynmanSandboxStageProps> = ({
           </motion.button>
         </div>
 
-        <div className="glass-panel bg-zinc-900/70 backdrop-blur-2xl border border-white/15 p-12 rounded-3xl text-center space-y-6 shadow-2xl">
-          <div className="w-16 h-16 mx-auto glass-panel bg-indigo-950/60 rounded-full flex items-center justify-center border border-indigo-500/40 text-indigo-400 shadow-lg">
+        <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900/70 backdrop-blur-2xl border border-white/15 p-12 rounded-3xl text-center space-y-6 shadow-2xl">
+          <div className="w-16 h-16 mx-auto bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-indigo-950/60 rounded-full flex items-center justify-center border border-indigo-500/40 text-indigo-400 shadow-lg">
             <Brain className="w-8 h-8" />
           </div>
           <div className="space-y-2">
@@ -157,7 +157,7 @@ export const FeynmanSandboxStage: React.FC<FeynmanSandboxStageProps> = ({
             type="button"
             whileTap={{ scale: 0.92 }}
             onClick={onBackToHub}
-            className="p-2.5 rounded-2xl glass-panel bg-zinc-900/60 hover:bg-zinc-800 border border-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer shrink-0 shadow-sm"
+            className="p-2.5 rounded-2xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900/60 hover:bg-zinc-800 border border-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer shrink-0 shadow-sm"
             title="Back to Command Center"
             aria-label="Back to Command Center"
           >
@@ -202,7 +202,7 @@ export const FeynmanSandboxStage: React.FC<FeynmanSandboxStageProps> = ({
         <div className="lg:col-span-5 space-y-4">
           
           {selectedCard ? (
-            <div className="glass-panel bg-zinc-900/70 backdrop-blur-2xl border border-white/15 rounded-3xl p-6 space-y-5 shadow-xl">
+            <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900/70 backdrop-blur-2xl border border-white/15 rounded-3xl p-6 space-y-5 shadow-xl">
               
               <div className="flex items-center justify-between border-b border-white/10 pb-3">
                 <span className={`px-2.5 py-0.5 rounded-lg border font-mono text-[10px] font-bold uppercase tracking-wider ${
@@ -227,7 +227,7 @@ export const FeynmanSandboxStage: React.FC<FeynmanSandboxStageProps> = ({
                 </h3>
               </div>
 
-              <div className="p-4 rounded-2xl glass-panel bg-zinc-950/80 border border-white/5 space-y-1 shadow-inner">
+              <div className="p-4 rounded-2xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-950/80 border border-white/5 space-y-1 shadow-inner">
                 <span className="text-[10px] font-mono uppercase text-zinc-400 font-bold tracking-wider block">
                   Formal Mathematical Statement:
                 </span>
@@ -236,7 +236,7 @@ export const FeynmanSandboxStage: React.FC<FeynmanSandboxStageProps> = ({
                 </div>
               </div>
 
-              <div className="p-4 rounded-2xl glass-panel bg-zinc-950/60 border border-white/5 space-y-1.5 shadow-inner">
+              <div className="p-4 rounded-2xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-950/60 border border-white/5 space-y-1.5 shadow-inner">
                 <span className="text-[10px] font-mono uppercase text-zinc-400 font-bold tracking-wider block">
                   Core Principle to Articulate:
                 </span>
@@ -247,13 +247,13 @@ export const FeynmanSandboxStage: React.FC<FeynmanSandboxStageProps> = ({
 
             </div>
           ) : (
-            <div className="p-8 text-center glass-panel bg-zinc-900/60 border border-white/10 rounded-3xl text-zinc-400 text-xs font-mono">
+            <div className="p-8 text-center bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900/60 border border-white/10 rounded-3xl text-zinc-400 text-xs font-mono">
               No concept card selected.
             </div>
           )}
 
           {/* Feynman Guidelines Box */}
-          <div className="glass-panel bg-zinc-950/60 border border-white/10 rounded-3xl p-5 space-y-3 shadow-md font-mono text-xs">
+          <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-950/60 border border-white/10 rounded-3xl p-5 space-y-3 shadow-md font-mono text-xs">
             <div className="flex items-center gap-2 text-indigo-400 font-bold text-xs uppercase tracking-wider">
               <Lightbulb className="w-4 h-4 text-amber-400" />
               <span>Feynman Protocol Guidelines</span>
@@ -279,7 +279,7 @@ export const FeynmanSandboxStage: React.FC<FeynmanSandboxStageProps> = ({
         {/* RIGHT COLUMN: Teaching Canvas & Analysis (7 Cols) */}
         <div className="lg:col-span-7 space-y-4">
           
-          <div className="glass-panel bg-zinc-900/70 backdrop-blur-2xl border border-white/15 rounded-3xl p-6 space-y-4 shadow-xl flex flex-col justify-between">
+          <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900/70 backdrop-blur-2xl border border-white/15 rounded-3xl p-6 space-y-4 shadow-xl flex flex-col justify-between">
             
             <div className="space-y-3">
               <div className="flex items-center justify-between">
@@ -315,7 +315,7 @@ export const FeynmanSandboxStage: React.FC<FeynmanSandboxStageProps> = ({
                     key={idx}
                     type="button"
                     onClick={() => handleInsertStarter(chip)}
-                    className="px-2.5 py-1 rounded-xl glass-panel bg-zinc-950/60 hover:bg-zinc-800 border border-white/10 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer"
+                    className="px-2.5 py-1 rounded-xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-950/60 hover:bg-zinc-800 border border-white/10 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer"
                   >
                     + {chip}
                   </button>
@@ -351,7 +351,7 @@ export const FeynmanSandboxStage: React.FC<FeynmanSandboxStageProps> = ({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 15 }}
                 transition={springs.fluid}
-                className="glass-panel bg-zinc-900/80 backdrop-blur-2xl border border-indigo-500/40 rounded-3xl p-6 space-y-4 shadow-2xl relative overflow-hidden"
+                className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900/80 backdrop-blur-2xl border border-indigo-500/40 rounded-3xl p-6 space-y-4 shadow-2xl relative overflow-hidden"
               >
                 <div className="absolute top-0 right-0 w-80 h-32 bg-indigo-600/15 rounded-full filter blur-3xl pointer-events-none" />
 
@@ -376,7 +376,7 @@ export const FeynmanSandboxStage: React.FC<FeynmanSandboxStageProps> = ({
                     {feedback.advice}
                   </p>
 
-                  <div className="p-3.5 rounded-2xl glass-panel bg-emerald-950/40 border border-emerald-500/30 space-y-1 text-xs font-mono">
+                  <div className="p-3.5 rounded-2xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-emerald-950/40 border border-emerald-500/30 space-y-1 text-xs font-mono">
                     <span className="text-emerald-300 font-bold uppercase text-[10px] block">
                       Memory Interval Status:
                     </span>
@@ -394,7 +394,7 @@ export const FeynmanSandboxStage: React.FC<FeynmanSandboxStageProps> = ({
                       setFeedback(null);
                       setExplanationText('');
                     }}
-                    className="px-4 py-2 rounded-xl glass-panel bg-zinc-900 hover:bg-zinc-800 border border-white/15 text-zinc-300 hover:text-white font-mono text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5"
+                    className="px-4 py-2 rounded-xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900 hover:bg-zinc-800 border border-white/15 text-zinc-300 hover:text-white font-mono text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5"
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
                     <span>Explain Next Concept</span>

@@ -396,7 +396,7 @@ export function SettingsPage() {
       <form onSubmit={handleSave} className="space-y-8">
         
         {/* SECTION 1: ACADEMIC GOALS & TARGET HORIZON */}
-        <div className="glass-panel bg-zinc-900/70 backdrop-blur-2xl border border-white/15 rounded-3xl p-6 md:p-8 space-y-6 shadow-xl text-left relative z-30 overflow-visible">
+        <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900/70 backdrop-blur-2xl border border-white/15 rounded-3xl p-6 md:p-8 space-y-6 shadow-xl text-left relative z-30 overflow-visible">
           <div className="flex items-center gap-3 border-b border-white/10 pb-4">
             <div className="w-9 h-9 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-sm">
               <Target className="w-4.5 h-4.5" />
@@ -442,7 +442,7 @@ export function SettingsPage() {
         </div>
 
         {/* SECTION 2: DAILY STUDY BUDGET & SPLIT STRATEGY */}
-        <div className="glass-panel bg-zinc-900/70 backdrop-blur-2xl border border-white/15 rounded-3xl p-6 md:p-8 space-y-6 shadow-xl text-left relative z-20 overflow-visible">
+        <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900/70 backdrop-blur-2xl border border-white/15 rounded-3xl p-6 md:p-8 space-y-6 shadow-xl text-left relative z-20 overflow-visible">
           <div className="flex items-center gap-3 border-b border-white/10 pb-4">
             <div className="w-9 h-9 rounded-2xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 shadow-sm">
               <Clock className="w-4.5 h-4.5" />
@@ -460,7 +460,7 @@ export function SettingsPage() {
           <div className="space-y-6">
             
             {/* Daily Quota Slider with Fluid Progress */}
-            <div className="glass-panel bg-zinc-850/60 border border-white/10 rounded-2xl p-5 space-y-3 shadow-inner">
+            <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-850/60 border border-white/10 rounded-2xl p-5 space-y-3 shadow-inner">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-mono font-bold text-zinc-200">
                   Daily Available Study Capacity
@@ -600,7 +600,7 @@ export function SettingsPage() {
         </div>
 
         {/* SECTION: VISUAL THEME & INTERFACE AESTHETICS */}
-        <div className="glass-panel bg-zinc-900/70 backdrop-blur-2xl border border-indigo-500/20 rounded-3xl p-6 md:p-8 space-y-6 shadow-xl relative overflow-hidden text-left">
+        <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900/70 backdrop-blur-2xl border border-indigo-500/20 rounded-3xl p-6 md:p-8 space-y-6 shadow-xl relative overflow-hidden text-left">
           <div className="flex items-center gap-3 border-b border-white/10 pb-4">
             <div className="w-9 h-9 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-sm">
               <SlidersHorizontal className="w-4.5 h-4.5" />
@@ -692,7 +692,7 @@ export function SettingsPage() {
         </div>
 
         {/* SECTION 4: GAMIFICATION & GOD MODE */}
-        <div className="glass-panel bg-zinc-900/70 backdrop-blur-2xl border border-amber-500/20 rounded-3xl p-6 md:p-8 space-y-6 shadow-xl relative overflow-hidden text-left">
+        <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900/70 backdrop-blur-2xl border border-amber-500/20 rounded-3xl p-6 md:p-8 space-y-6 shadow-xl relative overflow-hidden text-left">
           <div className="flex items-center gap-3 border-b border-white/10 pb-4">
             <div className="w-9 h-9 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-sm">
               <Sparkles className="w-4.5 h-4.5" />
@@ -747,7 +747,7 @@ export function SettingsPage() {
         </div>
 
         {/* SECTION 4: AUDIO & DESKTOP ALERTS */}
-        <div className="glass-panel bg-zinc-900/70 backdrop-blur-2xl border border-white/15 rounded-3xl p-6 md:p-8 space-y-6 shadow-xl text-left">
+        <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900/70 backdrop-blur-2xl border border-white/15 rounded-3xl p-6 md:p-8 space-y-6 shadow-xl text-left">
           <div className="flex items-center gap-3 border-b border-white/10 pb-4">
             <div className="w-9 h-9 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-sm">
               <Volume2 className="w-4.5 h-4.5" />
@@ -859,7 +859,7 @@ export function SettingsPage() {
       </form>
 
       {/* SECTION 5: CLOUD SYNC & AUTHENTICATION (FEATURING USER PROFILE AVATAR) */}
-      <div className="glass-panel bg-zinc-900/70 backdrop-blur-2xl border border-white/15 rounded-3xl p-6 md:p-8 space-y-6 shadow-xl text-left">
+      <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900/70 backdrop-blur-2xl border border-white/15 rounded-3xl p-6 md:p-8 space-y-6 shadow-xl text-left">
         <div className="flex items-center justify-between border-b border-white/10 pb-4">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shadow-sm">
@@ -1000,8 +1000,8 @@ export function SettingsPage() {
         isOpen={showUndoConfirm}
         onClose={() => setShowUndoConfirm(false)}
         zIndex={9999}
-        backdropClassName="bg-black/10 backdrop-blur-md"
-        className="glass-panel bg-zinc-900/90 border border-orange-500/30 p-6 rounded-3xl max-w-md w-full space-y-4 text-left shadow-2xl"
+        backdropClassName="bg-black/40 backdrop-blur-md"
+        className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900/90 border border-orange-500/30 p-6 rounded-3xl max-w-md w-full space-y-4 text-left shadow-2xl"
       >
         <div className="flex items-center gap-3 text-orange-400">
           <RotateCcw className="w-6 h-6 shrink-0" />
@@ -1032,8 +1032,8 @@ export function SettingsPage() {
         isOpen={showXpResetConfirm}
         onClose={() => setShowXpResetConfirm(false)}
         zIndex={9999}
-        backdropClassName="bg-black/10 backdrop-blur-md"
-        className="glass-panel bg-zinc-900/90 border border-amber-500/30 p-6 rounded-3xl max-w-md w-full space-y-4 text-left shadow-2xl"
+        backdropClassName="bg-black/40 backdrop-blur-md"
+        className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900/90 border border-amber-500/30 p-6 rounded-3xl max-w-md w-full space-y-4 text-left shadow-2xl"
       >
         <div className="flex items-center gap-3 text-amber-400">
           <AlertTriangle className="w-6 h-6 shrink-0" />
@@ -1064,8 +1064,8 @@ export function SettingsPage() {
         isOpen={showResetConfirm}
         onClose={() => setShowResetConfirm(false)}
         zIndex={9999}
-        backdropClassName="bg-black/10 backdrop-blur-md"
-        className="glass-panel bg-zinc-900/90 border border-rose-500/30 p-6 rounded-3xl max-w-md w-full space-y-4 text-left shadow-2xl"
+        backdropClassName="bg-black/40 backdrop-blur-md"
+        className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900/90 border border-rose-500/30 p-6 rounded-3xl max-w-md w-full space-y-4 text-left shadow-2xl"
       >
         <div className="flex items-center gap-3 text-rose-400">
           <AlertTriangle className="w-6 h-6 shrink-0" />

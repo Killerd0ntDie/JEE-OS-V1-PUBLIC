@@ -91,7 +91,7 @@ export function AddCustomChapterModal({ isOpen, onClose, defaultSubject, default
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} zIndex={100} backdropClassName="bg-black/10 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto" className="w-full max-w-md border border-zinc-800 rounded-2xl p-4 sm:p-5 shadow-2xl font-sans text-left my-4 glass-panel">
+    <Modal isOpen={isOpen} onClose={onClose} zIndex={100} backdropClassName="bg-black/40 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto" className="w-full max-w-md border border-zinc-800 rounded-2xl p-4 sm:p-5 shadow-2xl font-sans text-left my-4 bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
               <Plus className="w-4 h-4 text-indigo-400" /> Add Custom Chapter
@@ -166,7 +166,7 @@ export function AddCustomChapterModal({ isOpen, onClose, defaultSubject, default
               <label className="text-[10px] text-zinc-400 block mb-1 uppercase font-bold tracking-wide">Serial Number *</label>
               <input
                 type="number"
-                value={serialNumber}
+                value={serialNumber === 0 ? '' : serialNumber} placeholder="0"
                 onChange={(e) => setSerialNumber(e.target.value)}
                 placeholder="e.g. 02"
                 className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500"

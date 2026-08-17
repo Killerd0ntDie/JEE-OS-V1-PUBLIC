@@ -212,7 +212,7 @@ export function FocusVaultPage() {
                   <div className="flex items-baseline text-[6rem] md:text-[9rem] font-black tracking-tighter tabular-nums leading-none text-white drop-shadow-[0_0_30px_rgba(255,255,255,0.1)]">
                     <input 
                       type="number" 
-                      value={inputMinutes}
+                      value={inputMinutes === 0 ? '' : inputMinutes} placeholder="0"
                       onChange={(e) => {
                         if (e.target.value === '') {
                           setInputMinutes('');

@@ -116,9 +116,9 @@ export function AiRevisionPlanModal({ isOpen, onClose }: AiRevisionPlanModalProp
     <Modal 
       isOpen={isOpen} 
       onClose={onClose} 
-      zIndex={100} 
-      backdropClassName="p-4 bg-black/10 backdrop-blur-md animate-fade-in" 
-      className="w-full max-w-3xl glass-panel backdrop-blur-2xl border border-white/20 rounded-3xl p-6 md:p-8 shadow-2xl relative overflow-hidden flex flex-col max-h-[85vh]"
+      zIndex={999} 
+      backdropClassName="p-4 bg-black/40 backdrop-blur-md animate-fade-in" 
+      className="w-full max-w-3xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 backdrop-blur-2xl border border-white/20 rounded-3xl p-6 md:p-8 shadow-2xl relative overflow-hidden flex flex-col max-h-[85vh]"
     >
       {/* Header */}
       <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-6">
@@ -142,7 +142,7 @@ export function AiRevisionPlanModal({ isOpen, onClose }: AiRevisionPlanModalProp
       {/* Setup / Config Stage */}
       {!generatedPlan && !isGenerating && (
         <div className="space-y-6 flex-1 overflow-y-auto pr-1">
-          <div className="glass-panel bg-zinc-800/60 border border-white/10 rounded-2xl p-5 space-y-2">
+          <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-800/60 border border-white/10 rounded-2xl p-5 space-y-2">
             <span className="text-xs font-mono font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
               <Target className="w-4 h-4" />
               Target Objective
@@ -154,15 +154,15 @@ export function AiRevisionPlanModal({ isOpen, onClose }: AiRevisionPlanModalProp
 
           {/* Telemetry Inputs Summary */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 font-mono text-xs">
-            <div className="p-4 rounded-2xl glass-panel bg-zinc-800/60 border border-white/10">
+            <div className="p-4 rounded-2xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-800/60 border border-white/10">
               <span className="text-zinc-400 block mb-1">Daily Capacity</span>
               <span className="text-lg font-bold text-emerald-400">{dailyHours} hrs/day</span>
             </div>
-            <div className="p-4 rounded-2xl glass-panel bg-zinc-800/60 border border-white/10">
+            <div className="p-4 rounded-2xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-800/60 border border-white/10">
               <span className="text-zinc-400 block mb-1">Active Bottlenecks</span>
               <span className="text-lg font-bold text-amber-400">{bottlenecks.length} Chapters</span>
             </div>
-            <div className="p-4 rounded-2xl glass-panel bg-zinc-800/60 border border-white/10">
+            <div className="p-4 rounded-2xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-800/60 border border-white/10">
               <span className="text-zinc-400 block mb-1">Overdue Retention</span>
               <span className="text-lg font-bold text-rose-400">{lowRetention.length} Chapters</span>
             </div>
@@ -176,8 +176,8 @@ export function AiRevisionPlanModal({ isOpen, onClose }: AiRevisionPlanModalProp
                 onClick={() => setSelectedDays(3)}
                 className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
                   selectedDays === 3 
-                    ? 'glass-panel bg-indigo-600/20 border-indigo-500/60 text-white shadow-lg' 
-                    : 'glass-panel bg-zinc-800/40 border-white/10 text-zinc-400 hover:border-white/20'
+                    ? 'bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-indigo-600/20 border-indigo-500/60 text-white shadow-lg' 
+                    : 'bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-800/40 border-white/10 text-zinc-400 hover:border-white/20'
                 }`}
               >
                 <div className="flex items-center justify-between mb-1">
@@ -191,8 +191,8 @@ export function AiRevisionPlanModal({ isOpen, onClose }: AiRevisionPlanModalProp
                 onClick={() => setSelectedDays(7)}
                 className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
                   selectedDays === 7 
-                    ? 'glass-panel bg-indigo-600/20 border-indigo-500/60 text-white shadow-lg' 
-                    : 'glass-panel bg-zinc-800/40 border-white/10 text-zinc-400 hover:border-white/20'
+                    ? 'bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-indigo-600/20 border-indigo-500/60 text-white shadow-lg' 
+                    : 'bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-800/40 border-white/10 text-zinc-400 hover:border-white/20'
                 }`}
               >
                 <div className="flex items-center justify-between mb-1">
@@ -232,14 +232,14 @@ export function AiRevisionPlanModal({ isOpen, onClose }: AiRevisionPlanModalProp
       {/* Generated Plan Stage */}
       {generatedPlan && !isGenerating && (
         <div className="space-y-6 flex-1 overflow-y-auto pr-1">
-          <div className="glass-panel bg-zinc-800/80 border border-white/15 rounded-2xl p-4">
+          <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-800/80 border border-white/15 rounded-2xl p-4">
             <span className="text-xs font-mono font-bold text-indigo-400 uppercase tracking-wider block mb-1">Sprint Overview</span>
             <p className="text-xs text-zinc-200 font-sans leading-relaxed">{generatedPlan.summary}</p>
           </div>
 
           <div className="space-y-4">
             {generatedPlan.days?.map((day: any) => (
-              <div key={day.dayNumber} className="glass-panel bg-zinc-850/80 border border-white/15 rounded-2xl p-5 space-y-3">
+              <div key={day.dayNumber} className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-850/80 border border-white/15 rounded-2xl p-5 space-y-3">
                 <div className="flex items-center justify-between border-b border-white/10 pb-3">
                   <div className="flex items-center gap-2">
                     <span className="px-2.5 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-mono font-bold">
@@ -260,7 +260,7 @@ export function AiRevisionPlanModal({ isOpen, onClose }: AiRevisionPlanModalProp
                   {day.tasks?.map((t: any, idx: number) => {
                     const isImported = importedTaskIds.includes(`${day.dayNumber}-${t.title}`);
                     return (
-                      <div key={idx} className="flex items-center justify-between p-3 rounded-xl glass-panel bg-zinc-900/80 border border-white/10 text-xs">
+                      <div key={idx} className="flex items-center justify-between p-3 rounded-xl bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900/80 border border-white/10 text-xs">
                         <div className="space-y-0.5">
                           <div className="flex items-center gap-2">
                             <span className="font-mono text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-indigo-950/40 text-indigo-300 border border-indigo-900/40">

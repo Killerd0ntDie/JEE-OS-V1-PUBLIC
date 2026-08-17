@@ -73,7 +73,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       {/* Background Blur Overlay */}
       {toasts.length > 0 && (
         <div 
-          className="fixed inset-x-0 top-0 z-[90] pointer-events-none h-64 glass-panel"
+          className="fixed inset-x-0 top-0 z-[90] pointer-events-none h-64 bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10"
           style={{
             WebkitMaskImage: 'linear-gradient(to bottom, black 0%, transparent 100%)',
             maskImage: 'linear-gradient(to bottom, black 0%, transparent 100%)',

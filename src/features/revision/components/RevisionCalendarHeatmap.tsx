@@ -33,7 +33,7 @@ export function RevisionCalendarHeatmap({ sessions }: RevisionCalendarHeatmapPro
   const activeDays30d = daysGrid.filter(d => d.count > 0).length;
 
   return (
-    <div className="glass-panel bg-zinc-900/70 backdrop-blur-2xl border border-white/15 rounded-3xl p-6 space-y-4 text-left select-none shadow-2xl relative overflow-hidden">
+    <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-900/70 backdrop-blur-2xl border border-white/15 rounded-3xl p-6 space-y-4 text-left select-none shadow-2xl relative overflow-hidden">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
         <div className="space-y-1">
@@ -48,11 +48,11 @@ export function RevisionCalendarHeatmap({ sessions }: RevisionCalendarHeatmapPro
         
         {/* Quick Activity Stats */}
         <div className="flex items-center gap-3 font-mono text-xs">
-          <div className="glass-panel bg-zinc-950/60 border border-white/10 px-3 py-1.5 rounded-xl flex items-center gap-1.5">
+          <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-950/60 border border-white/10 px-3 py-1.5 rounded-xl flex items-center gap-1.5">
             <Flame className="w-3.5 h-3.5 text-amber-400" />
             <span className="text-zinc-300"><strong>{activeDays30d}</strong>/30 Active Days</span>
           </div>
-          <div className="glass-panel bg-indigo-950/60 border border-indigo-500/40 px-3 py-1.5 rounded-xl text-indigo-300 flex items-center gap-1.5 shadow-sm">
+          <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-indigo-950/60 border border-indigo-500/40 px-3 py-1.5 rounded-xl text-indigo-300 flex items-center gap-1.5 shadow-sm">
             <Zap className="w-3.5 h-3.5 text-indigo-400" />
             <span><strong>{totalReviews30d}</strong> Sessions</span>
           </div>
@@ -60,7 +60,7 @@ export function RevisionCalendarHeatmap({ sessions }: RevisionCalendarHeatmapPro
       </div>
 
       {/* 30-Day Grid */}
-      <div className="glass-panel bg-zinc-950/70 border border-white/10 rounded-2xl p-4 space-y-3">
+      <div className="bg-black/45 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 bg-zinc-950/70 border border-white/10 rounded-2xl p-4 space-y-3">
         <div className="overflow-x-auto pb-1 custom-scrollbar">
           <div className="grid grid-cols-10 sm:grid-cols-15 md:grid-cols-30 gap-1.5 pt-1 min-w-[480px] sm:min-w-0">
             {daysGrid.map((day, idx) => {
