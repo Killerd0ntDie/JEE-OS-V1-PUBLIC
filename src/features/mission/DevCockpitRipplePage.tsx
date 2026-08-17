@@ -109,7 +109,7 @@ export function DevCockpitRipplePage() {
   const [evaMode, setEvaMode] = useState<EvaMode>('positronSparkle');
   const [stage, setStage] = useState<'standby' | 'magi' | 'active' | 'revealed'>('standby');
   const [subject, setSubject] = useState<SubjectId>('maths');
-  const [speedMultiplier, setSpeedMultiplier] = useState<number>(0.25);
+  const [speedMultiplier, setSpeedMultiplier] = useState<number>(1.0);
   const [seconds, setSeconds] = useState(1485);
   const [checklist, setChecklist] = useState<Record<string, boolean>>({
     'LCL Pressure Nominal: Watch core theory': true,
@@ -176,7 +176,7 @@ export function DevCockpitRipplePage() {
           }, 450 / speedMultiplier);
 
           return () => clearTimeout(revealTimer);
-        }, 550 / speedMultiplier);
+        }, 300 / speedMultiplier);
 
         return () => clearTimeout(activeTimer);
       }, 80 / speedMultiplier);
@@ -202,7 +202,7 @@ export function DevCockpitRipplePage() {
         }, duration);
 
         return () => clearTimeout(revealTimer);
-      }, 610 / speedMultiplier);
+      }, 360 / speedMultiplier);
 
       return () => clearTimeout(activeTimer);
     }

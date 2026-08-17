@@ -1,11 +1,13 @@
 import React from 'react';
-import { Volume2, Bell, Moon } from 'lucide-react';
+import { Volume2, Bell, Moon, Sparkles } from 'lucide-react';
+import { audioEngine } from '@/utils/audioEngine';
 
 interface AudioSettingsSectionProps {
   soundEffects: boolean;
   desktopNotifications: boolean;
   pauseOnTabChange: boolean;
   volume: number;
+  cockpitVolume?: number;
   onUpdateSettings: (key: string, value: any) => void;
 }
 
@@ -14,6 +16,7 @@ export const AudioSettingsSection: React.FC<AudioSettingsSectionProps> = ({
   desktopNotifications,
   pauseOnTabChange,
   volume,
+  cockpitVolume = 0.75,
   onUpdateSettings,
 }) => {
   return (
@@ -79,21 +82,51 @@ export const AudioSettingsSection: React.FC<AudioSettingsSectionProps> = ({
           </label>
         </div>
 
-        <div className="space-y-3 p-4 rounded-xl bg-zinc-900/40 border border-zinc-800/80 flex flex-col justify-center">
-          <div className="flex items-center justify-between text-xs font-mono">
-            <span className="text-zinc-300 font-bold">Master Volume</span>
-            <span className="text-emerald-400 font-bold">{Math.round(volume * 100)}%</span>
+        <div className="space-y-4">
+          <div className="space-y-3 p-4 rounded-xl bg-zinc-900/40 border border-zinc-800/80 flex flex-col justify-center">
+            <div className="flex items-center justify-between text-xs font-mono">
+              <span className="text-zinc-300 font-bold">Master Volume</span>
+              <span className="text-emerald-400 font-bold">{Math.round(volume * 100)}%</span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.05"
+              value={volume}
+              onChange={(e) => {
+                const val = parseFloat(e.target.value);
+                onUpdateSettings('volume', val);
+                audioEngine.setVolume(val);
+              }}
+              aria-label="Master Volume"
+              className="w-full accent-emerald-500 bg-zinc-800 h-2 rounded-lg cursor-pointer"
+            />
           </div>
-          <input
-            type="range"
-            min="0"
-            max="1"
-            step="0.05"
-            value={volume}
-            onChange={(e) => onUpdateSettings('volume', parseFloat(e.target.value))}
-            aria-label="Master Volume"
-            className="w-full accent-emerald-500 bg-zinc-800 h-2 rounded-lg cursor-pointer"
-          />
+
+          <div className="space-y-3 p-4 rounded-xl bg-zinc-900/40 border border-zinc-800/80 flex flex-col justify-center">
+            <div className="flex items-center justify-between text-xs font-mono">
+              <div className="flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                <span className="text-zinc-300 font-bold">Cockpit Start Sound & Theme Volume</span>
+              </div>
+              <span className="text-amber-400 font-bold">{Math.round(cockpitVolume * 100)}%</span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.05"
+              value={cockpitVolume}
+              onChange={(e) => {
+                const val = parseFloat(e.target.value);
+                onUpdateSettings('cockpitVolume', val);
+                audioEngine.setCockpitVolume(val);
+              }}
+              aria-label="Cockpit Start Sound & Theme Volume"
+              className="w-full accent-amber-500 bg-zinc-800 h-2 rounded-lg cursor-pointer"
+            />
+          </div>
         </div>
       </div>
     </div>

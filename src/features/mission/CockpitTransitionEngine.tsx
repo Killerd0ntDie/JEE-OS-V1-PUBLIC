@@ -95,7 +95,6 @@ export function CockpitTransitionEngine({
       magiTimer = setTimeout(() => {
         onStageChange('magi');
 
-        // Added 250ms gap for laser charge / stinger to breathe before theme downbeat
         activeTimer = setTimeout(() => {
           onStageChange('active');
           audioEngine.playCruelAngelsThesisEntrance(activeSubject).catch(() => {});
@@ -104,10 +103,9 @@ export function CockpitTransitionEngine({
             onStageChange('revealed');
             onComplete?.();
           }, 450 / speedMultiplier);
-        }, 550 / speedMultiplier);
+        }, 300 / speedMultiplier);
       }, 80 / speedMultiplier);
     } else {
-      // Added 250ms gap (360 + 250 = 610ms) for laser charge / stinger to breathe before theme downbeat
       activeTimer = setTimeout(() => {
         onStageChange('active');
         audioEngine.playCruelAngelsThesisEntrance(activeSubject).catch(() => {});
@@ -127,7 +125,7 @@ export function CockpitTransitionEngine({
           onStageChange('revealed');
           onComplete?.();
         }, duration);
-      }, 610 / speedMultiplier);
+      }, 360 / speedMultiplier);
     }
 
     return () => {

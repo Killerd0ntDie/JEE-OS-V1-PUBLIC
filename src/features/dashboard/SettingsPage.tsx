@@ -110,6 +110,7 @@ export function SettingsPage() {
     soundEffects: settings.soundEffects ?? false,
     desktopNotifications: settings.desktopNotifications ?? false,
     volume: settings.volume ?? 75,
+    cockpitVolume: settings.cockpitVolume ?? Math.round(soundSystem.getCockpitVolume() * 100),
     pauseOnTabChange: settings.pauseOnTabChange ?? true,
     enableGodMode: settings.enableGodMode ?? true,
     minStreakHours: settings.minStreakHours ?? 0.5,
@@ -120,12 +121,18 @@ export function SettingsPage() {
 
   const handleChange = (key: string, value: any) => {
     setFormData(prev => ({ ...prev, [key]: value }));
+    if (key === 'volume') {
+      soundSystem.setVolume(Number(value) / 100);
+    }
+    if (key === 'cockpitVolume') {
+      soundSystem.setCockpitVolume(Number(value) / 100);
+    }
   };
 
   const {
     targetYear, dreamIit, targetBranch, dailyQuota, subjectSplitStrategy,
     dayStartTime, dayEndTime, twoDaySplitConfig, soundEffects, desktopNotifications,
-    volume, pauseOnTabChange, enableGodMode, minStreakHours, enablePomodoroCasino,
+    volume, cockpitVolume, pauseOnTabChange, enableGodMode, minStreakHours, enablePomodoroCasino,
     prerequisiteEnforcementStrategy, themeMode
   } = formData;
 
@@ -211,6 +218,7 @@ export function SettingsPage() {
       soundEffects: settings.soundEffects ?? false,
       desktopNotifications: settings.desktopNotifications ?? false,
       volume: settings.volume ?? 75,
+      cockpitVolume: settings.cockpitVolume ?? Math.round(soundSystem.getCockpitVolume() * 100),
       pauseOnTabChange: settings.pauseOnTabChange ?? true,
       enableGodMode: settings.enableGodMode ?? true,
       minStreakHours: settings.minStreakHours ?? 0.5,
@@ -245,6 +253,7 @@ export function SettingsPage() {
         soundEffects,
         desktopNotifications,
         volume,
+        cockpitVolume,
         pauseOnTabChange,
         enableGodMode,
         dayStartTime,
@@ -818,6 +827,49 @@ export function SettingsPage() {
                 }} 
                 activeColor="bg-indigo-600"
               />
+            </div>
+
+            {/* Cockpit Themes & Start Sound Volume */}
+            <div className="p-4.5 rounded-2xl bg-zinc-850/60 border border-white/10 space-y-3 md:col-span-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <Sparkles className="w-4 h-4 text-amber-400" />
+                  <div>
+                    <span className="text-xs font-mono font-bold text-white block">Cockpit Start Sound & Theme Songs Volume</span>
+                    <span className="text-[10px] text-zinc-400">Adjust the volume of the laser start stinger and Evangelion theme melodies (Entrance & Exit)</span>
+                  </div>
+                </div>
+                <span className="text-xs font-mono font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-lg">
+                  {cockpitVolume}%
+                </span>
+              </div>
+
+              <div className="pt-2 border-t border-white/10 flex flex-wrap sm:flex-nowrap items-center justify-between gap-3">
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={cockpitVolume}
+                  onChange={(e) => handleChange('cockpitVolume', Number(e.target.value))}
+                  className="flex-1 min-w-[160px] h-2 bg-zinc-950 rounded-lg appearance-none cursor-pointer accent-amber-500"
+                />
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => soundSystem.playAnimeLaserCharge('maths')}
+                    className="text-[10px] font-mono bg-zinc-900 hover:bg-zinc-850 border border-white/10 text-zinc-200 px-2.5 py-1 rounded-xl cursor-pointer hover:border-amber-500/30 transition-colors"
+                  >
+                    Test Start Sound
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => soundSystem.playCruelAngelsThesisEntrance('maths')}
+                    className="text-[10px] font-mono bg-zinc-900 hover:bg-zinc-850 border border-white/10 text-zinc-200 px-2.5 py-1 rounded-xl cursor-pointer hover:border-indigo-500/30 transition-colors"
+                  >
+                    Test Theme Song
+                  </button>
+                </div>
+              </div>
             </div>
 
             {/* Pause on Tab Change */}

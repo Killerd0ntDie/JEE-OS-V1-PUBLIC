@@ -659,6 +659,7 @@ export interface UserProfile {
     soundEffects: boolean;
     desktopNotifications: boolean;
     volume: number;
+    cockpitVolume?: number;
     pauseOnTabChange?: boolean;
     migratedToPristine?: boolean;
     revisionSettings?: RevisionSettings;

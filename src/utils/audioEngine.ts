@@ -10,6 +10,7 @@
  * 3. Tactical Mechanical Switch & Radio Relay Clicks
  * 4. Zero-overlap Audio Management: Clean instantaneous truncation on early exit or rapid toggling,
  *    while allowing the ending exit theme to play seamlessly across route navigation.
+ * 5. Dedicated Cockpit Theme & Start Sound Volume Control (adjustable in Settings).
  */
 
 export type SubjectThemeKey = 'maths' | 'physics' | 'chemistry' | string;
@@ -17,8 +18,10 @@ export type SubjectThemeKey = 'maths' | 'physics' | 'chemistry' | string;
 class AudioEngine {
   private ctx: AudioContext | null = null;
   private masterGain: GainNode | null = null;
+  private cockpitGain: GainNode | null = null;
   private compressor: DynamicsCompressorNode | null = null;
   private noiseBuffer: AudioBuffer | null = null;
+  private cockpitVolumeVal: number = 0.75;
 
   // Categorized source tracking for seamless transitions
   private entranceSources: Set<AudioScheduledSourceNode> = new Set();
@@ -40,9 +43,20 @@ class AudioEngine {
       this.compressor.connect(this.ctx.destination);
 
       this.masterGain = this.ctx.createGain();
-      // Elevated master volume for loud, crystal-clear presence
       this.masterGain.gain.value = 0.95;
       this.masterGain.connect(this.compressor);
+
+      // Dedicated Cockpit Gain node for start sound and theme songs
+      this.cockpitGain = this.ctx.createGain();
+      try {
+        const saved = localStorage.getItem('jeeos_cockpit_volume');
+        if (saved !== null) {
+          const parsed = parseFloat(saved);
+          if (!isNaN(parsed)) this.cockpitVolumeVal = Math.max(0, Math.min(1, parsed));
+        }
+      } catch {}
+      this.cockpitGain.gain.value = this.cockpitVolumeVal;
+      this.cockpitGain.connect(this.masterGain);
 
       this.createNoiseBuffer();
     }
@@ -59,6 +73,21 @@ class AudioEngine {
 
   public getVolume(): number {
     return this.masterGain ? this.masterGain.gain.value : 0.95;
+  }
+
+  public setCockpitVolume(vol: number) {
+    const clamped = Math.max(0, Math.min(1, vol));
+    this.cockpitVolumeVal = clamped;
+    if (this.cockpitGain) {
+      this.cockpitGain.gain.value = clamped;
+    }
+    try {
+      localStorage.setItem('jeeos_cockpit_volume', String(clamped));
+    } catch {}
+  }
+
+  public getCockpitVolume(): number {
+    return this.cockpitVolumeVal;
   }
 
   private createNoiseBuffer() {
@@ -141,6 +170,7 @@ class AudioEngine {
 
     const t = this.ctx.currentTime;
     const s = String(subject || '').toLowerCase();
+    const targetGainNode = this.cockpitGain || this.masterGain;
 
     let pickupNotes: { freq: number; time: number; dur: number }[];
     let rootFreq: number;
@@ -208,7 +238,7 @@ class AudioEngine {
       osc.connect(filter);
       oscWarmth.connect(filter);
       filter.connect(droneGain);
-      droneGain.connect(this.masterGain);
+      droneGain.connect(targetGainNode);
 
       osc.start(t);
       oscWarmth.start(t);
@@ -230,7 +260,7 @@ class AudioEngine {
         chirpGain.gain.exponentialRampToValueAtTime(0.001, t + offset + 0.05);
 
         chirpOsc.connect(chirpGain);
-        chirpGain.connect(this.masterGain!);
+        chirpGain.connect(targetGainNode);
         chirpOsc.start(t + offset);
         chirpOsc.stop(t + offset + 0.055);
       });
@@ -245,7 +275,7 @@ class AudioEngine {
       lockGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.65);
 
       lockOsc.connect(lockGain);
-      lockGain.connect(this.masterGain);
+      lockGain.connect(targetGainNode);
       lockOsc.start(t + 0.22);
       lockOsc.stop(t + 0.68);
     }
@@ -275,7 +305,7 @@ class AudioEngine {
 
     swellOsc.connect(swellFilter);
     swellFilter.connect(swellGain);
-    swellGain.connect(this.masterGain);
+    swellGain.connect(targetGainNode);
 
     swellOsc.start(t);
     swellOsc.stop(t + 0.58);
@@ -291,7 +321,7 @@ class AudioEngine {
     sparkleGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.60);
 
     sparkleOsc.connect(sparkleGain);
-    sparkleGain.connect(this.masterGain);
+    sparkleGain.connect(targetGainNode);
     sparkleOsc.start(t + 0.32);
     sparkleOsc.stop(t + 0.62);
   }
@@ -308,6 +338,9 @@ class AudioEngine {
     category: 'entrance' | 'exit' | 'general' = 'general'
   ) {
     if (!this.ctx || !this.masterGain) return;
+    const targetGain = (category === 'entrance' || category === 'exit') && this.cockpitGain
+      ? this.cockpitGain
+      : this.masterGain;
 
     const oscMain = this.registerSource(this.ctx.createOscillator(), category);
     const oscWarmth = this.registerSource(this.ctx.createOscillator(), category);
@@ -348,7 +381,7 @@ class AudioEngine {
     oscMain.connect(filter);
     oscWarmth.connect(filter);
     filter.connect(noteGain);
-    noteGain.connect(this.masterGain);
+    noteGain.connect(targetGain);
 
     oscMain.start(startTime);
     oscWarmth.start(startTime);
@@ -366,7 +399,7 @@ class AudioEngine {
     chimeGain.gain.exponentialRampToValueAtTime(0.0001, startTime + Math.min(0.25, duration * 0.7));
 
     chimeOsc.connect(chimeGain);
-    chimeGain.connect(this.masterGain);
+    chimeGain.connect(targetGain);
     chimeOsc.start(startTime);
     chimeOsc.stop(startTime + duration * 0.8);
   }
@@ -376,6 +409,10 @@ class AudioEngine {
    */
   private playSubBassNote(freq: number, startTime: number, duration: number, category: 'entrance' | 'exit' | 'general' = 'general') {
     if (!this.ctx || !this.masterGain) return;
+    const targetGain = (category === 'entrance' || category === 'exit') && this.cockpitGain
+      ? this.cockpitGain
+      : this.masterGain;
+
     const osc = this.registerSource(this.ctx.createOscillator(), category);
     const gain = this.ctx.createGain();
 
@@ -387,7 +424,7 @@ class AudioEngine {
     gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
 
     osc.connect(gain);
-    gain.connect(this.masterGain);
+    gain.connect(targetGain);
     osc.start(startTime);
     osc.stop(startTime + duration + 0.05);
   }

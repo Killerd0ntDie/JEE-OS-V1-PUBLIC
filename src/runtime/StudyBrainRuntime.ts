@@ -44,6 +44,7 @@ export interface StudyBrainState {
     soundEffects: boolean;
     desktopNotifications: boolean;
     volume: number;
+    cockpitVolume?: number;
     pauseOnTabChange?: boolean;
     revisionSettings?: RevisionSettings;
     migratedToPristine?: boolean;
@@ -189,6 +190,7 @@ export class StudyBrainRuntime {
         soundEffects: false,
         desktopNotifications: false,
         volume: 75,
+        cockpitVolume: 75,
         pauseOnTabChange: true,
       },
       knowledgeGraph: [],
