@@ -25,15 +25,11 @@ export function ConfirmDeleteModal({
   onConfirm,
   onClose
 }: ConfirmDeleteModalProps) {
-  const modalRef = useRef<HTMLDivElement>(null);
 
-  useLockBodyScroll(isOpen || false);
-  useEscapeKey(onClose, isOpen);
-  useFocusTrap(modalRef, isOpen || false);
 
   return (
 
-        <Modal isOpen={isOpen} onClose={onClose} zIndex={9999} backdropClassName="p-4 bg-black/40 backdrop-blur-sm" className="relative w-full max-w-md border border-zinc-800 rounded-2xl p-6 shadow-2xl space-y-5 overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50">
+        <Modal isOpen={isOpen} onClose={onClose} zIndex={9999} backdropClassName="p-4 bg-black/10 backdrop-blur-sm" className="relative w-full max-w-md border border-zinc-800 rounded-2xl p-6 shadow-2xl space-y-5 overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 glass-panel">
             {/* Top Close Button */}
             <button
               type="button"

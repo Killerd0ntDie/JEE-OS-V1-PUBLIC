@@ -14,6 +14,8 @@ import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 
 import { evaluateMockAttempt, formatCorrectAnswerKey } from '@/utils/mockScoring';
 
+import { TestForensicsSection } from './components/TestForensicsSection';
+
 interface MockTestResultProps {
   test: MockTest;
   attempt: MockTestAttempt;
@@ -24,7 +26,7 @@ interface MockTestResultProps {
 export function MockTestResult({ test, attempt, onClose, onNavigate }: MockTestResultProps) {
   const actions = useStudyBrainStore(state => state.actions);
   const chapters = useStudyBrainStore(state => state.chapters) || [];
-  const [activeTab, setActiveTab] = useState<'questions' | 'autopsy'>('questions');
+  const [activeTab, setActiveTab] = useState<'questions' | 'forensics'>('questions');
   const [tabDirection, setTabDirection] = useState(1);
   const [selectedSubject, setSelectedSubject] = useState<'ALL' | SubjectId>('ALL');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'CORRECT' | 'INCORRECT' | 'UNATTEMPTED'>('ALL');
@@ -32,9 +34,10 @@ export function MockTestResult({ test, attempt, onClose, onNavigate }: MockTestR
 
   const [pinnedQuestions, setPinnedQuestions] = useState<Record<string, boolean>>({});
 
-  const handleTabChange = (newTab: 'questions' | 'autopsy') => {
-    const newIdx = newTab === 'questions' ? 0 : 1;
-    const oldIdx = activeTab === 'questions' ? 0 : 1;
+  const handleTabChange = (newTab: 'questions' | 'forensics') => {
+    const tabOrder: Record<'questions' | 'forensics', number> = { questions: 0, forensics: 1 };
+    const newIdx = tabOrder[newTab];
+    const oldIdx = tabOrder[activeTab];
     if (newIdx !== oldIdx) {
       setTabDirection(newIdx > oldIdx ? 1 : -1);
       setActiveTab(newTab);
@@ -161,12 +164,12 @@ export function MockTestResult({ test, attempt, onClose, onNavigate }: MockTestR
               </button>
 
               <button
-                onClick={() => handleTabChange('autopsy')}
+                onClick={() => handleTabChange('forensics')}
                 className={`relative px-3 py-1.5 rounded-lg font-bold transition-colors cursor-pointer select-none z-10 flex items-center gap-1.5 ${
-                  activeTab === 'autopsy' ? 'text-white' : 'text-zinc-400 hover:text-zinc-200'
+                  activeTab === 'forensics' ? 'text-white' : 'text-zinc-400 hover:text-zinc-200'
                 }`}
               >
-                {activeTab === 'autopsy' && (
+                {activeTab === 'forensics' && (
                   <motion.div
                     layoutId="activeAnalysisTabGlider"
                     className="absolute inset-0 bg-indigo-600 rounded-lg shadow-sm -z-10"
@@ -174,7 +177,7 @@ export function MockTestResult({ test, attempt, onClose, onNavigate }: MockTestR
                   />
                 )}
                 <BarChart3 className="w-3.5 h-3.5" />
-                <span>Score Autopsy</span>
+                <span>Exam Forensics & Score Autopsy</span>
               </button>
             </div>
 
@@ -537,142 +540,158 @@ export function MockTestResult({ test, attempt, onClose, onNavigate }: MockTestR
           )}
         </div>
       ) : (
-        /* 3. TAB B: SCORE AUTOPSY & WHAT-IF RANK SIMULATOR (2-COLUMN LAYOUT) */
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start text-left">
+        /* 2. TAB B: UNIFIED EXAM FORENSICS & SCORE AUTOPSY */
+        <div className="space-y-6 text-left">
           
-          {/* LEFT COLUMN: HERO RANK WHAT-IF CARD */}
-          <div className="lg:col-span-7 bg-[#121318] border border-red-900/40 rounded-3xl p-6 relative overflow-hidden shadow-xl space-y-5">
-            <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
-              <AlertTriangle className="w-48 h-48 text-red-500" />
-            </div>
+          {/* 2A. SCORE VITALS & WHAT-IF RANK SIMULATOR */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+            
+            {/* LEFT COLUMN: HERO RANK WHAT-IF CARD */}
+            <div className="lg:col-span-7 bg-[#121318] border border-red-900/40 rounded-3xl p-6 relative overflow-hidden shadow-xl space-y-5">
+              <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
+                <AlertTriangle className="w-48 h-48 text-red-500" />
+              </div>
 
-            <div className="relative z-10 space-y-4">
-              <div className="flex flex-col sm:flex-row gap-6 items-start justify-between">
-                {/* Actual Score & Rank/Mastery */}
-                <div className="space-y-1.5">
-                  <span className="text-zinc-400 text-xs font-mono font-bold uppercase tracking-wider block">
-                    Actual Performance
-                  </span>
-                  <div className="text-4xl font-display font-bold text-white">
-                    {analysis.totalScore} <span className="text-lg text-zinc-600">/ {test.totalMarks}</span>
+              <div className="relative z-10 space-y-4">
+                <div className="flex flex-col sm:flex-row gap-6 items-start justify-between">
+                  {/* Actual Score & Rank/Mastery */}
+                  <div className="space-y-1.5">
+                    <span className="text-zinc-400 text-xs font-mono font-bold uppercase tracking-wider block">
+                      Actual Performance
+                    </span>
+                    <div className="text-4xl font-display font-bold text-white">
+                      {analysis.totalScore} <span className="text-lg text-zinc-600">/ {test.totalMarks}</span>
+                    </div>
+                    {test.totalMarks >= 150 ? (
+                      <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-zinc-900 border border-zinc-800">
+                        <span className="text-xs text-zinc-400 font-mono">Predicted AIR:</span>
+                        <span className="text-xs font-bold text-indigo-400">{analysis.actualRank.toLocaleString()}</span>
+                      </div>
+                    ) : (
+                      <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-zinc-900 border border-zinc-800">
+                        <span className="text-xs text-zinc-400 font-mono">Mastery Level:</span>
+                        <span className="text-xs font-bold text-indigo-400">{Math.max(0, Math.round((analysis.totalScore / test.totalMarks) * 100))}%</span>
+                      </div>
+                    )}
                   </div>
-                  {test.totalMarks >= 150 ? (
-                    <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-zinc-900 border border-zinc-800">
-                      <span className="text-xs text-zinc-400 font-mono">Predicted AIR:</span>
-                      <span className="text-xs font-bold text-indigo-400">{analysis.actualRank.toLocaleString()}</span>
+
+                  {/* The Delta Transition */}
+                  <div className="flex flex-col items-center justify-center pt-2">
+                    <span className="text-[10px] font-mono text-red-400 font-bold uppercase tracking-widest mb-1.5 bg-red-950/40 px-2.5 py-0.5 rounded-full border border-red-900/50">
+                      {analysis.incorrect} Mistakes Penalty
+                    </span>
+                    <div className="text-xs font-mono text-zinc-400">
+                      <span className="text-red-400 font-bold">+{analysis.whatIfScore - analysis.totalScore}</span> Avoidable Penalty
                     </div>
-                  ) : (
-                    <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-zinc-900 border border-zinc-800">
-                      <span className="text-xs text-zinc-400 font-mono">Mastery Level:</span>
-                      <span className="text-xs font-bold text-indigo-400">{Math.max(0, Math.round((analysis.totalScore / test.totalMarks) * 100))}%</span>
+                  </div>
+
+                  {/* What-If Score & Rank/Mastery */}
+                  <div className="space-y-1.5 sm:text-right">
+                    <span className="text-zinc-400 text-xs font-mono font-bold uppercase tracking-wider flex items-center sm:justify-end gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                      What-If Zero-Penalty
+                    </span>
+                    <div className="text-4xl font-display font-bold text-zinc-600 opacity-60">
+                      {analysis.whatIfScore} <span className="text-lg text-zinc-800">/ {test.totalMarks}</span>
                     </div>
-                  )}
+                    {test.totalMarks >= 150 ? (
+                      <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-emerald-950/20 border border-emerald-900/30">
+                        <span className="text-xs text-emerald-600 font-mono">Potential AIR:</span>
+                        <span className="text-xs font-bold text-emerald-400">{analysis.whatIfRank.toLocaleString()}</span>
+                      </div>
+                    ) : (
+                      <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-emerald-950/20 border border-emerald-900/30">
+                        <span className="text-xs text-emerald-600 font-mono">Potential Mastery:</span>
+                        <span className="text-xs font-bold text-emerald-400">{Math.max(0, Math.round((analysis.whatIfScore / test.totalMarks) * 100))}%</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                {/* The Delta Transition */}
-                <div className="flex flex-col items-center justify-center pt-2">
-                  <span className="text-[10px] font-mono text-red-400 font-bold uppercase tracking-widest mb-1.5 bg-red-950/40 px-2.5 py-0.5 rounded-full border border-red-900/50">
-                    {analysis.incorrect} Mistakes Penalty
+                {/* Delta Banner */}
+                <div className="p-3.5 rounded-xl bg-zinc-950/60 border border-zinc-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                  <span className="text-xs text-zinc-400">
+                    Fixing these <strong className="text-white">{analysis.incorrect}</strong> errors would elevate your {test.totalMarks >= 150 ? 'rank' : 'mastery'} by:
                   </span>
-                  <div className="text-xs font-mono text-zinc-400">
-                    <span className="text-red-400 font-bold">+{analysis.whatIfScore - analysis.totalScore}</span> Avoidable Penalty
-                  </div>
-                </div>
-
-                {/* What-If Score & Rank/Mastery */}
-                <div className="space-y-1.5 sm:text-right">
-                  <span className="text-zinc-400 text-xs font-mono font-bold uppercase tracking-wider flex items-center sm:justify-end gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                    What-If Zero-Penalty
-                  </span>
-                  <div className="text-4xl font-display font-bold text-zinc-600 opacity-60">
-                    {analysis.whatIfScore} <span className="text-lg text-zinc-800">/ {test.totalMarks}</span>
-                  </div>
                   {test.totalMarks >= 150 ? (
-                    <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-emerald-950/20 border border-emerald-900/30">
-                      <span className="text-xs text-emerald-600 font-mono">Potential AIR:</span>
-                      <span className="text-xs font-bold text-emerald-400">{analysis.whatIfRank.toLocaleString()}</span>
-                    </div>
+                    <span className="text-lg font-display font-bold text-emerald-400">
+                      +{(analysis.actualRank - analysis.whatIfRank).toLocaleString()} Ranks
+                    </span>
                   ) : (
-                    <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-emerald-950/20 border border-emerald-900/30">
-                      <span className="text-xs text-emerald-600 font-mono">Potential Mastery:</span>
-                      <span className="text-xs font-bold text-emerald-400">{Math.max(0, Math.round((analysis.whatIfScore / test.totalMarks) * 100))}%</span>
-                    </div>
+                    <span className="text-lg font-display font-bold text-emerald-400">
+                      +{Math.round(((analysis.whatIfScore - analysis.totalScore) / test.totalMarks) * 100)}% Mastery
+                    </span>
                   )}
                 </div>
               </div>
+            </div>
 
-              {/* Delta Banner */}
-              <div className="p-3.5 rounded-xl bg-zinc-950/60 border border-zinc-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                <span className="text-xs text-zinc-400">
-                  Fixing these <strong className="text-white">{analysis.incorrect}</strong> errors would elevate your {test.totalMarks >= 150 ? 'rank' : 'mastery'} by:
+            {/* RIGHT COLUMN: PERFORMANCE VITALS & SUBJECT DISTRIBUTION */}
+            <div className="lg:col-span-5 space-y-3.5">
+              {/* Vitals Grid */}
+              <div className="grid grid-cols-3 gap-2.5">
+                <div className="bg-[#121318] border border-zinc-800/80 rounded-2xl p-3.5">
+                  <span className="text-[10px] font-mono font-bold uppercase text-zinc-400 block mb-0.5">Accuracy</span>
+                  <div className="text-xl font-display font-bold text-emerald-400">
+                    {accuracyRate}%
+                  </div>
+                </div>
+
+                <div className="bg-[#121318] border border-zinc-800/80 rounded-2xl p-3.5">
+                  <span className="text-[10px] font-mono font-bold uppercase text-zinc-400 block mb-0.5">Profile</span>
+                  <div className="text-xs font-mono font-bold text-zinc-300">
+                    <span className="text-emerald-400">{analysis.correct}C</span> • <span className="text-rose-400">{analysis.incorrect}W</span> • <span className="text-zinc-500">{analysis.unattempted}S</span>
+                  </div>
+                </div>
+
+                <div className="bg-[#121318] border border-zinc-800/80 rounded-2xl p-3.5 flex flex-col justify-between">
+                  <span className="text-[10px] font-mono font-bold uppercase text-zinc-400 block mb-0.5">Time & Speed</span>
+                  <div className="space-y-1">
+                    <div className="text-sm font-display font-bold text-zinc-200">
+                      {formatTime(analysis.totalTimeSpent)}
+                    </div>
+                    {analysis.attempted > 0 && (
+                      <div className="text-[10px] font-mono text-zinc-500">
+                        ~{Math.round(analysis.totalTimeSpent / analysis.attempted)}s / Q
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Subject Distribution */}
+              <div className="bg-[#121318] border border-zinc-800/80 rounded-2xl p-4 space-y-2.5">
+                <span className="text-xs font-mono font-bold uppercase tracking-wider text-zinc-400 block">
+                  Subject Score Distribution
                 </span>
-                {test.totalMarks >= 150 ? (
-                  <span className="text-lg font-display font-bold text-emerald-400">
-                    +{(analysis.actualRank - analysis.whatIfRank).toLocaleString()} Ranks
-                  </span>
-                ) : (
-                  <span className="text-lg font-display font-bold text-emerald-400">
-                    +{Math.round(((analysis.whatIfScore - analysis.totalScore) / test.totalMarks) * 100)}% Mastery
-                  </span>
-                )}
+                <div className="space-y-2">
+                  {Object.entries(analysis.subjectStats).map(([subj, stats]) => (
+                    <div key={subj} className="p-2.5 rounded-xl bg-zinc-900/60 border border-zinc-850 flex items-center justify-between text-xs font-mono">
+                      <span className="font-bold text-white capitalize">{subj}</span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-emerald-400 font-bold">{stats.correct}C</span>
+                        <span className="text-rose-400 font-bold">{stats.incorrect}W</span>
+                        <span className="text-indigo-400 font-bold bg-indigo-950/60 px-2 py-0.5 rounded border border-indigo-800/40">
+                          {stats.score} M
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
+
           </div>
 
-          {/* RIGHT COLUMN: PERFORMANCE VITALS & SUBJECT DISTRIBUTION */}
-          <div className="lg:col-span-5 space-y-3.5">
-            {/* Vitals Grid */}
-            <div className="grid grid-cols-3 gap-2.5">
-              <div className="bg-[#121318] border border-zinc-800/80 rounded-2xl p-3.5">
-                <span className="text-[10px] font-mono font-bold uppercase text-zinc-400 block mb-0.5">Accuracy</span>
-                <div className="text-xl font-display font-bold text-emerald-400">
-                  {accuracyRate}%
-                </div>
-              </div>
-
-              <div className="bg-[#121318] border border-zinc-800/80 rounded-2xl p-3.5">
-                <span className="text-[10px] font-mono font-bold uppercase text-zinc-400 block mb-0.5">Profile</span>
-                <div className="text-xs font-mono font-bold text-zinc-300">
-                  <span className="text-emerald-400">{analysis.correct}C</span> • <span className="text-rose-400">{analysis.incorrect}W</span> • <span className="text-zinc-500">{analysis.unattempted}S</span>
-                </div>
-              </div>
-
-              <div className="bg-[#121318] border border-zinc-800/80 rounded-2xl p-3.5 flex flex-col justify-between">
-                <span className="text-[10px] font-mono font-bold uppercase text-zinc-400 block mb-0.5">Time & Speed</span>
-                <div className="space-y-1">
-                  <div className="text-sm font-display font-bold text-zinc-200">
-                    {formatTime(analysis.totalTimeSpent)}
-                  </div>
-                  {analysis.attempted > 0 && (
-                    <div className="text-[10px] font-mono text-zinc-500">
-                      ~{Math.round(analysis.totalTimeSpent / analysis.attempted)}s / Q
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Subject Distribution */}
-            <div className="bg-[#121318] border border-zinc-800/80 rounded-2xl p-4 space-y-2.5">
-              <span className="text-xs font-mono font-bold uppercase tracking-wider text-zinc-400 block">
-                Subject Score Distribution
-              </span>
-              <div className="space-y-2">
-                {Object.entries(analysis.subjectStats).map(([subj, stats]) => (
-                  <div key={subj} className="p-2.5 rounded-xl bg-zinc-900/60 border border-zinc-850 flex items-center justify-between text-xs font-mono">
-                    <span className="font-bold text-white capitalize">{subj}</span>
-                    <div className="flex items-center gap-3">
-                      <span className="text-emerald-400 font-bold">{stats.correct}C</span>
-                      <span className="text-rose-400 font-bold">{stats.incorrect}W</span>
-                      <span className="text-indigo-400 font-bold bg-indigo-950/60 px-2 py-0.5 rounded border border-indigo-800/40">
-                        {stats.score} M
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+          {/* 2B. 3-PART EXAM FORENSICS & TIME-ALLOCATION AUDIT */}
+          <div className="pt-2">
+            <TestForensicsSection
+              analysis={analysis}
+              onSelectQuestion={(idx) => {
+                setActiveTab('questions');
+                handleQuestionChange(idx);
+              }}
+            />
           </div>
 
         </div>

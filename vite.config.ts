@@ -44,6 +44,7 @@ export default defineConfig(() => {
             'vendor-firebase': ['firebase/app', 'firebase/auth', 'firebase/firestore'],
             'vendor-math': ['katex', 'react-katex'],
             'vendor-motion': ['motion', 'motion/react'],
+            'vendor-pdfjs': ['pdfjs-dist'],
           }
         }
       }

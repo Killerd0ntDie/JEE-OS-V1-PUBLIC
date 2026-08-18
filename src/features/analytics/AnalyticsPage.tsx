@@ -12,6 +12,13 @@ import {
   Clock, Zap, Award, Flame, CheckCircle2, ChevronRight, ShieldAlert,
   Sparkles, RefreshCw, Calendar, Info, HelpCircle
 } from 'lucide-react';
+import { SyllabusCompletionProjector } from './components/SyllabusCompletionProjector';
+import { SolvingVelocityTracker } from './components/SolvingVelocityTracker';
+import { StudyActivityTelemetry } from './components/StudyActivityTelemetry';
+import { NegativeMarksAudit } from './components/NegativeMarksAudit';
+import { TimePerMarkMatrix } from './components/TimePerMarkMatrix';
+import { PercentileShiftCalibrator } from './components/PercentileShiftCalibrator';
+import { ForgettingCurveHeatmap } from '@/features/revision/components/ForgettingCurveHeatmap';
 
 export function AnalyticsPage() {
   const actions = useStudyBrainStore(state => state.actions);
@@ -860,6 +867,27 @@ export function AnalyticsPage() {
         )}
 
       </div>
+
+      {/* 6. PERCENTILE TO SHIFT MARKS NORMALIZATION CALIBRATOR */}
+      <PercentileShiftCalibrator />
+
+      {/* 7. TIME-PER-MARK EFFICIENCY MATRIX & SECTION PACING */}
+      <TimePerMarkMatrix studySessions={studySessions} />
+
+      {/* 8. NEGATIVE MARKS LEAKAGE & GUESSING PENALTY AUDIT */}
+      <NegativeMarksAudit />
+
+      {/* 9. SPATIAL REPETITION MEMORY DECAY & FORGETTING CURVE */}
+      <ForgettingCurveHeatmap chapters={chapters} />
+
+      {/* 10. QUANTITATIVE ACTIVITY TYPE & FOCUS QUALITY TELEMETRY */}
+      <StudyActivityTelemetry studySessions={studySessions} />
+
+      {/* 11. QUANTITATIVE SOLVING VELOCITY & PACING TRACKER */}
+      <SolvingVelocityTracker studySessions={studySessions} />
+
+      {/* 12. SYLLABUS COMPLETION DATE PROJECTOR & "WHAT-IF" SCENARIO MODELER */}
+      <SyllabusCompletionProjector chapters={chapters} studySessions={studySessions} />
 
     </div>
   );

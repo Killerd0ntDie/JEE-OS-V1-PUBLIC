@@ -62,7 +62,7 @@ export function MissionCalibrationModal({
   }, [isCalibrating, activeChap]);
 
     return (
-    <Modal isOpen={isCalibrating && !!activeChap} onClose={() => {}} className="relative w-full max-w-md bg-[#090a0f] border border-indigo-500/30 rounded-3xl p-6 sm:p-8 space-y-6 shadow-[0_0_80px_rgba(79,70,229,0.25)] text-left max-h-[90dvh] overflow-y-auto">
+    <Modal isOpen={isCalibrating && !!activeChap} onClose={() => {}} className="relative w-full max-w-md border border-indigo-500/30 rounded-3xl p-6 sm:p-8 space-y-6 shadow-[0_0_80px_rgba(79,70,229,0.25)] text-left max-h-[90dvh] overflow-y-auto glass-panel">
         
         {/* Header */}
         <div className="space-y-2">

@@ -45,8 +45,8 @@ export function MissionDebriefModal({ isOpen, onSubmit, onSkip }: MissionDebrief
     <Modal
       isOpen={isOpen}
       zIndex={10002}
-      backdropClassName="bg-black/35 backdrop-blur-md"
-      className="max-w-lg w-full p-6 sm:p-8 flex flex-col items-center text-center space-y-6 rounded-3xl relative overflow-hidden"
+      backdropClassName="bg-black/10 backdrop-blur-md"
+      className="max-w-lg w-full p-6 sm:p-8 flex flex-col items-center text-center space-y-6 rounded-3xl relative overflow-hidden glass-panel"
       style={{
         background: 'rgba(10, 14, 23, 0.90)',
         backdropFilter: 'blur(28px) saturate(190%) contrast(105%)',

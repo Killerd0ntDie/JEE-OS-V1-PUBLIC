@@ -1052,8 +1052,8 @@ export function SettingsPage() {
         isOpen={showUndoConfirm}
         onClose={() => setShowUndoConfirm(false)}
         zIndex={9999}
-        backdropClassName="bg-black/40 backdrop-blur-md"
-        className="bg-zinc-900/90 border border-orange-500/30 p-6 rounded-3xl max-w-md w-full space-y-4 text-left shadow-2xl"
+        backdropClassName="bg-black/10 backdrop-blur-md"
+        className="border border-orange-500/30 p-6 rounded-3xl max-w-md w-full space-y-4 text-left shadow-2xl glass-panel"
       >
         <div className="flex items-center gap-3 text-orange-400">
           <RotateCcw className="w-6 h-6 shrink-0" />
@@ -1084,8 +1084,8 @@ export function SettingsPage() {
         isOpen={showXpResetConfirm}
         onClose={() => setShowXpResetConfirm(false)}
         zIndex={9999}
-        backdropClassName="bg-black/40 backdrop-blur-md"
-        className="bg-zinc-900/90 border border-amber-500/30 p-6 rounded-3xl max-w-md w-full space-y-4 text-left shadow-2xl"
+        backdropClassName="bg-black/10 backdrop-blur-md"
+        className="border border-amber-500/30 p-6 rounded-3xl max-w-md w-full space-y-4 text-left shadow-2xl glass-panel"
       >
         <div className="flex items-center gap-3 text-amber-400">
           <AlertTriangle className="w-6 h-6 shrink-0" />
@@ -1116,8 +1116,8 @@ export function SettingsPage() {
         isOpen={showResetConfirm}
         onClose={() => setShowResetConfirm(false)}
         zIndex={9999}
-        backdropClassName="bg-black/40 backdrop-blur-md"
-        className="bg-zinc-900/90 border border-rose-500/30 p-6 rounded-3xl max-w-md w-full space-y-4 text-left shadow-2xl"
+        backdropClassName="bg-black/10 backdrop-blur-md"
+        className="border border-rose-500/30 p-6 rounded-3xl max-w-md w-full space-y-4 text-left shadow-2xl glass-panel"
       >
         <div className="flex items-center gap-3 text-rose-400">
           <AlertTriangle className="w-6 h-6 shrink-0" />

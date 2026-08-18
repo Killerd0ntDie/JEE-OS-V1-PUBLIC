@@ -161,7 +161,7 @@ export const SyllabusDiagnosisModal: React.FC<Props> = ({ isOpen, onClose }) => 
 
   return (
     
-    <Modal isOpen={isOpen} onClose={onClose} zIndex={999} backdropClassName="p-4 bg-black/40 backdrop-blur-sm animate-fade-in overflow-y-auto" className="relative w-full max-w-5xl border border-indigo-900/50 rounded-2xl shadow-2xl overflow-hidden my-6 text-left">
+    <Modal isOpen={isOpen} onClose={onClose} zIndex={999} backdropClassName="p-4 bg-black/10 backdrop-blur-sm animate-fade-in overflow-y-auto" className="relative w-full max-w-5xl border border-indigo-900/50 rounded-2xl shadow-2xl overflow-hidden my-6 text-left glass-panel">
         
         {/* Header */}
         <div className="px-6 py-4 bg-indigo-950/30 border-b border-indigo-900/40 flex items-center justify-between">

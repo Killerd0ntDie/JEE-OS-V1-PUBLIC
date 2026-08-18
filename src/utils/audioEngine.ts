@@ -22,6 +22,7 @@ class AudioEngine {
   private compressor: DynamicsCompressorNode | null = null;
   private noiseBuffer: AudioBuffer | null = null;
   private cockpitVolumeVal: number = 0.75;
+  private _sequenceAnchorTime: number = 0;
 
   // Categorized source tracking for seamless transitions
   private entranceSources: Set<AudioScheduledSourceNode> = new Set();
@@ -169,6 +170,7 @@ class AudioEngine {
     this.stopAllPlayback();
 
     const t = this.ctx.currentTime;
+    this._sequenceAnchorTime = t; // Anchor for precise entrance scheduling
     const s = String(subject || '').toLowerCase();
     const targetGainNode = this.cockpitGain || this.masterGain;
 
@@ -432,14 +434,21 @@ class AudioEngine {
   /**
    * 🌟 EVANGELION ENTRANCE: "A Cruel Angel's Thesis" (Subject Transposed at 124 BPM)
    */
-  public async playCruelAngelsThesisEntrance(subject: SubjectThemeKey = 'maths') {
+  public async playCruelAngelsThesisEntrance(subject: SubjectThemeKey = 'maths', intendedOffsetSeconds?: number) {
     await this.init();
     if (!this.ctx || !this.masterGain) return;
     
     // Stop any previous entrance sounds
     this.stopEntrancePlayback();
 
-    const t = this.ctx.currentTime;
+    // Use precise Web Audio API timing when sequenced after playAnimeLaserCharge.
+    // This prevents setTimeout drift that causes inconsistent gaps on deployed
+    // environments (e.g. Render.com) vs localhost.
+    let t = this.ctx.currentTime;
+    if (intendedOffsetSeconds !== undefined && this._sequenceAnchorTime > 0) {
+      const preciseTime = this._sequenceAnchorTime + intendedOffsetSeconds;
+      t = Math.max(this.ctx.currentTime, preciseTime);
+    }
     const s = String(subject).toLowerCase();
 
     let scale: { note1: number; note2: number; note3: number; note4: number; note5: number; note6: number };
@@ -629,6 +638,79 @@ class AudioEngine {
 
     osc.start(t);
     osc.stop(t + 0.035);
+  }
+
+  /**
+   * ⌨️ Tactile Mechanical Key Feedback (Crisp, satisfying Cherry/Topre switch feel)
+   */
+  public async playMechanicalKey(tone: 'click' | 'clack' | 'heavy' = 'click') {
+    await this.init();
+    if (!this.ctx || !this.masterGain) return;
+    const t = this.ctx.currentTime;
+
+    // 1. High-frequency keycap impact snap (noise burst)
+    if (this.noiseBuffer) {
+      const noise = this.registerSource(this.ctx.createBufferSource(), 'general');
+      noise.buffer = this.noiseBuffer;
+
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.value = tone === 'heavy' ? 3200 : tone === 'clack' ? 4500 : 6000;
+      filter.Q.value = 3.5;
+
+      const gain = this.ctx.createGain();
+      gain.gain.setValueAtTime(0.001, t);
+      gain.gain.linearRampToValueAtTime(tone === 'heavy' ? 0.35 : 0.28, t + 0.001);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.015);
+
+      noise.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.masterGain);
+      noise.start(t);
+      noise.stop(t + 0.02);
+    }
+
+    // 2. Mechanical switch bottom-out resonance (solid housing body tone)
+    const osc = this.registerSource(this.ctx.createOscillator(), 'general');
+    const oscGain = this.ctx.createGain();
+    const baseFreq = tone === 'heavy' ? 320 : tone === 'clack' ? 480 : 640;
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(baseFreq * 1.5, t);
+    osc.frequency.exponentialRampToValueAtTime(baseFreq * 0.5, t + 0.025);
+
+    oscGain.gain.setValueAtTime(0.001, t);
+    oscGain.gain.linearRampToValueAtTime(0.25, t + 0.002);
+    oscGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.03);
+
+    osc.connect(oscGain);
+    oscGain.connect(this.masterGain);
+    osc.start(t);
+    osc.stop(t + 0.035);
+  }
+
+  /**
+   * 🎯 Cybernetic Tactical Beep (HUD Notification / Step Completed)
+   */
+  public async playTacticalBeep(freq: number = 1174.66) {
+    await this.init();
+    if (!this.ctx || !this.masterGain) return;
+    const t = this.ctx.currentTime;
+
+    const osc = this.registerSource(this.ctx.createOscillator(), 'general');
+    const gain = this.ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, t);
+
+    gain.gain.setValueAtTime(0.001, t);
+    gain.gain.linearRampToValueAtTime(0.22, t + 0.003);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(t);
+    osc.stop(t + 0.055);
   }
 
   /**

@@ -97,7 +97,7 @@ export function CockpitTransitionEngine({
 
         activeTimer = setTimeout(() => {
           onStageChange('active');
-          audioEngine.playCruelAngelsThesisEntrance(activeSubject).catch(() => {});
+          audioEngine.playCruelAngelsThesisEntrance(activeSubject, (80 + 300) / speedMultiplier / 1000).catch(() => {});
 
           revealTimer = setTimeout(() => {
             onStageChange('revealed');
@@ -108,7 +108,7 @@ export function CockpitTransitionEngine({
     } else {
       activeTimer = setTimeout(() => {
         onStageChange('active');
-        audioEngine.playCruelAngelsThesisEntrance(activeSubject).catch(() => {});
+        audioEngine.playCruelAngelsThesisEntrance(activeSubject, 360 / speedMultiplier / 1000).catch(() => {});
 
         const duration = (
           animMode === 'positronSparkle' ? 520 :

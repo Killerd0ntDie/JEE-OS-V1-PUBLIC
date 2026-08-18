@@ -5,6 +5,7 @@ import { ExamReadinessWidget } from './ExamReadinessWidget';
 import { DailyStudyTrackerWidget } from './DailyStudyTrackerWidget';
 import { FocusHeatmapWidget } from './FocusHeatmapWidget';
 import { WeeklyStrategyWidget } from './WeeklyStrategyWidget';
+import { MomentumRadarWidget } from './MomentumRadarWidget';
 import { RevisionCard } from '@/services/revisionEngineService';
 import { getTodayStudyMinutes } from '@/utils/streakCalculations';
 
@@ -67,6 +68,7 @@ export function DashboardFocusSection({
   projectedReadiness
 }: DashboardFocusSectionProps) {
   const [direction, setDirection] = useState<number>(0);
+  const [analyticsSubTab, setAnalyticsSubTab] = useState<'strategy' | 'radar'>('radar');
 
   const todayStudyMinutes = useMemo(() => getTodayStudyMinutes(studySessions || []), [studySessions]);
 
@@ -196,12 +198,45 @@ export function DashboardFocusSection({
                 <FocusHeatmapWidget studySessions={studySessions || []} />
               </div>
 
-              <div className="flex flex-col gap-4 h-full justify-between">
-                <WeeklyStrategyWidget
-                  mentorProfile={mentorProfile}
-                  chapters={chapters || []}
-                  projectedReadiness={projectedReadiness}
-                />
+              <div className="flex flex-col gap-3 h-full justify-between">
+                {/* Subtab Switcher */}
+                <div className="flex items-center justify-between font-mono text-xs">
+                  <div className="flex items-center gap-1 p-1 rounded-xl bg-zinc-950/80 border border-white/10">
+                    <button
+                      type="button"
+                      onClick={() => setAnalyticsSubTab('radar')}
+                      className={`px-3 py-1 rounded-lg font-bold text-xs transition-colors cursor-pointer ${
+                        analyticsSubTab === 'radar' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' : 'text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      Tri-Axis Radar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAnalyticsSubTab('strategy')}
+                      className={`px-3 py-1 rounded-lg font-bold text-xs transition-colors cursor-pointer ${
+                        analyticsSubTab === 'strategy' ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' : 'text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      Weekly Strategy
+                    </button>
+                  </div>
+                  <span className="text-[10px] text-zinc-500 uppercase tracking-widest hidden sm:inline">TELEMETRY MATRIX</span>
+                </div>
+
+                {analyticsSubTab === 'radar' ? (
+                  <MomentumRadarWidget
+                    chapters={chapters || []}
+                    studySessions={studySessions || []}
+                    dailyTargetHours={mentorProfile?.dailyAvailableHours || 6.5}
+                  />
+                ) : (
+                  <WeeklyStrategyWidget
+                    mentorProfile={mentorProfile}
+                    chapters={chapters || []}
+                    projectedReadiness={projectedReadiness}
+                  />
+                )}
               </div>
             </motion.div>
           )}

@@ -10,6 +10,8 @@ import { Search, Filter, ArrowUpDown, Network, ListFilter, Plus, Target, ArrowRi
 import { GlassSelect, GlassSelectOption } from '@/components/ui/GlassSelect';
 import { AddCustomChapterModal } from './AddCustomChapterModal';
 import { RpgKnowledgeTreeWidget } from './RpgKnowledgeTreeWidget';
+import { ChapterRoiWeightageMatrix } from './ChapterRoiWeightageMatrix';
+import { MultiConceptSynthesisVault } from './MultiConceptSynthesisVault';
 import { springs } from '@/constants/motion';
 
 interface SubjectCommandCenterProps {
@@ -42,6 +44,22 @@ export function SubjectCommandCenter({
   const [viewMode, setViewMode] = useState<'list' | 'rpg'>(() => {
     return (localStorage.getItem('syllabusViewMode') as 'list' | 'rpg') || 'list';
   });
+
+  const searchInputRef = React.useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+      if (e.key === '/' || e.key === 'f' || e.key === 'F') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('syllabusViewMode', viewMode);
@@ -254,16 +272,20 @@ export function SubjectCommandCenter({
 
         {/* SINGLE CLEAN TOOLBAR: Search + Unit Tabs + Glass Dropdowns */}
         <div className="pt-4 border-t border-zinc-850/80 flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
-          {/* Live Search */}
+          {/* Live Search with Hotkey Glider */}
           <div className="relative flex-1">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
             <input 
+              ref={searchInputRef}
               type="text" 
-              placeholder={`Search ${subjectTitle} chapters or units...`}
+              placeholder={`Search ${subjectTitle} chapters or units... (Press '/' or 'F')`}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-zinc-900/60 border border-zinc-850 rounded-xl pl-9 pr-3 py-2 text-xs font-mono text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500 transition-all placeholder-zinc-500"
+              className="w-full bg-zinc-900/60 border border-zinc-850 rounded-xl pl-9 pr-10 py-2 text-xs font-mono text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500 transition-all placeholder-zinc-500 shadow-inner"
             />
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+              <span className="text-[10px] font-mono text-zinc-400 bg-zinc-950/80 border border-zinc-800 px-1.5 py-0.5 rounded shadow-sm">/</span>
+            </div>
           </div>
 
           {/* Unit Category Pills */}
@@ -507,6 +529,16 @@ export function SubjectCommandCenter({
 
         </div>
       )}
+
+      {/* CHAPTER ROI & JEE WEIGHTAGE MATRIX */}
+      <div className="pt-6">
+        <ChapterRoiWeightageMatrix />
+      </div>
+
+      {/* MULTI-CONCEPT SYNTHESIS PYQ VAULT */}
+      <div className="pt-6">
+        <MultiConceptSynthesisVault />
+      </div>
 
       <AddCustomChapterModal
         isOpen={isAddChapterOpen}

@@ -2,10 +2,12 @@ import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   ChevronDown, ChevronUp, AlertTriangle, CheckCircle, 
-  BookOpen, Sparkles, Trash2, Skull 
+  BookOpen, Sparkles, Trash2, Brain 
 } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Mistake, SubjectId } from '@/types/index';
+import { MathRenderer } from '@/components/MathRenderer';
+import { QuestionTrapBadge, QuestionArchetype } from './QuestionTrapClassifier';
 
 export interface MistakeCardProps {
   item: Mistake;
@@ -50,9 +52,9 @@ export const MistakeCard: React.FC<MistakeCardProps> = ({
           <Badge variant="default" className={`text-[11px] ${subColor.badge}`}>
             {item.subject}
           </Badge>
-          <h3 className="text-xs font-extrabold text-zinc-200">{item.chapter}</h3>
+          <h3 className="text-xs font-bold text-zinc-200">{item.chapter}</h3>
           <span className="text-[10px] text-zinc-400 font-mono">/ {item.topic}</span>
-          <span className="text-3xs text-zinc-600 font-mono shrink-0">Logged {item.dateLogged}</span>
+          <span className="text-3xs text-zinc-500 font-mono shrink-0">Logged {item.dateLogged}</span>
         </div>
 
         <div className="flex items-center justify-between sm:justify-end gap-3.5">
@@ -83,124 +85,133 @@ export const MistakeCard: React.FC<MistakeCardProps> = ({
             className="border-t border-zinc-900"
           >
             <div className="p-5 space-y-5">
-              {/* Question Snapshot */}
-              <div className="space-y-1.5">
-                <span className="text-[10px] font-mono uppercase text-zinc-400 tracking-wider">
-                  Question Snapshot (Source: {item.source})
-                </span>
-                <div className="p-4 bg-zinc-950 border border-zinc-900 rounded-xl font-mono text-xs text-zinc-300 leading-relaxed whitespace-pre-line shadow-inner">
-                  {item.questionText}
+              {/* Question Snapshot & Trap Classification */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <span className="text-[10px] font-mono uppercase text-zinc-400 tracking-wider font-bold">
+                    Question Statement (Source: {item.source})
+                  </span>
+                  <QuestionTrapBadge 
+                    archetype={
+                      item.difficulty === 'JEE Advanced' ? 'Algebraic Boundary Trap' :
+                      item.difficulty === 'JEE Main' ? 'Multi-Step Derivation' : 'Single Concept Direct'
+                    }
+                    showDetails={false}
+                  />
+                </div>
+                <div className="p-4 bg-zinc-950 border border-zinc-900 rounded-xl font-mono text-xs text-zinc-200 leading-relaxed whitespace-pre-line shadow-inner">
+                  <MathRenderer text={item.questionText} />
                 </div>
               </div>
 
               {/* Split Diagnostic Pane */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* Student's Wrong Attempt */}
-                <div className="p-4 bg-red-950/10 border border-red-950/30 rounded-xl space-y-2">
-                  <span className="text-[10px] font-mono uppercase text-red-400 tracking-wider flex items-center gap-1.5">
-                    <AlertTriangle className="w-3.5 h-3.5 text-red-500" />
-                    My Faulty Attempt Method
+                <div className="p-4 bg-red-950/15 border border-red-900/30 rounded-xl space-y-2">
+                  <span className="text-[10px] font-mono uppercase text-red-400 tracking-wider flex items-center gap-1.5 font-bold">
+                    <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
+                    Student's Initial Slip / Faulty Method
                   </span>
-                  <p className="text-xs text-zinc-300 leading-relaxed font-sans font-medium">
-                    {item.studentMethod}
-                  </p>
+                  <div className="text-xs text-zinc-300 leading-relaxed font-sans font-medium">
+                    <MathRenderer text={item.studentMethod || 'No faulty work step recorded.'} />
+                  </div>
                 </div>
 
                 {/* Correct Analytical Approach */}
-                <div className="p-4 bg-emerald-950/10 border border-emerald-950/30 rounded-xl space-y-2">
-                  <span className="text-[10px] font-mono uppercase text-emerald-400 tracking-wider flex items-center gap-1.5">
-                    <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
-                    Correct Analytical Method
+                <div className="p-4 bg-emerald-950/15 border border-emerald-900/30 rounded-xl space-y-2">
+                  <span className="text-[10px] font-mono uppercase text-emerald-400 tracking-wider flex items-center gap-1.5 font-bold">
+                    <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                    Correct Problem-Solving Logic
                   </span>
-                  <p className="text-xs text-zinc-300 leading-relaxed font-sans font-medium">
-                    {item.correctMethod}
-                  </p>
+                  <div className="text-xs text-zinc-300 leading-relaxed font-sans font-medium">
+                    <MathRenderer text={item.correctMethod || item.correctSolution || 'No solution logic recorded.'} />
+                  </div>
                 </div>
               </div>
 
               {/* Correct Solution step by step */}
-              <div className="space-y-1.5">
-                <span className="text-[10px] font-mono uppercase text-zinc-400 tracking-wider flex items-center gap-1">
-                  <BookOpen className="w-3.5 h-3.5 text-zinc-400" />
-                  Step-by-Step Correct Solution
-                </span>
-                <div className="p-4 bg-zinc-950 border border-zinc-900 rounded-xl font-sans text-xs text-zinc-400 leading-relaxed whitespace-pre-line">
-                  {item.correctSolution}
+              {item.correctSolution && item.correctSolution !== item.correctMethod && (
+                <div className="space-y-1.5">
+                  <span className="text-[10px] font-mono uppercase text-zinc-400 tracking-wider flex items-center gap-1">
+                    <BookOpen className="w-3.5 h-3.5 text-zinc-400" />
+                    Detailed Step-by-Step Derivation
+                  </span>
+                  <div className="p-4 bg-zinc-950 border border-zinc-900 rounded-xl font-sans text-xs text-zinc-300 leading-relaxed whitespace-pre-line">
+                    <MathRenderer text={item.correctSolution} />
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* AI Advice Block */}
-              <div className="p-4 bg-amber-950/15 border border-amber-900/40 rounded-xl flex items-start gap-3">
-                <Sparkles className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                <div className="space-y-1">
-                  <span className="text-[10px] font-mono uppercase text-amber-400 tracking-wider">
-                    AI Diagnostics & Coaching Advice
-                  </span>
-                  <p className="text-xs text-zinc-300 leading-relaxed font-sans font-semibold">
-                    {item.aiAdvice}
-                  </p>
+              {item.aiAdvice && (
+                <div className="p-4 bg-amber-950/15 border border-amber-900/40 rounded-xl flex items-start gap-3">
+                  <Sparkles className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-mono uppercase text-amber-400 tracking-wider font-bold">
+                      Diagnostic Concept Feedback
+                    </span>
+                    <p className="text-xs text-zinc-300 leading-relaxed font-sans font-medium">
+                      {item.aiAdvice}
+                    </p>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              {/* Classroom Notes */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1 text-2xs">
-                <div className="space-y-1">
-                  <span className="text-[10px] font-mono uppercase text-zinc-400 tracking-wider">Teacher Feedback</span>
-                  <p className="text-zinc-400 font-mono italic">"{item.teacherNotes}"</p>
+              {/* Personal Notes */}
+              {item.personalNotes && (
+                <div className="p-3 bg-zinc-900/40 border border-zinc-850 rounded-xl space-y-1">
+                  <span className="text-[10px] font-mono uppercase text-zinc-400 tracking-wider">Exam Strategy & Trap Reminder</span>
+                  <p className="text-zinc-300 font-sans text-xs italic">"{item.personalNotes}"</p>
                 </div>
-                <div className="space-y-1">
-                  <span className="text-[10px] font-mono uppercase text-zinc-400 tracking-wider">My Cockpit Reminders</span>
-                  <p className="text-zinc-400 font-mono italic">"{item.personalNotes}"</p>
-                </div>
-              </div>
+              )}
 
               {/* Mistake Class tags */}
-              <div className="flex flex-wrap items-center gap-1 pt-1">
-                <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wide mr-2">Tags:</span>
+              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wide mr-2">Error Types:</span>
                 {item.mistakeTypes.map((tag) => (
-                  <Badge key={tag} variant="secondary" className="text-[11px] lowercase">
+                  <Badge key={tag} variant="secondary" className="text-[11px] font-mono">
                     {tag}
                   </Badge>
                 ))}
               </div>
 
               {/* Expanded Interactive Action controls */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-t border-zinc-900 pt-4 bg-zinc-950/10 p-3 rounded-xl">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="text-2xs font-mono text-zinc-400 uppercase mr-1.5">Promotion:</span>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-t border-zinc-900 pt-4 bg-zinc-950/20 p-3 rounded-xl">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-mono text-zinc-400 uppercase mr-1">Status:</span>
 
                   {item.revisionStatus !== 'Reviewed' && item.revisionStatus !== 'Mastered' && (
                     <button
                       onClick={() => onUpdateStatus(item.id, 'Reviewed')}
-                      className="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 px-2.5 py-1 rounded text-2xs font-semibold cursor-pointer transition-colors"
+                      className="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 px-3 py-1.5 rounded-lg text-xs font-mono font-semibold cursor-pointer transition-colors"
                     >
-                      Mark Reviewed [40%]
+                      Mark Reviewed (Step 1)
                     </button>
                   )}
 
                   {item.revisionStatus !== 'Solved Again' && item.revisionStatus !== 'Mastered' && (
                     <button
                       onClick={() => onUpdateStatus(item.id, 'Solved Again')}
-                      className="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 px-2.5 py-1 rounded text-2xs font-semibold cursor-pointer transition-colors"
+                      className="bg-indigo-950/60 hover:bg-indigo-900/60 border border-indigo-500/40 text-indigo-300 px-3 py-1.5 rounded-lg text-xs font-mono font-semibold cursor-pointer transition-colors"
                     >
-                      Re-Attempted [70%]
+                      Solved Correctly (Step 2)
                     </button>
                   )}
 
                   {item.revisionStatus !== 'Mastered' && (
                     <button
                       onClick={onPracticeWithAI}
-                      className="bg-red-950/40 hover:bg-red-900/40 border border-red-900/50 text-red-400 px-3 py-1.5 rounded-lg text-[10px] font-bold cursor-pointer transition-colors shadow-[0_0_15px_rgba(220,38,38,0.15)] flex items-center gap-1.5 ml-2"
+                      className="bg-purple-950/40 hover:bg-purple-900/40 border border-purple-500/40 text-purple-300 px-3 py-1.5 rounded-lg text-xs font-mono font-bold cursor-pointer transition-colors flex items-center gap-1.5"
                     >
-                      <Skull className="w-3.5 h-3.5 text-red-500" />
-                      ENTER INTERROGATION ROOM
+                      <Brain className="w-3.5 h-3.5 text-purple-400" />
+                      Concept Diagnostic
                     </button>
                   )}
 
                   {item.revisionStatus === 'Mastered' && (
-                    <div className="flex items-center gap-1 px-3 py-1.5 bg-emerald-950/20 text-emerald-400 border border-emerald-900/30 rounded-lg text-[10px] font-bold select-none ml-2 shadow-[0_0_15px_rgba(16,185,129,0.15)]">
+                    <div className="flex items-center gap-1 px-3 py-1.5 bg-emerald-950/40 text-emerald-300 border border-emerald-500/30 rounded-lg text-xs font-mono font-bold select-none">
                       <CheckCircle className="w-3.5 h-3.5" />
-                      MISTAKE EXORCISED
+                      Resolved & Mastered ✓
                     </div>
                   )}
                 </div>

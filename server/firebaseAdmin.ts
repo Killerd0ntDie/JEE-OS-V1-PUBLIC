@@ -23,7 +23,7 @@ try {
       const serviceAccount = JSON.parse(keyJson);
       credentialOptions = { credential: cert(serviceAccount) };
       console.log(
-        `[firebaseAdmin] Initialized from env var. project_id in key: ${serviceAccount.project_id}`
+        `[firebaseAdmin] Initialized from env var.`
       );
     } else if (fs.existsSync(keyPath)) {
       const serviceAccount = JSON.parse(fs.readFileSync(keyPath, 'utf8'));

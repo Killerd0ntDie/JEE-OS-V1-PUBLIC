@@ -33,8 +33,8 @@ export function MissionPauseOverlay({
       isOpen={isPaused}
       onClose={() => setIsPaused(false)}
       zIndex={10000}
-      backdropClassName="bg-black/35 backdrop-blur-md"
-      className="max-w-lg w-full p-6 sm:p-8 space-y-6 text-center rounded-3xl relative overflow-hidden"
+      backdropClassName="bg-black/10 backdrop-blur-md"
+      className="max-w-lg w-full p-6 sm:p-8 space-y-6 text-center rounded-3xl relative overflow-hidden glass-panel"
       style={{
         background: 'rgba(10, 14, 23, 0.90)',
         backdropFilter: 'blur(28px) saturate(190%) contrast(105%)',

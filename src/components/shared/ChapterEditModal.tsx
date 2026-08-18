@@ -13,6 +13,7 @@ import { Modal } from '@/components/ui/Modal';
 import { CustomSelect } from '@/components/ui/CustomSelect';
 import { ConfirmDeleteModal } from '@/components/ui/ConfirmDeleteModal';
 import { springs } from '@/constants/motion';
+import { PrerequisiteFoundationAlert } from '@/features/subjects/components/PrerequisiteFoundationAlert';
 
 const PracticeModule = ({
   title,
@@ -162,6 +163,8 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
   const [currentLecture, setCurrentLecture] = useState<number>(0);
   const [totalLectures, setTotalLectures] = useState<number>(0);
   const [theoryComplete, setTheoryComplete] = useState<boolean>(false);
+  const [totalLecturesError, setTotalLecturesError] = useState<boolean>(false);
+  const totalLecturesRef = useRef<HTMLInputElement>(null);
   const [teacher, setTeacher] = useState<string>('');
   const [avgLectureDuration, setAvgLectureDuration] = useState<number>(0);
 
@@ -350,8 +353,8 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
         isOpen={effectiveIsOpen} 
         onClose={handleClose} 
         zIndex={999} 
-        backdropClassName="bg-black/40 backdrop-blur-sm"
-        className="w-full max-w-2xl min-h-[500px] h-[95vh] max-h-[95vh] flex flex-col border border-zinc-800/90 rounded-3xl shadow-2xl overflow-hidden focus:outline-none text-left"
+        backdropClassName="bg-black/10 backdrop-blur-sm"
+        className="w-full max-w-2xl min-h-[500px] h-[95vh] max-h-[95vh] flex flex-col border border-zinc-800/90 rounded-3xl shadow-2xl overflow-hidden focus:outline-none text-left glass-panel"
       >
         {/* Toast */}
         {showSuccessToast && (
@@ -458,7 +461,13 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
 
             {/* Form Body - Stable Fixed Height with Internal Scroll */}
             <form onSubmit={handleSave} className="flex-1 min-h-0 flex flex-col justify-between p-5 sm:p-6 overflow-hidden">
-              <div className="flex-1 overflow-y-auto pr-1 space-y-4 custom-scrollbar">
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 text-left scrollbar">
+                {/* PREREQUISITE FOUNDATION ALERT */}
+                <PrerequisiteFoundationAlert
+                  currentChapterName={chapter.name}
+                  onOpenPrerequisite={(prereqId) => openModal(prereqId)}
+                />
+
                 <AnimatePresence mode="wait">
                   {activeTab === 'progress' && (
                     <motion.div
@@ -481,24 +490,33 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
                               type="number"
                               min="0"
                               max={totalLectures}
+                              disabled={theoryComplete}
                               value={currentLecture === 0 ? '' : currentLecture} placeholder="0"
                               onChange={(e) => {
                                 const val = parseInt(e.target.value) || 0;
                                 setCurrentLecture(Math.max(0, Math.min(totalLectures, val)));
                               }}
-                              className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-white font-mono text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500"
+                              className={`w-full bg-zinc-900 border rounded-xl px-4 py-2.5 text-white font-mono text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 ${theoryComplete ? 'border-indigo-500/30 opacity-70 cursor-not-allowed' : 'border-zinc-800 focus:border-indigo-500'}`}
                             />
                           </div>
                           <div>
                             <span className="text-[11px] text-zinc-400 block mb-1 font-mono uppercase tracking-wider">Total Chapter Lectures</span>
                             <input
+                              ref={totalLecturesRef}
                               type="number"
                               min="1"
                               max="100"
+                              disabled={theoryComplete}
                               value={totalLectures === 0 ? '' : totalLectures} placeholder="0"
-                              onChange={(e) => setTotalLectures(parseInt(e.target.value) || 0)}
-                              className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-white font-mono text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500"
+                              onChange={(e) => {
+                                setTotalLectures(parseInt(e.target.value) || 0);
+                                if (parseInt(e.target.value) > 0) setTotalLecturesError(false);
+                              }}
+                              className={`w-full bg-zinc-900 border rounded-xl px-4 py-2.5 text-white font-mono text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 ${totalLecturesError ? 'border-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.3)]' : theoryComplete ? 'border-indigo-500/30 opacity-70 cursor-not-allowed' : 'border-zinc-800 focus:border-indigo-500'}`}
                             />
+                            {totalLecturesError && (
+                              <span className="text-[10px] text-rose-400 mt-1 block">Set total lectures first</span>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -529,7 +547,19 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
                         <input
                           type="checkbox"
                           checked={theoryComplete}
-                          onChange={(e) => setTheoryComplete(e.target.checked)}
+                          onChange={(e) => {
+                            const isChecked = e.target.checked;
+                            if (isChecked && (!totalLectures || totalLectures === 0)) {
+                              setTotalLecturesError(true);
+                              totalLecturesRef.current?.focus();
+                              return; // Don't check the box yet
+                            }
+                            setTotalLecturesError(false);
+                            setTheoryComplete(isChecked);
+                            if (isChecked) {
+                              setCurrentLecture(totalLectures);
+                            }
+                          }}
                           className="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-indigo-600 focus:ring-0 cursor-pointer accent-indigo-600"
                         />
                         <div className="flex-1">

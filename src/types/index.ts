@@ -6,6 +6,7 @@ export type PageId =
   | 'planner'
   | 'focus-vault'
   | 'revision'
+  | 'formulas'
   | 'mistakes'
   | 'analytics'
   | 'ai-coach'
@@ -80,6 +81,15 @@ export const PAGES: PageDefinition[] = [
     icon: 'Bookmark',
     description: 'Spaced repetition dashboard, formula cards, and high-yield notes collection.',
     category: 'utilities',
+  },
+  {
+    id: 'formulas',
+    label: 'Formula Vault',
+    icon: 'Sigma',
+    description: 'Complete KaTeX formula repository for Physics, Chemistry, and Maths with search and bookmarking.',
+    category: 'utilities',
+    badge: 'KaTeX',
+    badgeStyle: 'accent'
   },
   {
     id: 'neural-link',
@@ -280,6 +290,7 @@ export interface TodayMission {
   isManualOverride?: boolean;
   completed: boolean;
   xp: number;
+  partialXpAwarded?: number;
   unlocked: boolean;
   priorityScore?: number;
   expectedMarksGain?: number;

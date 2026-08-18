@@ -13,6 +13,7 @@ import { CustomMissionModal } from './components/CustomMissionModal';
 import { AiRevisionPlanModal } from '@/components/shared/AiRevisionPlanModal';
 import { ConfirmDeleteModal } from '@/components/ui/ConfirmDeleteModal';
 import { SwapSubjectModal } from './components/SwapSubjectModal';
+import { CognitivePairingMatrix } from '@/features/planner/components/CognitivePairingMatrix';
 
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -235,6 +236,11 @@ export function PlannerPage() {
           )}
         </motion.div>
       </AnimatePresence>
+
+      {/* COGNITIVE CHAPTER PAIRING SYNERGY MATRIX */}
+      <div className="pt-4">
+        <CognitivePairingMatrix />
+      </div>
 
       {/* AUXILIARY SYSTEM MODALS */}
       <SyllabusDiagnosisModal

@@ -78,7 +78,7 @@ export function MistakeTestModal({ isOpen, onClose, mistakes }: MistakeTestModal
 
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} className="w-full h-[90vh] flex flex-col font-sans overflow-hidden">
+    <Modal isOpen={isOpen} onClose={onClose} className="w-full h-[90vh] flex flex-col font-sans overflow-hidden glass-panel">
 <div className="w-full h-full flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-zinc-800/80 bg-zinc-900/50">

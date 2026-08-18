@@ -18,6 +18,7 @@ const ChemistryPage = lazy(() => import('./features/subjects/ChemistryPage').the
 const MathsPage = lazy(() => import('./features/subjects/MathsPage').then(m => ({ default: m.MathsPage })));
 const PlannerPage = lazy(() => import('./features/mission/PlannerPage').then(m => ({ default: m.PlannerPage })));
 const RevisionPage = lazy(() => import('./features/revision/RevisionPage').then(m => ({ default: m.RevisionPage })));
+const FormulaVaultPage = lazy(() => import('./features/formulas/FormulaVaultPage').then(m => ({ default: m.FormulaVaultPage })));
 const MistakesPage = lazy(() => import('./features/mistakes/MistakesPage').then(m => ({ default: m.MistakesPage })));
 const AnalyticsPage = lazy(() => import('./features/analytics/AnalyticsPage').then(m => ({ default: m.AnalyticsPage })));
 const FocusVaultPage = lazy(() => import('./features/focus/FocusVaultPage').then(m => ({ default: m.FocusVaultPage })));
@@ -208,7 +209,12 @@ function AppLayout() {
   const isStandalone = isCockpit || isDiagnostic;
 
   return (
-    <div className={`flex min-h-screen bg-zinc-950 text-zinc-400 font-sans antialiased overflow-x-hidden selection:bg-indigo-500/30 selection:text-zinc-100 ${themeClass}`}>
+    <div className={`flex min-h-screen bg-zinc-950 text-zinc-400 font-sans antialiased overflow-x-hidden selection:bg-indigo-500/30 selection:text-zinc-100 relative ${themeClass}`}>
+      {/* Global Ambient Glow Orbs for Rich Frosted Glass Refraction */}
+      <div className="fixed top-[-10%] left-[-5%] w-[45vw] h-[45vw] rounded-full bg-indigo-600/10 blur-[120px] pointer-events-none -z-10" />
+      <div className="fixed bottom-[-10%] right-[-5%] w-[40vw] h-[40vw] rounded-full bg-emerald-600/5 blur-[140px] pointer-events-none -z-10" />
+      <div className="fixed top-[40%] right-[15%] w-[30vw] h-[30vw] rounded-full bg-purple-600/5 blur-[100px] pointer-events-none -z-10" />
+
       {/* Sidebar Navigation */}
       {!isStandalone && (
         <Sidebar
@@ -280,6 +286,7 @@ function AppLayout() {
                       <Route path="/planner" element={<ErrorBoundary><PlannerPage /></ErrorBoundary>} />
                       <Route path="/focus-vault" element={<ErrorBoundary><FocusVaultPage /></ErrorBoundary>} />
                       <Route path="/revision" element={<ErrorBoundary><RevisionPage /></ErrorBoundary>} />
+                      <Route path="/formulas" element={<ErrorBoundary><FormulaVaultPage /></ErrorBoundary>} />
                       <Route path="/mistakes" element={<ErrorBoundary><MistakesPage /></ErrorBoundary>} />
                       <Route path="/analytics" element={<ErrorBoundary><AnalyticsPage /></ErrorBoundary>} />
                       <Route path="/coach-history" element={<ErrorBoundary><CoachHistoryPage /></ErrorBoundary>} />
@@ -296,7 +303,9 @@ function AppLayout() {
 
             {/* AI Coach Page (Persisted across renders to maintain chat state & network streams) */}
             <div className={`flex-1 flex-col min-h-0 ${isAiCoach ? 'flex animate-fade-in' : 'hidden'}`}>
-              <AiCoachPage isActive={isAiCoach} />
+              <Suspense fallback={<PageSkeleton />}>
+                <AiCoachPage isActive={isAiCoach} />
+              </Suspense>
             </div>
           </ErrorBoundary>
         </main>

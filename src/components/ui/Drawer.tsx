@@ -2,6 +2,7 @@ import React, { ReactNode, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { drawerVariants, backdropVariants } from '@/constants/motion';
+import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 
 export interface DrawerProps {
   isOpen: boolean;
@@ -21,19 +22,10 @@ export function Drawer({
   className = '',
   position = 'right',
   hideBackdrop = false,
-  backdropClassName = 'bg-black/10 backdrop-blur-sm',
+  backdropClassName = 'bg-black/50 backdrop-blur-md',
   zIndex = 110,
 }: DrawerProps) {
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [isOpen]);
+  useLockBodyScroll(isOpen);
 
   const getPositionClasses = () => {
     switch (position) {
@@ -66,7 +58,7 @@ export function Drawer({
             initial="initial"
             animate="animate"
             exit="exit"
-            className={`absolute ${getPositionClasses()} flex flex-col shadow-2xl ${className}`}
+            className={`absolute ${getPositionClasses()} flex flex-col shadow-2xl glass-panel ${className}`}
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"

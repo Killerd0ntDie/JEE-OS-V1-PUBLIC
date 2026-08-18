@@ -665,33 +665,39 @@ export function MockTestsPage({ onNavigate }: MockTestsPageProps) {
 
         {/* FULLSCREEN TEST RESULT & AUTOPSY */}
         {engineState === 'RESULT' && selectedTest && currentAttempt && (
-          <motion.div
-            key="result"
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] overflow-y-auto p-4 sm:p-6 lg:p-8"
+          <Modal
+            isOpen={true}
+            onClose={handleReturnToDashboard}
+            zIndex={200}
+            fullScreen={true}
+            hideBackdrop={false}
+            backdropClassName="bg-[#050505] fixed inset-0"
+            className="w-full h-full overflow-y-auto bg-[#050505] p-3 sm:p-6 lg:p-8"
           >
-            <MockTestResult 
-              test={selectedTest!} 
-              attempt={currentAttempt!} 
-              onClose={handleReturnToDashboard}
-              onNavigate={onNavigate}
-            />
-          </motion.div>
+            <div className="max-w-6xl mx-auto w-full min-h-screen">
+              <MockTestResult 
+                test={selectedTest!} 
+                attempt={currentAttempt!} 
+                onClose={handleReturnToDashboard}
+                onNavigate={onNavigate}
+              />
+            </div>
+          </Modal>
         )}
 
         {/* PAST ATTEMPT RESULT MODAL */}
         {selectedPastAttempt && (
-          <motion.div
-            key="past-result"
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] overflow-y-auto"
+          <Modal
+            isOpen={true}
+            onClose={() => setSelectedPastAttempt(null)}
+            zIndex={200}
+            fullScreen={true}
+            hideBackdrop={false}
+            backdropClassName="bg-[#050505] fixed inset-0"
+            className="w-full h-full overflow-y-auto bg-[#050505] p-3 sm:p-6 lg:p-8"
           >
             {selectedPastAttempt.testSnapshot && selectedPastAttempt.attemptData ? (
-              <div className="p-4 sm:p-6 lg:p-8 min-h-screen">
+              <div className="max-w-6xl mx-auto w-full min-h-screen">
                 <MockTestResult 
                   test={selectedPastAttempt.testSnapshot} 
                   attempt={selectedPastAttempt.attemptData} 
@@ -700,7 +706,7 @@ export function MockTestsPage({ onNavigate }: MockTestsPageProps) {
                 />
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center">
+              <div className="flex flex-col items-center justify-center min-h-[80vh] p-6 text-center">
                 <div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-8 max-w-md w-full space-y-4 shadow-2xl">
                   <div className="w-14 h-14 bg-zinc-900 border border-zinc-800 rounded-2xl flex items-center justify-center mx-auto text-zinc-400">
                     <FileText className="w-7 h-7" />
@@ -718,7 +724,7 @@ export function MockTestsPage({ onNavigate }: MockTestsPageProps) {
                 </div>
               </div>
             )}
-          </motion.div>
+          </Modal>
         )}
       </AnimatePresence>
 
@@ -727,8 +733,8 @@ export function MockTestsPage({ onNavigate }: MockTestsPageProps) {
         isOpen={showAiSelector} 
         onClose={() => setShowAiSelector(false)} 
         zIndex={60} 
-        backdropClassName="bg-black/40 backdrop-blur-md p-4" 
-        className="w-full max-w-lg bg-zinc-900/90 border border-white/10 rounded-3xl p-6 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] relative text-left"
+        backdropClassName="bg-black/10 backdrop-blur-md p-4" 
+        className="w-full max-w-lg border border-white/10 rounded-3xl p-6 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] relative text-left glass-panel"
       >
         <button 
           onClick={() => setShowAiSelector(false)}
@@ -813,8 +819,8 @@ export function MockTestsPage({ onNavigate }: MockTestsPageProps) {
         isOpen={isGeneratingAiTest} 
         onClose={() => setIsGeneratingAiTest(false)} 
         zIndex={100} 
-        backdropClassName="bg-black/40 backdrop-blur-md flex flex-col items-center justify-center" 
-        className="flex flex-col items-center justify-center p-8 text-center bg-zinc-900/90 border border-white/10 rounded-3xl shadow-2xl"
+        backdropClassName="bg-black/10 backdrop-blur-md flex flex-col items-center justify-center" 
+        className="flex flex-col items-center justify-center p-8 text-center border border-white/10 rounded-3xl shadow-2xl glass-panel"
       >
         <div className="w-14 h-14 rounded-2xl bg-indigo-950/70 border border-indigo-500/40 flex items-center justify-center text-indigo-400 mb-3 shadow-xl shadow-indigo-600/20">
           <Loader2 className="w-7 h-7 animate-spin" />

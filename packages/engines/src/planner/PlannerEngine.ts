@@ -557,6 +557,9 @@ export class PlannerEngine {
         const momentumBoost = Math.max(2, Math.round(completionPct / 5)); // Up to +20 points for 99% complete
         task.priorityScore += momentumBoost;
       }
+      
+      // Ensure priority score remains normalized 0-100
+      task.priorityScore = Math.max(0, Math.min(100, task.priorityScore));
     }
 
     if (activeSubjects.size > 0) {

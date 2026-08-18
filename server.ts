@@ -1,4 +1,6 @@
 import express from "express";
+import cors from "cors";
+import helmet from "helmet";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
@@ -51,12 +53,28 @@ async function startServer() {
   // trust X-Forwarded-For if not proxied correctly.
   app.set('trust proxy', 'loopback, linklocal, uniquelocal');
 
-  app.use(express.json({ limit: '5mb' }));
+  app.use(helmet({
+    contentSecurityPolicy: false // disable if using Vite HMR or inline scripts, configure appropriately for production
+  }));
+  app.use(cors({
+    origin: process.env.NODE_ENV === 'production' ? process.env.VITE_APP_URL || '*' : '*'
+  }));
+  app.use(express.json({ limit: '100kb' }));
 
-  // Rate Limiter
+  // Rate Limiters
   const apiLimiter = rateLimit({
     windowMs: 5 * 60 * 1000, // 5 minutes
-    max: 100, // Limit each IP to 100 requests per window
+    max: 100, // Limit each user/IP to 100 requests per window
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (req: any) => {
+      return req.user?.uid || req.ip || req.headers['x-forwarded-for'] || 'unknown';
+    }
+  });
+
+  const healthLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 30, // 30 requests per minute for health checks
     standardHeaders: true,
     legacyHeaders: false,
   });
@@ -125,19 +143,19 @@ async function startServer() {
   };
 
   // API route for Health Check (Uptime Monitors)
-  app.get("/api/health", (req, res) => {
+  app.get("/api/health", healthLimiter, (req, res) => {
     res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
   });
 
   // API route for Coach Engine
-  app.post("/api/coach/analyze", apiLimiter, validateCoach, verifyAuth, async (req: any, res: any) => {
+  app.post("/api/coach/analyze", verifyAuth, apiLimiter, validateCoach, async (req: any, res: any) => {
     try {
       if (!process.env.GEMINI_API_KEY) {
-        return res.status(503).json({ error: "GEMINI_API_KEY not configured. Create a .env file with GEMINI_API_KEY=your_key" });
+        return res.status(503).json({ error: "AI service is currently unavailable." });
       }
       const ai = new GoogleGenAI({
         apiKey: process.env.GEMINI_API_KEY,
-        httpOptions: {
+        httpOptions: { timeout: 45000,
           headers: {
             'User-Agent': 'aistudio-build',
           }
@@ -257,7 +275,7 @@ Valid Action examples (as payload):
       res.json({ analysis, actions });
     } catch (error: any) {
       console.error("Coach API error:", error);
-      res.status(500).json({ error: "Internal server error during analysis: " + error.message });
+      res.status(500).json({ error: "Internal server error during analysis" });
     }
   });
 
@@ -277,17 +295,17 @@ Valid Action examples (as payload):
   };
 
   // API route for PyqGenerator
-  app.post("/api/practice/generate", apiLimiter, validatePractice, verifyAuth, async (req: any, res: any) => {
+  app.post("/api/practice/generate", verifyAuth, apiLimiter, validatePractice, async (req: any, res: any) => {
     try {
       if (!process.env.GEMINI_API_KEY) {
-        return res.status(503).json({ error: "GEMINI_API_KEY not configured." });
+        return res.status(503).json({ error: "AI service is currently unavailable." });
       }
       
       const { chapterId, subject, count } = req.validatedBody;
       
       const ai = new GoogleGenAI({
         apiKey: process.env.GEMINI_API_KEY,
-        httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
+        httpOptions: { timeout: 45000, headers: { 'User-Agent': 'aistudio-build' } }
       });
       
       const prompt = `
@@ -344,7 +362,7 @@ Valid Action examples (as payload):
       res.json({ questions: JSON.parse(jsonStr) });
     } catch (error: any) {
       console.error("Practice API error:", error);
-      res.status(500).json({ error: "Internal server error during practice generation: " + error.message });
+      res.status(500).json({ error: "Internal server error during practice generation" });
     }
   });
 
@@ -366,10 +384,10 @@ Valid Action examples (as payload):
   };
 
   // API route for Mock Test Generator
-  app.post("/api/mocktest/generate", apiLimiter, validateMocktest, verifyAuth, async (req: any, res: any) => {
+  app.post("/api/mocktest/generate", verifyAuth, apiLimiter, validateMocktest, async (req: any, res: any) => {
     try {
       if (!process.env.GEMINI_API_KEY) {
-        return res.status(503).json({ error: "GEMINI_API_KEY not configured." });
+        return res.status(503).json({ error: "AI service is currently unavailable." });
       }
       
       const { chapterId, chapterName, subject, count, difficulty } = req.validatedBody;
@@ -378,7 +396,7 @@ Valid Action examples (as payload):
       
       const ai = new GoogleGenAI({
         apiKey: process.env.GEMINI_API_KEY,
-        httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
+        httpOptions: { timeout: 45000, headers: { 'User-Agent': 'aistudio-build' } }
       });
       
       const prompt = `
@@ -450,7 +468,7 @@ Valid Action examples (as payload):
       res.json({ questions: parsed });
     } catch (error: any) {
       console.error("Mocktest API error:", error);
-      res.status(500).json({ error: "Internal server error during mock test generation: " + error.message });
+      res.status(500).json({ error: "Internal server error during mock test generation" });
     }
   });
 
@@ -473,10 +491,10 @@ Valid Action examples (as payload):
   };
 
   // API route for AI Deep Revision & Study Plan Generator
-  app.post("/api/planner/generate-plan", apiLimiter, validateRevisionPlan, verifyAuth, async (req: any, res: any) => {
+  app.post("/api/planner/generate-plan", verifyAuth, apiLimiter, validateRevisionPlan, async (req: any, res: any) => {
     try {
       if (!process.env.GEMINI_API_KEY) {
-        return res.status(503).json({ error: "GEMINI_API_KEY not configured." });
+        return res.status(503).json({ error: "AI service is currently unavailable." });
       }
 
       const { days, dailyAvailableHours, bottlenecks, lowRetentionChapters, targetCollege, targetYear } = req.validatedBody;
@@ -485,7 +503,7 @@ Valid Action examples (as payload):
 
       const ai = new GoogleGenAI({
         apiKey: process.env.GEMINI_API_KEY,
-        httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
+        httpOptions: { timeout: 45000, headers: { 'User-Agent': 'aistudio-build' } }
       });
 
       const prompt = `
@@ -550,7 +568,7 @@ Valid Action examples (as payload):
       res.json({ plan: JSON.parse(jsonStr) });
     } catch (error: any) {
       console.error("Revision Plan API error:", error);
-      res.status(500).json({ error: "Internal server error during revision plan generation: " + error.message });
+      res.status(500).json({ error: "Internal server error during revision plan generation" });
     }
   });
 

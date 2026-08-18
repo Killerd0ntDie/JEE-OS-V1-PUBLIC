@@ -19,7 +19,12 @@ import {
   ChevronDown,
   Activity,
   Sparkles,
-  RotateCcw
+  RotateCcw,
+  Compass,
+  Atom,
+  Orbit,
+  Layers,
+  ArrowRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { springs } from '@/constants/motion';
@@ -393,53 +398,214 @@ export function DailyMissionTimeline({
             )}
 
             {todayMissions.length === 0 ? (
-              <div className="p-8 flex flex-col items-center gap-4 text-center border border-dashed border-zinc-800 rounded-xl bg-zinc-950/30">
-                <div className="text-zinc-300 font-display font-medium text-base">Execution Queue is Empty</div>
-                <div className="text-zinc-400 text-xs max-w-sm font-sans">
-                  You have no active chapters in progress. Pick a foundational module to start your journey.
+              <motion.div
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                className="p-6 sm:p-8 flex flex-col items-center text-center rounded-3xl border border-white/10 glass-panel shadow-2xl relative overflow-hidden space-y-6"
+              >
+                {/* Ambient Glows */}
+                <div className="absolute -top-12 -right-12 w-56 h-56 rounded-full bg-indigo-600/10 blur-3xl pointer-events-none" />
+                <div className="absolute -bottom-12 -left-12 w-56 h-56 rounded-full bg-emerald-600/10 blur-3xl pointer-events-none" />
+
+                {/* Radar Icon & Telemetry Header */}
+                <div className="flex flex-col items-center space-y-2 relative z-10">
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-[0_0_25px_rgba(99,102,241,0.3)] mb-1">
+                    <Compass className="w-6 h-6 animate-pulse" />
+                  </div>
+                  <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-indigo-950/50 border border-indigo-500/30 text-indigo-300 text-[10px] font-mono font-bold uppercase tracking-widest">
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping" />
+                    <span>作戦待機 // EXECUTION QUEUE STANDBY</span>
+                  </div>
+                  <h3 className="text-lg sm:text-xl font-display font-bold text-white tracking-tight">
+                    No Missions in Active Orbit
+                  </h3>
+                  <p className="text-xs text-zinc-400 max-w-md font-sans leading-relaxed">
+                    Your daily execution queue is clear. Select a foundational module below to engage learning velocity, or launch an AI sprint.
+                  </p>
                 </div>
-                <div className="flex flex-wrap gap-3 justify-center mt-2">
-                  <button
-                    type="button"
+
+                {/* 3 Interactive Holographic Module Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 w-full relative z-10">
+                  
+                  {/* Card 1: Chemistry */}
+                  <motion.div
+                    whileHover={{ y: -3, scale: 1.01 }}
+                    whileTap={{ scale: 0.98 }}
+                    transition={springs.snappy}
                     onClick={() => {
-                      const c = chapters.find(ch => ch.name.includes("General Organic"));
+                      audioEngine.playMechanicalKey('clack').catch(() => {});
+                      audioEngine.playTacticalBeep(1200).catch(() => {});
+                      const c = chapters.find(ch => 
+                        ch.name.toLowerCase().includes("general organic") || 
+                        ch.name.toLowerCase().includes("goc") ||
+                        ch.name.toLowerCase().includes("organic chemistry")
+                      );
                       if (c) {
                         actions.updateChapterData(c.id, { status: "Learning", currentLecture: 1 });
                         actions.setEnergyLevel("High");
+                        toast({
+                          title: `Mission Initialized: ${c.name}`,
+                          description: `Status set to Learning (Lecture 1). Priority queued for today.`,
+                          type: 'success'
+                        });
                       }
                     }}
-                    className="px-4 py-2.5 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-900/50 rounded-lg text-rose-300 text-xs font-mono transition-colors shadow-lg cursor-pointer"
+                    className="group p-4.5 rounded-2xl border border-emerald-500/20 bg-emerald-950/15 hover:bg-emerald-950/35 hover:border-emerald-500/50 transition-all cursor-pointer text-left flex flex-col justify-between shadow-lg shadow-emerald-950/20 relative overflow-hidden"
                   >
-                    Start GOC (Chem)
-                  </button>
-                  <button
-                    type="button"
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 blur-2xl rounded-full pointer-events-none group-hover:bg-emerald-500/10 transition-colors" />
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-400 bg-emerald-950/60 border border-emerald-500/30 px-2 py-0.5 rounded-md flex items-center gap-1">
+                          <Atom className="w-3 h-3" />
+                          Chemistry
+                        </span>
+                        <span className="text-[9px] font-mono text-zinc-500 group-hover:text-emerald-300 transition-colors">CORE PREREQ</span>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold font-display text-white group-hover:text-emerald-300 transition-colors">
+                          General Organic Chemistry
+                        </h4>
+                        <p className="text-[11px] text-zinc-400 mt-0.5 leading-snug">
+                          Foundational IUPAC, electronic effects & reaction mechanisms.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between pt-3 mt-2 border-t border-emerald-500/15 text-xs font-mono font-semibold text-emerald-400 group-hover:text-emerald-300">
+                      <span>Engage GOC</span>
+                      <ArrowRight className="w-3.5 h-3.5 transform group-hover:translate-x-1 transition-transform" />
+                    </div>
+                  </motion.div>
+
+                  {/* Card 2: Mathematics */}
+                  <motion.div
+                    whileHover={{ y: -3, scale: 1.01 }}
+                    whileTap={{ scale: 0.98 }}
+                    transition={springs.snappy}
                     onClick={() => {
-                      const c = chapters.find(ch => ch.name.includes("Sets"));
+                      audioEngine.playMechanicalKey('clack').catch(() => {});
+                      audioEngine.playTacticalBeep(1200).catch(() => {});
+                      const c = chapters.find(ch => 
+                        ch.name.toLowerCase().includes("sets") || 
+                        ch.name.toLowerCase().includes("relations") ||
+                        ch.name.toLowerCase().includes("functions")
+                      );
                       if (c) {
                         actions.updateChapterData(c.id, { status: "Learning", currentLecture: 1 });
                         actions.setEnergyLevel("High");
+                        toast({
+                          title: `Mission Initialized: ${c.name}`,
+                          description: `Status set to Learning (Lecture 1). Priority queued for today.`,
+                          type: 'success'
+                        });
                       }
                     }}
-                    className="px-4 py-2.5 bg-indigo-950/40 hover:bg-indigo-900/60 border border-indigo-900/50 rounded-lg text-indigo-300 text-xs font-mono transition-colors shadow-lg cursor-pointer"
+                    className="group p-4.5 rounded-2xl border border-purple-500/20 bg-purple-950/15 hover:bg-purple-950/35 hover:border-purple-500/50 transition-all cursor-pointer text-left flex flex-col justify-between shadow-lg shadow-purple-950/20 relative overflow-hidden"
                   >
-                    Start Sets (Maths)
-                  </button>
-                  <button
-                    type="button"
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 blur-2xl rounded-full pointer-events-none group-hover:bg-purple-500/10 transition-colors" />
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-purple-400 bg-purple-950/60 border border-purple-500/30 px-2 py-0.5 rounded-md flex items-center gap-1">
+                          <Layers className="w-3 h-3" />
+                          Maths
+                        </span>
+                        <span className="text-[9px] font-mono text-zinc-500 group-hover:text-purple-300 transition-colors">CALCULUS BASE</span>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold font-display text-white group-hover:text-purple-300 transition-colors">
+                          Sets, Relations & Functions
+                        </h4>
+                        <p className="text-[11px] text-zinc-400 mt-0.5 leading-snug">
+                          Mappings, domain/range & foundational modern algebra.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between pt-3 mt-2 border-t border-purple-500/15 text-xs font-mono font-semibold text-purple-400 group-hover:text-purple-300">
+                      <span>Engage Sets</span>
+                      <ArrowRight className="w-3.5 h-3.5 transform group-hover:translate-x-1 transition-transform" />
+                    </div>
+                  </motion.div>
+
+                  {/* Card 3: Physics */}
+                  <motion.div
+                    whileHover={{ y: -3, scale: 1.01 }}
+                    whileTap={{ scale: 0.98 }}
+                    transition={springs.snappy}
                     onClick={() => {
-                      const c = chapters.find(ch => ch.name.includes("Units") || ch.name.includes("Kinematics"));
+                      audioEngine.playMechanicalKey('clack').catch(() => {});
+                      audioEngine.playTacticalBeep(1200).catch(() => {});
+                      const c = chapters.find(ch => 
+                        ch.name.toLowerCase().includes("units") || 
+                        ch.name.toLowerCase().includes("kinematics") ||
+                        ch.name.toLowerCase().includes("vectors")
+                      );
                       if (c) {
                         actions.updateChapterData(c.id, { status: "Learning", currentLecture: 1 });
                         actions.setEnergyLevel("High");
+                        toast({
+                          title: `Mission Initialized: ${c.name}`,
+                          description: `Status set to Learning (Lecture 1). Priority queued for today.`,
+                          type: 'success'
+                        });
                       }
                     }}
-                    className="px-4 py-2.5 bg-cyan-950/40 hover:bg-cyan-900/60 border border-cyan-900/50 rounded-lg text-cyan-300 text-xs font-mono transition-colors shadow-lg cursor-pointer"
+                    className="group p-4.5 rounded-2xl border border-sky-500/20 bg-sky-950/15 hover:bg-sky-950/35 hover:border-sky-500/50 transition-all cursor-pointer text-left flex flex-col justify-between shadow-lg shadow-sky-950/20 relative overflow-hidden"
                   >
-                    Start Physics
-                  </button>
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-sky-500/5 blur-2xl rounded-full pointer-events-none group-hover:bg-sky-500/10 transition-colors" />
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-sky-400 bg-sky-950/60 border border-sky-500/30 px-2 py-0.5 rounded-md flex items-center gap-1">
+                          <Orbit className="w-3 h-3" />
+                          Physics
+                        </span>
+                        <span className="text-[9px] font-mono text-zinc-500 group-hover:text-sky-300 transition-colors">MECHANICS CORE</span>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold font-display text-white group-hover:text-sky-300 transition-colors">
+                          Units, Dimensions & Vectors
+                        </h4>
+                        <p className="text-[11px] text-zinc-400 mt-0.5 leading-snug">
+                          Dimensional analysis, error estimation & vector algebra.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between pt-3 mt-2 border-t border-sky-500/15 text-xs font-mono font-semibold text-sky-400 group-hover:text-sky-300">
+                      <span>Engage Physics</span>
+                      <ArrowRight className="w-3.5 h-3.5 transform group-hover:translate-x-1 transition-transform" />
+                    </div>
+                  </motion.div>
+
                 </div>
-              </div>
+
+                {/* Bottom Quick Links / Alternative Sprints */}
+                <div className="flex flex-wrap items-center justify-center gap-3 pt-2 relative z-10">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      audioEngine.playMechanicalKey('click').catch(() => {});
+                      navigate('/planner');
+                    }}
+                    className="px-4 py-2 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.08] hover:border-indigo-500/40 text-zinc-300 hover:text-white text-xs font-mono transition-colors flex items-center gap-2 cursor-pointer shadow-sm"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>Open AI Sprint Planner</span>
+                  </button>
+
+                  {onOpenCustomMission && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        audioEngine.playMechanicalKey('click').catch(() => {});
+                        onOpenCustomMission();
+                      }}
+                      className="px-4 py-2 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.08] hover:border-zinc-400 text-zinc-400 hover:text-zinc-200 text-xs font-mono transition-colors flex items-center gap-2 cursor-pointer shadow-sm"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Custom Mission</span>
+                    </button>
+                  )}
+                </div>
+              </motion.div>
             ) : (
                 <AnimatePresence mode="popLayout">
                   {visibleMissions.map((mission, idx) => {

@@ -1,35 +1,35 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  BookOpen, RotateCcw, ArrowRight
+  BookOpen, RotateCcw, ArrowRight, Printer
 } from 'lucide-react';
 import { MistakesAutopsyHero } from './components/MistakesAutopsyHero';
 import { MistakePracticeView } from './components/MistakePracticeView';
 import { MistakesCbtTestArena } from './components/MistakesCbtTestArena';
 import { LogMistakeModal } from './components/LogMistakeModal';
 import { AiInterrogationModal } from './components/AiInterrogationModal';
+import { PrintableWorksheetModal } from '../revision/components/PrintableWorksheetModal';
+import { CalculationSlipAutopsy } from './components/CalculationSlipAutopsy';
 import { useMistakesState } from './hooks/useMistakesState';
 
 export const MISTAKE_CATEGORIES = [
-  'Conceptual Error',
+  'Conceptual Gap',
+  'Calculation Slip',
   'Formula Recall',
-  'Calculation Error',
-  'Sign Mistake',
-  'Units Error',
-  'Diagram Interpretation',
+  'Sign / Negative Error',
+  'Units / Dimension Error',
   'Misread Question',
-  'Time Pressure',
-  'Guess',
-  'Silly Mistake',
-  'Incomplete Knowledge',
-  'Wrong Approach',
-  'Incorrect Assumption'
+  'Trap Option Selected',
+  'Time Pressure Rush',
+  'Incomplete Derivation',
+  'Diagram Misinterpretation'
 ];
 
 export function MistakesPage() {
   const { state, handlers, actions } = useMistakesState();
   const [activePage, setActivePage] = useState<'vault' | 'practice'>('vault');
   const [isCbtArenaOpen, setIsCbtArenaOpen] = useState(false);
+  const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
 
   const vaultUnresolvedMistakes = state.mistakes.filter(
     m => m.revisionStatus !== 'Solved Again' && m.revisionStatus !== 'Mastered'
@@ -61,19 +61,19 @@ export function MistakesPage() {
             />
 
             {/* 2. PRIMARY ACTION HUBS */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               
               {/* Card 1: Practice & Step-by-Step Derivations */}
-              <div className="bg-[#121318] border border-zinc-800 hover:border-indigo-500/40 rounded-3xl p-6 relative overflow-hidden transition-all shadow-xl flex flex-col justify-between space-y-4">
+              <div className="bg-[#121318] border border-zinc-800 hover:border-indigo-500/40 rounded-3xl p-5 relative overflow-hidden transition-all shadow-xl flex flex-col justify-between space-y-4">
                 <div className="space-y-2">
-                  <div className="w-10 h-10 rounded-xl bg-indigo-950/60 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
-                    <BookOpen className="w-5 h-5" />
+                  <div className="w-9 h-9 rounded-xl bg-indigo-950/60 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+                    <BookOpen className="w-4 h-4" />
                   </div>
-                  <h3 className="text-lg font-display font-bold text-white tracking-tight">
+                  <h3 className="text-base font-display font-bold text-white tracking-tight">
                     Practice Your Mistakes
                   </h3>
                   <p className="text-xs text-zinc-400 leading-relaxed font-sans">
-                    Step through all logged errors with the horizontal question palette, identified misconceptions, and full step-by-step analytical LaTeX derivations.
+                    Step through all logged errors with the horizontal question palette and analytical derivations.
                   </p>
                 </div>
 
@@ -81,24 +81,24 @@ export function MistakesPage() {
                   type="button"
                   whileTap={{ scale: 0.94 }}
                   onClick={() => setActivePage('practice')}
-                  className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/25 transition-colors cursor-pointer"
+                  className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/25 transition-colors cursor-pointer"
                 >
-                  <span>Practice Mistakes ({state.filteredMistakes.length})</span>
-                  <ArrowRight className="w-4 h-4" />
+                  <span>Practice ({state.filteredMistakes.length})</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
                 </motion.button>
               </div>
 
               {/* Card 2: Timed CBT Retest Arena */}
-              <div className="bg-[#121318] border border-zinc-800 hover:border-red-500/40 rounded-3xl p-6 relative overflow-hidden transition-all shadow-xl flex flex-col justify-between space-y-4">
+              <div className="bg-[#121318] border border-zinc-800 hover:border-red-500/40 rounded-3xl p-5 relative overflow-hidden transition-all shadow-xl flex flex-col justify-between space-y-4">
                 <div className="space-y-2">
-                  <div className="w-10 h-10 rounded-xl bg-red-950/60 border border-red-800/40 flex items-center justify-center text-red-400">
-                    <RotateCcw className="w-5 h-5" />
+                  <div className="w-9 h-9 rounded-xl bg-red-950/60 border border-red-800/40 flex items-center justify-center text-red-400">
+                    <RotateCcw className="w-4 h-4" />
                   </div>
-                  <h3 className="text-lg font-display font-bold text-white tracking-tight">
-                    Timed CBT Retest Arena
+                  <h3 className="text-base font-display font-bold text-white tracking-tight">
+                    Timed CBT Retest
                   </h3>
                   <p className="text-xs text-zinc-400 leading-relaxed font-sans">
-                    Take an actual strict timed test on your {vaultUnresolvedMistakes.length} pending mistakes. Zero solutions or answers revealed until final submission.
+                    Take an actual strict timed test on your {vaultUnresolvedMistakes.length} pending errors.
                   </p>
                 </div>
 
@@ -107,10 +107,36 @@ export function MistakesPage() {
                   whileTap={{ scale: 0.94 }}
                   onClick={() => setIsCbtArenaOpen(true)}
                   disabled={retestQueue.length === 0}
-                  className="w-full py-3 rounded-xl bg-red-600/20 hover:bg-red-600/30 disabled:opacity-40 border border-red-500/40 text-red-300 font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-colors cursor-pointer"
+                  className="w-full py-2.5 rounded-xl bg-red-600/20 hover:bg-red-600/30 disabled:opacity-40 border border-red-500/40 text-red-300 font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-colors cursor-pointer"
                 >
-                  <RotateCcw className="w-4 h-4" />
-                  <span>Start Timed Retest ({retestQueue.length} Qs)</span>
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>CBT Retest ({retestQueue.length})</span>
+                </motion.button>
+              </div>
+
+              {/* Card 3: Desk Mode Printable Worksheets */}
+              <div className="bg-[#121318] border border-zinc-800 hover:border-emerald-500/40 rounded-3xl p-5 relative overflow-hidden transition-all shadow-xl flex flex-col justify-between space-y-4">
+                <div className="space-y-2">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-950/60 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                    <Printer className="w-4 h-4" />
+                  </div>
+                  <h3 className="text-base font-display font-bold text-white tracking-tight">
+                    Desk Mode (Print PDF)
+                  </h3>
+                  <p className="text-xs text-zinc-400 leading-relaxed font-sans">
+                    Print custom monochrome A4 question worksheets with calculation workspaces.
+                  </p>
+                </div>
+
+                <motion.button
+                  type="button"
+                  whileTap={{ scale: 0.94 }}
+                  onClick={() => setIsPrintModalOpen(true)}
+                  disabled={state.mistakes.length === 0}
+                  className="w-full py-2.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 disabled:opacity-40 border border-emerald-500/40 text-emerald-300 font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-colors cursor-pointer"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>Print Worksheet</span>
                 </motion.button>
               </div>
 
@@ -241,6 +267,9 @@ export function MistakesPage() {
 
       </AnimatePresence>
 
+      {/* SILLY MISTAKES PRECISION & PRE-SUBMISSION AUTOPSY */}
+      <CalculationSlipAutopsy />
+
       {/* STRICT TIMED CBT MISTAKES RETEST ARENA */}
       <MistakesCbtTestArena
         isOpen={isCbtArenaOpen}
@@ -265,6 +294,16 @@ export function MistakesPage() {
           mistake={state.interrogationMistake}
         />
       )}
+
+      {/* DESK MODE PRINTABLE WORKSHEET MODAL */}
+      <PrintableWorksheetModal
+        isOpen={isPrintModalOpen}
+        onClose={() => setIsPrintModalOpen(false)}
+        mistakes={state.mistakes}
+        chapters={[]}
+        initialType="mistakes"
+      />
+
     </div>
   );
 }

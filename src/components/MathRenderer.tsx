@@ -97,3 +97,9 @@ export const RichTextRenderer = ({ content }: { content: string | undefined | nu
     </div>
   );
 };
+
+export const MathRenderer = ({ text, content }: { text?: string | null; content?: string | null }) => {
+  return <RichTextRenderer content={text || content} />;
+};
+
+export default MathRenderer;

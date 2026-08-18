@@ -35,7 +35,7 @@ export function MissionFormulaSheetModal({
   useEscapeKey(() => setIsFormulaOpen(false), isFormulaOpen);
 
   return (
-    <Modal isOpen={isFormulaOpen} onClose={() => setIsFormulaOpen(false)} zIndex={10000} className="w-full max-w-xl border border-zinc-800 bg-[#09090b] p-6 rounded-2xl shadow-2xl flex flex-col max-h-[80vh] overflow-hidden">
+    <Modal isOpen={isFormulaOpen} onClose={() => setIsFormulaOpen(false)} zIndex={10000} className="w-full max-w-xl border border-zinc-800 p-6 rounded-2xl shadow-2xl flex flex-col max-h-[80vh] overflow-hidden glass-panel">
             <div className="flex justify-between items-center border-b border-zinc-900 pb-3 shrink-0">
               <div className="flex items-center gap-2 text-left">
                 <BookOpen className="w-4 h-4 text-emerald-400" />

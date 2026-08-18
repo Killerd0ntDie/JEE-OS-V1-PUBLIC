@@ -140,7 +140,12 @@ export function MissionChecklistWidget({
                 whileHover={{ x: 2 }}
                 transition={springs.snappy}
                 onClick={() => {
-                  audioEngine.playTacticalSwitch().catch(() => {});
+                  if (!isChecked) {
+                    audioEngine.playMechanicalKey('clack').catch(() => {});
+                    audioEngine.playTacticalBeep(1400).catch(() => {});
+                  } else {
+                    audioEngine.playMechanicalKey('click').catch(() => {});
+                  }
                   onToggleTask(task);
                 }}
                 className={`group py-2.5 px-3.5 rounded-xl transition-all cursor-pointer flex items-center justify-between border ${
@@ -256,7 +261,10 @@ export function MissionChecklistWidget({
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.96 }}
           transition={springs.snappy}
-          onClick={onTogglePause}
+          onClick={() => {
+            audioEngine.playMechanicalKey('heavy').catch(() => {});
+            onTogglePause();
+          }}
           className="w-full py-2.5 sm:py-3 rounded-xl border border-amber-500/40 bg-amber-950/40 hover:bg-amber-900/60 text-amber-300 text-[11px] font-mono font-bold tracking-wider uppercase transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-[0_0_12px_rgba(245,158,11,0.15)] active:scale-95"
         >
           {isPaused ? <Play className="w-3.5 h-3.5 text-amber-400" /> : <Pause className="w-3.5 h-3.5 text-amber-400" />}
@@ -268,7 +276,11 @@ export function MissionChecklistWidget({
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.96 }}
           transition={springs.snappy}
-          onClick={onCompleteAll}
+          onClick={() => {
+            audioEngine.playMechanicalKey('clack').catch(() => {});
+            audioEngine.playSuccess().catch(() => {});
+            onCompleteAll();
+          }}
           className="w-full py-2.5 sm:py-3 rounded-xl border border-emerald-400/50 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 hover:from-emerald-500 hover:to-teal-500 text-white text-[11px] font-mono font-bold tracking-wider uppercase transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-[0_0_20px_rgba(16,185,129,0.35)] active:scale-95"
         >
           <CheckCircle2 className="w-4 h-4" />

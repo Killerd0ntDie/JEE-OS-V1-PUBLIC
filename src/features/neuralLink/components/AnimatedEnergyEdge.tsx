@@ -89,13 +89,29 @@ export const AnimatedEnergyEdge = ({
           <circle r={isPrerequisite ? 2.2 : 1.8} fill={glowStroke} style={{ filter: `drop-shadow(0 0 8px ${glowStroke})` }}>
             <animateMotion
               dur={isPrerequisite ? '1.8s' : '2.4s'}
-              begin={isPrerequisite ? '0.9s' : '1.2s'}
+              begin={isPrerequisite ? '0.6s' : '0.8s'}
               repeatCount="indefinite"
               path={edgePath}
             />
             <animate
               attributeName="opacity"
               values="0.2;0.8;0.2"
+              dur={isPrerequisite ? '1.8s' : '2.4s'}
+              repeatCount="indefinite"
+            />
+          </circle>
+
+          {/* Tertiary Fiber-Optic Constellation Micro-Pulse */}
+          <circle r={isPrerequisite ? 1.8 : 1.4} fill="#ffffff" style={{ filter: `drop-shadow(0 0 5px ${pulseColor})` }}>
+            <animateMotion
+              dur={isPrerequisite ? '1.8s' : '2.4s'}
+              begin={isPrerequisite ? '1.2s' : '1.6s'}
+              repeatCount="indefinite"
+              path={edgePath}
+            />
+            <animate
+              attributeName="opacity"
+              values="0.1;0.9;0.1"
               dur={isPrerequisite ? '1.8s' : '2.4s'}
               repeatCount="indefinite"
             />

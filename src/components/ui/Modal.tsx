@@ -26,7 +26,7 @@ export function Modal({
   children,
   className = '',
   hideBackdrop = false,
-  backdropClassName = 'bg-black/40 backdrop-blur-sm',
+  backdropClassName = 'bg-black/50 backdrop-blur-md',
   zIndex = 999,
   center = true,
   fullScreen = false,
@@ -69,7 +69,7 @@ export function Modal({
             animate="animate"
             exit="exit"
             style={style}
-            className={`relative flex flex-col overflow-hidden shadow-2xl ${fullScreen ? 'w-full h-full rounded-none' : 'rounded-2xl'} ${className}`}
+            className={`relative flex flex-col overflow-hidden shadow-2xl glass-panel ${fullScreen ? 'w-full h-full rounded-none' : 'rounded-2xl'} ${className}`}
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"

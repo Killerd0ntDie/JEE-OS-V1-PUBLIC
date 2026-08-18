@@ -360,7 +360,7 @@ export function CommandOverviewBanner({
         isOpen={isBottlenecksModalOpen}
         onClose={() => setIsBottlenecksModalOpen(false)}
         zIndex={100}
-        className="w-full max-w-lg bg-zinc-900/90 bg-zinc-950/98 border border-zinc-800 rounded-3xl p-6 shadow-2xl text-left"
+        className="w-full max-w-lg border border-zinc-800 rounded-3xl p-6 shadow-2xl text-left glass-panel"
       >
         <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-4">
           <div className="flex items-center gap-2">

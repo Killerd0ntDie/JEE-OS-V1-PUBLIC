@@ -194,7 +194,12 @@ export class StudyBrainActions {
       partialXP = Math.floor(partialXP * 1.5);
     }
 
-    // Tag the mission with partial XP so completeTask can deduct it later
+    const previousPartialXp = mission.partialXpAwarded || 0;
+    const deltaXp = partialXP - previousPartialXp;
+    
+    if (deltaXp <= 0) return;
+
+    // Tag the mission with the *total* partial XP so completeTask can deduct it later
     const updatedMissions = this.state.todayMissions.map(m =>
       m.id === missionId ? { ...m, partialXpAwarded: partialXP } : m
     );
@@ -203,10 +208,10 @@ export class StudyBrainActions {
     const baseXpState = this.getResetXpBase();
     const newXp = {
       ...baseXpState,
-      daily: Math.max(0, baseXpState.daily + partialXP),
-      weekly: Math.max(0, baseXpState.weekly + partialXP),
-      monthly: Math.max(0, (baseXpState.monthly || 0) + partialXP),
-      total: Math.max(0, baseXpState.total + partialXP)
+      daily: Math.max(0, baseXpState.daily + deltaXp),
+      weekly: Math.max(0, baseXpState.weekly + deltaXp),
+      monthly: Math.max(0, (baseXpState.monthly || 0) + deltaXp),
+      total: Math.max(0, baseXpState.total + deltaXp)
     };
 
     const { level: newLevel, nextLevelXP: xpNeededForNext } = calculateLevelFromXP(newXp.total);
@@ -281,8 +286,8 @@ export class StudyBrainActions {
         // Completed instantly via dashboard checkbox (offline completion)
         // Shrink visual block to 1 minute to avoid massive fake calendar blocks
         durationMins = 1;
-        // But give full credit for velocity calculations (amount of chapter completed)
-        studySessionDuration = mission.duration || 60;
+        // Exploit fix: Do not log fake focus time for instant completion
+        studySessionDuration = 0;
       }
       
       const timeSlot = getCurrentSessionTimeSlot(durationMins);
@@ -558,6 +563,16 @@ export class StudyBrainActions {
         updatedMission.linkedSessionId = undefined;
       }
 
+      // Save snapshot of original state for rollback
+      const originalStateSnapshot = {
+        todayMissions: [...this.state.todayMissions],
+        customMissions: [...this.state.customMissions],
+        completedPlannerMissionIds: [...this.state.completedPlannerMissionIds],
+        xp: { ...this.state.xp },
+        chapters: [...this.state.chapters],
+        studySessions: [...this.state.studySessions]
+      };
+
       // Optimistic update - refresh UI immediately before saving
       this.runtime.updateStateOptimistic({
         todayMissions: updatedMissions,
@@ -567,8 +582,21 @@ export class StudyBrainActions {
         chapters: updatedChapters,
       });
 
-      // Await heavy IO tasks so errors are caught by the outer try/catch
-      await Promise.all(savePromises);
+      try {
+        // Await heavy IO tasks so errors are caught by the outer try/catch
+        await Promise.all(savePromises);
+      } catch (err) {
+        // Rollback state on failure
+        this.state.studySessions = originalStateSnapshot.studySessions;
+        this.runtime.updateStateOptimistic({
+          todayMissions: originalStateSnapshot.todayMissions,
+          customMissions: originalStateSnapshot.customMissions,
+          completedPlannerMissionIds: originalStateSnapshot.completedPlannerMissionIds,
+          xp: originalStateSnapshot.xp,
+          chapters: originalStateSnapshot.chapters
+        });
+        throw err;
+      }
 
       // Delay heavy matrix regeneration to allow UI layout animations to finish at a smooth 60fps
       await new Promise(resolve => setTimeout(resolve, 350));
@@ -867,6 +895,11 @@ export class StudyBrainActions {
         dppComplete: dppComplete !== undefined ? dppComplete : chapter.dppComplete,
         pyqsComplete: pyqsComplete !== undefined ? pyqsComplete : chapter.pyqsComplete
       });
+    }
+
+    const totalLectures = updatedChapter.totalLectures || 12;
+    if (updatedChapter.currentLecture !== undefined) {
+      updatedChapter.currentLecture = Math.min(Math.max(0, updatedChapter.currentLecture), totalLectures);
     }
 
     const updatedChapters = this.state.chapters.map(c => (c.id === chapter.id ? updatedChapter : c));
@@ -1471,7 +1504,8 @@ export class StudyBrainActions {
       'notes',
       'studySessions',
       'mockResults',
-      'customTimelineBlocks'
+      'customTimelineBlocks',
+      'customMissions'
     ];
 
     for (const colName of collectionsToDelete) {
@@ -1514,7 +1548,8 @@ export class StudyBrainActions {
       'notes',
       'studySessions',
       'mockResults',
-      'customTimelineBlocks'
+      'customTimelineBlocks',
+      'customMissions'
     ];
 
     for (const colName of collectionsToDelete) {
@@ -1764,14 +1799,18 @@ export class StudyBrainActions {
           const removeUndefined = (obj: Record<string, any>): Record<string, any> =>
             Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined));
 
+          const totalLectures = update.totalLectures ?? chap.totalLectures ?? 12;
+          const rawCurrent = update.lecturesWatched ?? chap.currentLecture ?? 0;
+          const validCurrentLecture = Math.min(Math.max(0, rawCurrent), totalLectures);
+
           const updatedChap: Chapter = removeUndefined({
             ...chap,
             status: mappedStatus,
             completion,
             confidence: conf,
-            currentLecture: update.lecturesWatched ?? chap.currentLecture ?? 0,
-            totalLectures: update.totalLectures ?? chap.totalLectures ?? 12,
-            theoryComplete: update.status === 'Completed' || (update.lecturesWatched !== undefined && update.totalLectures !== undefined && update.lecturesWatched >= update.totalLectures),
+            currentLecture: validCurrentLecture,
+            totalLectures: totalLectures,
+            theoryComplete: update.status === 'Completed' || (validCurrentLecture >= totalLectures),
             dppComplete,
             pyqsComplete,
             lectureProgress: cleanLectureProgress,

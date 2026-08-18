@@ -1,6 +1,7 @@
 import { collection, doc, setDoc, getDocs, deleteDoc } from 'firebase/firestore';
 import { db } from '@/firebase';
 import { TodayMission } from '@/types/index';
+import { sanitizeForFirestore } from '@/utils/firestoreSanitizer';
 
 export class CustomMissionRepository {
   static async saveMission(userId: string, mission: TodayMission): Promise<void> {
@@ -9,9 +10,7 @@ export class CustomMissionRepository {
     // Strip such fields defensively so an undefined value anywhere in the
     // mission object (e.g. an optional flag that was never initialized)
     // can't throw a "Sync Error (completeTask)" and break the write.
-    const sanitized = Object.fromEntries(
-      Object.entries(mission).filter(([, v]) => v !== undefined)
-    ) as TodayMission;
+    const sanitized = sanitizeForFirestore(mission);
     await setDoc(missionRef, sanitized);
   }
 

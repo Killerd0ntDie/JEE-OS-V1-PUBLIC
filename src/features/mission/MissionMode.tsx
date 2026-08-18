@@ -216,6 +216,7 @@ export function MissionMode(props: MissionModeProps) {
         if (stage !== 'revealed') {
           setStage('revealed');
         } else {
+          audioEngine.playMechanicalKey('heavy').catch(() => {});
           setters.setIsPaused(!state.isPaused);
         }
       }
@@ -225,7 +226,7 @@ export function MissionMode(props: MissionModeProps) {
       }
       if (e.key === 'z' || e.key === 'Z') {
         e.preventDefault();
-        audioEngine.playRadioRelayClick().catch(() => {});
+        audioEngine.playMechanicalKey('clack').catch(() => {});
         setIsZenMode(prev => !prev);
       }
     };
@@ -413,6 +414,17 @@ export function MissionMode(props: MissionModeProps) {
           focusPreset={focusPreset}
           onSelectFocusPreset={handleSelectFocusPreset}
           targetDurationMins={state.targetDurationMins}
+          isPlaying={!state.isPaused}
+          activeSubject={state.activeSubject}
+        />
+
+        {/* Dynamic Deep Focus Vignette (Tunnels peripheral vision during extended focus sprints) */}
+        <div 
+          className="fixed inset-0 pointer-events-none z-10 transition-opacity duration-1000"
+          style={{
+            background: 'radial-gradient(ellipse at center, transparent 35%, rgba(2, 3, 6, 0.45) 70%, rgba(2, 3, 6, 0.95) 100%)',
+            opacity: Math.min(0.95, Math.max(0.12, 0.12 + (state.seconds / 2700) * 0.83))
+          }}
         />
 
         {/* Ambient Subject-Themed Deep Space Focus Glow */}

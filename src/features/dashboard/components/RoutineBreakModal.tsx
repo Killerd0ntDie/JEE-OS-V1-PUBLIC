@@ -79,7 +79,7 @@ export function RoutineBreakModal({ isOpen, onClose }: RoutineBreakModalProps) {
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} zIndex={100} className="max-w-md w-full p-6 rounded-2xl border border-zinc-800 text-white shadow-2xl">
+    <Modal isOpen={isOpen} onClose={onClose} zIndex={100} className="max-w-md w-full p-6 rounded-2xl border border-zinc-800 text-white shadow-2xl glass-panel">
       <div className="flex items-center justify-between border-b border-zinc-800/80 pb-4 mb-4">
         <div className="flex items-center gap-2.5">
           <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Clock, User, X, Check, Bookmark, Target, AlertCircle, AlertTriangle, LayoutGrid, ChevronDown, ChevronUp } from 'lucide-react';
+import { Clock, User, X, Check, Bookmark, Target, AlertCircle, AlertTriangle, LayoutGrid, ChevronDown, ChevronUp, FileEdit } from 'lucide-react';
 import { SubjectId } from '../../types';
 import { Modal } from '@/components/ui/Modal';
 import { ConfirmDeleteModal } from '@/components/ui/ConfirmDeleteModal';
@@ -8,6 +8,8 @@ import { MissionMode } from '../mission/MissionMode';
 import { RichTextRenderer } from '@/components/MathRenderer';
 import { useAuth } from '@/features/auth';
 import { idbGet, idbSet, idbRemove } from '@/utils/idb';
+import { LiveStrategyTriageOverlay, TriageCategory } from './components/LiveStrategyTriageOverlay';
+import { RoughSheetPartitionCanvas } from './components/RoughSheetPartitionCanvas';
 
 interface MockTestArenaProps {
   test: MockTest;
@@ -19,6 +21,8 @@ export function MockTestArena({ test, onComplete, onExit }: MockTestArenaProps) 
   const { user } = useAuth();
   const userId = user?.uid || 'guest';
   const [isMobilePaletteOpen, setIsMobilePaletteOpen] = useState(false);
+  const [isRoughSheetOpen, setIsRoughSheetOpen] = useState(false);
+  const [triageMap, setTriageMap] = useState<Record<string, TriageCategory>>({});
   const [currentSubject, setCurrentSubject] = useState<SubjectId>(() => {
     try {
       const saved = localStorage.getItem(`jeeos_mock_pos_${userId}_${test.id}`);
@@ -396,7 +400,14 @@ export function MockTestArena({ test, onComplete, onExit }: MockTestArenaProps) 
   };
 
   return (
-    <Modal isOpen={true} onClose={onExit} zIndex={50} backdropClassName="bg-[#020202] text-zinc-300 font-sans flex overflow-hidden" className="flex-1 flex flex-col lg:flex-row overflow-hidden p-4 md:p-6 gap-6 max-w-[1600px] mx-auto w-full">
+    <Modal 
+      isOpen={true} 
+      onClose={onExit} 
+      zIndex={200} 
+      fullScreen={true}
+      backdropClassName="bg-[#020202] text-zinc-300 font-sans fixed inset-0 flex overflow-hidden" 
+      className="w-full h-full p-3 sm:p-4 md:p-6 gap-4 sm:gap-6 max-w-[1600px] mx-auto flex flex-col lg:flex-row overflow-hidden bg-transparent shadow-none"
+    >
         {/* Left Panel: Question Area */}
         <div className="flex-1 flex flex-col bg-[#070708] rounded-[22px] border border-zinc-800/50 shadow-2xl overflow-hidden">
           {/* Subject Tabs */}
@@ -448,6 +459,17 @@ export function MockTestArena({ test, onComplete, onExit }: MockTestArenaProps) 
                   <span>{formatTime(timeLeft)}</span>
                 </div>
 
+                {/* CBT Rough Sheet Notepad Toggle */}
+                <button
+                  type="button"
+                  onClick={() => setIsRoughSheetOpen(true)}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800 font-mono text-xs font-bold transition-colors cursor-pointer"
+                  title="Open 6-Box Scribble Pad"
+                >
+                  <FileEdit className="w-3.5 h-3.5 text-indigo-400" />
+                  <span className="hidden sm:inline">Rough Sheet</span>
+                </button>
+
                 <span className="hidden sm:inline-block text-xs font-mono bg-zinc-900 border border-zinc-800 px-2 py-1 rounded text-zinc-400">
                   {activeQuestion.type === 'MCQ' ? 'Multiple Choice' : 'Numerical'}
                 </span>
@@ -455,6 +477,17 @@ export function MockTestArena({ test, onComplete, onExit }: MockTestArenaProps) 
                   +{activeQuestion.marks.correct} / {activeQuestion.marks.incorrect}
                 </span>
               </div>
+            </div>
+
+            {/* LIVE 3-ROUND STRATEGY & TRIAGE ACTION BAR */}
+            <div className="mb-4">
+              <LiveStrategyTriageOverlay
+                timeLeftSeconds={timeLeft}
+                totalDurationMinutes={test.durationMinutes}
+                currentQuestionId={activeQuestion.id}
+                triageMap={triageMap}
+                onSetTriage={(qId, cat) => setTriageMap(prev => ({ ...prev, [qId]: cat }))}
+              />
             </div>
 
             <div className="text-base text-zinc-300 leading-relaxed mb-8">
@@ -659,7 +692,7 @@ export function MockTestArena({ test, onComplete, onExit }: MockTestArenaProps) 
       <Modal
         isOpen={isConfirmSubmitOpen}
         onClose={() => setIsConfirmSubmitOpen(false)}
-        className="max-w-md bg-zinc-950 border border-emerald-500/30 p-6 rounded-2xl shadow-2xl"
+        className="max-w-md border border-emerald-500/30 p-6 rounded-2xl shadow-2xl glass-panel"
       >
         <div className="flex flex-col gap-4">
           <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
@@ -694,7 +727,7 @@ export function MockTestArena({ test, onComplete, onExit }: MockTestArenaProps) 
       <Modal
         isOpen={isConfirmExitOpen}
         onClose={() => setIsConfirmExitOpen(false)}
-        className="max-w-md bg-zinc-950 border border-amber-500/30 p-6 rounded-2xl shadow-2xl"
+        className="max-w-md border border-amber-500/30 p-6 rounded-2xl shadow-2xl glass-panel"
       >
         <div className="flex flex-col gap-4">
           <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
@@ -742,6 +775,13 @@ export function MockTestArena({ test, onComplete, onExit }: MockTestArenaProps) 
           </div>
         </div>
       )}
+
+      {/* CBT 6-BOX ROUGH SHEET SCRIBBLING NOTEPAD */}
+      <RoughSheetPartitionCanvas
+        isOpen={isRoughSheetOpen}
+        onClose={() => setIsRoughSheetOpen(false)}
+        currentQuestionIndex={currentQIdx}
+      />
     </Modal>
   );
 }

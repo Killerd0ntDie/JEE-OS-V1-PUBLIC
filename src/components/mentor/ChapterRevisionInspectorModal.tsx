@@ -107,8 +107,8 @@ export const ChapterRevisionInspectorModal: React.FC<ChapterRevisionInspectorMod
       isOpen={!!chapterId} 
       onClose={onClose} 
       zIndex={999} 
-      backdropClassName="p-4 bg-black/40 backdrop-blur-sm animate-fade-in font-sans text-left overflow-y-auto flex items-center justify-center" 
-      className="relative w-full max-w-2xl min-h-[500px] h-[80vh] max-h-[90vh] bg-zinc-950/98 border border-zinc-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col my-auto"
+      backdropClassName="p-4 bg-black/10 backdrop-blur-sm animate-fade-in font-sans text-left overflow-y-auto flex items-center justify-center" 
+      className="relative w-full max-w-2xl min-h-[500px] h-[80vh] max-h-[90vh] border border-zinc-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col my-auto glass-panel"
     >
       {/* Ambient Top Glow */}
       <div className={`absolute top-0 right-0 w-80 h-32 rounded-full filter blur-3xl pointer-events-none ${

@@ -28,7 +28,7 @@ export const TopicNode = ({ data, selected }: { data: NeuralNodeData; selected?:
       </span>
     );
     modeBorder = 'border-amber-500/80';
-    modeGlow = 'shadow-[0_0_25px_rgba(245,158,11,0.3)] ring-1 ring-amber-500/50';
+    modeGlow = 'shadow-[0_0_35px_rgba(245,158,11,0.45)] ring-1 ring-amber-500/70 animate-pulse';
   } else if (data.graphMode === 'weightage' && data.isHighWeightage) {
     modeBadge = (
       <span className="text-[9px] font-mono font-bold text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-800/60 flex items-center gap-1 shrink-0">
@@ -37,7 +37,13 @@ export const TopicNode = ({ data, selected }: { data: NeuralNodeData; selected?:
       </span>
     );
     modeBorder = 'border-emerald-500/80';
-    modeGlow = 'shadow-[0_0_25px_rgba(16,185,129,0.3)] ring-1 ring-emerald-500/50';
+    modeGlow = 'shadow-[0_0_30px_rgba(16,185,129,0.35)] ring-1 ring-emerald-500/50';
+  } else if (isMastered) {
+    modeBorder = 'border-emerald-400/70';
+    modeGlow = 'shadow-[0_0_35px_rgba(16,185,129,0.35)] ring-1 ring-emerald-400/50';
+  } else if (isDecaying) {
+    modeBorder = 'border-amber-500/70';
+    modeGlow = 'shadow-[0_0_30px_rgba(245,158,11,0.35)] ring-1 ring-amber-400/60 animate-pulse';
   }
 
   // Base subject color mapping

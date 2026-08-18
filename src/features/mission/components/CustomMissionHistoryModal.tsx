@@ -31,7 +31,7 @@ export function CustomMissionHistoryModal({ isOpen, onClose }: CustomMissionHist
   const completedMissions = customMissions.filter(m => m.completed);
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} zIndex={100} className="w-full max-w-2xl">
+    <Modal isOpen={isOpen} onClose={onClose} zIndex={100} className="w-full max-w-2xl glass-panel">
       {/* Header */}
       <div className="flex items-center justify-between p-5 border-b border-zinc-900/80 bg-zinc-900/40">
         <div className="flex items-center gap-3">

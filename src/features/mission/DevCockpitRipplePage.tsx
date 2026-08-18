@@ -169,7 +169,7 @@ export function DevCockpitRipplePage() {
 
         const activeTimer = setTimeout(() => {
           setStage('active');
-          audioEngine.playCruelAngelsThesisEntrance(subject).catch(() => {});
+          audioEngine.playCruelAngelsThesisEntrance(subject, (80 + 300) / speedMultiplier / 1000).catch(() => {});
 
           const revealTimer = setTimeout(() => {
             setStage('revealed');
@@ -185,7 +185,7 @@ export function DevCockpitRipplePage() {
     } else {
       const activeTimer = setTimeout(() => {
         setStage('active');
-        audioEngine.playCruelAngelsThesisEntrance(subject).catch(() => {});
+        audioEngine.playCruelAngelsThesisEntrance(subject, 360 / speedMultiplier / 1000).catch(() => {});
 
         const duration = (
           evaMode === 'positronSparkle' ? 520 :

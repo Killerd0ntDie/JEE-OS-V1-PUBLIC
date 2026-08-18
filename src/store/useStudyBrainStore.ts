@@ -13,11 +13,7 @@ export const useStudyBrainStore = create<StudyBrainStoreState>((set) => {
   const runtime = StudyBrainRuntime.getInstance();
   const actions = new StudyBrainActions(runtime, 'guest');
   
-  // Fix: Subscribe to runtime to avoid race conditions and desync
-  runtime.subscribe((newState) => {
-    set(newState);
-  });
-  
+
   return {
     ...runtime.getState(),
     actions,

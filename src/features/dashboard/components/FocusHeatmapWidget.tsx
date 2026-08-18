@@ -3,7 +3,8 @@ import { StudySession } from '@/types';
 import { toLocalDateString } from '@/utils/dateUtils';
 import { motion, AnimatePresence } from 'motion/react';
 import { springs } from '@/constants/motion';
-import { Flame } from 'lucide-react';
+import { Flame, X, Clock, Target, Sparkles, ChevronRight, Activity } from 'lucide-react';
+import { audioEngine } from '@/utils/audioEngine';
 
 interface FocusHeatmapWidgetProps {
   studySessions: StudySession[];
@@ -11,9 +12,10 @@ interface FocusHeatmapWidgetProps {
 
 export const FocusHeatmapWidget: React.FC<FocusHeatmapWidgetProps> = ({ studySessions }) => {
   const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
+  const [selectedDay, setSelectedDay] = useState<Date | null>(null);
 
   // Memoize heavy date and session calculations
-  const { days, dailyMinutesMap } = React.useMemo(() => {
+  const { days, dailyMinutesMap, dailySessionsMap } = React.useMemo(() => {
     // Generate last 14 days dates (inclusive of today)
     const generatedDays = Array.from({ length: 14 }).map((_, i) => {
       const d = new Date();
@@ -22,18 +24,24 @@ export const FocusHeatmapWidget: React.FC<FocusHeatmapWidgetProps> = ({ studySes
       return d;
     });
 
-    // Calculate total minutes logged per day
-    const map = new Map<string, number>();
+    // Calculate total minutes logged per day and group sessions
+    const minMap = new Map<string, number>();
+    const sessMap = new Map<string, StudySession[]>();
+
     studySessions.forEach(session => {
       if (!session.startTime) return;
       const sDate = new Date(session.startTime);
       sDate.setHours(0, 0, 0, 0);
       const dateKey = toLocalDateString(sDate);
-      const existing = map.get(dateKey) || 0;
-      map.set(dateKey, existing + (session.duration || 0));
+      
+      const existingMin = minMap.get(dateKey) || 0;
+      minMap.set(dateKey, existingMin + (session.duration || 0));
+
+      const existingSess = sessMap.get(dateKey) || [];
+      sessMap.set(dateKey, [...existingSess, session]);
     });
 
-    return { days: generatedDays, dailyMinutesMap: map };
+    return { days: generatedDays, dailyMinutesMap: minMap, dailySessionsMap: sessMap };
   }, [studySessions]);
 
   // Format date helper
@@ -58,6 +66,10 @@ export const FocusHeatmapWidget: React.FC<FocusHeatmapWidgetProps> = ({ studySes
     const key = toLocalDateString(d);
     return (dailyMinutesMap.get(key) || 0) > 0;
   }).length;
+
+  const selectedDateKey = selectedDay ? toLocalDateString(selectedDay) : null;
+  const selectedDaySessions = selectedDateKey ? dailySessionsMap.get(selectedDateKey) || [] : [];
+  const selectedDayMins = selectedDateKey ? dailyMinutesMap.get(selectedDateKey) || 0 : 0;
 
   return (
     <div 
@@ -94,7 +106,7 @@ export const FocusHeatmapWidget: React.FC<FocusHeatmapWidgetProps> = ({ studySes
               14-DAY FOCUS FLOW
             </h3>
             <span className="text-[10px] text-zinc-400 font-mono block uppercase">
-              Consistency & Study Streak
+              Consistency & Study Streak (Click day to inspect)
             </span>
           </div>
         </div>
@@ -112,6 +124,7 @@ export const FocusHeatmapWidget: React.FC<FocusHeatmapWidgetProps> = ({ studySes
           const hrs = (mins / 60).toFixed(1);
           const isToday = idx === 13;
           const isHovered = activeTooltip === dateKey;
+          const isSelected = selectedDay && toLocalDateString(selectedDay) === dateKey;
 
           // Position tooltip to avoid edge clipping
           const alignmentClass =
@@ -133,13 +146,16 @@ export const FocusHeatmapWidget: React.FC<FocusHeatmapWidgetProps> = ({ studySes
               key={dateKey}
               onMouseEnter={() => setActiveTooltip(dateKey)}
               onMouseLeave={() => setActiveTooltip(null)}
-              onClick={() => setActiveTooltip(prev => prev === dateKey ? null : dateKey)}
+              onClick={() => {
+                audioEngine.playMechanicalKey('click').catch(() => {});
+                setSelectedDay(prev => (prev && toLocalDateString(prev) === dateKey ? null : day));
+              }}
               className="relative flex flex-col items-center gap-1 cursor-pointer select-none"
             >
               <div
                 className={`w-full aspect-square rounded-lg border transition-all duration-200 flex items-center justify-center text-[11px] font-mono ${getIntensity(mins)} ${
                   isToday ? 'ring-1 ring-emerald-400 ring-offset-1 ring-offset-black' : ''
-                } ${isHovered ? 'scale-110 shadow-md shadow-emerald-500/20' : ''}`}
+                } ${isSelected ? 'ring-2 ring-indigo-400 ring-offset-1 ring-offset-black scale-105' : isHovered ? 'scale-110 shadow-md shadow-emerald-500/20' : ''}`}
               >
                 {mins > 0 ? (mins >= 60 ? `${Math.round(mins/60)}h` : `${mins}m`) : ''}
               </div>
@@ -150,7 +166,7 @@ export const FocusHeatmapWidget: React.FC<FocusHeatmapWidgetProps> = ({ studySes
 
               {/* Tooltip with AnimatePresence physics pop */}
               <AnimatePresence>
-                {isHovered && (
+                {isHovered && !selectedDay && (
                   <motion.div
                     initial={{ opacity: 0, scale: 0.92, y: -4 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -169,6 +185,58 @@ export const FocusHeatmapWidget: React.FC<FocusHeatmapWidgetProps> = ({ studySes
           );
         })}
       </div>
+
+      {/* INTERACTIVE DAY INSPECTOR FLYOUT */}
+      <AnimatePresence>
+        {selectedDay && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="mt-3.5 pt-3.5 border-t border-white/10 space-y-2.5"
+          >
+            <div className="flex items-center justify-between font-mono text-xs">
+              <div className="flex items-center gap-2">
+                <Activity className="w-3.5 h-3.5 text-indigo-400" />
+                <span className="text-white font-bold">{selectedDay.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950/60 border border-emerald-500/30 text-emerald-300 font-bold">
+                  {selectedDayMins > 0 ? `${(selectedDayMins / 60).toFixed(1)}h Logged` : 'Zero Study'}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedDay(null)}
+                className="text-zinc-500 hover:text-white transition-colors cursor-pointer p-1 rounded-lg hover:bg-white/5"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {selectedDaySessions.length === 0 ? (
+              <div className="p-3 rounded-xl bg-zinc-900/40 border border-zinc-850 text-center text-xs font-mono text-zinc-500">
+                No active focus sessions logged on this date.
+              </div>
+            ) : (
+              <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                {selectedDaySessions.map((session, idx) => (
+                  <div 
+                    key={session.id || idx}
+                    className="p-2 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-between text-xs font-mono"
+                  >
+                    <div className="flex items-center gap-2 truncate">
+                      <Clock className="w-3 h-3 text-indigo-400 shrink-0" />
+                      <span className="text-zinc-200 font-semibold truncate">{session.chapterId || session.subject || 'Deep Focus Sprint'}</span>
+                      <span className="text-[10px] text-zinc-500">{session.mode || 'Cockpit'}</span>
+                    </div>
+                    <span className="text-emerald-400 font-bold shrink-0">{session.duration} mins</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="flex items-center justify-between text-[11px] font-mono text-zinc-400 pt-3 border-t border-zinc-850/80 mt-3">
         <span>Less active</span>

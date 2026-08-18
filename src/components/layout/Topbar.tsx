@@ -200,12 +200,9 @@ export function Topbar({
   };
 
   return (
-    <header className="h-14 shrink-0 relative border-b border-zinc-850/80 flex items-center justify-between px-4 sticky top-0 z-50 select-none shadow-xl">
-      {/* Frosted Glass Background Layer */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-xl border-b border-zinc-850/80 -z-10 pointer-events-none" />
-
+    <header className="h-14 shrink-0 relative border-b border-white/10 flex items-center justify-between px-4 sticky top-0 z-50 select-none shadow-xl glass-panel">
       {/* Ambient background glow */}
-      <div className="absolute top-0 left-1/4 w-96 h-12 bg-indigo-600/10 filter blur-3xl pointer-events-none -z-10" />
+      <div className="absolute top-0 left-1/4 w-96 h-12 bg-indigo-600/15 filter blur-3xl pointer-events-none -z-10" />
       
       {/* Left: Interactive Brand Logo & Breadcrumb Navigation */}
       <div className="flex items-center gap-3">
@@ -323,21 +320,37 @@ export function Topbar({
             if (activeQuickStat && activeQuickStat !== 'streak') setActiveQuickStat('streak');
           }}
         >
-          <button
-            type="button"
-            aria-haspopup="true"
-            aria-expanded={activeQuickStat === 'streak'}
-            onClick={() => setActiveQuickStat(prev => prev === 'streak' ? null : 'streak')}
-            className={`group flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-mono transition-all duration-150 active:scale-[0.96] select-none cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 border ${
-              activeQuickStat === 'streak'
-                ? 'bg-amber-950/40 border-amber-500/50 text-amber-300 shadow-sm'
-                : 'bg-zinc-900/60 hover:bg-zinc-850 border-zinc-800 hover:border-zinc-700 text-zinc-300'
-            }`}
-            title="Study Streak"
-          >
-            <Icon name="Zap" className="w-3.5 h-3.5 text-amber-400" />
-            <span className="font-bold text-amber-400">{effectiveStreak}d</span>
-          </button>
+          {(() => {
+            const isGodModeStreak = effectiveStreak >= 7;
+            return (
+              <button
+                type="button"
+                aria-haspopup="true"
+                aria-expanded={activeQuickStat === 'streak'}
+                onClick={() => setActiveQuickStat(prev => prev === 'streak' ? null : 'streak')}
+                className={`group relative overflow-hidden flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono transition-all duration-200 active:scale-[0.96] select-none cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50 border ${
+                  isGodModeStreak
+                    ? 'bg-gradient-to-r from-amber-950/70 via-orange-950/50 to-amber-950/70 border-amber-400/80 text-amber-200 shadow-[0_0_18px_rgba(245,158,11,0.4)] ring-1 ring-amber-400/50'
+                    : activeQuickStat === 'streak'
+                    ? 'bg-amber-950/40 border-amber-500/50 text-amber-300 shadow-sm'
+                    : 'bg-zinc-900/60 hover:bg-zinc-850 border-zinc-800 hover:border-zinc-700 text-zinc-300'
+                }`}
+                title={isGodModeStreak ? "God Mode Streak Active (≥7 Days)" : "Study Streak"}
+              >
+                {/* God Mode Flame Energy Shimmer */}
+                {isGodModeStreak && (
+                  <span 
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-400/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out pointer-events-none"
+                    style={{ animation: 'shimmerSlide 2.5s infinite linear' }}
+                  />
+                )}
+                <Icon name={isGodModeStreak ? "Flame" : "Zap"} className={`w-3.5 h-3.5 ${isGodModeStreak ? 'text-amber-400 animate-pulse' : 'text-amber-400'}`} />
+                <span className={`font-bold ${isGodModeStreak ? 'text-amber-300' : 'text-amber-400'}`}>
+                  {effectiveStreak}d {isGodModeStreak && <span className="text-[10px] text-amber-400 font-extrabold tracking-wider">GOD MODE</span>}
+                </span>
+              </button>
+            );
+          })()}
 
           <AnimatePresence>
             {activeQuickStat === 'streak' && (

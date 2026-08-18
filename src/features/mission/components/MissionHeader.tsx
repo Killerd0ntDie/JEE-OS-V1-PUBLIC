@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { audioEngine } from '@/utils/audioEngine';
 import { springs } from '@/constants/motion';
 import { CockpitAnimMode, ANIM_MODES_META } from '../CockpitTransitionEngine';
+import { AudioWaveVisualizer } from './AudioWaveVisualizer';
 
 export type FocusPresetMode = 'deep60' | 'pomodoro' | 'speedDrill';
 
@@ -19,6 +20,8 @@ interface MissionHeaderProps {
   focusPreset?: FocusPresetMode;
   onSelectFocusPreset?: (preset: FocusPresetMode) => void;
   targetDurationMins?: number;
+  isPlaying?: boolean;
+  activeSubject?: 'physics' | 'chemistry' | 'maths' | string;
 }
 
 export function MissionHeader({ 
@@ -32,7 +35,9 @@ export function MissionHeader({
   onToggleZenMode,
   focusPreset = 'deep60',
   onSelectFocusPreset,
-  targetDurationMins = 60
+  targetDurationMins = 60,
+  isPlaying = true,
+  activeSubject = 'physics'
 }: MissionHeaderProps) {
   const [isMuted, setIsMuted] = useState(audioEngine.getVolume() === 0);
   const [isFxMenuOpen, setIsFxMenuOpen] = useState(false);
@@ -41,6 +46,7 @@ export function MissionHeader({
     if (isMuted) {
       audioEngine.setVolume(0.6);
       setIsMuted(false);
+      audioEngine.playMechanicalKey('click').catch(() => {});
     } else {
       audioEngine.setVolume(0);
       setIsMuted(true);
@@ -49,7 +55,7 @@ export function MissionHeader({
 
   return (
     <header className="absolute top-0 left-0 w-full z-50 flex justify-between items-center px-4 sm:px-6 py-3 pointer-events-auto bg-gradient-to-b from-zinc-950/90 via-zinc-950/40 to-transparent backdrop-blur-sm">
-      {/* Left: Branding & Status */}
+      {/* Left: Branding, Audio Visualizer & Status */}
       <div className="flex items-center gap-3">
         <motion.div 
           whileHover={{ scale: 1.05, rotate: 5 }}
@@ -77,6 +83,13 @@ export function MissionHeader({
             </span>
           </div>
         </div>
+
+        {/* Live Audio & Pulse Waveform Equalizer */}
+        <AudioWaveVisualizer
+          isPlaying={isPlaying}
+          activeSubject={activeSubject}
+          className="hidden sm:flex ml-1.5"
+        />
       </div>
 
       {/* Center: Mission Focus Mode Presets (Liquid Glass Pill) */}
@@ -102,7 +115,7 @@ export function MissionHeader({
               key={p.id}
               type="button"
               onClick={() => {
-                audioEngine.playRadioRelayClick().catch(() => {});
+                audioEngine.playMechanicalKey('click').catch(() => {});
                 onSelectFocusPreset?.(p.id);
               }}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
@@ -128,7 +141,7 @@ export function MissionHeader({
           whileTap={{ scale: 0.95 }}
           transition={springs.snappy}
           onClick={() => {
-            audioEngine.playRadioRelayClick().catch(() => {});
+            audioEngine.playMechanicalKey('clack').catch(() => {});
             onToggleZenMode?.();
           }}
           style={{

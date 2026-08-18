@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Trophy, Star, Zap } from 'lucide-react';
+import { Trophy, Zap, Sparkles, Hexagon, ArrowUpRight } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { getTitleAndColor } from '@/utils/levelingCalculations';
+import { audioEngine } from '@/utils/audioEngine';
 
 interface LevelUpCelebrationProps {
   isOpen: boolean;
@@ -11,17 +12,34 @@ interface LevelUpCelebrationProps {
   onClose: () => void;
 }
 
+// Pre-calculated 24 hexagonal burst angles and distances
+const HEX_BURST_PARTICLES = Array.from({ length: 24 }).map((_, i) => {
+  const angle = (i / 24) * 360;
+  const rad = (angle * Math.PI) / 180;
+  const distance = 120 + (i % 3) * 50;
+  return {
+    id: i,
+    x: Math.cos(rad) * distance,
+    y: Math.sin(rad) * distance,
+    size: 14 + (i % 4) * 6,
+    color: ['#06b6d4', '#6366f1', '#10b981', '#fbbf24', '#f43f5e'][i % 5],
+    delay: (i % 6) * 0.05,
+    rotation: angle + 90,
+  };
+});
+
 export function LevelUpCelebration({ isOpen, oldLevel, newLevel, onClose }: LevelUpCelebrationProps) {
   const [confettiActive, setConfettiActive] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setConfettiActive(true);
+      audioEngine.playVictoryFanfare().catch(() => {});
 
-      // Auto-close after 3 seconds
+      // Auto-close after 3.5 seconds
       const timer = setTimeout(() => {
         onClose();
-      }, 3000);
+      }, 3500);
 
       return () => clearTimeout(timer);
     }
@@ -35,113 +53,125 @@ export function LevelUpCelebration({ isOpen, oldLevel, newLevel, onClose }: Leve
       isOpen={isOpen}
       onClose={onClose}
       zIndex={200}
-      backdropClassName="bg-black/40 backdrop-blur-sm"
-      className="glass-card border border-indigo-500/30 rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl shadow-indigo-500/10"
+      backdropClassName="bg-black/60 backdrop-blur-md"
+      className="glass-card border border-indigo-500/40 rounded-3xl p-6 sm:p-8 max-w-sm w-full mx-4 shadow-[0_0_50px_rgba(99,102,241,0.25)] relative overflow-hidden glass-panel"
     >
-              {/* Confetti particles */}
-              {confettiActive && (
-                <>
-                  {[...Array(12)].map((_, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ 
-                        x: 0, 
-                        y: 0, 
-                        scale: 0,
-                        opacity: 1
-                      }}
-                      animate={{
-                        x: (Math.random() - 0.5) * 300,
-                        y: (Math.random() - 0.5) * 300,
-                        scale: Math.random() * 0.8 + 0.4,
-                        opacity: 0,
-                        rotate: Math.random() * 360
-                      }}
-                      transition={{
-                        duration: 1.2,
-                        delay: Math.random() * 0.3,
-                        ease: "easeOut"
-                      }}
-                      className="absolute top-1/2 left-1/2 w-1.5 h-1.5 rounded-full"
-                      style={{
-                        backgroundColor: ['#FCD34D', '#A78BFA', '#34D399', '#60A5FA', '#F472B6'][i % 5]
-                      }}
-                    />
-                  ))}
-                </>
-              )}
+      {/* Background Holographic Radar Ring */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div className="w-72 h-72 rounded-full border border-indigo-500/20 animate-ping opacity-25" />
+        <div className="w-52 h-52 rounded-full border border-cyan-500/20 animate-pulse opacity-40" />
+      </div>
 
-              <div className="relative z-10 text-center space-y-4">
-                {/* Trophy Icon */}
-                <motion.div
-                  initial={{ y: -10, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
-                  className="flex justify-center"
-                >
-                  <div className="relative">
-                    <div className="absolute inset-0 bg-amber-400/10 blur-xl rounded-full" />
-                    <Trophy className="w-16 h-16 text-amber-400 relative z-10" />
-                  </div>
-                </motion.div>
+      {/* Cybernetic Hexagonal Particle Bursts */}
+      {confettiActive && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+          {HEX_BURST_PARTICLES.map((p) => (
+            <motion.div
+              key={p.id}
+              initial={{ 
+                x: 0, 
+                y: 0, 
+                scale: 0,
+                opacity: 1,
+                rotate: 0
+              }}
+              animate={{
+                x: p.x,
+                y: p.y,
+                scale: [0, 1.2, 0.9],
+                opacity: [1, 0.9, 0],
+                rotate: p.rotation + 180
+              }}
+              transition={{
+                duration: 1.4,
+                delay: p.delay,
+                ease: [0.16, 1, 0.3, 1]
+              }}
+              className="absolute flex items-center justify-center"
+              style={{ width: p.size, height: p.size }}
+            >
+              <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_8px_currentColor]" style={{ color: p.color }}>
+                <polygon 
+                  points="50 3, 90 25, 90 75, 50 97, 10 75, 10 25" 
+                  fill={p.color} 
+                  fillOpacity="0.25"
+                  stroke={p.color} 
+                  strokeWidth="6" 
+                />
+              </svg>
+            </motion.div>
+          ))}
+        </div>
+      )}
 
-                {/* Level Up Text */}
-                <motion.div
-                  initial={{ y: 10, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-                  className="space-y-2"
-                >
-                  <h2 className="text-2xl font-display font-bold text-white tracking-tight">
-                    LEVEL UP!
-                  </h2>
-                  <div className="flex items-center justify-center gap-2 text-4xl font-mono font-bold">
-                    <span className="text-zinc-400">{oldLevel}</span>
-                    <Zap className="w-6 h-6 text-amber-400" />
-                    <span className="text-amber-400">{newLevel}</span>
-                  </div>
-                </motion.div>
+      <div className="relative z-10 text-center space-y-4">
+        {/* Japanese Header Tag */}
+        <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-indigo-950/60 border border-indigo-500/30 text-indigo-300 text-[10px] font-mono font-bold uppercase tracking-widest">
+          <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping" />
+          <span>レベル昇格 // SYNAPSE OVERCLOCK</span>
+        </div>
 
-                {/* Title Change */}
-                {oldTitle !== newTitle && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.3 }}
-                    className="pt-3 border-t border-zinc-800/50"
-                  >
-                    <p className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest mb-1">New Title</p>
-                    <p className={`text-lg font-bold ${titleColor}`}>
-                      {newTitle}
-                    </p>
-                  </motion.div>
-                )}
+        {/* Central Hexagonal Core Badge */}
+        <motion.div
+          initial={{ scale: 0.5, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ delay: 0.1, type: "spring", stiffness: 220, damping: 15 }}
+          className="flex justify-center"
+        >
+          <div className="relative flex items-center justify-center w-20 h-20">
+            <div className="absolute inset-0 bg-indigo-500/20 blur-2xl rounded-full" />
+            <svg viewBox="0 0 100 100" className="w-20 h-20 text-indigo-400 drop-shadow-[0_0_20px_rgba(99,102,241,0.6)] animate-spin-slow">
+              <polygon 
+                points="50 3, 90 25, 90 75, 50 97, 10 75, 10 25" 
+                fill="rgba(99, 102, 241, 0.15)" 
+                stroke="#818cf8" 
+                strokeWidth="4" 
+                strokeDasharray="12 4"
+              />
+            </svg>
+            <Trophy className="w-9 h-9 text-amber-400 absolute drop-shadow-[0_0_12px_rgba(251,191,36,0.6)]" />
+          </div>
+        </motion.div>
 
-                {/* Sparkles decoration */}
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.4 }}
-                  className="flex justify-center gap-1.5 pt-2"
-                >
-                  {[...Array(4)].map((_, i) => (
-                    <motion.div
-                      key={i}
-                      animate={{
-                        scale: [1, 1.15, 1],
-                        rotate: [0, 180, 360]
-                      }}
-                      transition={{
-                        duration: 2,
-                        repeat: Infinity,
-                        delay: i * 0.1
-                      }}
-                    >
-                      <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
-                    </motion.div>
-                  ))}
-                </motion.div>
-              </div>
+        {/* Level Up Indicator */}
+        <motion.div
+          initial={{ y: 10, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+          className="space-y-1.5"
+        >
+          <h2 className="text-2xl font-display font-black text-white tracking-tight">
+            LEVEL UP!
+          </h2>
+          <div className="flex items-center justify-center gap-3 text-4xl font-mono font-black">
+            <span className="text-zinc-500">{oldLevel}</span>
+            <ArrowUpRight className="w-6 h-6 text-emerald-400" />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-amber-400 to-orange-400 drop-shadow-[0_0_15px_rgba(251,191,36,0.4)]">
+              {newLevel}
+            </span>
+          </div>
+        </motion.div>
+
+        {/* New Tactical Title */}
+        {oldTitle !== newTitle && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.3 }}
+            className="pt-3 border-t border-white/10"
+          >
+            <p className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest mb-1">UNLOCKED DESIGNATION</p>
+            <p className={`text-base font-bold font-display ${titleColor}`}>
+              {newTitle}
+            </p>
+          </motion.div>
+        )}
+
+        {/* Footer Subtext */}
+        <div className="pt-2 text-[10px] font-mono text-zinc-500">
+          Daily Study Velocity & XP Multiplier Increased
+        </div>
+      </div>
     </Modal>
   );
 }

@@ -84,7 +84,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
             initial="initial"
             animate="animate"
             exit="exit"
-            className="absolute inset-0 bg-black/10 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/40 backdrop-blur-md"
             onClick={onClose}
           />
           
@@ -97,11 +97,11 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
             role="dialog"
             aria-modal="true"
             aria-label="Command Palette"
-            className="w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden flex flex-col relative border border-zinc-800/80"
+            className="w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden flex flex-col relative border border-white/10 glass-panel"
             onClick={e => e.stopPropagation()}
           >
             {/* Search header */}
-            <div className="flex items-center gap-3 px-4 py-3.5 border-b border-zinc-800/50 bg-transparent">
+            <div className="flex items-center gap-3 px-4 py-3.5 border-b border-white/10 bg-white/[0.02]">
               <Icon name="Search" aria-hidden="true" className="w-5 h-5 text-indigo-400 shrink-0" />
               <input
                 ref={inputRef}
@@ -113,7 +113,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
                 className="flex-grow bg-transparent text-sm text-white outline-none border-none ring-0 focus:outline-none focus:ring-0 placeholder-zinc-500 font-sans"
               />
               <div className="flex items-center gap-1">
-                <span className="text-[10px] bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded text-zinc-400 font-mono">
+                <span className="text-[10px] bg-white/[0.06] border border-white/10 px-1.5 py-0.5 rounded text-zinc-400 font-mono">
                   ESC
                 </span>
               </div>
@@ -140,12 +140,12 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
                       }}
                       className={`w-full text-left px-3.5 py-2.5 rounded-xl transition-all flex items-center gap-3.5 cursor-pointer border select-none ${
                         isSelected
-                          ? 'bg-indigo-600/15 border-indigo-500/30 text-white shadow-sm'
-                          : 'bg-transparent border-transparent text-zinc-400 hover:bg-zinc-900/60 hover:text-zinc-200'
+                          ? 'bg-indigo-600/20 border-indigo-500/40 text-white shadow-sm'
+                          : 'bg-transparent border-transparent text-zinc-400 hover:bg-white/[0.05] hover:text-zinc-200'
                       }`}
                     >
                       <div className={`p-1.5 rounded-lg border ${
-                        isSelected ? 'bg-indigo-500/20 border-indigo-500/30 text-indigo-300' : 'bg-zinc-900/80 border-zinc-800/80 text-zinc-400'
+                        isSelected ? 'bg-indigo-500/20 border-indigo-500/30 text-indigo-300' : 'bg-white/[0.04] border-white/10 text-zinc-400'
                       }`}>
                         <Icon name={page.icon} className="w-4 h-4" />
                       </div>

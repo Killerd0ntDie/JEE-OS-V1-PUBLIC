@@ -9,9 +9,10 @@ import { RevisionCalendarHeatmap } from './components/RevisionCalendarHeatmap';
 import { FormulaSpeedDrillStage } from './components/FormulaSpeedDrillStage';
 import { FeynmanSandboxStage } from './components/FeynmanSandboxStage';
 import { RevisionFlashcardVault } from './components/RevisionFlashcardVault';
+import { LowHangingFruitDrillModal } from './components/LowHangingFruitDrillModal';
 import { 
   Flame, Brain, Sparkles, ShieldCheck, 
-  Zap, ArrowRight
+  Zap, ArrowRight, Target
 } from 'lucide-react';
 
 export function RevisionPage() {
@@ -20,6 +21,7 @@ export function RevisionPage() {
 
   // Sub-page navigation: 'hub' | 'vault' | 'arena' | 'speed_drill' | 'feynman'
   const [activeView, setActiveView] = useState<'hub' | 'vault' | 'arena' | 'speed_drill' | 'feynman'>('hub');
+  const [isLowHangingModalOpen, setIsLowHangingModalOpen] = useState(false);
 
   // Filter states for Flashcard Vault
   const [activeSubject, setActiveSubject] = useState<'all' | 'physics' | 'chemistry' | 'maths'>('all');
@@ -253,6 +255,31 @@ export function RevisionPage() {
                 </motion.button>
               </div>
 
+              {/* Card 5: "Kill-First" Low-Hanging 100-Mark Speed Buffer */}
+              <div className="bg-zinc-900/90 border border-white/15 hover:border-emerald-500/40 rounded-3xl p-6 relative overflow-hidden transition-all shadow-xl flex flex-col justify-between space-y-4">
+                <div className="space-y-2">
+                  <div className="w-10 h-10 rounded-2xl bg-emerald-950/60 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-sm">
+                    <Target className="w-5 h-5 text-emerald-400" />
+                  </div>
+                  <h3 className="text-lg font-display font-bold text-white tracking-tight">
+                    "Kill-First" Low-Hanging Fruit Sprint
+                  </h3>
+                  <p className="text-xs text-zinc-400 leading-relaxed font-sans">
+                    Timed 45-second sprints on guaranteed direct formula/NCERT questions to secure your 100-mark speed buffer.
+                  </p>
+                </div>
+
+                <motion.button
+                  type="button"
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setIsLowHangingModalOpen(true)}
+                  className="w-full py-3.5 rounded-2xl bg-emerald-600/30 hover:bg-emerald-600/40 border border-emerald-500/40 text-emerald-100 font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-colors cursor-pointer"
+                >
+                  <Zap className="w-4 h-4 text-emerald-400" />
+                  <span>Launch 100-Mark Sprint</span>
+                </motion.button>
+              </div>
+
             </div>
 
             {/* 3. EBBINGHAUS DECAY CURVE & 30-DAY VELOCITY HEATMAP */}
@@ -372,6 +399,13 @@ export function RevisionPage() {
         onClose={() => setAiPracticeConfig(null)}
         chapterId={aiPracticeConfig?.chapterId || null}
         subject={aiPracticeConfig?.subject || 'physics'}
+      />
+
+      {/* "Kill-First" Low-Hanging 100-Mark Speed Drill Modal */}
+      <LowHangingFruitDrillModal
+        isOpen={isLowHangingModalOpen}
+        onClose={() => setIsLowHangingModalOpen(false)}
+        selectedSubject={activeSubject}
       />
 
     </div>

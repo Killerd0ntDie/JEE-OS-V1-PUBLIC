@@ -75,6 +75,7 @@ import {
   Brain,
   Trash,
   EyeOff,
+  Sigma,
   LucideProps
 } from 'lucide-react';
 
@@ -83,6 +84,7 @@ export const iconMap = {
   Atom,
   FlaskConical,
   Binary,
+  Sigma,
   Calendar,
   Bookmark,
   FileText,

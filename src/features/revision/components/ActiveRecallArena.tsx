@@ -8,6 +8,7 @@ import { RevisionCardItem } from '@jee-os/engines';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { BlockMath, InlineMath } from 'react-katex';
 import { springs } from '@/constants/motion';
+import { audioEngine } from '@/utils/audioEngine';
 
 interface ActiveRecallArenaProps {
   cards: RevisionCardItem[];
@@ -123,6 +124,7 @@ export function ActiveRecallArena({ cards, onExit }: ActiveRecallArenaProps) {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code === 'Space') {
         e.preventDefault();
+        audioEngine.playCardFlip().catch(() => {});
         setIsRevealed(prev => !prev);
       } else if (isRevealed) {
         if (e.key === '1') handleDecision(0, 'Blackout');
@@ -172,6 +174,13 @@ export function ActiveRecallArena({ cards, onExit }: ActiveRecallArenaProps) {
     map.get(currentCard.chapterId)!.push(quality);
     
     const isSuccess = quality >= 3;
+    if (isSuccess) {
+      audioEngine.playMechanicalKey('clack').catch(() => {});
+      audioEngine.playTacticalBeep(1318).catch(() => {});
+    } else {
+      audioEngine.playMechanicalKey('heavy').catch(() => {});
+    }
+
     setSessionResults(prev => [...prev, { id: currentCard.id, success: isSuccess, quality }]);
     
     const xp = quality * 25;

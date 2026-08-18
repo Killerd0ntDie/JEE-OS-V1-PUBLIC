@@ -171,7 +171,7 @@ export function UploadPDFModal({ isOpen, onSuccess, onCancel }: UploadPDFModalPr
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onCancel} zIndex={200} backdropClassName="bg-black/40 backdrop-blur-md p-4" className="bg-zinc-950/98 border border-zinc-800 rounded-3xl p-6 w-full max-w-md shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] relative text-left">
+    <Modal isOpen={isOpen} onClose={onCancel} zIndex={200} backdropClassName="bg-black/10 backdrop-blur-md p-4" className="border border-zinc-800 rounded-3xl p-6 w-full max-w-md shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] relative text-left glass-panel">
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
