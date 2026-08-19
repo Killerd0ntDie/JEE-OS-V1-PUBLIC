@@ -187,42 +187,45 @@ main {
 }
 
 /* Glassmorphism Design Tokens & Utilities */
+/* NOTE: We use --glass-* CSS custom properties for backdrop-filter values
+   because the Vite/LightningCSS minifier strips spaces between chained
+   filter functions (e.g. blur(20px) saturate(180%) becomes blur(20px)saturate(180%)),
+   which is INVALID CSS and causes browsers to silently drop the entire property.
+   CSS custom properties are opaque to the minifier so the space is preserved. */
+
 .glass-card {
+  --glass-blur: blur(14px) saturate(160%);
   background: rgba(14, 15, 22, 0.72) !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
   box-shadow: 0 4px 24px 0 rgba(0, 0, 0, 0.4) !important;
-  backdrop-filter: blur(14px) saturate(160%) !important;
-
+  -webkit-backdrop-filter: var(--glass-blur) !important;
+  backdrop-filter: var(--glass-blur) !important;
   transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s cubic-bezier(0.16, 1, 0.3, 1) !important;
-  
-
 }
 
 .glass-card-hover {
   background: rgba(20, 22, 32, 0.82) !important;
-  border-color: rgba(99, 102, 241, 0.4)  !important;
-  box-shadow: 0 8px 32px 0 rgba(99, 102, 241, 0.2)  !important;
+  border-color: rgba(99, 102, 241, 0.4) !important;
+  box-shadow: 0 8px 32px 0 rgba(99, 102, 241, 0.2) !important;
 }
 
 .glass-panel {
+  --glass-blur: blur(20px) saturate(180%);
   background: rgba(10, 10, 15, 0.75) !important;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6) !important;
-  backdrop-filter: blur(20px) saturate(180%) !important;
-
+  -webkit-backdrop-filter: var(--glass-blur) !important;
+  backdrop-filter: var(--glass-blur) !important;
   border: 1px solid rgba(255, 255, 255, 0.10) !important;
-  
-
 }
 
 /* glass-dropdown: translucent high-performance dropdown */
 .glass-dropdown {
+  --glass-blur: blur(16px) saturate(160%);
   background: rgba(12, 13, 18, 0.88) !important;
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55) !important;
-  backdrop-filter: blur(16px) saturate(160%) !important;
-
+  -webkit-backdrop-filter: var(--glass-blur) !important;
+  backdrop-filter: var(--glass-blur) !important;
   border: 1px solid rgba(255, 255, 255, 0.12) !important;
-  
-
 }
 
 .text-gradient-indigo {
