@@ -93,6 +93,23 @@ export function DailyMissionTimeline({
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const { toast } = useToast();
 
+  const [resumableMissions, setResumableMissions] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    const checkResumable = () => {
+      const map: Record<string, boolean> = {};
+      todayMissions.forEach(m => {
+        if (localStorage.getItem(`jeeos_mission_state_${m.id}`)) {
+          map[m.id] = true;
+        }
+      });
+      setResumableMissions(map);
+    };
+    checkResumable();
+    window.addEventListener('focus', checkResumable);
+    return () => window.removeEventListener('focus', checkResumable);
+  }, [todayMissions]);
+
   const completedCount = todayMissions.filter(m => m.completed && !m.dismissed).length;
   const totalCount = todayMissions.filter(m => !m.dismissed).length;
   const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
@@ -989,7 +1006,7 @@ export function DailyMissionTimeline({
                                 className="px-5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-mono text-xs font-bold uppercase tracking-wider rounded-xl flex items-center gap-1.5 cursor-pointer transition-all shadow-[0_0_15px_rgba(16,185,129,0.35)] border border-emerald-400/40 active:scale-95"
                               >
                                 <Play className="w-3.5 h-3.5 fill-white text-white" />
-                                <span>{localStorage.getItem(`jeeos_mission_state_${mission.id}`) ? 'Resume Mission' : 'Start Mission'}</span>
+                                <span>{resumableMissions[mission.id] ? 'Resume Mission' : 'Start Mission'}</span>
                               </motion.button>
                             )}
 
@@ -1356,7 +1373,7 @@ export function DailyMissionTimeline({
                   <span>RESUME FOCUS COCKPIT ({formatTimer(secondsElapsed)})</span>
                 </span>
               ) : (
-                <span>{(activeMission?.id && localStorage.getItem(`jeeos_mission_state_${activeMission.id}`)) ? 'RESUME FOCUS COCKPIT SESSION' : 'ARM FOCUS COCKPIT SESSION'}</span>
+                <span>{(activeMission?.id && resumableMissions[activeMission.id]) ? 'RESUME FOCUS COCKPIT SESSION' : 'ARM FOCUS COCKPIT SESSION'}</span>
               )}
             </motion.button>
           </div>

@@ -680,10 +680,11 @@ export function MissionMode(props: MissionModeProps) {
       <MissionTimeUpModal 
         isOpen={state.isTimeUpModalOpen}
         xpWager={state.xpWager}
-        onFail={() => {
+        onFail={async () => {
           setters.setIsTimeUpModalOpen(false);
           setters.setMissionFailed(true);
           setters.setCoachTip('CASINO PENALTY: You failed to provide Proof of Work. Wager lost.');
+          await actions.deductCasinoWager(state.xpWager);
         }}
         onComplete={() => {
           setters.setIsTimeUpModalOpen(false);

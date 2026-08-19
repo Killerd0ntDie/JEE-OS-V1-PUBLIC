@@ -244,6 +244,28 @@ export class StudyBrainActions {
     console.log(`[PartialXP] Awarded ${partialXP} XP for ${Math.round(elapsedSecs/60)}m work on mission ${missionId} (focus: ${focusScore}%)`);
   }
 
+  async deductCasinoWager(wagerAmount: number) {
+    this.checkWriteBlock();
+    if (!wagerAmount || wagerAmount <= 0) return;
+    
+    const newXp = {
+      ...this.state.xp,
+      total: Math.max(0, this.state.xp.total - wagerAmount)
+    };
+
+    const { level: newLevel, nextLevelXP: xpNeededForNext } = calculateLevelFromXP(newXp.total);
+    newXp.level = newLevel;
+    newXp.nextLevelXP = xpNeededForNext;
+
+    try {
+      await UserRepository.updateUserProfile(this.userId, { xp: newXp });
+      await this.runtime.refresh('XP_UPDATE', { xp: newXp, lastSyncError: null });
+      console.log(`[Casino] Deducted ${wagerAmount} XP for failed Proof of Work.`);
+    } catch (err) {
+      await this.handleWriteError(err, 'deductCasinoWager');
+    }
+  }
+
   async setMissionModeActive(active: boolean) {
     this.checkWriteBlock();
     // Optimistic Update
@@ -255,7 +277,7 @@ export class StudyBrainActions {
     }
   }
 
-  async completeTask(taskId: string, durationSecs?: number) {
+  async completeTask(taskId: string, durationSecs?: number, metrics?: { questions?: number; correct?: number; confidence?: number; focusScore?: number; idleTime?: number; focusInterruptions?: number }) {
     this.checkWriteBlock();
     const missionIndex = this.state.todayMissions.findIndex(m => m.id === taskId);
     if (missionIndex === -1) return;
@@ -315,7 +337,7 @@ export class StudyBrainActions {
 
     if (isCompleting && mission.type !== 'Break') {
       const breakDuration = mission.duration >= 60 ? 10 : 5;
-      const breakId = `today-break-${mission.id}`;
+      const breakId = `break-after-${mission.id.replace(/^today-/, '')}`;
       const hasExistingBreak = updatedMissions.some(m => m.id === breakId || m.id === `break-${mission.id}`);
       
       if (!hasExistingBreak) {
@@ -337,7 +359,7 @@ export class StudyBrainActions {
         updatedMissions.splice(missionIndex + 1, 0, localBreak);
       }
     } else if (!isCompleting && mission.type !== 'Break') {
-      const breakId = `today-break-${mission.id}`;
+      const breakId = `break-after-${mission.id.replace(/^today-/, '')}`;
       const existingBreakIndex = updatedMissions.findIndex(m => m.id === breakId || m.id === `break-${mission.id}`);
       if (existingBreakIndex !== -1) {
         updatedMissions.splice(existingBreakIndex, 1);
@@ -409,7 +431,7 @@ export class StudyBrainActions {
     if (chapter) {
       updatedChapters = this.state.chapters.map(c => {
         if (c.id === chapter.id) {
-          const deltaQs = mission.type === 'Solve PYQs' ? 15 : mission.type === 'Solve DPP' ? 10 : 5;
+          const deltaQs = metrics?.questions ?? (mission.type === 'Solve PYQs' ? 15 : mission.type === 'Solve DPP' ? 10 : 5);
           const addedQs = isCompleting ? deltaQs : -deltaQs;
           const deltaConf = isCompleting ? 5 : -5;
           
@@ -548,10 +570,37 @@ export class StudyBrainActions {
           type: mission.type === 'Solve Mock' ? 'Mock' : (mission.type === 'Solve DPP' || mission.type === 'Solve PYQs' ? 'Practice' : (mission.type === 'Revise Formulas' || mission.type === 'Review Mistakes' ? 'Revision' : 'Lecture')),
           subjectId: mission.subject as SubjectId,
           chapterId: chapter?.id,
-          xpEarned: deltaXp
+          xpEarned: deltaXp,
+          questionsAttempted: metrics?.questions,
+          questionsCorrect: metrics?.correct,
+          confidence: metrics?.confidence,
+          focusScore: metrics?.focusScore,
+          idleTime: metrics?.idleTime,
+          focusInterruptions: metrics?.focusInterruptions
         };
         savePromises.push(this.safeDbCall(() => StudySessionRepository.saveStudySession(this.userId, sessionPayload), 'saveStudySession'));
         
+        // Update analytics (Bug 9 fix)
+        const questionsAttempted = metrics?.questions || 0;
+        const questionsCorrect = metrics?.correct || 0;
+        const accuracy = questionsAttempted > 0 ? Math.round((questionsCorrect / questionsAttempted) * 100) : 0;
+        const oldTotal = this.state.analytics.questionsSolved || 0;
+        const newTotal = oldTotal + questionsAttempted;
+        
+        const updatedAnalytics = {
+          ...this.state.analytics,
+          studyTime: (this.state.analytics.studyTime || 0) + studySessionDuration,
+          focusTime: (this.state.analytics.focusTime || 0) + studySessionDuration,
+          questionsSolved: newTotal,
+          accuracy: newTotal > 0 && questionsAttempted > 0
+            ? Math.round(((this.state.analytics.accuracy || 0) * oldTotal + accuracy * questionsAttempted) / newTotal)
+            : (this.state.analytics.accuracy || 0),
+          tasksCompleted: (this.state.analytics.tasksCompleted || 0) + 1,
+          xpEarned: (this.state.analytics.xpEarned || 0) + deltaXp
+        };
+        this.state.analytics = updatedAnalytics;
+        userProfileUpdates.analytics = updatedAnalytics;
+
         // Optimistically add to state
         this.state.studySessions = [sessionPayload, ...this.state.studySessions];
       } else if (!isCompleting && mission.linkedSessionId) {
@@ -659,7 +708,7 @@ export class StudyBrainActions {
       id: `user-custom-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       completed: false,
       unlocked: true,
-      xp: Math.round((missionData.duration || 60) * 0.5), // Reduced from 1.5 to 0.5
+      xp: missionData.xp || Math.round((missionData.duration || 60) * 0.5), // Reduced from 1.5 to 0.5
       priorityScore: 1.0,
       selectionReason: "Manually added by student",
       isManualOverride: true,
@@ -926,6 +975,11 @@ export class StudyBrainActions {
       // Save the skipped mission to database just like completeTask does
       if (skippedMission.id.startsWith('mission-') || skippedMission.id.includes('custom')) {
         savePromises.push(this.safeDbCall(() => CustomMissionRepository.saveMission(this.userId, skippedMission), 'saveMission'));
+      } else {
+        // Persist skipped planner missions so they don't resurrect on reload
+        const updatedCompletedPlannerMissionIds = Array.from(new Set([...(this.state.completedPlannerMissionIds || []), taskId]));
+        savePromises.push(this.safeDbCall(() => UserRepository.updateUserProfile(this.userId, { completedPlannerMissionIds: updatedCompletedPlannerMissionIds }), 'updateUserProfile'));
+        this.state.completedPlannerMissionIds = updatedCompletedPlannerMissionIds;
       }
 
       await Promise.all(savePromises);

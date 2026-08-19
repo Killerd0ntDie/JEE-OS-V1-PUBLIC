@@ -1067,7 +1067,11 @@ export function generateWeeklyMatrix(
     const subjActive = activeChaps.filter(c => c.subject === subj);
     if (subjActive.length > offset) return subjActive[offset];
     if (subjActive.length > 0) return subjActive[offset % subjActive.length];
-    // No active in-progress non-on-hold chapter for this subject — schedule nothing.
+    // Fallback for new accounts: if no active chapters exist for the subject,
+    // pick the very first uncompleted non-on-hold chapter in the syllabus to get them started.
+    const subjAll = chapters.filter(c => c.subject === subj && !c.chapterOnHold && c.completion < 100);
+    if (subjAll.length > 0) return subjAll[0];
+    
     return null;
   };
 

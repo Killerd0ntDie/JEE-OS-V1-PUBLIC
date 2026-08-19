@@ -81,6 +81,15 @@ export function useMissionState(props: MissionModeProps) {
   // Recover timer state on mount with staleness check
   useEffect(() => {
     if (savedState && savedState.timestamp) {
+      const TWELVE_HOURS = 12 * 60 * 60 * 1000;
+      if (Date.now() - savedState.timestamp > TWELVE_HOURS) {
+        // Stale session — evict it
+        if (storageKey) localStorage.removeItem(storageKey);
+        setSeconds(initialSeconds);
+        setFocusScore(100);
+        setIdleTime(0);
+        setFocusInterruptions(0);
+      }
     }
   }, []);
 
@@ -97,6 +106,7 @@ export function useMissionState(props: MissionModeProps) {
   const [showShortcuts, setShowShortcuts] = useState(false);
 
   const notesEndRef = useRef<HTMLDivElement>(null);
+  const checklistCompleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   const actions = useStudyBrainStore(state => state.actions);
   // settings is already defined above
@@ -138,7 +148,9 @@ export function useMissionState(props: MissionModeProps) {
     let activeSubjectMission = todayMissions.find(m => m.subject === activeSubject && !m.completed);
     if (activeMissionId) {
       const explicitMission = todayMissions.find(m => m.id === activeMissionId);
-      if (explicitMission) activeSubjectMission = explicitMission;
+      if (explicitMission && explicitMission.subject.toLowerCase() === activeSubject.toLowerCase()) {
+        activeSubjectMission = explicitMission;
+      }
     }
     
     const initialList: Record<string, boolean> = {};
@@ -249,7 +261,9 @@ export function useMissionState(props: MissionModeProps) {
   const activeSubjectMission = useMemo(() => {
     if (activeMissionId) {
       const explicitMission = todayMissions.find(m => m.id === activeMissionId);
-      if (explicitMission) return explicitMission;
+      if (explicitMission && explicitMission.subject.toLowerCase() === activeSubject.toLowerCase()) {
+        return explicitMission;
+      }
     }
     return todayMissions.find(m => m.subject.toLowerCase() === activeSubject.toLowerCase() && !m.completed);
   }, [todayMissions, activeSubject, activeMissionId]);
@@ -494,12 +508,16 @@ export function useMissionState(props: MissionModeProps) {
   }, [checklist]);
 
   useEffect(() => {
+    if (checklistCompleteTimerRef.current) {
+      clearTimeout(checklistCompleteTimerRef.current);
+      checklistCompleteTimerRef.current = null;
+    }
     if (checklistProgressPercent === 100 && !isCompleted) {
       if (!activeSubjectMission) {
         console.warn(`[MissionMode] Checklist completed for ${activeSubject} but no pending mission exists for this subject.`);
         setCoachTip(`No pending ${subjectsDetails[activeSubject].name} mission right now — switch subject or check your Daily Missions list.`);
       }
-      setTimeout(() => {
+      checklistCompleteTimerRef.current = setTimeout(() => {
         setIsCompleted(true);
         if (settings.soundEffects) {
           audioEngine.playSuccessChime();
@@ -554,7 +572,11 @@ export function useMissionState(props: MissionModeProps) {
 
   const handleNextSubject = async () => {
     if (activeSubjectMission?.id) {
-      await actions.completeTask(activeSubjectMission.id, Math.max(60, seconds));
+      await actions.completeTask(activeSubjectMission.id, Math.max(60, seconds), {
+        focusScore,
+        idleTime,
+        focusInterruptions
+      });
     } else {
       console.warn(`[MissionMode] "Next subject" pressed for ${activeSubject} but no matching mission was found — nothing was marked complete.`);
     }
@@ -610,7 +632,14 @@ export function useMissionState(props: MissionModeProps) {
           console.warn("Failed to clear session storage on complete:", e);
         }
       }
-      await actions.completeTask(activeSubjectMission.id, data?.duration ?? Math.max(60, seconds));
+      await actions.completeTask(activeSubjectMission.id, data?.duration ?? Math.max(60, seconds), {
+        questions: data?.questions,
+        correct: data?.correct,
+        confidence: data?.confidence,
+        focusScore: data?.focusScore ?? focusScore,
+        idleTime: data?.idleTime ?? idleTime,
+        focusInterruptions: data?.focusInterruptions ?? focusInterruptions
+      });
     } else {
       console.warn(`[MissionMode] Complete pressed for ${activeSubject} but no matching mission was found — nothing was marked complete in store.`);
     }
