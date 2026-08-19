@@ -141,19 +141,19 @@ html, body {
   background-color: #09090b;
   color: #a1a1aa; /* Zinc-400 */
   font-family: var(--font-sans);
-  -webkit-font-smoothing: antialiased;
+
   -moz-osx-font-smoothing: grayscale;
   overscroll-behavior-y: none;
-  -webkit-overflow-scrolling: touch;
+
 }
 
 /* Hardware Compositing & Layer Promotion for Smooth 120 FPS Scrolling */
 .hardware-accelerated,
 .scrollbar,
 main {
-  -webkit-overflow-scrolling: touch;
-  transform: translateZ(0);
-  -webkit-transform: translateZ(0);
+
+  
+
 }
 
 /* Sophisticated Dark borders and cards */
@@ -174,10 +174,10 @@ main {
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
   backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+
   transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
-  transform: translateZ(0);
-  -webkit-transform: translateZ(0);
+  
+
 }
 
 .premium-card:hover {
@@ -192,10 +192,10 @@ main {
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
   box-shadow: 0 4px 24px 0 rgba(0, 0, 0, 0.4) !important;
   backdrop-filter: blur(14px) saturate(160%) !important;
-  -webkit-backdrop-filter: blur(14px) saturate(160%) !important;
+
   transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s cubic-bezier(0.16, 1, 0.3, 1) !important;
-  transform: translateZ(0) !important;
-  -webkit-transform: translateZ(0) !important;
+  
+
 }
 
 .glass-card-hover {
@@ -208,10 +208,10 @@ main {
   background: rgba(10, 10, 15, 0.75) !important;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6) !important;
   backdrop-filter: blur(20px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+
   border: 1px solid rgba(255, 255, 255, 0.10) !important;
-  transform: translateZ(0) !important;
-  -webkit-transform: translateZ(0) !important;
+  
+
 }
 
 /* glass-dropdown: translucent high-performance dropdown */
@@ -219,24 +219,24 @@ main {
   background: rgba(12, 13, 18, 0.88) !important;
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55) !important;
   backdrop-filter: blur(16px) saturate(160%) !important;
-  -webkit-backdrop-filter: blur(16px) saturate(160%) !important;
+
   border: 1px solid rgba(255, 255, 255, 0.12) !important;
-  transform: translateZ(0) !important;
-  -webkit-transform: translateZ(0) !important;
+  
+
 }
 
 .text-gradient-indigo {
   background: linear-gradient(135deg, #c7d2fe 0%, #818cf8 50%, #6366f1 100%);
   background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+
+
 }
 
 .text-gradient-emerald {
   background: linear-gradient(135deg, #a7f3d0 0%, #34d399 50%, #10b981 100%);
   background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+
+
 }
 
 .glow-ambient-indigo {
@@ -305,7 +305,7 @@ main {
 /* Tactile Micro-Interactions */
 .tap-subtle {
   transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.15s ease;
-  transform: translateZ(0);
+  
 }
 .tap-subtle:active {
   transform: scale(0.98);
@@ -313,7 +313,7 @@ main {
 
 .tap-card {
   transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease, box-shadow 0.2s ease;
-  transform: translateZ(0);
+  
 }
 .tap-card:hover {
   transform: translateY(-2px);
@@ -334,7 +334,7 @@ main {
 /* Hide number spin buttons globally */
 input[type=number]::-webkit-inner-spin-button,
 input[type=number]::-webkit-outer-spin-button {
-  -webkit-appearance: none;
+
   margin: 0;
 }
 

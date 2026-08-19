@@ -120,7 +120,7 @@ export function Sidebar({
 
   const renderSidebarContent = (collapsed: boolean) => (
     <div
-      className={`h-full glass-panel shadow-2xl border-r border-white/10 flex flex-col justify-between select-none transition-[width] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] transform-gpu will-change-[width] ${
+      className={`h-full glass-panel shadow-2xl border-r border-white/10 flex flex-col justify-between select-none transition-[width] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] ${
         collapsed ? 'w-16 group-hover:w-64 shadow-2xl z-50' : 'w-64'
       }`}
     >
