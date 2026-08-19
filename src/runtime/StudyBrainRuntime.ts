@@ -258,6 +258,9 @@ export class StudyBrainRuntime {
     this.state = this.getInitialState();
     this.state.writeBlocked = true;
     this.state.loading = false;
+    this.prevMemoState = {};
+    this.knowledgeEngine.invalidateCache();
+    this.chapterInfoEngine.invalidateCache();
     this.notifySubscribers();
   }
 

@@ -30,15 +30,17 @@ export class ChapterInfoEngine {
       const unresolvedMistakes = input.mistakes.filter(m => m.chapter === chapter.name && m.revisionStatus !== 'Mastered');
       const mastery = StudyBrainService.calculateMastery(chapter, unresolvedMistakes.length);
 
-      const isStarted = chapter.status !== 'Not Started' && chapter.syllabusStage !== 'Not Started' && (
+      const hasActiveProgress = Boolean(
         (chapter.currentLecture && chapter.currentLecture > 0) || 
         chapter.theoryComplete || 
         chapter.dppComplete || 
         chapter.pyqsComplete || 
         (chapter.solvedQuestions && chapter.solvedQuestions > 0) ||
         (chapter.completion && chapter.completion > 0) ||
-        chapter.status === 'Learning'
+        chapter.status === 'Learning' ||
+        chapter.status === 'In Progress'
       );
+      const isStarted = hasActiveProgress || (chapter.status !== 'Not Started' && chapter.syllabusStage !== 'Not Started');
                         
       const isMastered = chapter.status === 'Mastered' || chapter.completion === 100;
       const syllabusStage: 'Not Started' | 'In Progress' | 'Mastered' = isMastered ? 'Mastered' : isStarted ? 'In Progress' : 'Not Started';
@@ -53,7 +55,7 @@ export class ChapterInfoEngine {
       const retentionConfidence: 'High' | 'Medium' | 'Low' = (isStarted || isMastered)
         ? (acad.revisionState?.retentionConfidence || 'High')
         : 'High';
-      const retentionConfidenceScore = retentionConfidence === 'High' ? 90 : retentionConfidence === 'Medium' ? 70 : 40;
+      const retentionConfidenceScore = (isStarted || isMastered) ? (retentionConfidence === 'High' ? 90 : retentionConfidence === 'Medium' ? 70 : 40) : 0;
 
       let isBottleneck = false;
       let bottleneckReason: string | undefined = undefined;
@@ -203,10 +205,11 @@ export class ChapterInfoEngine {
   }
 
   private computeInputHash(input: ChapterInfoInput): string {
-    const chapSig = input.chapters.map(c => `${c.id}:${c.completion}:${c.currentLecture}:${c.totalLectures}:${c.theoryComplete}:${c.dppComplete}:${c.pyqsComplete}:${c.status}:${c.confidence}:${c.weightage}:${c.solvedQuestions}:${c.lastRevisionDaysAgo}`).join('|');
-    const mistakeSig = input.mistakes.map(m => `${m.id}:${(m as any).status}:${m.revisionStatus}`).join('|');
-    const sessionCount = input.sessions.length;
-    const mockCount = input.mocks.length;
-    return `${chapSig}_m${mistakeSig}_s${sessionCount}_mk${mockCount}`;
+    const chapSig = input.chapters.map(c => `${c.id}:${c.completion}:${c.currentLecture}:${c.totalLectures}:${c.theoryComplete}:${c.dppComplete}:${c.pyqsComplete}:${c.status}:${c.confidence}:${c.weightage}:${c.solvedQuestions}:${c.lastRevisionDaysAgo}:${c.chapterOnHold}:${c.practiceProgress?.dppPercent}:${c.practiceProgress?.pyqPercent}`).join('|');
+    const mistakeSig = input.mistakes.map(m => `${m.id}:${m.chapter}:${(m as any).status}:${m.revisionStatus}`).join('|');
+    const sessionCount = input.sessions.reduce((acc, s) => acc + (s.duration || 0), 0); // Include duration so changes trigger refresh
+    const mockCount = input.mocks.reduce((acc, m) => acc + m.score, 0); // Include score so changes trigger refresh
+    const targetYear = input.settings?.targetYear || '2027';
+    return `${chapSig}_m${mistakeSig}_s${sessionCount}_mk${mockCount}_y${targetYear}`;
   }
 }

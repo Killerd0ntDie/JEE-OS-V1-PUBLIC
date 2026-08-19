@@ -68,18 +68,11 @@ export function CockpitPage() {
           navigate('/dashboard');
         }}
         onComplete={(stats) => {
-          const durationMinutes = Math.max(1, Math.ceil(stats.duration / 60));
-          actions.completeStudySession({
-            duration: durationMinutes,
-            focusTime: durationMinutes,
-            questions: stats.questions,
-            correct: stats.correct ?? stats.questions,
-            type: 'Practice',
-            subjectId: activeSubject as any,
-            idleTime: stats.idleTime ? Math.ceil(stats.idleTime / 60) : 0,
-            focusInterruptions: stats.focusInterruptions,
-            focusScore: stats.focusScore
-          });
+          if (missionId) {
+            localStorage.removeItem(`jeeos_mission_state_${missionId}`);
+          }
+          // The mission completion logic in useMissionState (actions.completeTask)
+          // already creates a StudySession and updates XP. We just need to navigate back.
           navigate('/dashboard');
         }}
       />

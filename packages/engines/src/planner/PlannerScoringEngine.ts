@@ -565,7 +565,7 @@ export class PlannerScoringEngine {
     const jeeChapterWeightageScore = weightageScore;
     const currentMasteryScore = masteryScore;
     const forgettingRiskScore = Math.min(100, Math.round((context.revisionData ? (100 - context.revisionData.retentionScore) : 40) + (context.revisionData?.daysOverdue || 5) * 3));
-    const recentAccuracyScore = Math.min(100, Math.round(100 - 70 + (chapterMistakes.length * 10)));
+    const recentAccuracyScore = Math.max(0, Math.min(100, Math.round(100 - (chapterMistakes.length * 10))));
     
     // Monthly objective alignment check
     let monthlyObjectiveAlignmentScore = 40;
@@ -640,7 +640,7 @@ export class PlannerScoringEngine {
     // Prevent the 14-factor "mush" from overriding critical hard constraints
 
     // 1. Fatigue State Machine Boundary
-    if (fatigueScore > 80 && (context.taskType === 'Watch Lecture' || context.taskType === 'Solve PYQs')) {
+    if (userFatigue > 50 && (context.taskType === 'Watch Lecture' || context.taskType === 'Solve PYQs')) {
       totalScore = Math.min(totalScore, 30);
     }
 
@@ -650,7 +650,7 @@ export class PlannerScoringEngine {
     }
 
     // 3. Mastery Ceiling Boundary
-    if (currentMasteryScore < 20 && (context.taskType === 'Watch Lecture' || context.taskType === 'Solve DPP')) {
+    if (currentMasteryScore < 20 && context.taskType === 'Solve PYQs') {
       totalScore = Math.min(totalScore, 20);
     }
 

@@ -211,7 +211,7 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
       setDifficulty(chapter.difficulty || 'Medium');
       setPriority(chapter.priority || 2);
       setWeightage(telemetry?.weightagePercent ?? chapter.weightage ?? 4.5);
-      setNotes('');
+      setNotes(chapter.practiceProgress?.weakTopics?.join(', ') || '');
       setSerialNumber(chapter.serialNumber ? chapter.serialNumber.replace(/\D/g, '').padStart(2, '0') : '');
       setDppOnHold(!!chapter.dppOnHold);
       setPyqOnHold(!!chapter.pyqOnHold);
@@ -244,12 +244,7 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
     if (!chapter) return;
     setIsSaving(true);
 
-    const calculatedCompletion = Math.min(100, Math.round(
-      ((currentLecture / (totalLectures || 1)) * 40) +
-      (theoryComplete ? 20 : 0) +
-      (dppComplete ? 20 : 0) +
-      (pyqsComplete ? 20 : 0)
-    ));
+    // Completion percentage is now derived by normalizeChapter natively
 
     // Check for duplicate serial number within the same subject only
     if (serialNumber) {
@@ -295,13 +290,10 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
       priority,
       weightage,
       estimatedRemainingTime: estimatedHours,
-      completion: calculatedCompletion,
       chapterOnHold,
       dppOnHold,
       pyqOnHold,
       serialNumber: serialNumber ? `CH${serialNumber}` : undefined,
-      status: calculatedCompletion === 100 ? 'Mastered' : 'Learning',
-      syllabusStage: calculatedCompletion === 100 ? 'Mastered' : 'Watching Lectures',
       lectureProgress: {
         totalLectures,
         completedLectures: currentLecture,
@@ -317,7 +309,7 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
         pyqPercent: pyqsComplete ? 100 : Math.round((completedPyq / (totalPyq || 1)) * 100),
         accuracyPercent: confidence,
         confidencePercent: confidence,
-        weakTopics: notes ? notes.split(',').map(s => s.trim()) : []
+        weakTopics: notes ? notes.split(',').map(s => s.trim()).filter(Boolean) : []
       }
     };
 
@@ -465,7 +457,7 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
                 {/* PREREQUISITE FOUNDATION ALERT */}
                 <PrerequisiteFoundationAlert
                   currentChapterName={chapter.name}
-                  onOpenPrerequisite={(prereqId) => openModal(prereqId)}
+                  onOpenPrerequisite={(prereqId) => actions.openChapterEditModal(prereqId)}
                 />
 
                 <AnimatePresence mode="wait">

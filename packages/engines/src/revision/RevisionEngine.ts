@@ -154,9 +154,9 @@ export class RevisionEngine {
   }
 
   private computeHash(input: RevisionEngineInput): string {
-    const chapSig = input.chapters.map(c => `${c.id}:${c.status}:${c.completion}`).join('|');
-    const sessionCount = input.sessions.length;
-    const mistakeCount = input.mistakes.length;
+    const chapSig = input.chapters.map(c => `${c.id}:${c.status}:${c.completion}:${c.chapterOnHold}:${c.revisionOnHold}`).join('|');
+    const sessionCount = input.sessions.reduce((acc, s) => acc + (s.duration || 0), 0);
+    const mistakeCount = input.mistakes.map(m => `${m.id}:${(m as any).status}:${m.revisionStatus}`).join('|');
     const telemetryCount = Object.keys(input.chapterTelemetryMap || {}).length;
     return `${chapSig}_s${sessionCount}_m${mistakeCount}_t${telemetryCount}`;
   }

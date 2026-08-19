@@ -148,8 +148,9 @@ export class AnalyticsEngine {
     if (studyVelocity > 0 && remainingLectures > 0) {
       // rough heuristic: 1.5 hours per lecture
       const remainingHours = remainingLectures * 1.5;
-      const daysToComplete = remainingHours / (studyVelocity > 0 ? studyVelocity : 1);
-      predictedDate = new Date(now.getTime() + daysToComplete * msPerDay).toISOString();
+      const daysToComplete = isNaN(remainingHours / studyVelocity) || !isFinite(remainingHours / studyVelocity) ? 365 : remainingHours / studyVelocity;
+      const futureMs = now.getTime() + daysToComplete * msPerDay;
+      predictedDate = isNaN(futureMs) ? new Date().toISOString() : new Date(futureMs).toISOString();
     } else if (remainingLectures === 0) {
       predictedDate = now.toISOString();
     }

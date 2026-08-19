@@ -93,9 +93,7 @@ export function getAcademicState(chapter: Chapter): ChapterAcademicState {
       ? (chapter.confidence >= 80 ? 'High' : chapter.confidence >= 50 ? 'Medium' : 'Low')
       : (daysAgo <= 7 ? 'High' : daysAgo <= 21 ? 'Medium' : 'Low'));
   
-  const retentionScore = chapter.retentionScore ?? (
-    stage === 'Not Started' ? 90 : (retentionConfidence === 'High' ? 90 : retentionConfidence === 'Medium' ? 65 : 40)
-  );
+  const retentionScore = (stage === 'Not Started') ? 0 : (chapter.retentionScore ?? (retentionConfidence === 'High' ? 90 : retentionConfidence === 'Medium' ? 65 : 40));
 
   const revisionState: RevisionState = {
     lastRevisedDaysAgo: stage === 'Not Started' ? 0 : daysAgo,
@@ -113,7 +111,7 @@ export function getAcademicState(chapter: Chapter): ChapterAcademicState {
   const dppWeight = (dppPct / 100) * 20;
   const modWeight = (modPct / 100) * 15;
   const pyqWeight = (pyqPct / 100) * 20;
-  const revWeight = (retentionScore / 100) * 10;
+  const revWeight = (stage === 'Not Started') ? 0 : (retentionScore / 100) * 10;
   const calculatedCompletion = Math.min(100, Math.round(theoryWeight + dppWeight + modWeight + pyqWeight + revWeight));
 
   // Remaining Practice Hours estimate (approx 0.1 hour per remaining question / module)

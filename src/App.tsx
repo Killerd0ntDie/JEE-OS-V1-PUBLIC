@@ -42,6 +42,7 @@ import { ProtectedRoute } from '@/features/auth/components/ProtectedRoute';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { Icon } from '@/components/ui/Icon';
 import { audioEngine } from './utils/audioEngine';
+import { clearAppStorage } from './utils/storageUtils';
 
 function AppLayout() {
   const { user, loading: authLoading } = useAuth();
@@ -186,7 +187,7 @@ function AppLayout() {
             message="Are you sure you want to clear local cache and reload? This may resolve corruption by starting a fresh session."
             confirmLabel="Reset & Reload"
             onConfirm={() => {
-              localStorage.clear();
+              clearAppStorage();
               window.location.reload();
             }}
             onClose={() => setIsResetCacheConfirmOpen(false)}

@@ -15,7 +15,8 @@ import {
   EmailAuthProvider,
   User
 } from 'firebase/auth';
-import { auth } from '@/firebase';
+import { auth } from '@/lib/firebase/client';
+import { clearAppStorage } from '@/utils/storageUtils';
 
 interface AuthContextType {
   user: User | null;
@@ -153,7 +154,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setError(null);
       explicitLogout.current = true;
       await signOut(auth);
-      localStorage.clear();
+      clearAppStorage();
     } catch (err: any) {
       explicitLogout.current = false;
       setError(err.message || 'Sign-out failed');

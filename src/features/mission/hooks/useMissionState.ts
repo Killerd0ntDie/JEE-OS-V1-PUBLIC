@@ -603,6 +603,13 @@ export function useMissionState(props: MissionModeProps) {
 
   const handleMissionComplete = async (data?: any) => {
     if (activeSubjectMission?.id) {
+      if (storageKey) {
+        try {
+          localStorage.removeItem(storageKey);
+        } catch (e) {
+          console.warn("Failed to clear session storage on complete:", e);
+        }
+      }
       await actions.completeTask(activeSubjectMission.id, data?.duration ?? Math.max(60, seconds));
     } else {
       console.warn(`[MissionMode] Complete pressed for ${activeSubject} but no matching mission was found — nothing was marked complete in store.`);

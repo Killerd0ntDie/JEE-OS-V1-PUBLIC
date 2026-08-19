@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Modal } from '@/components/ui/Modal';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
+import { clearAppStorage } from '@/utils/storageUtils';
 import { useAuth } from '@/features/auth';
 import { Icon } from '@/components/ui/Icon';
 import { audioEngine as soundSystem } from '@/utils/audioEngine';
@@ -300,8 +301,8 @@ export function SettingsPage() {
   const handleResetWorkspace = async () => {
     try {
       await actions.purgeUserData();
-      localStorage.clear();
-      sessionStorage.clear();
+      clearAppStorage();
+      // Removed indiscriminate sessionStorage wipe
       setShowResetConfirm(false);
       setShowResetSuccess(true);
       setTimeout(() => {

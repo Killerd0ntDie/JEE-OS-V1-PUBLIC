@@ -33,7 +33,7 @@ export const MomentumRadarWidget: React.FC<MomentumRadarWidgetProps> = ({
 
     (chapters || []).forEach(ch => {
       if (ch.completion > 0 || ch.status === 'Mastered') {
-        const score = ch.revisionProgress?.retentionScore ?? (ch.status === 'Mastered' ? 92 : ch.confidence ? ch.confidence * 20 : 65);
+        const score = ch.revisionProgress?.retentionScore ?? (ch.status === 'Mastered' ? 92 : ch.confidence ? ch.confidence : 65);
         totalRetention += score;
         countedChapters++;
       }

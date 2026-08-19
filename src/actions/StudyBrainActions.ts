@@ -10,6 +10,7 @@ import { CustomMissionRepository } from '@/repositories/customMissionRepository'
 import { TodayMission, SubjectId, TimelineBlock, Mistake, Chapter, StudySession, MentorProfile, PlannerOutputs, DailyCheckin, WeeklyCheckin, MonthlyObjective, MockResult } from '@/types/index';
 import { MockTest } from '@/types/mockTest';
 import { normalizeChapter } from '@/utils/academicState';
+import { uploadBase64Image } from '@/utils/imageUploadUtils';
 import { calculateLevelFromXP } from '@/utils/levelingCalculations';
 import { getCurrentSessionTimeSlot, formatTimeSlotDisplay, parseTimeSlotToRange } from '@/utils/timeSlotUtils';
 import { toLocalDateString } from '@/utils/dateUtils';
@@ -497,9 +498,8 @@ export class StudyBrainActions {
     }
 
     try {
-      const savePromises: Promise<any>[] = [
-        this.safeDbCall(() => UserRepository.updateUserProfile(this.userId, { xp: newXp }), 'updateUserProfile')
-      ];
+      const userProfileUpdates: any = { xp: newXp };
+      const savePromises: Promise<any>[] = [];
 
       if (chapter) {
         const updatedChap = updatedChapters.find(c => c.id === chapter.id);
@@ -521,15 +521,15 @@ export class StudyBrainActions {
       } else {
         // For planner missions, don't save to CustomMissionRepository
         // Their completed state will be preserved through the runtime's mission mapping logic
-        
         if (isCompleting) {
           updatedCompletedPlannerMissionIds = Array.from(new Set([...updatedCompletedPlannerMissionIds, taskId]));
-          savePromises.push(this.safeDbCall(() => UserRepository.updateUserProfile(this.userId, { completedPlannerMissionIds: updatedCompletedPlannerMissionIds }), 'updateUserProfile'));
         } else {
           updatedCompletedPlannerMissionIds = updatedCompletedPlannerMissionIds.filter((id: string) => id !== taskId);
-          savePromises.push(this.safeDbCall(() => UserRepository.updateUserProfile(this.userId, { completedPlannerMissionIds: updatedCompletedPlannerMissionIds }), 'updateUserProfile'));
         }
+        userProfileUpdates.completedPlannerMissionIds = updatedCompletedPlannerMissionIds;
       }
+
+      savePromises.push(this.safeDbCall(() => UserRepository.updateUserProfile(this.userId, userProfileUpdates), 'updateUserProfile'));
 
       // Trigger level-up event if applicable
       const levelUpData = oldLevel !== newLevel && isCompleting ? { oldLevel, newLevel, xp: newXp } : null;
@@ -765,16 +765,6 @@ export class StudyBrainActions {
     if (!chapter) return;
 
     const merged = { ...chapter, ...actualUpdates };
-
-    if (actualUpdates.completion === undefined) {
-      let tasksCompleted = 0;
-      if (merged.theoryComplete) tasksCompleted++;
-      if (merged.dppComplete) tasksCompleted++;
-      if (merged.pyqsComplete) tasksCompleted++;
-      if (merged.formulaComplete) tasksCompleted++;
-
-      merged.completion = Math.round((tasksCompleted / 4) * 100);
-    }
 
     if (merged.completion === 100) {
       merged.status = 'Mastered';
@@ -1214,7 +1204,25 @@ export class StudyBrainActions {
 
   async addMistake(mistake: Omit<Mistake, 'id' | 'createdAt'>) {
     this.checkWriteBlock();
-    const newMistake = { ...mistake, id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2), createdAt: new Date().toISOString() };
+    
+    // Process images
+    let wrongSolutionImage = mistake.wrongSolutionImage;
+    let correctSolutionImage = mistake.correctSolutionImage;
+    
+    try {
+      if (wrongSolutionImage && wrongSolutionImage.startsWith('data:image')) {
+        wrongSolutionImage = await uploadBase64Image(this.userId, wrongSolutionImage, 'mistakes');
+      }
+      if (correctSolutionImage && correctSolutionImage.startsWith('data:image')) {
+        correctSolutionImage = await uploadBase64Image(this.userId, correctSolutionImage, 'mistakes');
+      }
+    } catch (e) {
+      console.warn("Failed to upload images, continuing without them", e);
+      wrongSolutionImage = undefined;
+      correctSolutionImage = undefined;
+    }
+
+    const newMistake = { ...mistake, wrongSolutionImage, correctSolutionImage, id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2), createdAt: new Date().toISOString() };
     try {
       await MistakeRepository.saveMistake(this.userId, newMistake);
       const updatedMistakes = [...this.state.mistakes, newMistake];

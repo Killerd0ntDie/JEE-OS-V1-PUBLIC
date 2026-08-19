@@ -13,6 +13,8 @@ import { MockResultRepository } from '@/repositories/mockResultRepository';
 import { MockTestRepository } from '@/repositories/mockTestRepository';
 import { TimelineRepository } from '@/repositories/timelineRepository';
 import { StudyBrainActions } from '@/actions/StudyBrainActions';
+
+import { restoreNestedArrays } from '@/utils/firestoreSanitizer';
 import { Chapter, Mistake, TimelineBlock, UserProfile } from '@/types/index';
 import { normalizeChapter } from '@/utils/academicState';
 
@@ -268,7 +270,7 @@ export const StudyBrainProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         return; // Will re-trigger snapshot on creation
       }
       try {
-        const profile = snap.data();
+        const profile = restoreNestedArrays(snap.data());
         if (profile.xp && !profile.xp.nextLevelXP) profile.xp.nextLevelXP = 1000;
         
         snapshotState.xp = profile.xp;
@@ -298,113 +300,130 @@ export const StudyBrainProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     // 2. Chapters Listener
     const unsubChapters = onSnapshot(collection(db, 'users', currentUid, 'chapters'), (snap) => {
       if (!active) return;
+      if (!active) return;
       try {
-        snapshotState.chapters = validateAndSanitizeChapters(snap.docs.map(d => d.data()));
-        loadedFlags.chapters = true;
-        checkAndInit();
+        snapshotState.chapters = validateAndSanitizeChapters(snap.docs.map(d => restoreNestedArrays(d.data())));
       } catch (e) {
         console.error("Error processing chapters snapshot:", e);
+      } finally {
+        loadedFlags.chapters = true;
+        checkAndInit();
       }
     }, (error) => {
       console.error("chapters snapshot error:", error);
+      loadedFlags.chapters = true; checkAndInit();
     });
 
     // 3. Notes Listener
     const unsubNotes = onSnapshot(collection(db, 'users', currentUid, 'notes'), (snap) => {
       if (!active) return;
       try {
-        snapshotState.notes = snap.docs.map(d => d.data());
-        loadedFlags.notes = true;
-        checkAndInit();
+        snapshotState.notes = snap.docs.map(d => restoreNestedArrays(d.data()));
       } catch (e) {
         console.error("Error processing notes snapshot:", e);
+      } finally {
+        loadedFlags.notes = true;
+        checkAndInit();
       }
     }, (error) => {
       console.error("notes snapshot error:", error);
+      loadedFlags.notes = true; checkAndInit();
     });
 
     // 4. Mistakes Listener
     const unsubMistakes = onSnapshot(collection(db, 'users', currentUid, 'mistakes'), (snap) => {
       if (!active) return;
       try {
-        snapshotState.mistakes = validateAndSanitizeMistakes(snap.docs.map(d => d.data()));
-        loadedFlags.mistakes = true;
-        checkAndInit();
+        snapshotState.mistakes = validateAndSanitizeMistakes(snap.docs.map(d => restoreNestedArrays(d.data())));
       } catch (e) {
         console.error("Error processing mistakes snapshot:", e);
+      } finally {
+        loadedFlags.mistakes = true;
+        checkAndInit();
       }
     }, (error) => {
       console.error("mistakes snapshot error:", error);
+      loadedFlags.mistakes = true; checkAndInit();
     });
 
     // 5. Study Sessions Listener
     const unsubSessions = onSnapshot(collection(db, 'users', currentUid, 'studySessions'), (snap) => {
       if (!active) return;
       try {
-        snapshotState.studySessions = snap.docs.map(d => d.data());
-        loadedFlags.studySessions = true;
-        checkAndInit();
+        snapshotState.studySessions = snap.docs.map(d => restoreNestedArrays(d.data()));
       } catch (e) {
         console.error("Error processing study sessions snapshot:", e);
+      } finally {
+        loadedFlags.studySessions = true;
+        checkAndInit();
       }
     }, (error) => {
       console.error("studySessions snapshot error:", error);
+      loadedFlags.studySessions = true; checkAndInit();
     });
 
     // 6. Mock Results Listener
     const unsubMocks = onSnapshot(collection(db, 'users', currentUid, 'mockResults'), (snap) => {
       if (!active) return;
       try {
-        snapshotState.mocks = snap.docs.map(d => d.data());
-        loadedFlags.mocks = true;
-        checkAndInit();
+        snapshotState.mocks = snap.docs.map(d => restoreNestedArrays(d.data()));
       } catch (e) {
         console.error("Error processing mock results snapshot:", e);
+      } finally {
+        loadedFlags.mocks = true;
+        checkAndInit();
       }
     }, (error) => {
       console.error("mockResults snapshot error:", error);
+      loadedFlags.mocks = true; checkAndInit();
     });
 
     // 7. Custom Mock Tests Listener
     const unsubCustomMocks = onSnapshot(collection(db, 'users', currentUid, 'customMockTests'), (snap) => {
       if (!active) return;
       try {
-        snapshotState.customMockTests = snap.docs.map(d => d.data());
-        loadedFlags.customMocks = true;
-        checkAndInit();
+        snapshotState.customMockTests = snap.docs.map(d => restoreNestedArrays(d.data()));
       } catch (e) {
         console.error("Error processing custom mock tests snapshot:", e);
+      } finally {
+        loadedFlags.customMocks = true;
+        checkAndInit();
       }
     }, (error) => {
       console.error("customMockTests snapshot error:", error);
+      loadedFlags.customMocks = true; checkAndInit();
     });
 
     // 8. Timeline Listener
-    const unsubTimeline = onSnapshot(collection(db, 'users', currentUid, 'timelineBlocks'), (snap) => {
+    const unsubTimeline = onSnapshot(collection(db, 'users', currentUid, 'customTimelineBlocks'), (snap) => {
       if (!active) return;
       try {
-        snapshotState.timeline = snap.docs.map(d => d.data());
-        loadedFlags.timeline = true;
-        checkAndInit();
+        snapshotState.timeline = snap.docs.map(d => restoreNestedArrays(d.data()));
       } catch (e) {
         console.error("Error processing timeline snapshot:", e);
+      } finally {
+        loadedFlags.timeline = true;
+        checkAndInit();
       }
     }, (error) => {
-      console.error("timelineBlocks snapshot error:", error);
+      console.error("customTimelineBlocks snapshot error:", error);
+      loadedFlags.timeline = true; checkAndInit();
     });
 
     // 9. Custom Missions Listener
     const unsubCustomMissions = onSnapshot(collection(db, 'users', currentUid, 'customMissions'), (snap) => {
       if (!active) return;
       try {
-        snapshotState.customMissions = snap.docs.map(d => d.data());
-        loadedFlags.customMissions = true;
-        checkAndInit();
+        snapshotState.customMissions = snap.docs.map(d => restoreNestedArrays(d.data()));
       } catch (e) {
         console.error("Error processing custom missions snapshot:", e);
+      } finally {
+        loadedFlags.customMissions = true;
+        checkAndInit();
       }
     }, (error) => {
       console.error("customMissions snapshot error:", error);
+      loadedFlags.customMissions = true; checkAndInit();
     });
 
     return () => {

@@ -55,9 +55,10 @@ export class OptimizationEngine {
     const effectiveAvgHours = Math.max(1.5, avgStudyHours * OPTIMIZATION_CONFIG.studyEfficiencyMultiplier);
     const rawPredictedDays = remainingHours > 0 ? remainingHours / effectiveAvgHours : 0;
     
-    const currentDateStr = plannerInput.currentDate || new Date().toISOString();
-    const currentMs = new Date(currentDateStr).getTime();
-    const targetMs = new Date(targetCompletionDate).getTime();
+    const parsedCurrentMs = new Date(plannerInput.currentDate || new Date().toISOString()).getTime();
+    const currentMs = isNaN(parsedCurrentMs) ? Date.now() : parsedCurrentMs;
+    const parsedTargetMs = new Date(targetCompletionDate).getTime();
+    const targetMs = isNaN(parsedTargetMs) ? currentMs + (365 * 24 * 60 * 60 * 1000) : parsedTargetMs;
     const daysUntilTarget = Math.max(1, (targetMs - currentMs) / (1000 * 60 * 60 * 24));
 
     // Cap predictions to a realistic maximum relative to target exam date
