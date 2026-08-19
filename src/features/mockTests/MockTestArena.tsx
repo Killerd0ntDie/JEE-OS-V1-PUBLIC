@@ -496,7 +496,7 @@ export function MockTestArena({ test, onComplete, onExit }: MockTestArenaProps) 
 
             {/* Answer Input Area */}
             <div className="mt-auto max-w-xl">
-              {activeQuestion.type === 'MCQ' ? (
+              {activeQuestion.type === 'MCQ' && Array.isArray(activeQuestion.options) && activeQuestion.options.length > 0 ? (
                 <div className="space-y-2.5">
                   {activeQuestion.options?.map((opt, idx) => {
                     const optionLetter = String.fromCharCode(65 + idx);

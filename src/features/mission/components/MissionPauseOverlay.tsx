@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Modal } from '@/components/ui/Modal';
 import { Pause, Play, LogOut, Clock, Gauge, Zap, AlertTriangle, ShieldAlert } from 'lucide-react';
@@ -28,6 +28,14 @@ export function MissionPauseOverlay({
   focusScore = 100,
   focusInterruptions = 1
 }: MissionPauseOverlayProps) {
+
+  // Play a tactical switch sound when the pause screen is triggered
+  useEffect(() => {
+    if (isPaused) {
+      audioEngine.playRadioRelayClick();
+    }
+  }, [isPaused]);
+
   return (
     <Modal
       isOpen={isPaused}

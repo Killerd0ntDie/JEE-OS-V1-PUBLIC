@@ -9,7 +9,6 @@ import { MistakesCbtTestArena } from './components/MistakesCbtTestArena';
 import { LogMistakeModal } from './components/LogMistakeModal';
 import { AiInterrogationModal } from './components/AiInterrogationModal';
 import { PrintableWorksheetModal } from '../revision/components/PrintableWorksheetModal';
-import { CalculationSlipAutopsy } from './components/CalculationSlipAutopsy';
 import { useMistakesState } from './hooks/useMistakesState';
 
 export const MISTAKE_CATEGORIES = [
@@ -266,9 +265,6 @@ export function MistakesPage() {
         )}
 
       </AnimatePresence>
-
-      {/* SILLY MISTAKES PRECISION & PRE-SUBMISSION AUTOPSY */}
-      <CalculationSlipAutopsy />
 
       {/* STRICT TIMED CBT MISTAKES RETEST ARENA */}
       <MistakesCbtTestArena

@@ -201,42 +201,84 @@ export function DashboardFocusSection({
               <div className="flex flex-col gap-3 h-full justify-between">
                 {/* Subtab Switcher */}
                 <div className="flex items-center justify-between font-mono text-xs">
-                  <div className="flex items-center gap-1 p-1 rounded-xl bg-zinc-950/80 border border-white/10">
+                  <div className="flex items-center gap-1 p-1 rounded-xl bg-zinc-950/80 border border-white/10 relative select-none">
                     <button
                       type="button"
-                      onClick={() => setAnalyticsSubTab('radar')}
-                      className={`px-3 py-1 rounded-lg font-bold text-xs transition-colors cursor-pointer ${
-                        analyticsSubTab === 'radar' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' : 'text-zinc-400 hover:text-white'
+                      onClick={() => {
+                        audioEngine.playRadioRelayClick().catch(() => {});
+                        setAnalyticsSubTab('radar');
+                      }}
+                      className={`relative px-3.5 py-1.5 rounded-lg font-bold text-xs transition-colors cursor-pointer select-none z-10 ${
+                        analyticsSubTab === 'radar' ? 'text-cyan-300' : 'text-zinc-400 hover:text-zinc-200'
                       }`}
                     >
+                      {analyticsSubTab === 'radar' && (
+                        <motion.div
+                          layoutId="dashboardTelemetrySubTabGlider"
+                          className="absolute inset-0 bg-cyan-500/20 border border-cyan-400/40 rounded-lg shadow-sm -z-10"
+                          transition={springs.fluid}
+                        />
+                      )}
                       Tri-Axis Radar
                     </button>
                     <button
                       type="button"
-                      onClick={() => setAnalyticsSubTab('strategy')}
-                      className={`px-3 py-1 rounded-lg font-bold text-xs transition-colors cursor-pointer ${
-                        analyticsSubTab === 'strategy' ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' : 'text-zinc-400 hover:text-white'
+                      onClick={() => {
+                        audioEngine.playRadioRelayClick().catch(() => {});
+                        setAnalyticsSubTab('strategy');
+                      }}
+                      className={`relative px-3.5 py-1.5 rounded-lg font-bold text-xs transition-colors cursor-pointer select-none z-10 ${
+                        analyticsSubTab === 'strategy' ? 'text-indigo-300' : 'text-zinc-400 hover:text-zinc-200'
                       }`}
                     >
+                      {analyticsSubTab === 'strategy' && (
+                        <motion.div
+                          layoutId="dashboardTelemetrySubTabGlider"
+                          className="absolute inset-0 bg-indigo-500/20 border border-indigo-400/40 rounded-lg shadow-sm -z-10"
+                          transition={springs.fluid}
+                        />
+                      )}
                       Weekly Strategy
                     </button>
                   </div>
                   <span className="text-[10px] text-zinc-500 uppercase tracking-widest hidden sm:inline">TELEMETRY MATRIX</span>
                 </div>
 
-                {analyticsSubTab === 'radar' ? (
-                  <MomentumRadarWidget
-                    chapters={chapters || []}
-                    studySessions={studySessions || []}
-                    dailyTargetHours={mentorProfile?.dailyAvailableHours || 6.5}
-                  />
-                ) : (
-                  <WeeklyStrategyWidget
-                    mentorProfile={mentorProfile}
-                    chapters={chapters || []}
-                    projectedReadiness={projectedReadiness}
-                  />
-                )}
+                <div className="flex-1 relative overflow-hidden">
+                  <AnimatePresence mode="wait" initial={false}>
+                    {analyticsSubTab === 'radar' ? (
+                      <motion.div
+                        key="subtab-radar"
+                        initial={{ opacity: 0, x: -16 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 16 }}
+                        transition={{ duration: 0.15, ease: 'easeOut' }}
+                        className="h-full"
+                      >
+                        <MomentumRadarWidget
+                          chapters={chapters || []}
+                          studySessions={studySessions || []}
+                          dailyTargetHours={mentorProfile?.dailyAvailableHours || 6.5}
+                        />
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key="subtab-strategy"
+                        initial={{ opacity: 0, x: 16 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -16 }}
+                        transition={{ duration: 0.15, ease: 'easeOut' }}
+                        className="h-full"
+                      >
+                        <WeeklyStrategyWidget
+                          mentorProfile={mentorProfile}
+                          chapters={chapters || []}
+                          projectedReadiness={projectedReadiness}
+                        />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               </div>
             </motion.div>
           )}

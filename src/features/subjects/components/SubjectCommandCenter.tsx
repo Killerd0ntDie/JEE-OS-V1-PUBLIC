@@ -10,8 +10,6 @@ import { Search, Filter, ArrowUpDown, Network, ListFilter, Plus, Target, ArrowRi
 import { GlassSelect, GlassSelectOption } from '@/components/ui/GlassSelect';
 import { AddCustomChapterModal } from './AddCustomChapterModal';
 import { RpgKnowledgeTreeWidget } from './RpgKnowledgeTreeWidget';
-import { ChapterRoiWeightageMatrix } from './ChapterRoiWeightageMatrix';
-import { MultiConceptSynthesisVault } from './MultiConceptSynthesisVault';
 import { springs } from '@/constants/motion';
 
 interface SubjectCommandCenterProps {
@@ -117,7 +115,12 @@ export function SubjectCommandCenter({
           result = result.filter(c => (c.completion > 0 && c.completion < 100) || c.status === 'Learning');
           break;
         case 'Revision Due':
-          result = result.filter(c => c.status === 'Revision Due');
+          result = result.filter(c => 
+            c.status === 'Revision Due' || 
+            (c.lastRevisionDaysAgo != null && c.lastRevisionDaysAgo >= 7) || 
+            c.retentionStatus === 'Fading' || 
+            c.retentionStatus === 'Forgotten'
+          );
           break;
         case 'Mastered':
           result = result.filter(c => c.status === 'Mastered' || c.completion >= 100);
@@ -529,16 +532,6 @@ export function SubjectCommandCenter({
 
         </div>
       )}
-
-      {/* CHAPTER ROI & JEE WEIGHTAGE MATRIX */}
-      <div className="pt-6">
-        <ChapterRoiWeightageMatrix />
-      </div>
-
-      {/* MULTI-CONCEPT SYNTHESIS PYQ VAULT */}
-      <div className="pt-6">
-        <MultiConceptSynthesisVault />
-      </div>
 
       <AddCustomChapterModal
         isOpen={isAddChapterOpen}

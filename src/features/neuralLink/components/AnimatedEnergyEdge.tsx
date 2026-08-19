@@ -46,8 +46,8 @@ export const AnimatedEnergyEdge = ({
           d={edgePath}
           fill="none"
           stroke={glowStroke}
-          strokeWidth={isPrerequisite ? 5 : 3.5}
-          strokeOpacity={isPrerequisite ? 0.35 : 0.22}
+          strokeWidth={isPrerequisite ? 4 : 2.5}
+          strokeOpacity={isPrerequisite ? 0.35 : 0.18}
           strokeLinecap="round"
           className="pointer-events-none"
         />
@@ -61,78 +61,11 @@ export const AnimatedEnergyEdge = ({
           ...style,
           stroke: edgeStroke,
           strokeWidth: isPrerequisite ? 2 : (isActive ? 1.5 : 1),
-          strokeDasharray: isActive ? '4 4' : 'none',
-          animation: isActive ? 'synapticConduitFlow 1.5s linear infinite' : 'none',
+          strokeDasharray: isActive ? '6 6' : 'none',
+          animation: isActive ? 'synapticConduitFlow 1.2s linear infinite' : 'none',
           opacity: isActive ? 0.9 : 0.3,
         }} 
       />
-
-      {/* 3. Live Streaming Glowing Energy Pulses (Travelling Photons) */}
-      {isActive && (
-        <g className="pointer-events-none">
-          {/* Primary Lead Pulse */}
-          <circle r={isPrerequisite ? 3.5 : 2.8} fill={pulseColor} style={{ filter: `drop-shadow(0 0 6px ${glowStroke})` }}>
-            <animateMotion
-              dur={isPrerequisite ? '1.8s' : '2.4s'}
-              repeatCount="indefinite"
-              path={edgePath}
-            />
-            <animate
-              attributeName="opacity"
-              values="0.4;1;0.9;0.4"
-              dur={isPrerequisite ? '1.8s' : '2.4s'}
-              repeatCount="indefinite"
-            />
-          </circle>
-
-          {/* Secondary Trailing Energy Sparkle */}
-          <circle r={isPrerequisite ? 2.2 : 1.8} fill={glowStroke} style={{ filter: `drop-shadow(0 0 8px ${glowStroke})` }}>
-            <animateMotion
-              dur={isPrerequisite ? '1.8s' : '2.4s'}
-              begin={isPrerequisite ? '0.6s' : '0.8s'}
-              repeatCount="indefinite"
-              path={edgePath}
-            />
-            <animate
-              attributeName="opacity"
-              values="0.2;0.8;0.2"
-              dur={isPrerequisite ? '1.8s' : '2.4s'}
-              repeatCount="indefinite"
-            />
-          </circle>
-
-          {/* Tertiary Fiber-Optic Constellation Micro-Pulse */}
-          <circle r={isPrerequisite ? 1.8 : 1.4} fill="#ffffff" style={{ filter: `drop-shadow(0 0 5px ${pulseColor})` }}>
-            <animateMotion
-              dur={isPrerequisite ? '1.8s' : '2.4s'}
-              begin={isPrerequisite ? '1.2s' : '1.6s'}
-              repeatCount="indefinite"
-              path={edgePath}
-            />
-            <animate
-              attributeName="opacity"
-              values="0.1;0.9;0.1"
-              dur={isPrerequisite ? '1.8s' : '2.4s'}
-              repeatCount="indefinite"
-            />
-          </circle>
-        </g>
-      )}
-
-      {isActive && (
-        <style>
-          {`
-            @keyframes synapticConduitFlow {
-              from {
-                stroke-dashoffset: 16;
-              }
-              to {
-                stroke-dashoffset: 0;
-              }
-            }
-          `}
-        </style>
-      )}
     </>
   );
 };

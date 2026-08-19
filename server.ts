@@ -67,6 +67,7 @@ async function startServer() {
     max: 100, // Limit each user/IP to 100 requests per window
     standardHeaders: true,
     legacyHeaders: false,
+    validate: { keyGeneratorIpFallback: false, xForwardedForHeader: false },
     keyGenerator: (req: any) => {
       return req.user?.uid || req.ip || req.headers['x-forwarded-for'] || 'unknown';
     }
@@ -77,6 +78,7 @@ async function startServer() {
     max: 30, // 30 requests per minute for health checks
     standardHeaders: true,
     legacyHeaders: false,
+    validate: { xForwardedForHeader: false }
   });
 
   // LRU Cache (In-Memory)

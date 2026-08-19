@@ -71,5 +71,34 @@ Integrity mode: development
 - [ ] `ChapterEditModal` opens seamlessly from Execution Queue, Subject Trackers, Planner, and Revision.
 - [ ] Updating a chapter via `ChapterEditModal` instantly reflects in real-time across Dashboard, Subject Trackers, Planner Matrix, and Analytics.
 - [ ] No component performs independent ad-hoc chapter state calculations or isolated chapter edits.
-- [ ] `npm run build` compiles with 0 errors.
+## 2026-08-19T10:15:10Z
 
+# Teamwork Project Prompt — Draft
+
+Use a very large team of agents.
+
+A comprehensive architecture, security, and code quality audit of the entire JEE-OS application. The goal is to identify bugs, poor logic, dead code, and predict potential failure points across all pages, modals, and engines. The output must be a directory of separate reports per module/engine. Do not modify any application code.
+
+Working directory: ~/teamwork_projects/jee_os_audit
+Integrity mode: benchmark
+
+## Requirements
+
+### R1. Comprehensive Directory of Reports
+Produce a directory containing separate markdown reports for different domains of the app (e.g., `ui_components.md`, `state_management.md`, `core_engines.md`, `security.md`).
+
+### R2. Deep Vulnerability & Logic Analysis
+Each report must explicitly identify bugs, dead code, illicit/poor logic, and include a dedicated section predicting where the app is most likely to break under edge cases or scale.
+
+### R3. Read-Only Enforcement
+The team must ONLY produce the audit reports and must not modify, format, or delete any of the actual application source code files.
+
+## Acceptance Criteria
+
+### Report Structure & Coverage
+- [ ] The `audit_reports` directory exists.
+- [ ] There are at least 4 separate markdown files in the directory.
+- [ ] Every report contains a heading for "Predicted Failure Points".
+
+### Read-Only Verification
+- [ ] `git status` shows no modified `.ts` or `.tsx` files in the main `jee-os` repository.

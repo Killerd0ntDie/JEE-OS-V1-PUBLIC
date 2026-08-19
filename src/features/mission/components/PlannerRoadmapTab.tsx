@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { ArrowRightLeft, PenTool, Calendar, Target, Sparkles, BookOpen, Layers, CheckCircle2, TrendingUp, Zap, ChevronRight } from 'lucide-react';
 import { MonthlyCalendarWidget } from './MonthlyCalendarWidget';
+import { CognitivePairingMatrix } from '@/features/planner/components/CognitivePairingMatrix';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { Chapter } from '@/types';
 
@@ -217,6 +218,11 @@ export function PlannerRoadmapTab({ state }: { state: any }) {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* COGNITIVE CHAPTER PAIRING SYNERGY MATRIX */}
+          <div className="pt-2">
+            <CognitivePairingMatrix />
           </div>
     </div>
   );

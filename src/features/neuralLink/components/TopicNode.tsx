@@ -80,15 +80,15 @@ export const TopicNode = ({ data, selected }: { data: NeuralNodeData; selected?:
     <motion.div 
       initial={{ scale: 0.95, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
-      whileHover={{ scale: 1.03, y: -2 }}
+      whileHover={{ scale: 1.02, y: -2 }}
       style={{
-        background: 'rgba(10, 14, 23, 0.90)',
+        background: 'rgba(12, 16, 26, 0.94)',
         backdropFilter: 'blur(20px) saturate(180%)',
       }}
-      className={`relative w-64 rounded-2xl p-3.5 border transition-all duration-200 cursor-pointer select-none text-left overflow-hidden ${
+      className={`relative w-[270px] rounded-2xl p-3.5 border transition-all duration-200 cursor-pointer select-none text-left overflow-hidden ${
         isSelected
           ? 'border-indigo-500 shadow-[0_0_35px_rgba(99,102,241,0.5)] ring-2 ring-indigo-400/80'
-          : modeGlow ? `${modeBorder} ${modeGlow}` : `border-white/10 ${theme.border} hover:shadow-xl`
+          : modeGlow ? `${modeBorder} ${modeGlow}` : `border-zinc-800/80 ${theme.border} hover:shadow-xl hover:border-zinc-700`
       }`}
     >
       {/* Top Subject Hazard Caution Stripes Ribbon */}
@@ -97,27 +97,52 @@ export const TopicNode = ({ data, selected }: { data: NeuralNodeData; selected?:
         style={{ background: theme.ribbon }}
       />
 
-      {/* 4 Corner Caliper Crosshairs */}
-      <span className="absolute top-1.5 left-1.5 text-[8px] font-mono text-zinc-600 select-none pointer-events-none">+</span>
-      <span className="absolute top-1.5 right-1.5 text-[8px] font-mono text-zinc-600 select-none pointer-events-none">+</span>
-      <span className="absolute bottom-1.5 left-1.5 text-[8px] font-mono text-zinc-600 select-none pointer-events-none">+</span>
-      <span className="absolute bottom-1.5 right-1.5 text-[8px] font-mono text-zinc-600 select-none pointer-events-none">+</span>
-
+      {/* Multi-directional handles for clean serpentine circuit flow */}
       <Handle 
+        id="target-left"
         type="target" 
         position={Position.Left} 
-        className="!w-2.5 !h-2.5 !bg-indigo-400 !border-2 !border-zinc-950 shadow-[0_0_8px_rgba(99,102,241,0.8)]" 
+        className="!w-2 !h-2 !bg-indigo-400 !border !border-zinc-950 shadow-[0_0_6px_rgba(99,102,241,0.8)]" 
+      />
+      <Handle 
+        id="source-left"
+        type="source" 
+        position={Position.Left} 
+        className="!w-2 !h-2 !bg-indigo-400 !border !border-zinc-950 shadow-[0_0_6px_rgba(99,102,241,0.8)]" 
+      />
+      <Handle 
+        id="target-top"
+        type="target" 
+        position={Position.Top} 
+        className="!w-2 !h-2 !bg-indigo-400 !border !border-zinc-950 shadow-[0_0_6px_rgba(99,102,241,0.8)]" 
+      />
+      <Handle 
+        id="source-bottom"
+        type="source" 
+        position={Position.Bottom} 
+        className="!w-2 !h-2 !bg-indigo-400 !border !border-zinc-950 shadow-[0_0_6px_rgba(99,102,241,0.8)]" 
+      />
+      <Handle 
+        id="target-right"
+        type="target" 
+        position={Position.Right} 
+        className="!w-2 !h-2 !bg-indigo-400 !border !border-zinc-950 shadow-[0_0_6px_rgba(99,102,241,0.8)]" 
+      />
+      <Handle 
+        id="source-right"
+        type="source" 
+        position={Position.Right} 
+        className="!w-2 !h-2 !bg-indigo-400 !border !border-zinc-950 shadow-[0_0_6px_rgba(99,102,241,0.8)]" 
       />
       
       <div className="flex flex-col gap-2 relative z-10">
         {/* Header: Node Stamp & Status Badge */}
         <div className="flex items-center justify-between gap-1.5">
           <div className="flex items-center gap-1.5 truncate">
-            <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-zinc-400 uppercase">
-              <span className="eva-japanese-badge">第{chapterNumber}章</span>
-              <span className="modern-badge-text hidden">CH.{chapterNumber}</span>
+            <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-zinc-400 uppercase shrink-0">
+              CH.{chapterNumber}
             </span>
-            <span className={`text-[9px] font-mono font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border truncate max-w-[100px] ${theme.bg} ${theme.text}`}>
+            <span className={`text-[9px] font-mono font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border truncate max-w-[110px] ${theme.bg} ${theme.text}`}>
               {data.unit}
             </span>
           </div>
@@ -145,15 +170,15 @@ export const TopicNode = ({ data, selected }: { data: NeuralNodeData; selected?:
         </div>
         
         {/* Chapter Title in Tactical Typography */}
-        <h3 className="text-xs font-tactical font-black text-white leading-snug line-clamp-2 uppercase tracking-tight">
+        <h3 className="text-xs font-bold text-white leading-snug line-clamp-2 tracking-tight">
           {data.label}
         </h3>
         
-        {/* Progress Bar & Telemetry in HUD Font */}
-        <div className="space-y-1 pt-0.5">
-          <div className="flex items-center justify-between text-[10px] font-mono text-zinc-400">
-            <span>MASTERY: <strong className="text-white font-hud font-bold">{data.masteryScore}%</strong></span>
-            <span className="font-hud">{data.completedLectures}/{data.totalLectures} LEC</span>
+        {/* Progress Bar & Telemetry */}
+        <div className="space-y-1 pt-0.5 font-mono">
+          <div className="flex items-center justify-between text-[10px] text-zinc-400">
+            <span>MASTERY: <strong className="text-white font-bold">{data.masteryScore}%</strong></span>
+            <span className="text-zinc-400">{data.completedLectures}/{data.totalLectures} LEC</span>
           </div>
           
           <div className="h-1.5 w-full bg-zinc-950 rounded-full overflow-hidden border border-white/10 p-0.25">
@@ -172,12 +197,6 @@ export const TopicNode = ({ data, selected }: { data: NeuralNodeData; selected?:
           </div>
         </div>
       </div>
-
-      <Handle 
-        type="source" 
-        position={Position.Right} 
-        className="!w-2.5 !h-2.5 !bg-indigo-400 !border-2 !border-zinc-950 shadow-[0_0_8px_rgba(99,102,241,0.8)]" 
-      />
     </motion.div>
   );
 };

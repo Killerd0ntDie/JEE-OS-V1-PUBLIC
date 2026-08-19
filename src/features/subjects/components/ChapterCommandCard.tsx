@@ -125,7 +125,7 @@ export const ChapterCommandCard: React.FC<ChapterCommandCardProps> = ({ chapter,
         onClick={onExpand}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        className="group relative overflow-hidden rounded-2xl border border-zinc-850/80 hover:border-indigo-500/40 bg-zinc-950/40 hover:bg-zinc-900/40 backdrop-blur-xl p-4 sm:p-5 transition-all duration-200 cursor-pointer shadow-lg space-y-3.5 text-left select-none"
+        className="group relative overflow-hidden rounded-2xl border border-zinc-800/80 hover:border-indigo-500/50 bg-[#141419] hover:bg-[#1a1a20] backdrop-blur-xl p-4 sm:p-5 transition-all duration-200 cursor-pointer shadow-lg space-y-3.5 text-left select-none"
       >
         {/* Top Header Row */}
         <div className="flex items-start justify-between gap-3">

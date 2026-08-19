@@ -180,8 +180,8 @@ export const NeuralGraphPage = ({ onNavigate }: { onNavigate?: (pageId: import('
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         fitView
-        fitViewOptions={{ padding: 0.15, maxZoom: 1, minZoom: 0.65 }}
-        minZoom={0.3}
+        fitViewOptions={{ padding: 0.28, maxZoom: 0.95, minZoom: 0.4 }}
+        minZoom={0.25}
         maxZoom={1.5}
         className="xyflow-dark w-full h-full"
       >

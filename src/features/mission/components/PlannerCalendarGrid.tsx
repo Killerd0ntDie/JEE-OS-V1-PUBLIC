@@ -197,24 +197,24 @@ export function PlannerCalendarGrid({ state }: { state: any }) {
     const s = (subject || 'unknown').toLowerCase();
     const act = (activity || '').toLowerCase();
     if (act.includes('mock') || act.includes('paper') || s.includes('mock')) {
-      return 'bg-gradient-to-br from-rose-950/60 to-zinc-950/90 border-l-4 border-l-rose-500 border-zinc-800/80 text-rose-200 hover:border-rose-400 shadow-md';
+      return 'bg-rose-950/80 border-l-4 border-l-rose-500 border-y border-r border-rose-900/50 text-rose-200 hover:border-rose-400 shadow-md backdrop-blur-md';
     }
     if (act.includes('revision') || act.includes('flashcard') || s.includes('revision')) {
-      return 'bg-gradient-to-br from-amber-950/60 to-zinc-950/90 border-l-4 border-l-amber-500 border-zinc-800/80 text-amber-200 hover:border-amber-400 shadow-md';
+      return 'bg-amber-950/80 border-l-4 border-l-amber-500 border-y border-r border-amber-900/50 text-amber-200 hover:border-amber-400 shadow-md backdrop-blur-md';
     }
     if (s.includes('math')) {
-      return 'bg-gradient-to-br from-indigo-950/60 to-zinc-950/90 border-l-4 border-l-indigo-500 border-zinc-800/80 text-indigo-200 hover:border-indigo-400 shadow-md';
+      return 'bg-indigo-950/80 border-l-4 border-l-indigo-500 border-y border-r border-indigo-900/50 text-indigo-200 hover:border-indigo-400 shadow-md backdrop-blur-md';
     }
     if (s.includes('phys')) {
-      return 'bg-gradient-to-br from-sky-950/60 to-zinc-950/90 border-l-4 border-l-sky-500 border-zinc-800/80 text-sky-200 hover:border-sky-400 shadow-md';
+      return 'bg-sky-950/80 border-l-4 border-l-sky-500 border-y border-r border-sky-900/50 text-sky-200 hover:border-sky-400 shadow-md backdrop-blur-md';
     }
     if (s.includes('chem')) {
-      return 'bg-gradient-to-br from-emerald-950/60 to-zinc-950/90 border-l-4 border-l-emerald-500 border-zinc-800/80 text-emerald-200 hover:border-emerald-400 shadow-md';
+      return 'bg-emerald-950/80 border-l-4 border-l-emerald-500 border-y border-r border-emerald-900/50 text-emerald-200 hover:border-emerald-400 shadow-md backdrop-blur-md';
     }
     if (s === 'break') {
-      return 'bg-zinc-950/70 border border-dashed border-zinc-800 text-zinc-400 hover:border-zinc-700';
+      return 'bg-zinc-900/80 border border-dashed border-zinc-700 text-zinc-400 hover:border-zinc-600 backdrop-blur-md';
     }
-    return 'bg-gradient-to-br from-indigo-950/60 to-zinc-950/90 border-l-4 border-l-indigo-500 border-zinc-800/80 text-indigo-200 hover:border-indigo-400 shadow-md';
+    return 'bg-indigo-950/80 border-l-4 border-l-indigo-500 border-y border-r border-indigo-900/50 text-indigo-200 hover:border-indigo-400 shadow-md backdrop-blur-md';
   };
 
   // Helper to format date string for day headers

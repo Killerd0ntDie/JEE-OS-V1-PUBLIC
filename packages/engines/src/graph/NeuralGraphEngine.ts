@@ -51,16 +51,20 @@ export class NeuralGraphEngine {
     const subjectChapters = chapters.filter(c => c.subject === activeSubject);
 
     const COLS = 4;
-    const X_SPACING = 310;
-    const Y_SPACING = 135;
-    const START_X = 50;
-    const START_Y = 40;
+    const X_SPACING = 340;
+    const Y_SPACING = 165;
+    const START_X = 60;
+    const START_Y = 110;
 
     let prevNodeId: string | null = null;
+    let prevCol = 0;
+    let prevRow = 0;
 
     subjectChapters.forEach((chapter, index) => {
-      const col = index % COLS;
       const row = Math.floor(index / COLS);
+      const isEvenRow = row % 2 === 0;
+      // Serpentine (snake) flow: Even rows go L->R (0,1,2,3), Odd rows go R->L (3,2,1,0)
+      const col = isEvenRow ? (index % COLS) : (COLS - 1 - (index % COLS));
 
       const x = START_X + col * X_SPACING;
       const y = START_Y + row * Y_SPACING;
@@ -113,7 +117,7 @@ export class NeuralGraphEngine {
         type: 'topicNode',
       });
 
-      // Connect explicit prerequisites or sequential progression with live glowing energy pulses
+      // Connect explicit prerequisites or clean serpentine flow
       let hasPrerequisiteEdge = false;
       const color = subjectColors[activeSubject];
 
@@ -143,13 +147,33 @@ export class NeuralGraphEngine {
         });
       }
 
-      // Fallback: Connect sequential syllabus progression if no custom prerequisite was linked
+      // Fallback: Connect sequential syllabus progression along the serpentine circuit (Zero cross-canvas diagonal cuts)
       if (!hasPrerequisiteEdge && prevNodeId) {
         const isEnergyActive = uiStatus === 'Mastered' || uiStatus === 'Completed' || uiStatus === 'In Progress';
+        const isRowTransition = row !== prevRow;
+
+        let sourceHandle: string | undefined = undefined;
+        let targetHandle: string | undefined = undefined;
+
+        if (isRowTransition) {
+          sourceHandle = 'source-bottom';
+          targetHandle = 'target-top';
+        } else if (isEvenRow) {
+          // L -> R
+          sourceHandle = 'source-right';
+          targetHandle = 'target-left';
+        } else {
+          // R -> L
+          sourceHandle = 'source-left';
+          targetHandle = 'target-right';
+        }
+
         edges.push({
           id: `edge-${prevNodeId}-${nodeId}`,
           source: prevNodeId,
           target: nodeId,
+          sourceHandle,
+          targetHandle,
           type: 'animatedEnergyEdge',
           animated: isEnergyActive,
           style: { 
@@ -162,6 +186,8 @@ export class NeuralGraphEngine {
       }
 
       prevNodeId = nodeId;
+      prevCol = col;
+      prevRow = row;
     });
 
     return { nodes, edges };
