@@ -39,8 +39,21 @@ export function useMissionState(props: MissionModeProps) {
   const isCasinoEnabled = settings.enablePomodoroCasino ?? false;
 
   const storageKey = activeMissionId ? `jeeos_mission_state_${activeMissionId}` : null;
-  const savedStateStr = storageKey ? localStorage.getItem(storageKey) : null;
-  const savedState = savedStateStr ? JSON.parse(savedStateStr) : null;
+  const savedState = useMemo(() => {
+    if (!storageKey) return null;
+    try {
+      const str = localStorage.getItem(storageKey);
+      return str ? JSON.parse(str) : null;
+    } catch (e) {
+      console.warn('Corrupted mission state in localStorage, purging key:', storageKey, e);
+      try {
+        localStorage.removeItem(storageKey);
+      } catch {
+        // ignore
+      }
+      return null;
+    }
+  }, [storageKey]);
 
   const [isPaused, setIsPaused] = useState(savedState?.isPaused ?? (initialPaused && isCasinoEnabled));
   const [isPauseOverlayDismissed, setIsPauseOverlayDismissed] = useState(false);
@@ -60,23 +73,51 @@ export function useMissionState(props: MissionModeProps) {
   const [isTimeUpModalOpen, setIsTimeUpModalOpen] = useState(false);
   const [hasTriggeredTimeUp, setHasTriggeredTimeUp] = useState(false);
   
-  // Enhanced session storage persistence for timer state
-  useEffect(() => {
-    if (storageKey && !isSettingUp && !isCompleted && !missionFailed) {
-      try {
-        localStorage.setItem(storageKey, JSON.stringify({
-          isPaused, 
-          seconds, 
-          focusScore, 
-          idleTime, 
-          focusInterruptions,
-          timestamp: Date.now() // Add timestamp to detect stale sessions
-        }));
-      } catch (e) {
-        console.warn('Failed to save mission snapshot to localStorage', e);
-      }
+  // Throttled session storage persistence for timer state (every 30s, or immediate on pause/completion/unload)
+  const lastPersistRef = useRef<number>(0);
+  const persistState = useCallback(() => {
+    if (!storageKey || isSettingUp || isCompleted || missionFailed) return;
+    try {
+      localStorage.setItem(storageKey, JSON.stringify({
+        isPaused, 
+        seconds, 
+        focusScore, 
+        idleTime, 
+        focusInterruptions,
+        timestamp: Date.now() // Add timestamp to detect stale sessions
+      }));
+      lastPersistRef.current = Date.now();
+    } catch (e) {
+      console.warn('Failed to save mission snapshot to localStorage', e);
     }
   }, [storageKey, isSettingUp, isCompleted, missionFailed, isPaused, seconds, focusScore, idleTime, focusInterruptions]);
+
+  useEffect(() => {
+    if (!storageKey || isSettingUp || isCompleted || missionFailed) return;
+
+    const now = Date.now();
+    // Immediate save if paused or if 30s has elapsed since last persist
+    if (isPaused || now - lastPersistRef.current >= 30000) {
+      persistState();
+      return;
+    }
+
+    // Schedule debounced persist for the remaining time
+    const timer = setTimeout(persistState, 30000 - (now - lastPersistRef.current));
+    return () => clearTimeout(timer);
+  }, [storageKey, isSettingUp, isCompleted, missionFailed, isPaused, seconds, focusScore, idleTime, focusInterruptions, persistState]);
+
+  // Guaranteed persist on browser tab close or refresh
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      persistState();
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      persistState();
+    };
+  }, [persistState]);
   
   // Recover timer state on mount with staleness check
   useEffect(() => {
@@ -387,8 +428,12 @@ export function useMissionState(props: MissionModeProps) {
   }, [isPaused, isCompleted, isSettingUp, missionFailed]);
 
   const formatTime = (totalSecs: number) => {
-    const mins = Math.floor(totalSecs / 60);
+    const hours = Math.floor(totalSecs / 3600);
+    const mins = Math.floor((totalSecs % 3600) / 60);
     const secs = totalSecs % 60;
+    if (hours > 0) {
+      return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 

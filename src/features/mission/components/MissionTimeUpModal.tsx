@@ -8,7 +8,7 @@ export interface MissionTimeUpModalProps {
   isOpen: boolean;
   xpWager?: number;
   onFail?: () => void;
-  onComplete: () => void;
+  onComplete: (summary?: string) => void;
   onAddExtraTime: (minutes: number) => void;
 }
 
@@ -21,7 +21,7 @@ export function MissionTimeUpModal({
 }: MissionTimeUpModalProps) {
   useLockBodyScroll(isOpen || false);
 
-  useEscapeKey(onComplete, isOpen);
+  useEscapeKey(() => onComplete(), isOpen);
   
   const [summary, setSummary] = useState('');
   const [timeLeft, setTimeLeft] = useState(300);
@@ -99,7 +99,7 @@ export function MissionTimeUpModal({
                 </div>
 
                 <button
-                  onClick={onComplete}
+                  onClick={() => onComplete(summary)}
                   disabled={!canSubmitProof}
                   className="w-full mt-4 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 disabled:hover:bg-amber-500 text-amber-950 py-3.5 px-4 rounded-xl text-xs font-mono font-bold tracking-wider uppercase transition-all flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20"
                 >
@@ -142,7 +142,7 @@ export function MissionTimeUpModal({
                   </div>
 
                   <button
-                    onClick={onComplete}
+                    onClick={() => onComplete()}
                     className="w-full bg-white hover:bg-zinc-200 text-zinc-950 py-3.5 px-4 rounded-xl text-xs font-mono font-bold tracking-wider uppercase transition-all flex items-center justify-center gap-1.5 shadow-lg shadow-white/5"
                   >
                     <CheckCircle2 className="w-4 h-4" />

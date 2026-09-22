@@ -4,8 +4,9 @@ import { motion } from 'motion/react';
 import { StudyBrainService } from '@/services/studyBrainService';
 import { calculateRealisticDailyChapterVelocity } from '@/utils/chapterVelocity';
 import { springs } from '@/constants/motion';
-import { AlertTriangle, Clock, Skull, Zap, Target, Compass, Sparkles } from 'lucide-react';
+import { AlertTriangle, Clock, Skull, Zap, Target, Compass, Sparkles, ShieldCheck } from 'lucide-react';
 import { audioEngine } from '@/utils/audioEngine';
+import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 
 interface ExamReadinessWidgetProps {
   targetYear: string;
@@ -15,6 +16,16 @@ interface ExamReadinessWidgetProps {
 
 export function ExamReadinessWidget({ targetYear, syllabusProgress, studySessions = [] }: ExamReadinessWidgetProps) {
   const [selectedExamTab, setSelectedExamTab] = useState<'main' | 'adv'>('main');
+
+  const revisionQueue = useStudyBrainStore(s => s.revisionQueue) || [];
+  const chapters = useStudyBrainStore(s => s.chapters) || [];
+  const revisionDueCount = revisionQueue.length;
+  const vaultChaptersCount = React.useMemo(() => {
+    return chapters.filter(c => 
+      !c.chapterOnHold &&
+      (c.status === 'Completed' || c.status === 'Revision' || c.theoryComplete || c.dppComplete || (c.completion && c.completion >= 50))
+    ).length;
+  }, [chapters]);
 
   // Exam Countdown calculation
   const daysMainJan = StudyBrainService.getDaysUntilExam(targetYear, 'JEE Main');
@@ -48,9 +59,9 @@ export function ExamReadinessWidget({ targetYear, syllabusProgress, studySession
     return { earliestSessionMs: earliest, actualStudyMinutes: totalMins, hasRealStudyHistory: hasRealHistory };
   }, [studySessions]);
 
-  const totalChapters = syllabusProgress.physics.totalCount + syllabusProgress.chemistry.totalCount + syllabusProgress.maths.totalCount;
-  const masteredChapters = syllabusProgress.physics.masteredCount + syllabusProgress.chemistry.masteredCount + syllabusProgress.maths.masteredCount;
-  const remainingChapters = totalChapters - masteredChapters;
+  const totalChapters = (syllabusProgress?.physics?.totalCount || 0) + (syllabusProgress?.chemistry?.totalCount || 0) + (syllabusProgress?.maths?.totalCount || 0);
+  const masteredChapters = (syllabusProgress?.physics?.masteredCount || 0) + (syllabusProgress?.chemistry?.masteredCount || 0) + (syllabusProgress?.maths?.masteredCount || 0);
+  const remainingChapters = Math.max(0, totalChapters - masteredChapters);
   
   const studyDaysElapsed = earliestSessionMs
     ? Math.max(1, Math.ceil((Date.now() - earliestSessionMs) / 86400000))
@@ -205,6 +216,17 @@ export function ExamReadinessWidget({ targetYear, syllabusProgress, studySession
               </div>
             </div>
           </div>
+
+          {/* Retention Guard Telemetry Pill */}
+          <div className="flex items-center gap-1.5 text-[10px] font-mono text-zinc-400 bg-zinc-950/60 border border-white/10 px-2.5 py-1 rounded-lg">
+            <ShieldCheck className={`w-3 h-3 ${revisionDueCount > 0 ? 'text-amber-400' : 'text-emerald-400'}`} />
+            <span>Vault Shield: <strong className="text-zinc-200">{vaultChaptersCount} Safe</strong></span>
+            {revisionDueCount > 0 ? (
+              <span className="text-rose-400 font-bold">({revisionDueCount} decay risk)</span>
+            ) : (
+              <span className="text-emerald-400 font-bold">(0 decay)</span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -219,6 +241,12 @@ export function ExamReadinessWidget({ targetYear, syllabusProgress, studySession
               <> Target speed: <strong className="text-white font-bold">{requiredVelocity.toFixed(2)} ch/day</strong>.</>
             )}
           </p>
+          {revisionDueCount > 0 && (
+            <div className="text-[11px] text-amber-300 font-mono mt-2 pt-2 border-t border-red-900/50 flex items-center gap-1.5">
+              <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0 animate-pulse" />
+              <span>{revisionDueCount} studied chapter{revisionDueCount > 1 ? 's' : ''} in decay risk. Clear Revision Queue to protect your pace!</span>
+            </div>
+          )}
         </div>
       )}
 
@@ -242,13 +270,13 @@ export function ExamReadinessWidget({ targetYear, syllabusProgress, studySession
         {/* Physics */}
         <div className="space-y-1">
           <div className="flex justify-between items-baseline text-xs font-medium">
-            <span className="text-zinc-200 font-tactical font-bold uppercase tracking-wider">Physics <span className="text-zinc-400 font-normal font-mono ml-1">({syllabusProgress.physics.masteredCount}/{syllabusProgress.physics.totalCount} Mastered)</span></span>
-            <span className="font-hud text-sky-400 font-bold">{syllabusProgress.physics.percentage}%</span>
+            <span className="text-zinc-200 font-tactical font-bold uppercase tracking-wider">Physics <span className="text-zinc-400 font-normal font-mono ml-1">({syllabusProgress?.physics?.masteredCount || 0}/{syllabusProgress?.physics?.totalCount || 0} Mastered)</span></span>
+            <span className="font-hud text-sky-400 font-bold">{Number.isFinite(syllabusProgress?.physics?.percentage) ? syllabusProgress.physics.percentage : 0}%</span>
           </div>
           <div className="w-full bg-zinc-950 rounded-full h-2 overflow-hidden border border-white/10 p-0.5">
             <motion.div 
               initial={{ width: 0 }}
-              animate={{ width: `${syllabusProgress.physics.percentage}%` }}
+              animate={{ width: `${Number.isFinite(syllabusProgress?.physics?.percentage) ? syllabusProgress.physics.percentage : 0}%` }}
               transition={{ duration: 0.6, ease: "easeOut" }}
               className="bg-sky-400 h-full rounded-full shadow-[0_0_8px_rgba(56,189,248,0.5)]" 
             />
@@ -258,13 +286,13 @@ export function ExamReadinessWidget({ targetYear, syllabusProgress, studySession
         {/* Chemistry */}
         <div className="space-y-1">
           <div className="flex justify-between items-baseline text-xs font-medium">
-            <span className="text-zinc-200 font-tactical font-bold uppercase tracking-wider">Chemistry <span className="text-zinc-400 font-normal font-mono ml-1">({syllabusProgress.chemistry.masteredCount}/{syllabusProgress.chemistry.totalCount} Mastered)</span></span>
-            <span className="font-hud text-emerald-400 font-bold">{syllabusProgress.chemistry.percentage}%</span>
+            <span className="text-zinc-200 font-tactical font-bold uppercase tracking-wider">Chemistry <span className="text-zinc-400 font-normal font-mono ml-1">({syllabusProgress?.chemistry?.masteredCount || 0}/{syllabusProgress?.chemistry?.totalCount || 0} Mastered)</span></span>
+            <span className="font-hud text-emerald-400 font-bold">{Number.isFinite(syllabusProgress?.chemistry?.percentage) ? syllabusProgress.chemistry.percentage : 0}%</span>
           </div>
           <div className="w-full bg-zinc-950 rounded-full h-2 overflow-hidden border border-white/10 p-0.5">
             <motion.div 
               initial={{ width: 0 }}
-              animate={{ width: `${syllabusProgress.chemistry.percentage}%` }}
+              animate={{ width: `${Number.isFinite(syllabusProgress?.chemistry?.percentage) ? syllabusProgress.chemistry.percentage : 0}%` }}
               transition={{ duration: 0.6, ease: "easeOut" }}
               className="bg-emerald-400 h-full rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)]" 
             />
@@ -274,13 +302,13 @@ export function ExamReadinessWidget({ targetYear, syllabusProgress, studySession
         {/* Maths */}
         <div className="space-y-1">
           <div className="flex justify-between items-baseline text-xs font-medium">
-            <span className="text-zinc-200 font-tactical font-bold uppercase tracking-wider">Mathematics <span className="text-zinc-400 font-normal font-mono ml-1">({syllabusProgress.maths.masteredCount}/{syllabusProgress.maths.totalCount} Mastered)</span></span>
-            <span className="font-hud text-purple-400 font-bold">{syllabusProgress.maths.percentage}%</span>
+            <span className="text-zinc-200 font-tactical font-bold uppercase tracking-wider">Mathematics <span className="text-zinc-400 font-normal font-mono ml-1">({syllabusProgress?.maths?.masteredCount || 0}/{syllabusProgress?.maths?.totalCount || 0} Mastered)</span></span>
+            <span className="font-hud text-purple-400 font-bold">{Number.isFinite(syllabusProgress?.maths?.percentage) ? syllabusProgress.maths.percentage : 0}%</span>
           </div>
           <div className="w-full bg-zinc-950 rounded-full h-2 overflow-hidden border border-white/10 p-0.5">
             <motion.div 
               initial={{ width: 0 }}
-              animate={{ width: `${syllabusProgress.maths.percentage}%` }}
+              animate={{ width: `${Number.isFinite(syllabusProgress?.maths?.percentage) ? syllabusProgress.maths.percentage : 0}%` }}
               transition={{ duration: 0.6, ease: "easeOut" }}
               className="bg-purple-400 h-full rounded-full shadow-[0_0_8px_rgba(168,85,247,0.5)]" 
             />

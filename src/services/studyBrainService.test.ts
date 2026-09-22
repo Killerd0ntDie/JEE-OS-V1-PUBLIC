@@ -75,4 +75,40 @@ describe('StudyBrainService.calculateMastery', () => {
     expect(resultOverdue.explanation).toContain('4 active mistakes');
     expect(resultOverdue.explanation).toContain('Accuracy 95%'); // 80 solved, 4 mistakes -> 80/(80+4) = 95%
   });
+
+  it('decays retention for unrevised chapters as days increase rather than sticking at a flat 50% (BUG-22)', () => {
+    const unrevisedChapterFresh: Chapter = {
+      id: 'test-unrevised',
+      subject: 'physics',
+      unit: 'Mechanics',
+      name: 'Work Energy',
+      completion: 60,
+      currentLecture: 3,
+      totalLectures: 5,
+      theoryComplete: false,
+      dppComplete: false,
+      pyqsComplete: false,
+      revisionCount: 0, // Never revised
+      difficulty: 'Medium',
+      confidence: 50,
+      estimatedRemainingTime: 5,
+      priority: 2,
+      dependencies: [],
+      weaknessScore: 20,
+      status: 'Learning',
+      solvedQuestions: 30,
+      lastRevisionDaysAgo: 3,
+    };
+
+    const unrevisedChapterStale: Chapter = {
+      ...unrevisedChapterFresh,
+      lastRevisionDaysAgo: 30, // 30 days without revision
+    };
+
+    const resultFresh = StudyBrainService.calculateMastery(unrevisedChapterFresh, 0);
+    const resultStale = StudyBrainService.calculateMastery(unrevisedChapterStale, 0);
+
+    // Unrevised chapter after 30 days must score lower than after 3 days
+    expect(resultStale.score).toBeLessThan(resultFresh.score);
+  });
 });

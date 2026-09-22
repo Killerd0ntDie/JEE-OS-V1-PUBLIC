@@ -57,7 +57,20 @@ export const useMentorInterviewForm = (onClose?: () => void) => {
   const initialRealityState = () => {
     const map: Record<string, 'Not Started' | 'In Progress' | 'Completed'> = {};
     chapters.forEach(c => {
-      map[c.id] = 'Not Started';
+      if (c.status === 'Mastered' || (c.completion ?? 0) >= 90) {
+        map[c.id] = 'Completed';
+      } else if (
+        (c.completion ?? 0) > 0 || 
+        c.status === 'Learning' || 
+        c.status === 'Theory Complete' || 
+        c.status === 'DPP Pending' || 
+        c.status === 'PYQ Pending' ||
+        (c.currentLecture && c.currentLecture > 0)
+      ) {
+        map[c.id] = 'In Progress';
+      } else {
+        map[c.id] = 'Not Started';
+      }
     });
     return map;
   };
@@ -83,11 +96,15 @@ export const useMentorInterviewForm = (onClose?: () => void) => {
   const handleFinishInterview = async () => {
     setIsSubmitting(true);
     try {
-      const chapterUpdates = Object.entries(chapterReality).map(([id, status]) => ({
-        id,
-        status,
-        confidence: status === 'Completed' ? 85 : status === 'In Progress' ? 50 : 20
-      }));
+      const chapterUpdates = Object.entries(chapterReality).map(([id, status]) => {
+        const existing = chapters.find(c => c.id === id);
+        return {
+          id,
+          status,
+          confidence: existing?.confidence ?? (status === 'Completed' ? 85 : status === 'In Progress' ? 50 : 20),
+          completion: existing?.completion
+        };
+      });
 
       await actions.completeMentorInterview({
         targetExams: selectedExams as any,

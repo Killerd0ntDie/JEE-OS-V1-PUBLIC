@@ -1,7 +1,7 @@
-import { SyllabusNode, ProgressState } from '@/engines/knowledge/types';
+import { SyllabusNode, ProgressState } from '../knowledge/types';
 import { PlannerInput } from './types';
-import { SubjectId, Chapter } from '@/types/index';
-import { calculateMistakeScore } from '@/utils/mistakeIntelligence';
+import { SubjectId, Chapter } from '../types/index';
+import { calculateMistakeScore } from './mistakeIntelligence';
 
 export interface ScoringContext {
   taskType: 'Watch Lecture' | 'Solve DPP' | 'Solve PYQs' | 'Revise Formulas' | 'Review Mistakes' | 'Break';
@@ -452,7 +452,7 @@ export class PlannerScoringEngine {
     const targetEffort = calculateTargetEffort(stats);
     const actualEffort = calculateActualEffort(stats);
     const deficit = calculateEffortDeficit(targetEffort, actualEffort, subject);
-    const isFocusSubject = context.globalInput.userPreferences.focusSubject === subject;
+    const isFocusSubject = context.globalInput.userPreferences?.focusSubject === subject;
     const subjectBalanceScore = mapDeficitToScore(deficit, isFocusSubject);
     const subjectBalanceExplanation = generateExplanation(subject, stats);
 
@@ -572,7 +572,7 @@ export class PlannerScoringEngine {
     const monthlyObjs = context.globalInput.monthlyObjectives || [];
     if (monthlyObjs.some(o => o.subject === context.node.subject || (o.focusChapters && o.focusChapters.includes(context.node.name)) || (o.category && o.category.toLowerCase().includes(context.node.subject)))) {
       monthlyObjectiveAlignmentScore = 95;
-    } else if (context.globalInput.userPreferences.focusSubject === context.node.subject) {
+    } else if (context.globalInput.userPreferences?.focusSubject === context.node.subject) {
       monthlyObjectiveAlignmentScore = 80;
     }
 

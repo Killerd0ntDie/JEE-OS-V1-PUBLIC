@@ -208,4 +208,56 @@ describe('calculateMistakeScore', () => {
     expect(resultMitigated.explanation).toContain('Revision conducted after latest error');
     expect(resultUnmitigated.explanation).toContain('No successful revision after latest error');
   });
+
+  it('preserves revision mitigation factor even with multiple active mistakes (BUG-25)', () => {
+    // 5 active mistakes logged 5 days ago
+    const multiMistakes: Mistake[] = Array.from({ length: 5 }, (_, i) => ({
+      id: `m-multi-${i}`,
+      subject: 'physics',
+      chapter: 'Rotational Dynamics',
+      topic: 'Rolling Motion',
+      subtopic: '',
+      difficulty: 'JEE Advanced',
+      source: 'Mock Test',
+      timeTaken: 12,
+      correctMethod: '',
+      studentMethod: '',
+      mistakeTypes: ['Calculation Error'],
+      confidence: 40,
+      revisionSchedule: '',
+      masteryImpact: 'High',
+      attemptNumber: 1,
+      revisionStatus: 'New',
+      recoveryScore: 0,
+      teacherNotes: '',
+      personalNotes: '',
+      aiAdvice: '',
+      priority: 'High',
+      dateLogged: new Date(Date.now() - 5 * 24 * 3600 * 1000).toISOString(),
+      questionText: '',
+      correctSolution: '',
+    }));
+
+    // Revised 1 day ago (after the mistakes)
+    const revisedChapter = {
+      ...mockChapter,
+      lastRevisionDaysAgo: 1,
+    };
+
+    // Not revised since the mistakes (revised 10 days ago)
+    const unrevisedChapter = {
+      ...mockChapter,
+      lastRevisionDaysAgo: 10,
+    };
+
+    const resultMitigated = calculateMistakeScore(revisedChapter, multiMistakes);
+    const resultUnmitigated = calculateMistakeScore(unrevisedChapter, multiMistakes);
+
+    // Unmitigated should be high/capped (near 100)
+    expect(resultUnmitigated.score).toBeGreaterThanOrEqual(90);
+    // Mitigated MUST be substantially lower due to 0.5 factor, NOT overwhelmed to 100
+    expect(resultMitigated.score).toBeLessThan(resultUnmitigated.score);
+    expect(resultMitigated.score).toBeLessThanOrEqual(70);
+    expect(resultMitigated.explanation).toContain('Revision conducted after latest error');
+  });
 });

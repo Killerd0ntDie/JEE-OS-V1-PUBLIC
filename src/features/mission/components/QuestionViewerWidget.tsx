@@ -5,7 +5,7 @@ import { Target, X, Check, ChevronLeft, ChevronRight, CheckCircle2, XCircle, Spa
 import pyqData from '@/data/pyqBank.json';
 import { Question, Difficulty } from '@/types/curriculum';
 import { audioEngine } from '@/utils/audioEngine';
-import { QuestionRepository } from '@/firebase/QuestionRepository';
+import { QuestionRepository } from '@/repositories/questionRepository';
 import { PyqGeneratorEngine } from '@/lib/PyqGeneratorEngine';
 import { springs } from '@/constants/motion';
 
@@ -48,10 +48,14 @@ export function QuestionViewerWidget({ chapterId, chapterName, subject, onExitPr
           if (isMounted) setIsGenerating(true);
           const targetChapter = chapterName || chapterId;
           const aiGenerated = await PyqGeneratorEngine.generateQuestions(targetChapter, subject, 3);
-          await QuestionRepository.saveQuestionsBatch(aiGenerated);
           if (isMounted) {
             setChapterQuestions(aiGenerated);
             setIsGenerating(false);
+          }
+          try {
+            await QuestionRepository.saveQuestionsBatch(aiGenerated);
+          } catch (saveErr) {
+            console.warn("[QuestionViewerWidget] Non-fatal: could not persist generated questions to cloud repository:", saveErr);
           }
         }
       } catch (err: any) {

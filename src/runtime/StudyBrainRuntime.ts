@@ -3,17 +3,29 @@ import {
   Chapter, TodayMission, TimelineBlock, Note, StudySession, MockResult, 
   Mistake, XPState, SessionAnalytics, SubjectId, RevisionSettings, UserProfile, MentorProfile
 } from '../types/index';
-import { ScheduledTask } from '@jee-os/engines/src/planner/types';
 import { MockTest } from '@/types/mockTest';
-import { KnowledgeEngine, SyllabusNode } from '@jee-os/engines';
+import { mockTest1 } from '@/data/mockTests/jeeMain2024Shift1';
+import { 
+  KnowledgeEngine, 
+  SyllabusNode, 
+  PlannerEngine, 
+  OptimizationEngine, 
+  AnalyticsEngine, 
+  AnalyticsInput, 
+  AnalyticsOutput,
+  CoachEngine, 
+  CoachInput, 
+  CoachOutput,
+  ChapterInfoEngine, 
+  ChapterTelemetry,
+  RevisionEngine, 
+  RevisionEngineOutput 
+} from '@jee-os/engines';
 import type { PlannerInput, PlannerOutput, WeeklyBlock } from '@jee-os/engines';
 import type { OptimizationInput, OptimizationResult } from '@jee-os/engines';
-import { AnalyticsEngine, AnalyticsInput, AnalyticsOutput } from '@jee-os/engines';
-import { CoachEngine, CoachInput, CoachOutput } from '@jee-os/engines';
-import { ChapterInfoEngine, ChapterTelemetry } from '@jee-os/engines';
-import { RevisionEngine, RevisionEngineOutput } from '@jee-os/engines';
 import { StudyBrainService, createSyllabusGraph } from '@/services/studyBrainService';
 import { RevisionCard } from '@/services/revisionEngineService';
+import { synthesizeDailyMissionsAndTimeline } from './timelineSynthesizer';
 
 export interface StudyBrainState {
   chapters: Chapter[];
@@ -55,6 +67,7 @@ export interface StudyBrainState {
     minStreakHours?: number;
     enablePomodoroCasino?: boolean;
     themeMode?: 'evangelion' | 'modern';
+    focusSubject?: SubjectId;
   };
   weeklyGoals?: {
     weekIndex: number;
@@ -103,6 +116,7 @@ export interface StudyBrainState {
   lastSyncError?: string | null;
   deletedMissionIds?: string[];
   completedPlannerMissionIds?: string[];
+  dismissedPlannerMissionIds?: string[];
   writeBlocked?: boolean;
   lastRefresh: string | null;
   levelUpData?: { oldLevel: number; newLevel: number; xp: XPState } | null;
@@ -131,8 +145,8 @@ export class StudyBrainRuntime {
   private coachEngine: CoachEngine | null = null;
   private chapterInfoEngine: ChapterInfoEngine;
   private revisionEngine: RevisionEngine;
-  public plannerEngine?: any;
-  public optimizationEngine?: any;
+  public plannerEngine?: PlannerEngine | null;
+  public optimizationEngine?: OptimizationEngine | null;
   
   // Total engine runtime
   private totalEngineRuntimeMs: number = 0;
@@ -143,17 +157,28 @@ export class StudyBrainRuntime {
     mistakes?: Mistake[];
     sessions?: StudySession[];
     mocks?: MockResult[];
-    settings?: any;
+    settings?: StudyBrainState['settings'];
     timeline?: TimelineBlock[];
     mentorProfile?: MentorProfile;
+    todayMissions?: TodayMission[];
+    energyLevel?: 'High' | 'Medium' | 'Low';
   } = {};
 
   private constructor() {
     this.chapterInfoEngine = new ChapterInfoEngine();
     this.revisionEngine = new RevisionEngine();
     this.state = this.getInitialState();
+    const tokenProvider = async () => {
+      try {
+        const { auth } = await import('@/firebase');
+        return auth?.currentUser?.getIdToken() ?? null;
+      } catch {
+        return null;
+      }
+    };
+    CoachEngine.setTokenProvider(tokenProvider);
+    this.coachEngine = new CoachEngine({ tokenProvider });
     this.analyticsEngine = new AnalyticsEngine();
-    this.coachEngine = new CoachEngine();
   }
 
   public static getInstance(): StudyBrainRuntime {
@@ -171,7 +196,7 @@ export class StudyBrainRuntime {
       notes: [],
       studySessions: [],
       mocks: [],
-      customMockTests: [],
+      customMockTests: [mockTest1],
       mistakes: [],
       timeline: [],
       xp: { daily: 0, weekly: 0, total: 0, level: 1, streak: 0, nextLevelXP: 1000 },
@@ -259,7 +284,7 @@ export class StudyBrainRuntime {
     this.state.writeBlocked = true;
     this.state.loading = false;
     this.prevMemoState = {};
-    this.knowledgeEngine.invalidateCache();
+    this.knowledgeEngine?.invalidateCache();
     this.chapterInfoEngine.invalidateCache();
     this.notifySubscribers();
   }
@@ -267,9 +292,16 @@ export class StudyBrainRuntime {
   public dispose() {
     this.isDisposed = true;
     this.subscribers.clear();
+    this.pendingRejecters.forEach(rej => {
+      try { rej(new Error('StudyBrainRuntime disposed')); } catch {}
+    });
     this.pendingResolvers = [];
+    this.pendingRejecters = [];
     this.pendingReasons.clear();
-    if (this.refreshTimer) clearTimeout(this.refreshTimer);
+    if (this.refreshTimer) {
+      clearTimeout(this.refreshTimer);
+      this.refreshTimer = null;
+    }
     this.isProcessingRefresh = false;
     if (this.levelUpTimeout) {
       clearTimeout(this.levelUpTimeout);
@@ -304,6 +336,7 @@ export class StudyBrainRuntime {
   private refreshTimer: NodeJS.Timeout | null = null;
   private pendingReasons = new Set<RefreshTriggers>();
   private pendingResolvers: Array<(value: void) => void> = [];
+  private pendingRejecters: Array<(reason?: any) => void> = [];
 
   public async refresh(reason: RefreshTriggers, optimisticData?: Partial<StudyBrainState>) {
     if (this.isDisposed) {
@@ -315,9 +348,10 @@ export class StudyBrainRuntime {
       this.updateStateOptimistic(optimisticData);
     }
 
-    return new Promise<void>((resolve) => {
+    return new Promise<void>((resolve, reject) => {
       this.pendingReasons.add(reason);
       this.pendingResolvers.push(resolve);
+      this.pendingRejecters.push(reject);
 
       if (this.refreshTimer) {
         clearTimeout(this.refreshTimer);
@@ -330,6 +364,11 @@ export class StudyBrainRuntime {
   }
 
   private async processDebouncedRefresh() {
+    if (this.refreshTimer) {
+      clearTimeout(this.refreshTimer);
+      this.refreshTimer = null;
+    }
+
     if (this.isDisposed || this.pendingReasons.size === 0) {
       return;
     }
@@ -349,19 +388,27 @@ export class StudyBrainRuntime {
     // Snapshot the current pending batch
     const reasons = Array.from(this.pendingReasons);
     const resolvers = [...this.pendingResolvers];
+    const rejecters = [...this.pendingRejecters];
     this.pendingReasons.clear();
     this.pendingResolvers = [];
+    this.pendingRejecters = [];
 
+    let refreshError: unknown = null;
     try {
       // Pick the most impactful reason, or just the first one since executeRefresh is delta-aware
       const mainReason = reasons.includes('SETTINGS_UPDATE') ? 'SETTINGS_UPDATE' : reasons[0];
       await this.executeRefresh(mainReason);
     } catch (error) {
       console.error('[StudyBrainRuntime] Refresh failed:', error);
+      refreshError = error;
     } finally {
       this.isProcessingRefresh = false;
-      // Resolve all waiters for this batch
-      resolvers.forEach(r => r());
+      // Propagate result to all waiters for this batch
+      if (refreshError) {
+        rejecters.forEach(rej => rej(refreshError));
+      } else {
+        resolvers.forEach(r => r());
+      }
 
       // If more came in while we were processing, kick off another cycle
       if (this.pendingReasons.size > 0) {
@@ -375,9 +422,14 @@ export class StudyBrainRuntime {
 
     const prevSettings = this.prevMemoState.settings;
     const currSettings = currentState.settings;
+    const prevEnergy = this.prevMemoState.energyLevel;
+    const currEnergy = currentState.energyLevel;
+    const energyChanged = Boolean(prevEnergy && prevEnergy !== currEnergy);
+
     const settingsChangedForPlanner = !prevSettings || !currSettings ||
       prevSettings.targetYear !== currSettings.targetYear ||
       prevSettings.dailyQuota !== currSettings.dailyQuota ||
+      energyChanged ||
       this.prevMemoState.mentorProfile?.subjectSplitStrategy !== currentState.mentorProfile?.subjectSplitStrategy ||
       this.prevMemoState.mentorProfile?.twoDaySplitConfig !== currentState.mentorProfile?.twoDaySplitConfig ||
       prevSettings.prerequisiteEnforcementStrategy !== currSettings.prerequisiteEnforcementStrategy;
@@ -389,6 +441,8 @@ export class StudyBrainRuntime {
       mocks: currentState.mocks !== this.prevMemoState.mocks,
       settings: settingsChangedForPlanner,
       timeline: currentState.timeline !== this.prevMemoState.timeline,
+      todayMissions: currentState.todayMissions !== this.prevMemoState.todayMissions,
+      energy: energyChanged,
     };
     
     this.prevMemoState = {
@@ -399,6 +453,8 @@ export class StudyBrainRuntime {
       settings: currentState.settings,
       timeline: currentState.timeline,
       mentorProfile: currentState.mentorProfile,
+      todayMissions: currentState.todayMissions,
+      energyLevel: currentState.energyLevel,
     };
 
     const startTime = performance.now();
@@ -428,7 +484,8 @@ export class StudyBrainRuntime {
         chapters: this.state.chapters,
         chapterTelemetryMap,
         sessions: this.state.studySessions,
-        mistakes: this.state.mistakes
+        mistakes: this.state.mistakes,
+        notes: this.state.notes
       });
       engineTimes['RevisionEngine'] = performance.now() - rStart;
       invalidatedEngines.push('RevisionEngine');
@@ -486,29 +543,25 @@ export class StudyBrainRuntime {
       stateChanged.chapters || 
       stateChanged.sessions || 
       stateChanged.mistakes || 
-      stateChanged.settings;
+      stateChanged.settings ||
+      stateChanged.todayMissions;
 
     if (this.knowledgeEngine && shouldRerunPlanner) {
       if (!this.plannerEngine || reason === 'INIT' || stateChanged.chapters || stateChanged.sessions || stateChanged.mistakes || stateChanged.settings) {
-        const { PlannerEngine } = await import('@jee-os/engines');
         this.plannerEngine = new PlannerEngine(this.knowledgeEngine);
       }
       if (!this.optimizationEngine || reason === 'INIT' || stateChanged.chapters || stateChanged.sessions || stateChanged.mistakes || stateChanged.settings) {
-        const { OptimizationEngine } = await import('@jee-os/engines');
         this.optimizationEngine = new OptimizationEngine(this.knowledgeEngine);
       }
       
-      // Sanitize dailyQuota: max possible study hours for JEE is ~14h, 
-      // if corrupted state (e.g. 17.5) exists, cap it at 12h for sanity.
-      let userQuota = this.state.settings.dailyQuota || 4;
-      if (userQuota > 14) {
-        userQuota = 12;
-      }
+      // Realistic base daily study hours (typical JEE prep is 4h - 6h)
+      const rawQuota = this.state.mentorProfile?.dailyAvailableHours || this.state.settings.dailyQuota || 4.5;
+      const baseDailyHours = (rawQuota > 14) ? 4.5 : Math.max(2.0, rawQuota);
 
-      // Energy sets the intensity of the day based on max userQuota
+      // Energy sets the intensity of the day based on baseDailyHours
       // High = 125% of available time (push harder), Medium = 100% (normal day), Low = 50% (rest day)
       const energyMultiplier = this.state.energyLevel === 'Low' ? 0.5 : this.state.energyLevel === 'Medium' ? 1.0 : 1.25;
-      const totalDailyQuotaHours = Math.min(14, Math.max(1.0, Math.round(userQuota * energyMultiplier * 10) / 10));
+      const totalDailyQuotaHours = Math.min(14, Math.max(1.0, Math.round(baseDailyHours * energyMultiplier * 10) / 10));
 
       // Calculate time already consumed by completed or custom missions
       const preservedMissionsForQuota = [
@@ -523,13 +576,28 @@ export class StudyBrainRuntime {
       const consumedHours = consumedMinutes / 60;
       const effectiveStudyHours = Math.max(0, totalDailyQuotaHours - consumedHours);
 
+      const revisionBacklog = (revisionTelemetry?.overdueChapters || []).map(ch => {
+        const lastDate = ch.lastRevisionDate ? new Date(ch.lastRevisionDate).getTime() : 0;
+        const daysOverdue = lastDate > 0 
+          ? Math.max(1, Math.floor((Date.now() - lastDate) / (1000 * 60 * 60 * 24))) 
+          : 7;
+        return {
+          chapterId: ch.chapterId,
+          daysOverdue,
+          retentionScore: ch.retentionScore ?? 0
+        };
+      });
+
+      const activeFocusSubject = this.state.settings.focusSubject || 
+        this.state.mentorProfile?.roadmap?.weeklyTargets?.find(w => w.status === 'active')?.focusSubject;
+
       const plannerInput: PlannerInput = {
         studyHours: effectiveStudyHours, 
         chapterTelemetryMap,
-        revisionBacklog: [], 
+        revisionBacklog, 
         userPreferences: {
           targetYear: this.state.settings.targetYear,
-          focusSubject: this.state.settings.targetBranch ? undefined : undefined, 
+          focusSubject: activeFocusSubject, 
           dailyQuota: effectiveStudyHours,
           subjectSplitStrategy: this.state.mentorProfile?.subjectSplitStrategy,
           twoDaySplitConfig: this.state.mentorProfile?.twoDaySplitConfig,
@@ -586,17 +654,21 @@ export class StudyBrainRuntime {
       const plannerMissions = (plannerOutput?.todaysMission || []).map(t => {
         // Bug 4.2: Preserve user edits to planner tasks. If it already exists in state,
         // return the exact existing object so duration/timeSlot edits aren't wiped out by refresh.
-        const existing = existingMissionsMap.get(t.id);
-        if (existing) return existing;
+        // UNLESS energy level changed, in which case we rebalance according to the new energy quota.
+        if (!energyChanged) {
+          const existing = existingMissionsMap.get(t.id);
+          if (existing) return existing;
+        }
 
         return {
           id: t.id,
-          subject: t.subjectId as any,
+          subject: t.subjectId as SubjectId,
           chapter: t.chapterName,
           type: t.type,
           taskName: t.taskName,
           duration: t.duration,
           completed: false,
+          dismissed: (this.state.dismissedPlannerMissionIds || []).includes(t.id),
           xp: Math.round(t.priorityScore),
           unlocked: true,
           priorityScore: t.priorityScore,
@@ -616,7 +688,7 @@ export class StudyBrainRuntime {
 
       // Combine missions in priority order (later entries override earlier ones if same ID)
       const allMissions = [
-        ...this.state.todayMissions.filter(m => m.completed || m.dismissed), // Preserved completed/dismissed missions
+        ...this.state.todayMissions.filter(m => m.completed || m.dismissed || m.isManualOverride || m.id.startsWith('mission-adv-') || m.id.startsWith('mission-eng-')), // Preserved completed/dismissed/manual missions
         ...plannerMissions,    // System suggestions (base layer)
         ...aiMissions,         // AI suggestions (override planner)
         ...userCustomMissions  // User explicit intent (highest priority)
@@ -649,173 +721,24 @@ export class StudyBrainRuntime {
         }
       }
 
-      let tempTodayMissions = Array.from(uniqueMissions.values());
-
-      // Enforce sequential lecture order: same-chapter lectures must be in ascending order.
-      // This prevents the Map insertion order from scrambling lecture sequences (e.g. L7 before L5).
-      tempTodayMissions.sort((a, b) => {
-        // Completed tasks first
-        if (a.completed !== b.completed) return a.completed ? -1 : 1;
-        // For same-chapter lecture tasks, sort by lecture number
-        const sameChapter = (a.chapter || '').toLowerCase() === (b.chapter || '').toLowerCase();
-        const extractLecNum = (name: string): number => {
-          const match = (name || '').match(/Lecture\s+(\d+)/i);
-          return match ? parseInt(match[1], 10) : Number.MAX_SAFE_INTEGER;
-        };
-        const aIsLec = (a.type === 'Watch Lecture' || /Lecture\s+\d+/i.test(a.taskName || ''));
-        const bIsLec = (b.type === 'Watch Lecture' || /Lecture\s+\d+/i.test(b.taskName || ''));
-        if (sameChapter && aIsLec && bIsLec) {
-          return extractLecNum(a.taskName) - extractLecNum(b.taskName);
-        }
-        return 0;
+      const synthesized = synthesizeDailyMissionsAndTimeline({
+        uniqueMissions,
+        userCustomMissions,
+        energyChanged,
+        totalDailyQuotaHours,
+        chapters: this.state.chapters,
+        weeklySchedule: this.state.weeklySchedule,
+        deletedMissionIds: this.state.deletedMissionIds || [],
+        scheduleOverrides: this.state.scheduleOverrides || {},
+        completedPlannerMissionIds: this.state.completedPlannerMissionIds || [],
+        timeline: this.state.timeline,
+        settings: this.state.settings,
+        mentorProfile: this.state.mentorProfile,
+        energyLevel: this.state.energyLevel
       });
-
-      // During overnight hours (before dayStartTime), the student is still on the previous day's schedule
-      const dayStartHour = parseInt((this.state.settings?.dayStartTime || '07:00').split(':')[0]) || 7;
-      const nowForDay = new Date();
-      if (nowForDay.getHours() < dayStartHour) {
-        nowForDay.setDate(nowForDay.getDate() - 1);
-      }
-      const currentDayIndex = (nowForDay.getDay() + 6) % 7; // Monday = 0
-      const splitStrategy = this.state.mentorProfile?.subjectSplitStrategy || '3_a_day';
-      const { generateWeeklyMatrix } = await import('@jee-os/engines');
-      // Type assertion needed due to dynamic import and type compatibility issues
-      weeklySchedule = (generateWeeklyMatrix as any)(
-        splitStrategy,
-        this.state.chapters,
-        tempTodayMissions,
-        this.state.weeklySchedule,
-        currentDayIndex,
-        this.state.mentorProfile?.twoDaySplitConfig,
-        this.state.deletedMissionIds || [],
-        this.state.scheduleOverrides,
-        this.state.settings?.dayStartTime,
-        this.state.settings?.dayEndTime
-      );
-
-      // Map generated matrix blocks back to todayMissions to synchronize Dashboard and Planner
-      const currentDayBlocks = weeklySchedule.filter(b => b.dayIndex === currentDayIndex);
-      todayMissions = currentDayBlocks.map(b => {
-        const originalId = b.id.startsWith('today-') ? b.id.slice(6) : b.id;
-        const original = uniqueMissions.get(originalId);
-        return {
-          ...(original || {}),
-          id: originalId,
-          subject: b.subject as SubjectId,
-          chapter: b.chapterName,
-          chapterId: b.chapterId,
-          type: b.taskType,
-          taskName: b.activity,
-          duration: b.durationMinutes,
-          timeSlot: b.timeSlot,
-          completed: (original ? original.completed : b.completed) || 
-                     (this.state.completedPlannerMissionIds || []).includes(originalId) || 
-                     (this.state.completedPlannerMissionIds || []).includes(b.id),
-          xp: original ? original.xp : Math.round(b.priorityScore),
-          unlocked: true,
-          priorityScore: b.priorityScore,
-          reasoning: b.reasoning,
-          dismissed: original?.dismissed ?? false,
-          isManualOverride: (b as typeof b & { isManualOverride?: boolean }).isManualOverride ?? false,
-          scheduledDate: (b as typeof b & { scheduledDate?: string }).scheduledDate,
-          scheduledTime: (b as typeof b & { scheduledTime?: string }).scheduledTime
-        };
-      });
-
-      // Safety check: Unconditionally preserve all completed, dismissed, or custom missions
-      const currentMissionIds = new Set(todayMissions.map(m => m.id));
-      const userCustomMissionIds = new Set(userCustomMissions.map(m => m.id));
-      for (const [id, m] of uniqueMissions.entries()) {
-        if ((m.completed || m.dismissed || userCustomMissionIds.has(id)) && !currentMissionIds.has(id)) {
-          todayMissions.push(m);
-        }
-      }
-
-      // Post-sort: Enforce sequential lecture order after rebuilding from weekly matrix.
-      // Without this, the weeklySchedule block order can place Lecture 7 before Lecture 5.
-      todayMissions.sort((a, b) => {
-        // Keep completed/dismissed at their current relative position
-        const rankA = a.dismissed ? 2 : a.completed ? 1 : 0;
-        const rankB = b.dismissed ? 2 : b.completed ? 1 : 0;
-        if (rankA !== rankB) return rankA - rankB;
-        // For same-chapter lectures among pending tasks, enforce lecture number order
-        const sameChapter = (a.chapter || '').toLowerCase() === (b.chapter || '').toLowerCase();
-        const extractLecNum = (name: string): number => {
-          const match = (name || '').match(/Lecture\s+(\d+)/i);
-          return match ? parseInt(match[1], 10) : Number.MAX_SAFE_INTEGER;
-        };
-        const aIsLec = (a.type === 'Watch Lecture' || /Lecture\s+\d+/i.test(a.taskName || ''));
-        const bIsLec = (b.type === 'Watch Lecture' || /Lecture\s+\d+/i.test(b.taskName || ''));
-        if (sameChapter && aIsLec && bIsLec) {
-          return extractLecNum(a.taskName) - extractLecNum(b.taskName);
-        }
-        // Otherwise sort by timeSlot to preserve scheduled order
-        const getSlotMins = (slot: string | undefined): number => {
-          if (!slot) return Number.MAX_SAFE_INTEGER;
-          const match = slot.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
-          if (!match) return Number.MAX_SAFE_INTEGER;
-          let hours = parseInt(match[1], 10);
-          const minutes = parseInt(match[2], 10);
-          const meridiem = match[3]?.toUpperCase();
-          if (meridiem === 'PM' && hours < 12) hours += 12;
-          if (meridiem === 'AM' && hours === 12) hours = 0;
-          return hours * 60 + minutes;
-        };
-        return getSlotMins(a.timeSlot) - getSlotMins(b.timeSlot);
-      });
-
-      // Update timeline based on the newly synchronized todayMissions
-      let currentHour = 9;
-      let currentMinute = 0;
-      let timeSinceLastBreak = 0;
-      const customBlocks = this.state.timeline.filter(b => b.id.startsWith('custom-'));
-      const generatedBlocks: TimelineBlock[] = [];
-
-      todayMissions.forEach((mission, idx) => {
-        const startStr = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
-        currentMinute += mission.duration;
-        timeSinceLastBreak += mission.duration;
-        
-        while (currentMinute >= 60) {
-          currentHour += 1;
-          currentMinute -= 60;
-        }
-        const endStr = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
-
-        generatedBlocks.push({
-          id: `mission-${mission.id}`,
-          time: mission.timeSlot || `${startStr} - ${endStr}`,
-          subject: mission.subject as SubjectId, // TimelineBlock expects broader subject type - acceptable here as subject types are compatible
-          chapter: mission.chapter,
-          activity: `${mission.type}: ${mission.taskName}`,
-          completed: mission.completed
-        });
-
-        if (idx < todayMissions.length - 1) {
-          // Dynamic Breaks: Only insert a break if we've been studying continuously for 45+ mins
-          if (timeSinceLastBreak >= 45) {
-            const breakDuration = timeSinceLastBreak >= 90 ? 20 : 10;
-            const breakStart = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
-            currentMinute += breakDuration;
-            while (currentMinute >= 60) {
-              currentHour += 1;
-              currentMinute -= 60;
-            }
-            const breakEnd = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
-
-            generatedBlocks.push({
-              id: `break-${idx}`,
-              time: `${breakStart} - ${breakEnd}`,
-              subject: 'break',
-              chapter: 'Cognitive Disconnection',
-              activity: `Take a ${breakDuration}-minute break. Stretch and hydrate.`,
-              completed: false
-            });
-            timeSinceLastBreak = 0;
-          }
-        }
-      });
-      timeline = [...customBlocks, ...generatedBlocks];
+      todayMissions = synthesized.todayMissions;
+      weeklySchedule = synthesized.weeklySchedule;
+      timeline = synthesized.timeline;
 
       engineTimes['PlannerAndOptimization'] = performance.now() - pStart;
       invalidatedEngines.push('PlannerEngine');
@@ -849,17 +772,17 @@ export class StudyBrainRuntime {
     const syllabusProgress: StudyBrainState['syllabusProgress'] = {
       physics: {
         ...StudyBrainService.calculateSubjectCompletion(this.state.chapters, 'physics'),
-        masteredCount: this.state.chapters.filter(c => c.subject === 'physics' && (c.status === 'Mastered' || c.completion >= 100)).length,
+        masteredCount: this.state.chapters.filter(c => c.subject === 'physics' && (c.status === 'Mastered' || (typeof c.completion === 'number' && c.completion >= 100))).length,
         totalCount: this.state.chapters.filter(c => c.subject === 'physics').length,
       },
       chemistry: {
         ...StudyBrainService.calculateSubjectCompletion(this.state.chapters, 'chemistry'),
-        masteredCount: this.state.chapters.filter(c => c.subject === 'chemistry' && (c.status === 'Mastered' || c.completion >= 100)).length,
+        masteredCount: this.state.chapters.filter(c => c.subject === 'chemistry' && (c.status === 'Mastered' || (typeof c.completion === 'number' && c.completion >= 100))).length,
         totalCount: this.state.chapters.filter(c => c.subject === 'chemistry').length,
       },
       maths: {
         ...StudyBrainService.calculateSubjectCompletion(this.state.chapters, 'maths'),
-        masteredCount: this.state.chapters.filter(c => c.subject === 'maths' && (c.status === 'Mastered' || c.completion >= 100)).length,
+        masteredCount: this.state.chapters.filter(c => c.subject === 'maths' && (c.status === 'Mastered' || (typeof c.completion === 'number' && c.completion >= 100))).length,
         totalCount: this.state.chapters.filter(c => c.subject === 'maths').length,
       },
     };
@@ -868,26 +791,33 @@ export class StudyBrainRuntime {
 
     // Compute Risk Profile
     const avgMastery = this.state.chapters.reduce((sum, c) => {
-      const cMistakes = this.state.mistakes.filter(m => m.chapter === c.name && m.revisionStatus !== 'Mastered').length;
-      const completionPart = c.completion ?? 0;
+      const cMistakes = (this.state.mistakes || []).filter(m => m.chapter === c.name && m.revisionStatus !== 'Mastered').length;
+      const comp = typeof c.completion === 'number' && !isNaN(c.completion) ? c.completion : 0;
+      const completionPart = Math.min(100, Math.max(0, comp));
       const mistakePenalty = Math.min(30, cMistakes * 5);
       return sum + Math.max(0, completionPart - mistakePenalty);
     }, 0) / (this.state.chapters.length || 1);
-    const accuracy = this.state.analytics.accuracy || 0;
-    const questionsSolved = this.state.analytics.questionsSolved || 0;
-    const estimatedReadinessScore = Math.max(10, Math.min(100, Math.round(avgMastery * 0.7 + (questionsSolved > 0 ? accuracy * 0.3 : 25))));
+    const safeAvgMastery = isNaN(avgMastery) ? 0 : avgMastery;
+    const accuracy = typeof this.state.analytics?.accuracy === 'number' && !isNaN(this.state.analytics.accuracy)
+      ? this.state.analytics.accuracy
+      : 0;
+    const questionsSolved = this.state.analytics?.questionsSolved || 0;
+    const rawReadiness = Math.round(safeAvgMastery * 0.7 + (questionsSolved > 0 ? accuracy * 0.3 : 25));
+    const estimatedReadinessScore = isNaN(rawReadiness) ? 25 : Math.max(10, Math.min(100, rawReadiness));
     const projectedReadiness = estimatedReadinessScore;
 
     const getSubjectMastery = (sub: string) => {
       const subChaps = this.state.chapters.filter(c => c.subject === sub);
       if (subChaps.length === 0) return 0;
       const totalM = subChaps.reduce((acc, c) => {
-        const cMistakes = this.state.mistakes.filter(m => m.chapter === c.name && m.revisionStatus !== 'Mastered').length;
-        const completionPart = c.completion ?? 0;
+        const cMistakes = (this.state.mistakes || []).filter(m => m.chapter === c.name && m.revisionStatus !== 'Mastered').length;
+        const comp = typeof c.completion === 'number' && !isNaN(c.completion) ? c.completion : 0;
+        const completionPart = Math.min(100, Math.max(0, comp));
         const mistakePenalty = Math.min(30, cMistakes * 5);
         return acc + Math.max(0, completionPart - mistakePenalty);
       }, 0);
-      return subChaps.length > 0 ? totalM / subChaps.length : 0;
+      const res = subChaps.length > 0 ? totalM / subChaps.length : 0;
+      return isNaN(res) ? 0 : res;
     };
     
     let highestRiskSubject: 'Physics' | 'Chemistry' | 'Mathematics' = 'Physics';
@@ -1046,8 +976,11 @@ export class StudyBrainRuntime {
           mockHistory: this.state.mocks
         };
         const analysis = await this.coachEngine.getAnalysis(coachInput);
-        this.state.coachAnalysis = analysis;
-        this.state.coachMessage = analysis.analysis;
+        this.state = {
+          ...this.state,
+          coachAnalysis: analysis,
+          coachMessage: analysis.analysis
+        };
         this.notifySubscribers();
       } catch (e) {
         console.error("Coach analysis failed", e);

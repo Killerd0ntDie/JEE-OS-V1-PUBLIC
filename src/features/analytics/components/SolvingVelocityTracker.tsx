@@ -80,7 +80,7 @@ export function SolvingVelocityTracker({ studySessions }: SolvingVelocityTracker
       questionsSolved: logQuestionsAttempted,
       questionsCorrect: logQuestionsCorrect,
       accuracy,
-      mode: logActivityType as any,
+      mode: logActivityType,
       timestamp: new Date().toISOString()
     });
 

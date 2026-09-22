@@ -3,7 +3,6 @@ import { Modal } from '@/components/ui/Modal';
 import { BookOpen, X, Search } from 'lucide-react';
 import { SubjectDetail } from './MissionSubjectSwitcherWidget';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
-import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 
 export interface Formula {
   name: string;
@@ -30,8 +29,6 @@ export function MissionFormulaSheetModal({
   filteredFormulas,
   handleQuickPresetNote
 }: MissionFormulaSheetModalProps) {
-  useLockBodyScroll(true);
-
   useEscapeKey(() => setIsFormulaOpen(false), isFormulaOpen);
 
   return (

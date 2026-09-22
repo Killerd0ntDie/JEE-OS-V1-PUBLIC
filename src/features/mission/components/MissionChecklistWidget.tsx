@@ -17,7 +17,7 @@ export interface MissionChecklistWidgetProps {
   onRemoveTask?: (task: string) => void;
 }
 
-export function MissionChecklistWidget({
+export const MissionChecklistWidget = React.memo(function MissionChecklistWidget({
   progressPercent,
   checklist,
   activeSubject = 'physics',
@@ -290,4 +290,4 @@ export function MissionChecklistWidget({
 
     </div>
   );
-}
+});

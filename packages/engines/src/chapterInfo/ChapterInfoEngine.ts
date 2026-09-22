@@ -1,7 +1,7 @@
-import { SubjectId, Chapter } from '@/types/index';
+import { SubjectId, Chapter } from '../types/index';
 import { ChapterInfoInput, ChapterTelemetry, ChapterStrategyRadar, ChapterInfographicsData } from './types';
-import { getAcademicState } from '@/utils/academicState';
-import { StudyBrainService } from '@/services/studyBrainService';
+import { getAcademicState } from '../academic/academicState';
+import { calculateMastery } from './mastery';
 
 export class ChapterInfoEngine {
   private cache: Map<string, ChapterTelemetry> = new Map();
@@ -25,10 +25,13 @@ export class ChapterInfoEngine {
 
     const telemetryMap: Record<string, ChapterTelemetry> = {};
 
-    input.chapters.forEach(chapter => {
+    const chapters = input.chapters || [];
+    const mistakes = input.mistakes || [];
+
+    chapters.forEach(chapter => {
       const acad = getAcademicState(chapter);
-      const unresolvedMistakes = input.mistakes.filter(m => m.chapter === chapter.name && m.revisionStatus !== 'Mastered');
-      const mastery = StudyBrainService.calculateMastery(chapter, unresolvedMistakes.length);
+      const unresolvedMistakes = mistakes.filter(m => m.chapter === chapter.name && m.revisionStatus !== 'Mastered');
+      const mastery = calculateMastery(chapter, unresolvedMistakes.length);
 
       const hasActiveProgress = Boolean(
         (chapter.currentLecture && chapter.currentLecture > 0) || 
@@ -38,7 +41,7 @@ export class ChapterInfoEngine {
         (chapter.solvedQuestions && chapter.solvedQuestions > 0) ||
         (chapter.completion && chapter.completion > 0) ||
         chapter.status === 'Learning' ||
-        chapter.status === 'In Progress'
+        (chapter.status as string) === 'In Progress'
       );
       const isStarted = hasActiveProgress || (chapter.status !== 'Not Started' && chapter.syllabusStage !== 'Not Started');
                         
@@ -61,9 +64,12 @@ export class ChapterInfoEngine {
       let bottleneckReason: string | undefined = undefined;
 
       if (isStarted && !isMastered) {
-        if (chapter.currentLecture && chapter.currentLecture < (chapter.totalLectures || 12)) {
+        const totalLectures = chapter.totalLectures || 12;
+        const currentLecture = chapter.currentLecture ?? 0;
+
+        if (!chapter.theoryComplete && currentLecture < totalLectures) {
           isBottleneck = true;
-          bottleneckReason = `${chapter.subject.toUpperCase()} ${chapter.name}: Lecture ${chapter.currentLecture}/${chapter.totalLectures || 12} backlog`;
+          bottleneckReason = `${chapter.subject.toUpperCase()} ${chapter.name}: Lecture ${currentLecture}/${totalLectures} backlog`;
         } else if (!chapter.dppComplete) {
           isBottleneck = true;
           bottleneckReason = `${chapter.subject.toUpperCase()} ${chapter.name}: DPP practice pending`;
@@ -164,13 +170,24 @@ export class ChapterInfoEngine {
 
   public getChapterBottlenecks(input?: ChapterInfoInput): string[] {
     const map = input ? this.generateChapterTelemetry(input) : this.getAllChapterTelemetry();
-    const list: string[] = [];
-    Object.values(map).forEach(t => {
-      if (t.isBottleneck && t.bottleneckReason) {
-        list.push(t.bottleneckReason);
-      }
-    });
-    return list.slice(0, 3);
+    const severityWeight: Record<string, number> = {
+      'Critical': 4,
+      'Moderate': 3,
+      'Low': 2,
+      'None': 1
+    };
+
+    const bottlenecks = Object.values(map)
+      .filter(t => t.isBottleneck && t.bottleneckReason)
+      .sort((a, b) => {
+        const sevA = severityWeight[a.strategyRadar?.bottleneckSeverity || 'None'] || 0;
+        const sevB = severityWeight[b.strategyRadar?.bottleneckSeverity || 'None'] || 0;
+        if (sevB !== sevA) return sevB - sevA;
+        return (b.weightagePercent || 0) - (a.weightagePercent || 0);
+      })
+      .map(t => t.bottleneckReason!);
+
+    return bottlenecks.slice(0, 3);
   }
 
   public getStrategyRadar(chapterName: string, subject: SubjectId, input?: ChapterInfoInput): ChapterStrategyRadar {
@@ -205,10 +222,10 @@ export class ChapterInfoEngine {
   }
 
   private computeInputHash(input: ChapterInfoInput): string {
-    const chapSig = input.chapters.map(c => `${c.id}:${c.completion}:${c.currentLecture}:${c.totalLectures}:${c.theoryComplete}:${c.dppComplete}:${c.pyqsComplete}:${c.status}:${c.confidence}:${c.weightage}:${c.solvedQuestions}:${c.lastRevisionDaysAgo}:${c.chapterOnHold}:${c.practiceProgress?.dppPercent}:${c.practiceProgress?.pyqPercent}`).join('|');
-    const mistakeSig = input.mistakes.map(m => `${m.id}:${m.chapter}:${(m as any).status}:${m.revisionStatus}`).join('|');
-    const sessionCount = input.sessions.reduce((acc, s) => acc + (s.duration || 0), 0); // Include duration so changes trigger refresh
-    const mockCount = input.mocks.reduce((acc, m) => acc + m.score, 0); // Include score so changes trigger refresh
+    const chapSig = (input.chapters || []).map(c => `${c.id}:${c.completion}:${c.currentLecture}:${c.totalLectures}:${c.theoryComplete}:${c.dppComplete}:${c.pyqsComplete}:${c.status}:${c.confidence}:${c.weightage}:${c.solvedQuestions}:${c.lastRevisionDaysAgo}:${c.chapterOnHold}:${c.practiceProgress?.dppPercent}:${c.practiceProgress?.pyqPercent}`).join('|');
+    const mistakeSig = (input.mistakes || []).map(m => `${m.id}:${m.chapter}:${(m as any).status}:${m.revisionStatus}`).join('|');
+    const sessionCount = (input.sessions || []).reduce((acc, s) => acc + (s.duration || 0), 0); // Include duration so changes trigger refresh
+    const mockCount = (input.mocks || []).reduce((acc, m) => acc + (m.totalScore ?? (m as any).score ?? 0), 0); // Include score so changes trigger refresh
     const targetYear = input.settings?.targetYear || '2027';
     return `${chapSig}_m${mistakeSig}_s${sessionCount}_mk${mockCount}_y${targetYear}`;
   }

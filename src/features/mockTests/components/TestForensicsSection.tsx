@@ -14,18 +14,25 @@ interface TestForensicsSectionProps {
   onSelectQuestion?: (idx: number) => void;
 }
 
+const SUBJECT_CONFIG: Record<SubjectId, { title: string; borderColor: string; textColor: string; weight: number }> = {
+  physics: { title: 'Physics', borderColor: 'border-sky-500/30', textColor: 'text-sky-400', weight: 2.0 },
+  chemistry: { title: 'Chemistry', borderColor: 'border-emerald-500/30', textColor: 'text-emerald-400', weight: 1.5 },
+  maths: { title: 'Mathematics', borderColor: 'border-purple-500/30', textColor: 'text-purple-400', weight: 2.8 },
+};
+
 export function TestForensicsSection({ analysis, onSelectQuestion }: TestForensicsSectionProps) {
-  // 1. Compute Subject Time Distribution vs Optimal JEE Benchmark
+  // 1. Compute Subject Time Distribution vs Dynamically Scaled JEE Benchmark
   const subjectTimeBreakdown = useMemo(() => {
-    const times: Record<SubjectId, { seconds: number; targetMins: number; correct: number; incorrect: number }> = {
-      physics: { seconds: 0, targetMins: 55, correct: 0, incorrect: 0 },
-      chemistry: { seconds: 0, targetMins: 40, correct: 0, incorrect: 0 },
-      maths: { seconds: 0, targetMins: 85, correct: 0, incorrect: 0 },
+    const times: Record<SubjectId, { seconds: number; targetMins: number; correct: number; incorrect: number; questionCount: number }> = {
+      physics: { seconds: 0, targetMins: 0, correct: 0, incorrect: 0, questionCount: 0 },
+      chemistry: { seconds: 0, targetMins: 0, correct: 0, incorrect: 0, questionCount: 0 },
+      maths: { seconds: 0, targetMins: 0, correct: 0, incorrect: 0, questionCount: 0 },
     };
 
     analysis.detailedQuestions.forEach(item => {
       const sub = item.sectionSubject;
       if (times[sub]) {
+        times[sub].questionCount++;
         const s = item.attempt.timeSpentSeconds || 0;
         times[sub].seconds += s;
         if (item.isCorrect) times[sub].correct++;
@@ -33,23 +40,49 @@ export function TestForensicsSection({ analysis, onSelectQuestion }: TestForensi
       }
     });
 
-    return {
-      physics: {
-        ...times.physics,
-        actualMins: Math.round(times.physics.seconds / 60),
-        diff: Math.round(times.physics.seconds / 60) - times.physics.targetMins
-      },
-      chemistry: {
-        ...times.chemistry,
-        actualMins: Math.round(times.chemistry.seconds / 60),
-        diff: Math.round(times.chemistry.seconds / 60) - times.chemistry.targetMins
-      },
-      maths: {
-        ...times.maths,
-        actualMins: Math.round(times.maths.seconds / 60),
-        diff: Math.round(times.maths.seconds / 60) - times.maths.targetMins
-      }
-    };
+    const activeSubjects = (Object.keys(times) as SubjectId[]).filter(sub => times[sub].questionCount > 0);
+    const totalDurationMins = Math.max(1, Math.round((analysis.totalTimeSpent || 0) / 60)) || 180;
+
+    if (activeSubjects.length === 0) {
+      return (['physics', 'chemistry', 'maths'] as SubjectId[]).map(sub => ({
+        id: sub,
+        seconds: 0,
+        targetMins: sub === 'physics' ? 55 : sub === 'chemistry' ? 40 : 85,
+        actualMins: 0,
+        diff: -(sub === 'physics' ? 55 : sub === 'chemistry' ? 40 : 85),
+        correct: 0,
+        incorrect: 0,
+        questionCount: 0,
+        ...SUBJECT_CONFIG[sub],
+      }));
+    }
+
+    if (activeSubjects.length === 1) {
+      times[activeSubjects[0]].targetMins = totalDurationMins;
+    } else if (activeSubjects.length === 3 && totalDurationMins >= 150) {
+      times.physics.targetMins = 55;
+      times.chemistry.targetMins = 40;
+      times.maths.targetMins = 85;
+    } else {
+      const totalWeighted = activeSubjects.reduce((sum, s) => sum + times[s].questionCount * SUBJECT_CONFIG[s].weight, 0) || 1;
+      activeSubjects.forEach(s => {
+        const share = (times[s].questionCount * SUBJECT_CONFIG[s].weight) / totalWeighted;
+        times[s].targetMins = Math.max(1, Math.round(share * totalDurationMins));
+      });
+    }
+
+    return activeSubjects.map(sub => {
+      const data = times[sub];
+      const actualMins = Math.round(data.seconds / 60);
+      const diff = actualMins - data.targetMins;
+      return {
+        id: sub,
+        ...data,
+        ...SUBJECT_CONFIG[sub],
+        actualMins,
+        diff,
+      };
+    });
   }, [analysis]);
 
   // 2. Dead-Time Trap Questions (Time Spent > 200s and got wrong or left unattempted)
@@ -110,73 +143,36 @@ export function TestForensicsSection({ analysis, onSelectQuestion }: TestForensi
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          
-          {/* Physics */}
-          <div className="p-4 rounded-2xl bg-zinc-950/70 border border-sky-500/30 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-mono font-bold text-sky-400 uppercase">Physics</span>
-              <span className="text-[10px] font-mono text-zinc-400">Target: 55m</span>
-            </div>
-            <div className="flex items-baseline justify-between">
-              <span className="text-2xl font-mono font-bold text-white">{subjectTimeBreakdown.physics.actualMins}m</span>
-              <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${
-                Math.abs(subjectTimeBreakdown.physics.diff) <= 8
-                  ? 'bg-emerald-950/60 text-emerald-300'
-                  : subjectTimeBreakdown.physics.diff > 8
-                  ? 'bg-amber-950/60 text-amber-300'
-                  : 'bg-indigo-950/60 text-indigo-300'
-              }`}>
-                {subjectTimeBreakdown.physics.diff > 0 ? `+${subjectTimeBreakdown.physics.diff}m Over` : `${subjectTimeBreakdown.physics.diff}m Under`}
-              </span>
-            </div>
-            <span className="text-[10px] font-mono text-zinc-400 block">
-              {subjectTimeBreakdown.physics.correct} Correct • {subjectTimeBreakdown.physics.incorrect} Incorrect
-            </span>
-          </div>
+        <div className={`grid grid-cols-1 ${subjectTimeBreakdown.length === 2 ? 'md:grid-cols-2' : subjectTimeBreakdown.length === 1 ? 'max-w-md' : 'md:grid-cols-3'} gap-4`}>
+          {subjectTimeBreakdown.map(subj => {
+            const absDiff = Math.abs(subj.diff);
+            const tolerance = Math.max(3, Math.round(subj.targetMins * 0.15));
+            const isOnTarget = absDiff <= tolerance;
+            const badgeClass = isOnTarget
+              ? 'bg-emerald-950/60 text-emerald-300'
+              : subj.diff > 0
+              ? 'bg-amber-950/60 text-amber-300'
+              : 'bg-indigo-950/60 text-indigo-300';
+            const badgeText = subj.diff > 0 ? `+${subj.diff}m Over` : subj.diff < 0 ? `${subj.diff}m Under` : 'On Target';
 
-          {/* Chemistry */}
-          <div className="p-4 rounded-2xl bg-zinc-950/70 border border-emerald-500/30 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-mono font-bold text-emerald-400 uppercase">Chemistry</span>
-              <span className="text-[10px] font-mono text-zinc-400">Target: 40m</span>
-            </div>
-            <div className="flex items-baseline justify-between">
-              <span className="text-2xl font-mono font-bold text-white">{subjectTimeBreakdown.chemistry.actualMins}m</span>
-              <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${
-                subjectTimeBreakdown.chemistry.actualMins <= 45
-                  ? 'bg-emerald-950/60 text-emerald-300'
-                  : 'bg-red-950/60 text-red-300'
-              }`}>
-                {subjectTimeBreakdown.chemistry.diff > 0 ? `+${subjectTimeBreakdown.chemistry.diff}m Over` : `${subjectTimeBreakdown.chemistry.diff}m Under`}
-              </span>
-            </div>
-            <span className="text-[10px] font-mono text-zinc-400 block">
-              {subjectTimeBreakdown.chemistry.correct} Correct • {subjectTimeBreakdown.chemistry.incorrect} Incorrect
-            </span>
-          </div>
-
-          {/* Mathematics */}
-          <div className="p-4 rounded-2xl bg-zinc-950/70 border border-purple-500/30 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-mono font-bold text-purple-400 uppercase">Mathematics</span>
-              <span className="text-[10px] font-mono text-zinc-400">Target: 85m</span>
-            </div>
-            <div className="flex items-baseline justify-between">
-              <span className="text-2xl font-mono font-bold text-white">{subjectTimeBreakdown.maths.actualMins}m</span>
-              <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${
-                subjectTimeBreakdown.maths.actualMins >= 65
-                  ? 'bg-emerald-950/60 text-emerald-300'
-                  : 'bg-amber-950/60 text-amber-300'
-              }`}>
-                {subjectTimeBreakdown.maths.diff > 0 ? `+${subjectTimeBreakdown.maths.diff}m Over` : `${subjectTimeBreakdown.maths.diff}m Under`}
-              </span>
-            </div>
-            <span className="text-[10px] font-mono text-zinc-400 block">
-              {subjectTimeBreakdown.maths.correct} Correct • {subjectTimeBreakdown.maths.incorrect} Incorrect
-            </span>
-          </div>
-
+            return (
+              <div key={subj.id} className={`p-4 rounded-2xl bg-zinc-950/70 border ${subj.borderColor} space-y-2`}>
+                <div className="flex items-center justify-between">
+                  <span className={`text-xs font-mono font-bold ${subj.textColor} uppercase`}>{subj.title}</span>
+                  <span className="text-[10px] font-mono text-zinc-400">Target: {subj.targetMins}m</span>
+                </div>
+                <div className="flex items-baseline justify-between">
+                  <span className="text-2xl font-mono font-bold text-white">{subj.actualMins}m</span>
+                  <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${badgeClass}`}>
+                    {badgeText}
+                  </span>
+                </div>
+                <span className="text-[10px] font-mono text-zinc-400 block">
+                  {subj.correct} Correct • {subj.incorrect} Incorrect
+                </span>
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -221,11 +217,16 @@ export function TestForensicsSection({ analysis, onSelectQuestion }: TestForensi
                         Q{item.globalIndex} • {item.sectionSubject}
                       </span>
                       <span className="text-xs font-mono text-red-300 font-bold">
-                        {item.isIncorrect ? '-1 Negative Mark' : 'Unattempted after sink'}
+                        {item.isIncorrect ? (
+                          (() => {
+                            const penalty = item.question.marks?.incorrect ?? (item.question.type?.toUpperCase() === 'NUMERICAL' ? 0 : item.question.type?.toUpperCase() === 'MULTI' ? -2 : -1);
+                            return `${penalty} Negative Mark${Math.abs(penalty) === 1 ? '' : 's'}`;
+                          })()
+                        ) : 'Unattempted after sink'}
                       </span>
                     </div>
                     <div className="text-xs text-zinc-300 font-sans truncate">
-                      {item.question.text || 'Question statement'}
+                      {item.question.content || (item.question as any).text || 'Question statement'}
                     </div>
                   </div>
 

@@ -1,7 +1,7 @@
-import { KnowledgeEngine, ProgressState } from '@/engines/knowledge';
+import { KnowledgeEngine, ProgressState } from '../knowledge';
 import { PlannerInput, PlannerOutput, ScheduledTask, MissionReasoning, ReasoningPipelineSummary } from './types';
 import { PlannerScoringEngine, ScoringContext, PLANNER_CONFIG } from './PlannerScoringEngine';
-import { SubjectId, Chapter } from '@/types/index';
+import { SubjectId, Chapter } from '../types/index';
 
 function normalizeStageAlias(stage?: string): string | undefined {
   if (!stage) return stage;
@@ -80,7 +80,7 @@ export class PlannerEngine {
     const allNodes = this.knowledgeEngine.getAllNodes();
     for (const node of allNodes) {
       const depTree = this.knowledgeEngine.getDependencyTree(node.id);
-      nodeDependencyMap.set(node.id, depTree.map((n: any) => n.name || n));
+      nodeDependencyMap.set(node.id, depTree.map(id => this.knowledgeEngine.getNode(id)?.name || id));
 
       const rawProg = mergedStateMap[node.id];
       const isCompleted = rawProg ? (rawProg.isMastered || rawProg.theoryComplete || rawProg.completion > 60) : false;
@@ -90,7 +90,7 @@ export class PlannerEngine {
           const prereqProg = mergedStateMap[prereqId];
           const prereqNode = this.knowledgeEngine.getNode(prereqId);
           if (prereqNode && (!prereqProg || (!prereqProg.theoryComplete && prereqProg.completion < 50))) {
-            const prereqName = (prereqNode as any).name || prereqNode;
+            const prereqName = prereqNode?.name || prereqId;
             detectedPrerequisiteGaps.push(
               `${node.name} (${node.subject.toUpperCase()}) is blocked or at risk due to incomplete prerequisite ${prereqName}.`
             );
@@ -193,7 +193,7 @@ export class PlannerEngine {
       if (currentObj) {
         activeMonthlyObjective = `${currentObj.title}: ${currentObj.description || 'Focus on high-yield mastery.'}`;
       }
-    } else if (input.userPreferences.focusSubject) {
+    } else if (input.userPreferences?.focusSubject) {
       activeMonthlyObjective = `Focus Subject: Accelerate ${input.userPreferences.focusSubject.toUpperCase()} progression.`;
     }
 
@@ -221,7 +221,7 @@ export class PlannerEngine {
       revisionData?: any
     ): ScheduledTask => {
       const depTree = this.knowledgeEngine.getDependencyTree(node.id);
-      const dependentChapterNames = depTree.map((n: any) => n.name || n);
+      const dependentChapterNames = depTree.map(id => this.knowledgeEngine.getNode(id)?.name || id);
 
       const context: ScoringContext = {
         taskType: type,
@@ -261,8 +261,12 @@ export class PlannerEngine {
       } else if (type === 'Watch Lecture') {
         whySelected = `Selected because ${node.name} is a high-yield JEE chapter (Weightage: ${weightage}/10). Completing this lecture builds foundational theory and unlocks downstream chapters.`;
         rankingRationale = `Ranked with priority score ${totalScore}/100. Foundation building unlocks ${depTree.length} dependent chapters in ${node.subject.toUpperCase()}.`;
-        longTermImpact = `Unlocks ${dependentChapterNames.slice(0, 3).join(', ')} and adds projected +12 JEE Main marks upon mastery.`;
-        postponeRisk = `Postponing stalls progress in ${dependentChapterNames.length} dependent chapters across the syllabus.`;
+        longTermImpact = dependentChapterNames.length > 0
+          ? `Unlocks ${dependentChapterNames.slice(0, 3).join(', ')} and adds projected +12 JEE Main marks upon mastery.`
+          : `Consolidates foundational coverage and adds projected +12 JEE Main marks upon mastery.`;
+        postponeRisk = dependentChapterNames.length > 0
+          ? `Postponing stalls progress in ${dependentChapterNames.length} dependent chapters across the syllabus.`
+          : `Postponing stalls momentum in ${node.name}.`;
       } else if (type === 'Solve DPP') {
         whySelected = `Selected because theory for ${node.name} is complete, making structured DPP problem solving the logical next leverage point.`;
         rankingRationale = `Ranked with priority score ${totalScore}/100 to bridge theory comprehension with active numerical problem solving.`;
@@ -359,7 +363,7 @@ export class PlannerEngine {
     if (mockRemediationSubject && input.chapters) {
       const weakSubjectChapters = input.chapters.filter(c => c.subject === mockRemediationSubject && (c.completion > 10 || c.theoryComplete));
       // Sort by lowest confidence or highest weakness score
-      weakSubjectChapters.sort((a, b) => a.confidence - b.confidence);
+      weakSubjectChapters.sort((a, b) => (a.confidence ?? 50) - (b.confidence ?? 50));
       
       if (weakSubjectChapters.length > 0) {
         const weakestChap = weakSubjectChapters[0];
@@ -457,7 +461,6 @@ export class PlannerEngine {
       const chapterMeta = chapterById.get(node.id);
       if (chapterMeta?.chapterOnHold) continue;
 
-      if (chapterMeta?.chapterOnHold) continue;
 
       const prog = mergedStateMap[node.id] || {};
 
@@ -776,16 +779,14 @@ export class PlannerEngine {
 
       let totalSimMarksGained = 0;
       let totalSimLearningGain = 0;
-      let continuityScore = 0;
 
       for (const t of mission.tasks) {
         totalSimMarksGained += (t.expectedMarksGain || 0);
         totalSimLearningGain += (t.expectedLearningGain || 0);
-
-        if (activeChapterIds.has(t.chapterId)) {
-          continuityScore += 200; // Strong bias to preserve ongoing chapters
-        }
       }
+
+      const activeTasksCount = mission.tasks.filter(t => activeChapterIds.has(t.chapterId)).length;
+      const continuityNormalized = Math.min(100, (activeTasksCount / Math.max(1, mission.tasks.length)) * 100);
 
       const marksGainNormalized = Math.min(100, totalSimMarksGained * 2);
       const learningGainNormalized = Math.min(100, totalSimLearningGain * 1.5);
@@ -798,14 +799,16 @@ export class PlannerEngine {
       mission.workloadRealism = 90;
       mission.completionProb = 90;
 
-      mission.score = Math.round(
-        marksGainNormalized * 0.30 + 
-        learningGainNormalized * 0.25 + 
+      const rawScore = (
+        marksGainNormalized * 0.25 + 
+        learningGainNormalized * 0.20 + 
         mission.subjectBalance * 0.15 + 
         mission.dependencyUnlock * 0.15 + 
         mission.revisionHealth * 0.15 +
-        continuityScore
+        continuityNormalized * 0.10
       );
+
+      mission.score = Math.min(100, Math.max(0, Math.round(rawScore)));
     }
 
     candidateMissions.sort((a, b) => b.score - a.score);
@@ -945,7 +948,7 @@ export class PlannerEngine {
     
     if (effectiveDailyHours > 0) {
       const daysNeeded = Math.ceil(remainingHours / effectiveDailyHours);
-      const finishDate = input.currentDate ? new Date(input.currentDate) : new Date("2024-01-01T00:00:00Z");
+      const finishDate = input.currentDate ? new Date(input.currentDate) : new Date();
       finishDate.setDate(finishDate.getDate() + daysNeeded);
       estimatedFinishDate = finishDate.toISOString();
     }
@@ -1002,770 +1005,4 @@ Completion Probability: ${bestMission.completionProb}%`;
   }
 }
 
-
-export interface WeeklyBlock {
-  id: string;
-  dayIndex: number;
-  dayName: string;
-  timeSlot: string;
-  subject: SubjectId | 'break' | 'revision';
-  chapterId: string;
-  chapterName: string;
-  unit: string;
-  activity: string;
-  taskType: 'Watch Lecture' | 'Solve DPP' | 'Solve PYQs' | 'Revise Formulas' | 'Review Mistakes';
-  durationMinutes: number;
-  completed: boolean;
-  priorityScore: number;
-  reasoning: {
-    whySelected: string;
-    dependentChapters: string[];
-    rankingRationale: string;
-    longTermImpact: string;
-    postponeRisk: string;
-    targetAccuracy: string;
-  };
-  isManualOverride?: boolean;
-  scheduledDate?: string;
-  scheduledTime?: string;
-}
-
-const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
-export function generateWeeklyMatrix(
-  splitStrategy: '1_a_day_alternating' | '2_a_day_alternating' | '3_a_day',
-  chapters: Chapter[] = [],
-  todayMissions: any[] | null = null,
-  plannerWeekly: any[] | null = null,
-  currentDayIndex: number = 0,
-  twoDaySplitConfig?: [SubjectId[], SubjectId[], SubjectId[]],
-  deletedMissionIds: string[] = [],
-  scheduleOverrides: Record<string, { dayIndex?: number; timeSlot?: string; scheduledDate?: string; scheduledTime?: string }> = {},
-  dayStartTime: string = "07:00",
-  dayEndTime: string = "22:30",
-  settings?: any
-): WeeklyBlock[] {
-  // Dynamic break duration based on preceding session length
-  const getBreakDuration = (sessionDurationMins: number): number => {
-    if (sessionDurationMins <= 30) return 5;
-    if (sessionDurationMins <= 60) return 10;
-    if (sessionDurationMins <= 90) return 15;
-    return 20;
-  };
-
-  // Only schedule chapters the user has explicitly started and that are NOT on hold.
-  // NEVER auto-schedule unstarted chapters.
-  const activeChaps = chapters.filter(c => 
-    !c.chapterOnHold && 
-    ((c.currentLecture && c.currentLecture > 0) || 
-     c.theoryComplete || c.dppComplete || 
-     (c.solvedQuestions && c.solvedQuestions > 0)) &&
-    c.completion < 100
-  );
-
-  const getUniqueChap = (subj: SubjectId, offset: number): Chapter | null => {
-    const subjActive = activeChaps.filter(c => c.subject === subj);
-    if (subjActive.length > offset) return subjActive[offset];
-    if (subjActive.length > 0) return subjActive[offset % subjActive.length];
-    // Fallback for new accounts: if no active chapters exist for the subject,
-    // pick the very first uncompleted non-on-hold chapter in the syllabus to get them started.
-    const subjAll = chapters.filter(c => c.subject === subj && !c.chapterOnHold && c.completion < 100);
-    if (subjAll.length > 0) return subjAll[0];
-    
-    return null;
-  };
-
-  let blocks: WeeklyBlock[] = [];
-  let idCounter = 1;
-
-  daysOfWeek.forEach((dayName, dayIndex) => {
-    const isToday = dayIndex === currentDayIndex;
-
-    if (isToday && todayMissions && todayMissions.length > 0) {
-      const todayDateObj = new Date();
-      todayDateObj.setHours(0,0,0,0);
-      const todayDateStr = getLocalDateKey(todayDateObj);
-
-      const parseTimeVal = (val: string | undefined, fallback: number) => {
-        const p = parseInt(val || '', 10);
-        return isNaN(p) ? fallback : p;
-      };
-
-      const dayStartHour = parseTimeVal(dayStartTime.split(':')[0], 7);
-      const dayStartMin = parseTimeVal(dayStartTime.split(':')[1], 0);
-      const dayStartMins = dayStartHour * 60 + dayStartMin;
-
-      const getTimeMins = (tStr: string) => {
-        const parts = (tStr || '').split(':');
-        let h = parseTimeVal(parts[0], 23);
-        const m = parseTimeVal(parts[1], 0);
-        if (h < dayStartHour) h += 24;
-        return h * 60 + m;
-      };
-
-      let effectiveEndTime = dayEndTime;
-      if (settings?.sessionExtensionDate === todayDateStr && settings?.sessionExtensionEnd) {
-        const extEnd = settings.sessionExtensionEnd;
-        if (getTimeMins(extEnd) > getTimeMins(dayEndTime)) {
-          effectiveEndTime = extEnd;
-        }
-      }
-
-      const now = new Date();
-      let logicalRealCurrentHour = now.getHours();
-      if (logicalRealCurrentHour < dayStartHour) {
-        logicalRealCurrentHour += 24;
-      }
-      const realNowMins = logicalRealCurrentHour * 60 + now.getMinutes();
-
-      // Start today's uncompleted schedule from whichever is later: normal day start or current real time
-      const effectiveStartMins = Math.max(dayStartMins, realNowMins);
-      let currentHour = Math.floor((effectiveStartMins % 1440) / 60);
-      let currentMinute = effectiveStartMins % 60;
-
-      let endMinsTotal = getTimeMins(effectiveEndTime);
-
-      let pushToTomorrow = false;
-      let forcePushToTomorrow = realNowMins > endMinsTotal;
-
-      // Sort todayMissions to enforce sequential lecture order within the same chapter.
-      // This prevents lectures 7/8 from appearing before 5/6 when the input array is scrambled.
-      const getLecNum = (name: string): number => {
-        const match = (name || '').match(/Lecture\s+(\d+)/i);
-        return match ? parseInt(match[1], 10) : Number.MAX_SAFE_INTEGER;
-      };
-      const sortedTodayMissions = [...todayMissions].sort((a, b) => {
-        // Completed tasks stay first (preserve their actual completed time slots)
-        if (a.completed !== b.completed) return a.completed ? -1 : 1;
-        // Manual overrides with explicit timeSlots keep their position
-        if (a.isManualOverride && !b.isManualOverride) return -1;
-        if (!a.isManualOverride && b.isManualOverride) return 1;
-        // For same-chapter lecture tasks, sort by lecture number ascending
-        const sameChapter = (a.chapter || '').toLowerCase() === (b.chapter || '').toLowerCase();
-        const aIsLec = (a.type === 'Watch Lecture' || /Lecture\s+\d+/i.test(a.taskName || ''));
-        const bIsLec = (b.type === 'Watch Lecture' || /Lecture\s+\d+/i.test(b.taskName || ''));
-        if (sameChapter && aIsLec && bIsLec) {
-          return getLecNum(a.taskName) - getLecNum(b.taskName);
-        }
-        return 0; // Preserve original order for everything else
-      });
-
-      sortedTodayMissions.forEach((m, mIdx) => {
-        const chap = chapters.find(c => c.name.toLowerCase() === (m.chapter || '').toLowerCase());
-        
-        let pendingBreakBlock: any = null;
-        let timeSlot = m.timeSlot;
-        let duration = m.duration || 60;
-        let isManualOverride = m.isManualOverride;
-
-        // Strip timeSlot if pushed from yesterday
-        if (!m.completed && m.scheduledDate && m.scheduledDate < todayDateStr) {
-          timeSlot = null;
-          isManualOverride = false;
-        }
-
-        // Force cascade for uncompleted, non-manual missions to prevent stale time slot clashes
-        if (!m.completed && !isManualOverride) {
-          timeSlot = null;
-        }
-        
-        if (!timeSlot || timeSlot.includes('Morning') || timeSlot.includes('Afternoon') || timeSlot.includes('Evening') || timeSlot.includes('Night')) {
-          let logicalCurrentHour = currentHour;
-          if (logicalCurrentHour < (parseInt(dayStartTime.split(':')[0]) || 7)) {
-            logicalCurrentHour += 24;
-          }
-          let startMins = logicalCurrentHour * 60 + currentMinute;
-          let newEndMins = startMins + duration;
-
-          if (newEndMins > endMinsTotal || forcePushToTomorrow) {
-            pushToTomorrow = true;
-            forcePushToTomorrow = false;
-            // Next day starts at dayStartTime
-            currentHour = parseInt(dayStartTime.split(':')[0]) || 7;
-            currentMinute = parseInt(dayStartTime.split(':')[1]) || 0;
-            startMins = currentHour * 60 + currentMinute;
-            newEndMins = startMins + duration;
-          }
-
-          const startStr = `${(currentHour % 24).toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
-          
-          currentMinute += duration;
-          while (currentMinute >= 60) {
-            currentHour += 1;
-            currentMinute -= 60;
-          }
-          const endStr = `${(currentHour % 24).toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
-          timeSlot = `${startStr} - ${endStr}`;
-          
-          const hasExistingBreak = todayMissions.some(tm => tm.id === `break-${m.id}` || tm.id === `today-break-${m.id}`);
-
-          if (m.subject !== 'break' && !hasExistingBreak) {
-            const breakStartStr = `${(currentHour % 24).toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
-            const breakDuration = getBreakDuration(duration);
-            currentMinute += breakDuration;
-            let tempHour = currentHour;
-            let tempMinute = currentMinute;
-            while (tempMinute >= 60) {
-              tempHour += 1;
-              tempMinute -= 60;
-            }
-            const breakEndStr = `${(tempHour % 24).toString().padStart(2, '0')}:${tempMinute.toString().padStart(2, '0')}`;
-            
-            const isPushedBreak = pushToTomorrow && !m.completed && !isManualOverride;
-            pendingBreakBlock = {
-              id: `today-break-${m.id}`,
-              dayIndex: isPushedBreak ? (dayIndex + 1) % 7 : dayIndex,
-              dayName: isPushedBreak ? daysOfWeek[(dayIndex + 1) % 7] : dayName,
-              timeSlot: `${breakStartStr} - ${breakEndStr}`,
-              subject: 'break',
-              chapterId: 'break',
-              chapterName: 'Recharge',
-              unit: 'Break',
-              activity: `${breakDuration}m Break`,
-              taskType: 'Break' as any,
-              durationMinutes: breakDuration,
-              completed: false,
-              priorityScore: 0,
-              reasoning: {
-                whySelected: 'Pacing out your study blocks reduces cognitive fatigue and maximizes retention.',
-                dependentChapters: [],
-                rankingRationale: 'Scheduled rest interval.',
-                longTermImpact: 'Maintains stamina over long sessions.',
-                postponeRisk: 'Burnout risk increases.',
-                targetAccuracy: 'N/A'
-              }
-            };
-
-            currentHour = tempHour;
-            currentMinute = tempMinute;
-          }
-        } else {
-          // Time slot was preserved. We MUST update currentHour and currentMinute to the end of this slot
-          // so that subsequent tasks don't get scheduled on top of it (causing clashes).
-          const match = timeSlot.match(/[-–]\s*(\d{1,2}):(\d{2})\s*(am|pm|AM|PM)?/);
-          if (match) {
-            let h = parseInt(match[1], 10);
-            const parsedMin = parseInt(match[2], 10);
-            const ampm = match[3];
-            if (ampm) {
-              const isPM = ampm.toLowerCase() === 'pm';
-              if (isPM && h !== 12) h += 12;
-              if (!isPM && h === 12) h = 0;
-            }
-            
-            currentHour = h;
-            currentMinute = parsedMin;
-            
-            // Note: If the parsed time was after midnight (e.g. 00:37), currentHour becomes 0.
-            // Our logical tracking above (logicalCurrentHour) will handle the +24 adjustment cleanly.
-            
-            // Also add a 15-minute break offset logically, so the next un-timeslotted task starts after a break
-            if (m.subject !== 'break') {
-              const breakStartStr = `${(currentHour % 24).toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
-              
-              const breakDuration = getBreakDuration(duration);
-              currentMinute += breakDuration;
-              let tempHour = currentHour;
-              let tempMinute = currentMinute;
-              while (tempMinute >= 60) {
-                tempHour += 1;
-                tempMinute -= 60;
-              }
-              const breakEndStr = `${(tempHour % 24).toString().padStart(2, '0')}:${tempMinute.toString().padStart(2, '0')}`;
-              
-              const hasExistingBreak = todayMissions.some(tm => tm.id === `break-${m.id}` || tm.id === `today-break-${m.id}`);
-              
-              if (!hasExistingBreak) {
-                pendingBreakBlock = {
-                  id: `today-break-${m.id}`,
-                  dayIndex: dayIndex,
-                  dayName: dayName,
-                  timeSlot: `${breakStartStr} - ${breakEndStr}`,
-                  subject: 'break',
-                  chapterId: 'break',
-                  chapterName: 'Recharge',
-                  unit: 'Break',
-                  activity: `${breakDuration}m Break`,
-                  taskType: 'Break' as any,
-                  durationMinutes: breakDuration,
-                  completed: false,
-                  priorityScore: 0,
-                  reasoning: {
-                    whySelected: 'Pacing out your study blocks reduces cognitive fatigue and maximizes retention.',
-                    dependentChapters: [],
-                    rankingRationale: 'Scheduled rest interval.',
-                    longTermImpact: 'Maintains stamina over long sessions.',
-                    postponeRisk: 'Burnout risk increases.',
-                    targetAccuracy: 'N/A'
-                  }
-                };
-              }
-              
-              currentHour = tempHour;
-              currentMinute = tempMinute;
-            }
-          }
-        }
-
-        const isPushed = pushToTomorrow && !m.completed && !isManualOverride;
-
-        blocks.push({
-          id: `today-${m.id}`,
-          dayIndex: isPushed ? (dayIndex + 1) % 7 : dayIndex,
-          dayName: isPushed ? daysOfWeek[(dayIndex + 1) % 7] : dayName,
-          timeSlot: timeSlot,
-          subject: m.subject || 'physics',
-          chapterId: chap?.id || 'p1',
-          chapterName: m.chapter || m.taskName,
-          unit: chap?.unit || 'Core Module',
-          activity: m.taskName,
-          taskType: (m.type as any) || 'Solve PYQs',
-          durationMinutes: duration,
-          completed: m.completed,
-          priorityScore: m.priorityScore || 94,
-          reasoning: {
-            whySelected: m.reasoning?.whySelected || m.whyThisTaskExists || `High leverage task prioritized by PlannerEngine.`,
-            dependentChapters: m.futureDependencies || [],
-            rankingRationale: m.reasoning?.rankingRationale || `Ranked Tier 1 Priority by PlannerScoringEngine.`,
-            longTermImpact: m.expectedJeeImpact || `+${m.expectedMarksGain || 8} Marks in JEE Main`,
-            postponeRisk: m.reasoning?.postponeRisk || `Delaying shifts target completion velocity.`,
-            targetAccuracy: `${m.confidenceGainPercent || 85}% Target Benchmark`
-          }
-        });
-
-        if (pendingBreakBlock) {
-          blocks.push(pendingBreakBlock);
-        }
-      });
-    } else if (plannerWeekly && plannerWeekly[dayIndex] && plannerWeekly[dayIndex].length > 0) {
-      // Avoid visual clashing: If we pushed tasks from today to this day, don't overlay the default lookahead slots!
-      const existingBlocksForDay = blocks.filter(b => b.dayIndex === dayIndex);
-      if (existingBlocksForDay.length > 0) {
-        return;
-      }
-      
-      plannerWeekly[dayIndex].forEach((t: any, tIdx: number) => {
-        const chap = chapters.find(c => c.id === t.chapterId);
-        const stableKey = `${t.chapterId}-${t.taskName.replace(/[^a-zA-Z0-9]/g, '-')}`;
-        blocks.push({
-          id: `plan-${stableKey}`,
-          dayIndex,
-          dayName,
-          timeSlot: tIdx === 0 ? 'Morning (07:00 - 09:30)' : tIdx === 1 ? 'Afternoon (14:00 - 16:00)' : tIdx === 2 ? 'Evening (17:30 - 19:30)' : 'Night (21:30 - 22:30)',
-          subject: t.subjectId,
-          chapterId: t.chapterId,
-          chapterName: t.chapterName,
-          unit: chap?.unit || 'Core Module',
-          activity: t.taskName,
-          taskType: t.type,
-          durationMinutes: t.duration,
-          completed: dayIndex < currentDayIndex,
-          priorityScore: t.priorityScore,
-          reasoning: {
-            whySelected: t.reasoning?.whySelected || t.selectionReason || `Scheduled by PlannerEngine 7-Day Lookahead.`,
-            dependentChapters: t.reasoning?.dependentChapters || [],
-            rankingRationale: t.reasoning?.rankingRationale || `Calculated by PlannerScoringEngine.`,
-            longTermImpact: t.reasoning?.longTermImpact || `+${t.expectedMarksGain || 6} Marks in JEE`,
-            postponeRisk: t.reasoning?.postponeRisk || `Impacts weekly milestone target.`,
-            targetAccuracy: `80% Concept Check Accuracy`
-          }
-        });
-      });
-    } else {
-      const physChap = getUniqueChap('physics', dayIndex);
-      const chemChap = getUniqueChap('chemistry', dayIndex);
-      const mathChap = getUniqueChap('maths', dayIndex);
-
-      if (splitStrategy === '1_a_day_alternating') {
-        const focusSubj: SubjectId = dayIndex % 3 === 0 ? 'physics' : dayIndex % 3 === 1 ? 'chemistry' : 'maths';
-        const focusChap = focusSubj === 'physics' ? physChap : focusSubj === 'chemistry' ? chemChap : mathChap;
-
-        if (focusChap) {
-          blocks.push({
-            id: `wb-${idCounter++}`,
-            dayIndex,
-            dayName,
-            timeSlot: 'Morning (07:00 - 09:30)',
-            subject: focusSubj,
-            chapterId: focusChap.id,
-            chapterName: focusChap.name,
-            unit: focusChap.unit || 'Core Module',
-            activity: `Watch Lecture ${(focusChap.currentLecture || 0) + 1} of ${focusChap.totalLectures || 10}`,
-            taskType: 'Watch Lecture',
-            durationMinutes: 90,
-            completed: dayIndex < currentDayIndex,
-            priorityScore: 95 - dayIndex,
-            reasoning: {
-              whySelected: `Deep single-subject focus module for ${focusChap.name}.`,
-              dependentChapters: [`Advanced ${focusChap.name}`],
-              rankingRationale: `Ranked Tier 1 Priority under 1-Subject Daily Strategy.`,
-              longTermImpact: `Accelerates mastery in ${focusSubj.toUpperCase()}.`,
-              postponeRisk: `Shifts target completion velocity for ${focusSubj.toUpperCase()}.`,
-              targetAccuracy: `75% Concept Check Accuracy`
-            }
-          });
-
-          blocks.push({
-            id: `wb-${idCounter++}`,
-            dayIndex,
-            dayName,
-            timeSlot: 'Afternoon (14:00 - 16:00)',
-            subject: focusSubj,
-            chapterId: focusChap.id,
-            chapterName: focusChap.name,
-            unit: focusChap.unit || 'Core Module',
-            activity: `Solve 15 Practice DPP Problems in ${focusChap.name}`,
-            taskType: 'Solve DPP',
-            durationMinutes: 75,
-            completed: dayIndex < currentDayIndex,
-            priorityScore: 89 - dayIndex,
-            reasoning: {
-              whySelected: `Structured problem solving for ${focusChap.name}.`,
-              dependentChapters: [`DPP Practice Mastery`],
-              rankingRationale: `Deep single-subject numerical drill.`,
-              longTermImpact: `Builds high problem-solving speed.`,
-              postponeRisk: `Reduces practice retention.`,
-              targetAccuracy: `80% DPP Accuracy`
-            }
-          });
-
-          blocks.push({
-            id: `wb-${idCounter++}`,
-            dayIndex,
-            dayName,
-            timeSlot: 'Evening (17:30 - 19:30)',
-            subject: focusSubj,
-            chapterId: focusChap.id,
-            chapterName: focusChap.name,
-            unit: focusChap.unit || 'Core Module',
-            activity: `Solve 20 Past JEE Main PYQs in ${focusChap.name}`,
-            taskType: 'Solve PYQs',
-            durationMinutes: 90,
-            completed: dayIndex < currentDayIndex,
-            priorityScore: 92 - dayIndex,
-            reasoning: {
-              whySelected: `High-yield authentic exam question practice for ${focusChap.name}.`,
-              dependentChapters: [`JEE Mock Test Performance`],
-              rankingRationale: `PYQ drill for single-subject focus day.`,
-              longTermImpact: `Directly improves test score performance in ${focusSubj.toUpperCase()}.`,
-              postponeRisk: `Delays exam question pattern exposure.`,
-              targetAccuracy: `85% PYQ Accuracy Target`
-            }
-          });
-        }
-
-        blocks.push({
-          id: `wb-${idCounter++}`,
-          dayIndex,
-          dayName,
-          timeSlot: 'Night (21:30 - 22:30)',
-          subject: 'revision',
-          chapterId: 'rev-all',
-          chapterName: 'Spaced Revision & Mistakes Review',
-          unit: 'Recall Engine',
-          activity: `Review 5 Mistakes Ledger Errors & Active Recall Cards`,
-          taskType: 'Review Mistakes',
-          durationMinutes: 45,
-          completed: dayIndex < currentDayIndex,
-          priorityScore: 85 - dayIndex,
-          reasoning: {
-            whySelected: `Active recall drill based on forgetting curve decay monitoring.`,
-            dependentChapters: [`All Previously Studied Modules`],
-            rankingRationale: `Prevents memory decay for chapters completed more than 7 days ago.`,
-            longTermImpact: `Sustains retention score above 85% until exam day.`,
-            postponeRisk: `Memory decay drops retention by 40% after 14 days without active recall.`,
-            targetAccuracy: `90% Flashcard Recall`
-          }
-        });
-      } else if (splitStrategy === '2_a_day_alternating') {
-        const twoDayConfigNormalized = normalizeTwoDaySplitConfig(twoDaySplitConfig);
-        const pair = twoDayConfigNormalized[dayIndex % 3];
-        const subj1: SubjectId = pair[0] || 'physics';
-        const subj2: SubjectId = pair[1] || 'chemistry';
-        
-        const chap1 = subj1 === 'physics' ? physChap : subj1 === 'chemistry' ? chemChap : mathChap;
-        const chap2 = subj2 === 'chemistry' ? chemChap : subj2 === 'maths' ? mathChap : physChap;
-
-        if (chap1) {
-          blocks.push({
-            id: `wb-${idCounter++}`,
-            dayIndex,
-            dayName,
-            timeSlot: 'Morning (07:00 - 09:30)',
-            subject: subj1,
-            chapterId: chap1.id,
-            chapterName: chap1.name,
-            unit: chap1.unit || 'Mechanics',
-            activity: `Watch Lecture ${(chap1.currentLecture || 0) + 1} of ${chap1.totalLectures || 10}`,
-            taskType: 'Watch Lecture',
-            durationMinutes: 90,
-            completed: dayIndex < currentDayIndex,
-            priorityScore: 95 - dayIndex,
-            reasoning: {
-              whySelected: `Foundational theory module for ${chap1.name}.`,
-              dependentChapters: [`Advanced ${chap1.name}`],
-              rankingRationale: `Ranked Tier 1 Priority under 2-Subject Alternating Strategy.`,
-              longTermImpact: `Unlocks downstream problem sets in ${subj1.toUpperCase()}.`,
-              postponeRisk: `Delaying shifts ${chap1.unit} progression.`,
-              targetAccuracy: `75% Concept Check Accuracy`
-            }
-          });
-        }
-
-        if (chap2) {
-          blocks.push({
-            id: `wb-${idCounter++}`,
-            dayIndex,
-            dayName,
-            timeSlot: 'Afternoon (14:00 - 16:00)',
-            subject: subj2,
-            chapterId: chap2.id,
-            chapterName: chap2.name,
-            unit: chap2.unit || 'Organic Chemistry',
-            activity: `Solve 15 DPP Problems in ${chap2.name}`,
-            taskType: 'Solve DPP',
-            durationMinutes: 75,
-            completed: dayIndex < currentDayIndex,
-            priorityScore: 89 - dayIndex,
-            reasoning: {
-              whySelected: `Timed problem-solving drill for ${chap2.name}.`,
-              dependentChapters: [`Advanced ${chap2.name}`],
-              rankingRationale: `Converts theory into numerical speed.`,
-              longTermImpact: `Increases problem-solving velocity in ${subj2.toUpperCase()}.`,
-              postponeRisk: `Concept retention drops if practice is delayed.`,
-              targetAccuracy: `80% DPP Accuracy`
-            }
-          });
-        }
-
-        if (chap1) {
-          blocks.push({
-            id: `wb-${idCounter++}`,
-            dayIndex,
-            dayName,
-            timeSlot: 'Evening (17:30 - 19:30)',
-            subject: subj1,
-            chapterId: chap1.id,
-            chapterName: chap1.name,
-            unit: chap1.unit || 'Mechanics',
-            activity: `Solve 20 Past JEE Main PYQs in ${chap1.name}`,
-            taskType: 'Solve PYQs',
-            durationMinutes: 90,
-            completed: dayIndex < currentDayIndex,
-            priorityScore: 92 - dayIndex,
-            reasoning: {
-              whySelected: `High-yield authentic exam question practice for ${chap1.name}.`,
-              dependentChapters: [`JEE Mock Test Performance`],
-              rankingRationale: `PYQs carry direct correlation with exam score improvement.`,
-              longTermImpact: `Directly contributes to score gain in ${subj1.toUpperCase()}.`,
-              postponeRisk: `Unattempted PYQs leave exam traps undetected.`,
-              targetAccuracy: `85% PYQ Accuracy Target`
-            }
-          });
-        }
-
-        blocks.push({
-          id: `wb-${idCounter++}`,
-          dayIndex,
-          dayName,
-          timeSlot: 'Night (21:30 - 22:30)',
-          subject: 'revision',
-          chapterId: 'rev-all',
-          chapterName: 'Spaced Revision & Mistakes Review',
-          unit: 'Recall Engine',
-          activity: `Review 5 Mistakes Ledger Errors & Active Recall Cards`,
-          taskType: 'Review Mistakes',
-          durationMinutes: 45,
-          completed: dayIndex < currentDayIndex,
-          priorityScore: 85 - dayIndex,
-          reasoning: {
-            whySelected: `Active recall drill based on forgetting curve decay monitoring.`,
-            dependentChapters: [`All Previously Studied Modules`],
-            rankingRationale: `Prevents memory decay for completed chapters.`,
-            longTermImpact: `Sustains retention score above 85% until exam day.`,
-            postponeRisk: `Memory decay drops retention after 14 days.`,
-            targetAccuracy: `90% Flashcard Recall`
-          }
-        });
-      } else {
-        const morningSubj: SubjectId = dayIndex % 3 === 0 ? 'physics' : dayIndex % 3 === 1 ? 'chemistry' : 'maths';
-        const morningChap = morningSubj === 'physics' ? physChap : morningSubj === 'chemistry' ? chemChap : mathChap;
-        
-        if (morningChap) {
-          blocks.push({
-            id: `wb-${idCounter++}`,
-            dayIndex,
-            dayName,
-            timeSlot: 'Morning (07:00 - 09:30)',
-            subject: morningSubj,
-            chapterId: morningChap.id,
-            chapterName: morningChap.name,
-            unit: morningChap.unit || 'Mechanics',
-            activity: `Watch Lecture ${(morningChap.currentLecture || 0) + 1} of ${morningChap.totalLectures || 10}`,
-            taskType: 'Watch Lecture',
-            durationMinutes: 90,
-            completed: dayIndex < currentDayIndex,
-            priorityScore: 95 - dayIndex,
-            reasoning: {
-              whySelected: `Foundational theory module for ${morningChap.name}. Crucial prerequisite for problem sets.`,
-              dependentChapters: morningSubj === 'physics' ? ['Laws of Motion', 'Work Power Energy'] : morningSubj === 'chemistry' ? ['Hydrocarbons', 'Reaction Mechanisms'] : ['Limits', 'Derivatives'],
-              rankingRationale: `Ranked Tier 1 Priority due to high JEE weightage (${morningChap.weightage || 4}%).`,
-              longTermImpact: `Unlocks 12+ downstream JEE Main & Advanced numerical problem types.`,
-              postponeRisk: `Delaying will shift the entire ${morningChap.unit} progression by 48 hours.`,
-              targetAccuracy: `75% Concept Check Accuracy`
-            }
-          });
-        }
-
-        const afternoonSubj: SubjectId = dayIndex % 3 === 0 ? 'chemistry' : dayIndex % 3 === 1 ? 'maths' : 'physics';
-        const afternoonChap = afternoonSubj === 'chemistry' ? chemChap : afternoonSubj === 'maths' ? mathChap : physChap;
-
-        if (afternoonChap) {
-          blocks.push({
-            id: `wb-${idCounter++}`,
-            dayIndex,
-            dayName,
-            timeSlot: 'Afternoon (14:00 - 16:00)',
-            subject: afternoonSubj,
-            chapterId: afternoonChap.id,
-            chapterName: afternoonChap.name,
-            unit: afternoonChap.unit || 'Organic Chemistry',
-            activity: `Solve 15 DPP Problems in ${afternoonChap.name}`,
-            taskType: 'Solve DPP',
-            durationMinutes: 75,
-            completed: dayIndex < currentDayIndex,
-            priorityScore: 89 - dayIndex,
-            reasoning: {
-              whySelected: `Timed problem-solving drill to reinforce theory learned in ${afternoonChap.name}.`,
-              dependentChapters: [`Advanced ${afternoonChap.name} Problems`],
-              rankingRationale: `Essential for converting theoretical understanding into numerical speed.`,
-              longTermImpact: `Increases problem-solving velocity from 2.5 min/Q to 1.8 min/Q.`,
-              postponeRisk: `Concept retention drops by 35% if DPP is delayed beyond 24 hours of lecture.`,
-              targetAccuracy: `80% DPP Accuracy`
-            }
-          });
-        }
-
-        const eveningSubj: SubjectId = dayIndex % 3 === 0 ? 'maths' : dayIndex % 3 === 1 ? 'physics' : 'chemistry';
-        const eveningChap = eveningSubj === 'maths' ? mathChap : eveningSubj === 'physics' ? physChap : chemChap;
-
-        if (eveningChap) {
-          blocks.push({
-            id: `wb-${idCounter++}`,
-            dayIndex,
-            dayName,
-            timeSlot: 'Evening (17:30 - 19:30)',
-            subject: eveningSubj,
-            chapterId: eveningChap.id,
-            chapterName: eveningChap.name,
-            unit: eveningChap.unit || 'Algebra',
-            activity: `Solve 20 Past JEE Main PYQs (2019-2024)`,
-            taskType: 'Solve PYQs',
-            durationMinutes: 90,
-            completed: dayIndex < currentDayIndex,
-            priorityScore: 92 - dayIndex,
-            reasoning: {
-              whySelected: `High-yield authentic exam question practice for ${eveningChap.name}.`,
-              dependentChapters: [`JEE Mock Test Performance`],
-              rankingRationale: `PYQs carry the highest direct correlation with JEE Main score improvement.`,
-              longTermImpact: `Directly contributes to +8 Marks in upcoming full-syllabus test.`,
-              postponeRisk: `Unattempted PYQs leave exam question pattern traps undetected.`,
-              targetAccuracy: `85% PYQ Accuracy Target`
-            }
-          });
-        }
-
-        blocks.push({
-          id: `wb-${idCounter++}`,
-          dayIndex,
-          dayName,
-          timeSlot: 'Night (21:30 - 22:30)',
-          subject: 'revision',
-          chapterId: 'rev-all',
-          chapterName: 'Spaced Revision & Mistakes Review',
-          unit: 'Recall Engine',
-          activity: `Review 5 Mistakes Ledger Errors & Active Recall Cards`,
-          taskType: 'Review Mistakes',
-          durationMinutes: 45,
-          completed: dayIndex < currentDayIndex,
-          priorityScore: 85 - dayIndex,
-          reasoning: {
-            whySelected: `Active recall drill based on forgetting curve decay monitoring.`,
-            dependentChapters: [`All Previously Studied Modules`],
-            rankingRationale: `Prevents memory decay for chapters completed more than 7 days ago.`,
-            longTermImpact: `Sustains retention score above 85% until exam day.`,
-            postponeRisk: `Memory decay drops retention by 40% after 14 days without active recall.`,
-            targetAccuracy: `90% Flashcard Recall`
-          }
-        });
-      }
-    }
-  });
-
-  // Apply deleted filters and schedule overrides
-  blocks = blocks.filter(b => !deletedMissionIds.includes(b.id) && !deletedMissionIds.includes(b.id.replace('today-', '')));
-
-  if (scheduleOverrides && Object.keys(scheduleOverrides).length > 0) {
-    const todayDateObj = new Date();
-    todayDateObj.setHours(0,0,0,0);
-    const todayDateStr = getLocalDateKey(todayDateObj);
-
-    blocks = blocks.map(b => {
-      const override = scheduleOverrides[b.id] || scheduleOverrides[b.id.replace('today-', '')] || scheduleOverrides[b.id.replace('plan-', '')];
-      
-      // Ignore overrides from past dates for uncompleted blocks to allow auto-cascade
-      if (override && override.scheduledDate && override.scheduledDate < todayDateStr && !b.completed) {
-        return b;
-      }
-
-      if (override) {
-        return {
-          ...b,
-          dayIndex: override.dayIndex !== undefined ? override.dayIndex : b.dayIndex,
-          dayName: override.dayIndex !== undefined ? daysOfWeek[override.dayIndex] : b.dayName,
-          timeSlot: override.timeSlot || b.timeSlot,
-          scheduledDate: override.scheduledDate,
-          scheduledTime: override.scheduledTime,
-          isManualOverride: true
-        };
-      }
-      return b;
-    });
-  }
-
-  return blocks;
-}
-
-export function normalizeTwoDaySplitConfig(config?: any): [SubjectId[], SubjectId[], SubjectId[]] {
-  const defaultTwoDayConfig: [SubjectId[], SubjectId[], SubjectId[]] = [
-    ['physics', 'chemistry'],
-    ['chemistry', 'maths'],
-    ['maths', 'physics']
-  ];
-  if (!config) return defaultTwoDayConfig;
-  const d0 = (Array.isArray(config[0]) ? config[0] : Array.isArray(config['0']) ? config['0'] : defaultTwoDayConfig[0]) as SubjectId[];
-  const d1 = (Array.isArray(config[1]) ? config[1] : Array.isArray(config['1']) ? config['1'] : defaultTwoDayConfig[1]) as SubjectId[];
-  const d2 = (Array.isArray(config[2]) ? config[2] : Array.isArray(config['2']) ? config['2'] : defaultTwoDayConfig[2]) as SubjectId[];
-  return [d0, d1, d2];
-}
-
-export function getDayFocusPill(dayIdx: number, splitStrategy: string, twoDaySplitConfig?: any) {
-  if (splitStrategy === '1_a_day_alternating') {
-    return dayIdx % 3 === 0 ? 'PHYSICS ONLY' : dayIdx % 3 === 1 ? 'CHEMISTRY ONLY' : 'MATHS ONLY';
-  } else if (splitStrategy === '2_a_day_alternating') {
-    const config = normalizeTwoDaySplitConfig(twoDaySplitConfig);
-    const pair = config[dayIdx % 3];
-    const formatSubj = (s: SubjectId) => (s === 'physics' ? 'PHY' : s === 'chemistry' ? 'CHEM' : 'MATHS');
-    return `${formatSubj(pair[0])} + ${formatSubj(pair[1])}`;
-  } else {
-    return 'ALL 3 SUBJS';
-  }
-}
-
-export function getHeaderBadgeText(splitStrategy: string) {
-  return splitStrategy === '1_a_day_alternating' 
-    ? '1 Subject Focus' 
-    : splitStrategy === '2_a_day_alternating' 
-      ? '2 Subjects Alternating' 
-      : '3 Subjects Daily';
-}
+export * from './weeklyMatrix';

@@ -27,8 +27,11 @@ export function CommandOverviewBanner({
   onToggleExpand
 }: CommandOverviewBannerProps) {
   const mentorProfile = useStudyBrainStore(s => s.mentorProfile);
-  const projectedReadiness = useStudyBrainStore(s => s.projectedReadiness);
+  const rawReadiness = useStudyBrainStore(s => s.projectedReadiness);
+  const safeReadiness = typeof rawReadiness === 'number' && !isNaN(rawReadiness) ? rawReadiness : 0;
   const chapterTelemetryMap = useStudyBrainStore(s => s.chapterTelemetryMap);
+  const energyLevel = useStudyBrainStore(s => s.energyLevel);
+  const settings = useStudyBrainStore(s => s.settings);
 
   const [internalExpanded, setInternalExpanded] = useState<boolean>(() => {
     return sessionStorage.getItem('jee_command_center_override') === 'expanded';
@@ -84,7 +87,9 @@ export function CommandOverviewBanner({
     return list.length > 0 ? list : ['None detected. Great momentum!'];
   }, [chapterTelemetryMap]);
 
-  const dailyCapHours = mentorProfile?.dailyAvailableHours || 6.5;
+  const energyMultiplier = energyLevel === 'Low' ? 0.5 : energyLevel === 'High' ? 1.25 : 1.0;
+  const rawCap = mentorProfile?.dailyAvailableHours || (settings?.dailyQuota && settings.dailyQuota <= 14 ? settings.dailyQuota : 4.5);
+  const dailyCapHours = Math.round(rawCap * energyMultiplier * 10) / 10;
 
   return (
     <div ref={containerRef} className="w-full z-10 mb-2 font-sans text-left">
@@ -105,9 +110,12 @@ export function CommandOverviewBanner({
         className="w-full hover:border-indigo-500/40 rounded-2xl p-2.5 px-3.5 shadow-sm transition-all duration-150 cursor-pointer select-none group flex items-center justify-between"
       >
         <div className="flex items-center gap-3 flex-wrap min-w-0">
-          <div className="p-1.5 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 group-hover:border-indigo-500/60 transition-colors shadow-sm">
+          <motion.div 
+            whileHover={{ scale: 1.1, rotate: 5 }}
+            className="p-1.5 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 group-hover:border-indigo-500/60 transition-all shadow-sm"
+          >
             <LayoutDashboard className="w-3.5 h-3.5" />
-          </div>
+          </motion.div>
           
           <div className="flex items-center gap-2">
             <span className="text-xs font-mono font-bold text-white tracking-wide uppercase">
@@ -117,17 +125,35 @@ export function CommandOverviewBanner({
 
           <div className="flex items-center gap-2 flex-wrap text-xs font-mono">
             {onHoldChapters.length > 0 && (
-              <span className="text-amber-300 bg-amber-950/40 border border-amber-500/30 px-2.5 py-0.5 rounded-lg font-medium flex items-center gap-1">
-                <PauseCircle className="w-3 h-3 text-amber-400" />
+              <motion.span 
+                animate={{ opacity: [0.85, 1, 0.85] }}
+                transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                className="text-amber-300 bg-amber-950/40 border border-amber-500/30 px-2.5 py-0.5 rounded-lg font-medium flex items-center gap-1.5 shadow-xs"
+              >
+                <PauseCircle className="w-3 h-3 text-amber-400 animate-pulse" />
                 {onHoldChapters.length} On Hold
-              </span>
+              </motion.span>
             )}
-            <span className="text-sky-300 bg-sky-950/40 px-2.5 py-0.5 rounded-lg border border-sky-500/30 font-medium">
-              {projectedReadiness}% Readiness
-            </span>
-            <span className="text-emerald-300 bg-emerald-950/40 px-2.5 py-0.5 rounded-lg border border-emerald-500/30 font-medium">
+            <motion.span 
+              whileHover={{ scale: 1.04, y: -0.5 }}
+              className="text-sky-300 bg-sky-950/40 px-2.5 py-0.5 rounded-lg border border-sky-500/30 font-medium inline-flex items-center gap-1.5 transition-all shadow-xs"
+            >
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-sky-400"></span>
+              </span>
+              {safeReadiness}% Readiness
+            </motion.span>
+            <motion.span 
+              whileHover={{ scale: 1.04, y: -0.5 }}
+              className="text-emerald-300 bg-emerald-950/40 px-2.5 py-0.5 rounded-lg border border-emerald-500/30 font-medium inline-flex items-center gap-1.5 transition-all shadow-xs"
+            >
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-400"></span>
+              </span>
               {dailyCapHours}h/day Cap
-            </span>
+            </motion.span>
           </div>
         </div>
 
@@ -285,13 +311,13 @@ export function CommandOverviewBanner({
                   <TrendingUp className="w-4 h-4 text-sky-400" />
                 </div>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-mono font-black text-white tracking-tight">{projectedReadiness}%</span>
+                  <span className="text-2xl font-mono font-black text-white tracking-tight">{safeReadiness}%</span>
                   <span className="text-[10px] font-mono text-zinc-400">weighted</span>
                 </div>
                 <div className="w-full bg-zinc-950 h-1.5 rounded-full overflow-hidden mt-1.5 border border-white/5">
                   <div 
                     className="bg-gradient-to-r from-indigo-500 to-sky-400 h-full rounded-full transition-all duration-500"
-                    style={{ width: `${Math.min(100, projectedReadiness)}%` }}
+                    style={{ width: `${Math.min(100, safeReadiness)}%` }}
                   />
                 </div>
               </div>

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { AnalyticsEngine } from './AnalyticsEngine';
-import { Chapter, Mistake, StudySession, MockResult } from '@/types/index';
+import { Chapter, Mistake, StudySession, MockResult } from '../types/index';
 
 describe('AnalyticsEngine', () => {
   const engine = new AnalyticsEngine();
@@ -90,5 +90,81 @@ describe('AnalyticsEngine', () => {
     });
 
     expect(result.revisionHealth).toBe(50);
+  });
+
+  it('handles small study velocity and huge lecture backlog without RangeError: Invalid time value (BUG-11 fix)', () => {
+    // 60-minute session logged today creates a valid velocity (~0.14 hrs/day)
+    const session: StudySession = {
+      id: 'session-1',
+      startTime: new Date().toISOString(),
+      endTime: new Date().toISOString(),
+      duration: 60,
+      type: 'Lecture',
+      subjectId: 'physics',
+      xpEarned: 10
+    };
+
+    // Huge remaining lectures backlog (e.g. 50,000 lectures) that would produce date overflow
+    const hugeBacklogChapters: Chapter[] = [
+      { id: '1', subject: 'physics', name: 'p1', currentLecture: 0, totalLectures: 50000 } as any
+    ];
+
+    expect(() => {
+      const result = engine.generateAnalytics({
+        sessions: [session],
+        chapters: hugeBacklogChapters,
+        mistakes: [],
+        mocks: []
+      });
+
+      expect(result.predictedCompletionDate).toBeDefined();
+      expect(typeof result.predictedCompletionDate).toBe('string');
+      // Assert it is a valid date within 10-year clamped horizon
+      const predictedTimestamp = new Date(result.predictedCompletionDate!).getTime();
+      expect(isNaN(predictedTimestamp)).toBe(false);
+
+      const maxFutureMs = Date.now() + (3651 * 86400000);
+      expect(predictedTimestamp).toBeLessThanOrEqual(maxFutureMs);
+    }).not.toThrow();
+  });
+
+  it('correctly bins late-night sessions into calendar days across midnight (BUG-30)', () => {
+    // Current simulated local time: Sept 4, 2026 at 09:00 AM
+    const now = new Date(2026, 8, 4, 9, 0, 0);
+
+    // Session A: Yesterday night at 11:00 PM (Sept 3, 2026 at 23:00)
+    // Only 10 hours ago (< 24 hours elapsed), but on yesterday's calendar day
+    const yesterdayLateSession: StudySession = {
+      id: 'sess-yesterday-late',
+      startTime: new Date(2026, 8, 3, 23, 0, 0).toISOString(),
+      endTime: new Date(2026, 8, 3, 23, 45, 0).toISOString(),
+      duration: 45, // 0.8 hr
+      type: 'Lecture',
+      subjectId: 'physics',
+      xpEarned: 0
+    };
+
+    // Session B: Today morning at 07:00 AM (Sept 4, 2026 at 07:00)
+    const todayEarlySession: StudySession = {
+      id: 'sess-today-early',
+      startTime: new Date(2026, 8, 4, 7, 0, 0).toISOString(),
+      endTime: new Date(2026, 8, 4, 8, 0, 0).toISOString(),
+      duration: 60, // 1.0 hr
+      type: 'Lecture',
+      subjectId: 'maths',
+      xpEarned: 0
+    };
+
+    const result = engine.generateAnalytics({
+      sessions: [yesterdayLateSession, todayEarlySession],
+      chapters: [],
+      mistakes: [],
+      mocks: [],
+      currentDate: now.toISOString()
+    });
+
+    // studyHoursPastWeek: index 6 is today (Sept 4), index 5 is yesterday (Sept 3)
+    expect(result.studyHoursPastWeek[6]).toBe(1.0); // 60 mins today
+    expect(result.studyHoursPastWeek[5]).toBe(0.8); // 45 mins yesterday
   });
 });

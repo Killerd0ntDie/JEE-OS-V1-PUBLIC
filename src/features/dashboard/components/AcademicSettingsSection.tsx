@@ -68,7 +68,14 @@ export const AcademicSettingsSection: React.FC<AcademicSettingsSectionProps> = (
           <CustomSelect
             value={targetExam}
             options={targetExamOptions}
-            onChange={(val) => onUpdateMentor({ targetExams: [val as any] })}
+            onChange={(val) => {
+              const exams: MentorProfile['targetExams'] = val === 'Both' 
+                ? ['JEE Main', 'JEE Advanced'] 
+                : val === 'JEE Advanced' 
+                ? ['JEE Advanced'] 
+                : ['JEE Main'];
+              onUpdateMentor({ targetExams: exams });
+            }}
           />
         </div>
 
@@ -95,7 +102,7 @@ export const AcademicSettingsSection: React.FC<AcademicSettingsSectionProps> = (
           <CustomSelect
             value={classLevel}
             options={classLevelOptions}
-            onChange={(val) => onUpdateMentor({ currentClass: val as any })}
+            onChange={(val) => onUpdateMentor({ currentClass: val as MentorProfile['currentClass'] })}
           />
         </div>
       </div>

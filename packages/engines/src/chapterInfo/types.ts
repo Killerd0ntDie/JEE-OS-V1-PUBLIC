@@ -1,4 +1,4 @@
-import { SubjectId, Chapter, Mistake, StudySession, MockResult } from '@/types/index';
+import { SubjectId, Chapter, Mistake, StudySession, MockResult } from '../types/index';
 
 export interface ChapterStrategyRadar {
   masteryScore: number;
@@ -59,8 +59,8 @@ export interface ChapterTelemetry {
 export interface ChapterInfoInput {
   chapters: Chapter[];
   mistakes: Mistake[];
-  sessions: StudySession[];
-  mocks: MockResult[];
+  sessions?: StudySession[];
+  mocks?: MockResult[];
   settings?: {
     targetYear: string;
     [key: string]: any;

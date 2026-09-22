@@ -1,4 +1,4 @@
-import { Chapter } from '@/types/index';
+import { Chapter } from '../types/index';
 import { Node, Edge } from '@xyflow/react';
 import { ChapterTelemetry } from '../chapterInfo/types';
 
@@ -37,7 +37,8 @@ export class NeuralGraphEngine {
     activeSubject: 'physics' | 'chemistry' | 'maths', 
     telemetryMap: Record<string, ChapterTelemetry> = {},
     graphMode: NeuralGraphMode = 'flow',
-    selectedChapterId: string | null = null
+    selectedChapterId: string | null = null,
+    windowWidth: number = 1200
   ): { nodes: Node[], edges: Edge[] } {
     const nodes: Node[] = [];
     const edges: Edge[] = [];
@@ -50,8 +51,20 @@ export class NeuralGraphEngine {
 
     const subjectChapters = chapters.filter(c => c.subject === activeSubject);
 
-    const COLS = 4;
-    const X_SPACING = 340;
+    let COLS = 4;
+    let X_SPACING = 340;
+    
+    if (windowWidth < 768) {
+      COLS = 2;
+      X_SPACING = windowWidth / 2;
+    } else if (windowWidth < 1024) {
+      COLS = 3;
+      X_SPACING = 280;
+    } else if (windowWidth > 1600) {
+      COLS = 6;
+      X_SPACING = 300;
+    }
+
     const Y_SPACING = 165;
     const START_X = 60;
     const START_Y = 110;
@@ -103,9 +116,9 @@ export class NeuralGraphEngine {
         weightage,
         completedLectures: telemetry?.currentLecture ?? chapter.currentLecture ?? 0,
         totalLectures: telemetry?.totalLectures ?? chapter.totalLectures ?? 8,
-        dppDone: telemetry?.dppComplete ?? chapter.theoryComplete ?? false,
+        dppDone: telemetry?.dppComplete ?? chapter.dppComplete ?? false,
         pyqsDone: telemetry?.pyqsComplete ?? chapter.pyqsComplete ?? false,
-        accuracyPercent: telemetry?.strategyRadar?.dppCompletionPercent || chapter.confidence || 0,
+        accuracyPercent: (chapter as any).accuracy ?? chapter.practiceProgress?.accuracyPercent ?? chapter.confidence ?? 0,
         graphMode,
         isSelected: selectedChapterId === chapter.id
       };

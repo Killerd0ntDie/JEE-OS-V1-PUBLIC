@@ -6,6 +6,7 @@ import { auth } from '@/firebase';
 import { ChapterTelemetry } from '@jee-os/engines';
 import { Modal } from '@/components/ui/Modal';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
+import { useToast } from '@/components/ui/ToastProvider';
 
 interface AiRevisionPlanModalProps {
   isOpen: boolean;
@@ -14,6 +15,7 @@ interface AiRevisionPlanModalProps {
 
 export function AiRevisionPlanModal({ isOpen, onClose }: AiRevisionPlanModalProps) {
   useLockBodyScroll(isOpen || false);
+  const { toast } = useToast();
 
   const actions = useStudyBrainStore(state => state.actions);
   const chapterTelemetryMap = useStudyBrainStore(state => state.chapterTelemetryMap);
@@ -99,16 +101,22 @@ export function AiRevisionPlanModal({ isOpen, onClose }: AiRevisionPlanModalProp
 
   const handleImportDayTasks = async (day: any) => {
     const tasksToImport = day.tasks || [];
-    for (const t of tasksToImport) {
-      await actions.addAiMission({
-        chapter: t.chapter || t.title,
-        taskName: t.title,
-        type: (t.type as any) || 'Solve PYQs',
-        subject: (t.subject as any) || 'physics',
-        duration: t.durationMinutes || 60,
-        xp: 20
-      });
-      setImportedTaskIds(prev => [...prev, `${day.dayNumber}-${t.title}`]);
+    try {
+      for (const t of tasksToImport) {
+        await actions.addAiMission({
+          chapter: t.chapter || t.title,
+          taskName: t.title,
+          type: (t.type as any) || 'Solve PYQs',
+          subject: (t.subject as any) || 'physics',
+          duration: t.durationMinutes || 60,
+          xp: 20
+        });
+        setImportedTaskIds(prev => [...prev, `${day.dayNumber}-${t.title}`]);
+      }
+      toast({ title: 'Tasks Imported', message: `Imported ${tasksToImport.length} revision tasks to your planner`, type: 'success' });
+    } catch (err: any) {
+      console.error('Failed to import revision tasks:', err);
+      toast({ title: 'Import Failed', message: err?.message || 'Could not import revision tasks', type: 'error' });
     }
   };
 

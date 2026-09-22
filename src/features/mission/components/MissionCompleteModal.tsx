@@ -3,7 +3,6 @@ import { motion } from 'motion/react';
 import { Modal } from '@/components/ui/Modal';
 import { Flame, Zap, Clock, ArrowRight, Activity, Award } from 'lucide-react';
 import { SubjectDetail } from './MissionSubjectSwitcherWidget';
-import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import { springs } from '@/constants/motion';
 import { audioEngine } from '@/utils/audioEngine';
 
@@ -30,8 +29,6 @@ export function MissionCompleteModal({
   onComplete,
   onNextSubject
 }: MissionCompleteModalProps) {
-  useLockBodyScroll(true);
-
   // Berserk Overdrive bonus (>95% focus for 45+ mins)
   const isBerserk = (seconds >= 2700 && focusScore >= 95);
   const baseXP = Math.floor(seconds / 60) * 5;

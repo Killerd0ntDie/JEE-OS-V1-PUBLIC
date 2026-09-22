@@ -43,6 +43,23 @@ export const NeuralGraphPage = ({ onNavigate }: { onNavigate?: (pageId: import('
   const [pinnedSuccess, setPinnedSuccess] = useState<string | null>(null);
   const [copiedFormulaIndex, setCopiedFormulaIndex] = useState<number | null>(null);
 
+  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
+
+  useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout>;
+    const handleResize = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        setWindowWidth(window.innerWidth);
+      }, 150);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      clearTimeout(timeoutId);
+    };
+  }, []);
+
   // Compute graph nodes and edges
   const { nodes: initialNodes, edges: initialEdges } = useMemo(() => {
     return NeuralGraphEngine.generateGraph(
@@ -50,25 +67,19 @@ export const NeuralGraphPage = ({ onNavigate }: { onNavigate?: (pageId: import('
       activeSubject, 
       chapterTelemetryMap, 
       graphMode, 
-      selectedChapterId
+      selectedChapterId,
+      windowWidth
     );
-  }, [chapters, activeSubject, chapterTelemetryMap, graphMode, selectedChapterId]);
+  }, [chapters, activeSubject, chapterTelemetryMap, graphMode, selectedChapterId, windowWidth]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
-  // Sync state whenever dependencies change
+  // Sync state whenever memoized graph nodes and edges change
   useEffect(() => {
-    const { nodes: newNodes, edges: newEdges } = NeuralGraphEngine.generateGraph(
-      chapters, 
-      activeSubject, 
-      chapterTelemetryMap, 
-      graphMode, 
-      selectedChapterId
-    );
-    setNodes(newNodes);
-    setEdges(newEdges);
-  }, [chapters, activeSubject, chapterTelemetryMap, graphMode, selectedChapterId, setNodes, setEdges]);
+    setNodes(initialNodes);
+    setEdges(initialEdges);
+  }, [initialNodes, initialEdges, setNodes, setEdges]);
 
   // Compute live subject statistics
   const subjectStats = useMemo(() => {
@@ -168,7 +179,7 @@ export const NeuralGraphPage = ({ onNavigate }: { onNavigate?: (pageId: import('
   };
 
   return (
-    <div className="w-full h-[calc(100vh-80px)] relative overflow-hidden rounded-3xl border border-white/10 shadow-2xl select-none font-sans bg-[#050508] text-left">
+    <div className="w-full h-full relative overflow-hidden select-none font-sans bg-[#050508] text-left">
       
       {/* 1. FULL-PAGE INTERACTIVE REACT FLOW CANVAS */}
       <ReactFlow
@@ -180,9 +191,9 @@ export const NeuralGraphPage = ({ onNavigate }: { onNavigate?: (pageId: import('
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         fitView
-        fitViewOptions={{ padding: 0.28, maxZoom: 0.95, minZoom: 0.4 }}
-        minZoom={0.25}
-        maxZoom={1.5}
+        fitViewOptions={{ padding: 0.2, maxZoom: 1.1, minZoom: 0.35 }}
+        minZoom={0.2}
+        maxZoom={1.8}
         className="xyflow-dark w-full h-full"
       >
         <Background 
@@ -193,7 +204,7 @@ export const NeuralGraphPage = ({ onNavigate }: { onNavigate?: (pageId: import('
         />
         
         <Controls 
-          className="bg-zinc-950/80 border border-white/10 rounded-xl overflow-hidden fill-zinc-400" 
+          className="bg-zinc-950/90 border border-white/10 rounded-xl overflow-hidden fill-zinc-400 mb-20 ml-4 shadow-xl" 
           position="bottom-left"
         />
 
@@ -205,7 +216,7 @@ export const NeuralGraphPage = ({ onNavigate }: { onNavigate?: (pageId: import('
             border: '1px solid rgba(255, 255, 255, 0.10)',
             borderTop: '1.5px solid rgba(255, 255, 255, 0.25)'
           }}
-          className="absolute bottom-4 right-4 p-3 rounded-2xl font-mono text-[10px] space-y-1.5 hidden md:block z-10 shadow-2xl"
+          className="absolute bottom-20 right-4 p-3 rounded-2xl font-mono text-[10px] space-y-1.5 hidden md:block z-10 shadow-2xl"
         >
           <span className="text-indigo-400 uppercase font-bold tracking-widest block border-b border-white/10 pb-1 flex items-center gap-1.5">
             <Activity className="w-3 h-3" />
@@ -227,7 +238,7 @@ export const NeuralGraphPage = ({ onNavigate }: { onNavigate?: (pageId: import('
       </ReactFlow>
 
       {/* 2. COMPACT FLOATING GLASS HUD OVERLAY (TOP BAR) */}
-      <div className="absolute top-3 inset-x-3 md:inset-x-4 flex items-center justify-between gap-3 pointer-events-none z-30">
+      <div className="absolute top-4 inset-x-4 md:inset-x-6 flex items-center justify-between gap-3 pointer-events-none z-30">
         
         {/* Left: Compact Brain Badge & Network Health */}
         <div 

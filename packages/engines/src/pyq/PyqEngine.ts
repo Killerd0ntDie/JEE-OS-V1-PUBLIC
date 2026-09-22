@@ -1,4 +1,4 @@
-import { Question, PYQBank } from '@/types/curriculum';
+import { Question, PYQBank } from '../types/curriculum';
 
 export class PyqEngine {
   private static pyqDatabase: Question[] | null = null;

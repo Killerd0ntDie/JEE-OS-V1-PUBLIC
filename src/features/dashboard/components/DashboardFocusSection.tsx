@@ -52,7 +52,7 @@ const slideVariants: Variants = {
   }),
 };
 
-export function DashboardFocusSection({
+export const DashboardFocusSection = React.memo(function DashboardFocusSection({
   activeTab,
   setActiveTab,
   revisionQueue,
@@ -153,8 +153,8 @@ export function DashboardFocusSection({
         </span>
       </div>
 
-      {/* Tab Content Panels - Directional Sliding Transition with responsive auto-height on mobile */}
-      <div className="relative h-auto lg:h-[500px] overflow-visible lg:overflow-hidden">
+      {/* Tab Content Panels - Directional Sliding Transition with responsive natural height */}
+      <div className="relative h-auto min-h-[500px] overflow-visible">
         <AnimatePresence mode="wait" custom={direction} initial={false}>
           {activeTab === 'focus' ? (
             <motion.div
@@ -286,4 +286,4 @@ export function DashboardFocusSection({
       </div>
     </div>
   );
-}
+});

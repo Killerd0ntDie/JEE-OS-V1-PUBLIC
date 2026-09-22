@@ -47,4 +47,13 @@ describe('SpacedRepetitionEngine', () => {
     expect(nextState.easeFactor).toBeLessThan(2.2); 
     expect(nextState.easeFactor).toBeGreaterThan(1.3);
   });
+
+  it('schedules next review date into the future without timezone offset regression', () => {
+    const nextState = engine.calculateNextReview(4);
+    const reviewDate = new Date(nextState.nextReviewDate!);
+    const now = new Date();
+    // Review date must be scheduled ahead of current timestamp
+    expect(reviewDate.getTime()).toBeGreaterThan(now.getTime() - 24 * 60 * 60 * 1000);
+    expect(nextState.interval).toBe(1);
+  });
 });

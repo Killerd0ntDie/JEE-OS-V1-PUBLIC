@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { PlannerEngine } from './PlannerEngine';
-import { KnowledgeEngine, SyllabusNode } from '@/engines/knowledge';
+import { KnowledgeEngine, SyllabusNode } from '../knowledge';
 import { PlannerInput } from './types';
 
 const MOCK_SYLLABUS: SyllabusNode[] = [
@@ -123,5 +123,40 @@ describe('PlannerEngine', () => {
     // The lecture should overflow to carry forward
     expect(output.carryForward.length).toBeGreaterThan(0);
     expect(output.carryForward[0].type).toBe('Watch Lecture');
+  });
+
+  it('maps dependent chapter IDs to readable chapter names in mission reasoning (BUG-21)', () => {
+    const knowledgeEngine = new KnowledgeEngine(MOCK_SYLLABUS);
+    const planner = new PlannerEngine(knowledgeEngine);
+
+    const input: PlannerInput = {
+      studyHours: 4,
+      chapterTelemetryMap: {
+        c1: {
+          masteryScore: 0,
+          currentLecture: 0,
+          totalLectures: 5,
+          theoryComplete: false,
+          dppComplete: false,
+          pyqsComplete: false,
+          isMastered: false
+        }
+      } as any,
+      revisionBacklog: [],
+      userPreferences: { targetYear: '2025' },
+      remainingDaysUntilJEE: 300,
+      currentDate: '2024-01-01T00:00:00.000Z'
+    };
+
+    const output = planner.generateDailyPlan(input);
+    const task = output.todaysMission.find(t => t.chapterId === 'c1');
+    expect(task).toBeDefined();
+    expect(task?.reasoning).toBeDefined();
+
+    // In MOCK_SYLLABUS, c2 depends on c1.
+    // The dependent chapter list must contain the name 'Chapter 2', NOT raw id 'c2'
+    expect(task?.reasoning?.dependentChapters).toContain('Chapter 2');
+    expect(task?.reasoning?.dependentChapters).not.toContain('c2');
+    expect(task?.reasoning?.longTermImpact).toContain('Chapter 2');
   });
 });

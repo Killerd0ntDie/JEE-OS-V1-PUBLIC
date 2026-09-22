@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { modalVariants } from '@/constants/motion';
 import { 
@@ -7,7 +8,7 @@ import {
 } from 'lucide-react';
 import { Mistake, SubjectId } from '@/types/index';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
-import { RichTextRenderer } from '@/components/MathRenderer';
+import { RichTextRenderer, ExplanationRenderer } from '@/components/MathRenderer';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 
@@ -41,6 +42,11 @@ export const MistakesCbtTestArena: React.FC<MistakesCbtTestArenaProps> = ({
 
   const totalDurationSeconds = useMemo(() => Math.max(300, mistakes.length * 180), [mistakes.length]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const currentIdxRef = useRef(currentIdx);
+
+  useEffect(() => {
+    currentIdxRef.current = currentIdx;
+  }, [currentIdx]);
 
   useLockBodyScroll(isOpen);
   useEscapeKey(onClose, isOpen);
@@ -72,9 +78,9 @@ export const MistakesCbtTestArena: React.FC<MistakesCbtTestArenaProps> = ({
           return prev - 1;
         });
 
-        // Track active question time
+        // Track active question time using stable ref
         setTimeSpentSeconds(prev => {
-          const currentId = mistakes[currentIdx]?.id;
+          const currentId = mistakes[currentIdxRef.current]?.id;
           if (!currentId) return prev;
           return {
             ...prev,
@@ -89,7 +95,33 @@ export const MistakesCbtTestArena: React.FC<MistakesCbtTestArenaProps> = ({
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [isOpen, mistakes, totalDurationSeconds, currentIdx]);
+  }, [isOpen]);
+
+  // Keyboard navigation shortcuts (n: next, p: prev, c: clear)
+  useEffect(() => {
+    if (!isOpen || isSubmitted || isConfirmSubmitOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const activeTag = (document.activeElement?.tagName || '').toLowerCase();
+      if (activeTag === 'input' || activeTag === 'textarea') return;
+
+      if (e.key === 'n' || e.key === 'N') {
+        e.preventDefault();
+        handleSaveAndNext();
+      } else if (e.key === 'p' || e.key === 'P') {
+        e.preventDefault();
+        if (currentIdxRef.current > 0) {
+          handleSelectQuestion(currentIdxRef.current - 1);
+        }
+      } else if (e.key === 'c' || e.key === 'C') {
+        e.preventDefault();
+        handleClearResponse();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, isSubmitted, isConfirmSubmitOpen, mistakes.length]);
 
   if (!isOpen || mistakes.length === 0) return null;
 
@@ -164,6 +196,7 @@ export const MistakesCbtTestArena: React.FC<MistakesCbtTestArenaProps> = ({
   };
 
   const handleToggleSelfGrade = async (id: string, isCorrect: boolean) => {
+    if (selfGrades[id] === isCorrect) return;
     setSelfGrades(prev => ({ ...prev, [id]: isCorrect }));
     if (actions.updateMistakeTestResult) {
       await actions.updateMistakeTestResult(id, isCorrect);
@@ -191,8 +224,8 @@ export const MistakesCbtTestArena: React.FC<MistakesCbtTestArenaProps> = ({
   const totalSolvedInTest = Object.values(selfGrades).filter(Boolean).length;
   const testAccuracy = answeredCount > 0 ? Math.round((totalSolvedInTest / mistakes.length) * 100) : 0;
 
-  return (
-    <div className="fixed inset-0 z-50 text-zinc-100 flex flex-col overflow-hidden select-none font-sans">
+  const arenaContent = (
+    <div className="fixed inset-0 z-[100020] bg-[#090a0f] text-zinc-100 flex flex-col overflow-hidden select-none font-sans">
       
       {/* 1. CBT TOP NAVBAR */}
       <div className="h-14 border-b border-zinc-850 bg-zinc-950 px-4 sm:px-6 flex items-center justify-between shrink-0">
@@ -360,7 +393,9 @@ export const MistakesCbtTestArena: React.FC<MistakesCbtTestArenaProps> = ({
                   {/* Your Retest Answer */}
                   <div className="p-3.5 rounded-xl bg-zinc-900/80 border border-zinc-800 text-xs font-mono">
                     <span className="text-zinc-400 block text-[10px] uppercase font-bold mb-1">Your Retest Answer / Derivation:</span>
-                    <span className="text-white">{myAnswer}</span>
+                    <div className="text-white">
+                      {myAnswer ? <RichTextRenderer content={myAnswer} /> : <span className="text-zinc-500 italic">No answer submitted</span>}
+                    </div>
                   </div>
 
                   {/* Step-by-Step Formal Explanation */}
@@ -369,11 +404,11 @@ export const MistakesCbtTestArena: React.FC<MistakesCbtTestArenaProps> = ({
                       Step-by-Step Analytical Derivation & Formal Solution:
                     </span>
                     <div className="text-xs text-zinc-300 leading-relaxed space-y-2">
-                      <RichTextRenderer content={m.correctMethod || m.correctSolution || 'No formal solution recorded.'} />
+                      <ExplanationRenderer content={m.correctMethod || m.correctSolution || 'No formal solution recorded.'} />
                     </div>
                     {m.correctSolution && m.correctMethod && m.correctMethod !== m.correctSolution && (
                       <div className="p-2.5 rounded-lg bg-emerald-950/60 border border-emerald-800/60 text-xs font-mono text-emerald-300">
-                        <strong>Key Result: </strong>{m.correctSolution}
+                        <RichTextRenderer content={`**Key Result:** ${m.correctSolution}`} />
                       </div>
                     )}
                   </div>
@@ -419,22 +454,39 @@ export const MistakesCbtTestArena: React.FC<MistakesCbtTestArenaProps> = ({
             </div>
 
             {/* Question Statement in KaTeX (STRICT TEST - ZERO HINTS OR ANSWERS) */}
-            <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar text-base text-zinc-100 leading-relaxed font-sans">
+            <div className="flex-1 overflow-y-auto overflow-x-auto break-words pr-2 custom-scrollbar text-sm sm:text-base text-zinc-100 leading-relaxed font-sans">
               <RichTextRenderer content={currentMistake.questionText} />
             </div>
 
             {/* Answer Input Workspace */}
             <div className="space-y-2 pt-2 border-t border-zinc-800/80">
-              <label className="text-xs font-mono font-bold text-zinc-300 block">
-                Enter Your Final Calculation / Option Choice:
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-mono font-bold text-zinc-300 block">
+                  Enter Your Final Calculation / Option Choice:
+                </label>
+                {currentAnswer && (currentAnswer.includes('$') || currentAnswer.includes('\\') || currentAnswer.includes('^')) && (
+                  <span className="text-[10px] font-mono text-indigo-400 bg-indigo-950/60 px-2 py-0.5 rounded border border-indigo-800/40">
+                    LaTeX Active
+                  </span>
+                )}
+              </div>
               <textarea
                 rows={2}
                 value={currentAnswer}
                 onChange={e => setUserAnswers(prev => ({ ...prev, [currentMistake.id]: e.target.value }))}
-                placeholder="Type your final numerical value, option letter (A/B/C/D), or step derivation..."
+                placeholder="Type your final numerical value, option letter (A/B/C/D), or step derivation (LaTeX: $x^2$, \frac{a}{b})..."
                 className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-xs text-white placeholder-zinc-600 font-mono focus:outline-none focus:border-indigo-500"
               />
+              {currentAnswer && (currentAnswer.includes('$') || currentAnswer.includes('\\') || currentAnswer.includes('^') || currentAnswer.includes('_')) && (
+                <div className="p-2.5 rounded-xl bg-zinc-950/80 border border-indigo-500/30 text-xs">
+                  <span className="text-[10px] font-mono text-indigo-400 uppercase tracking-wider block mb-1">
+                    Live Formula / Calculation Preview:
+                  </span>
+                  <div className="text-zinc-100">
+                    <RichTextRenderer content={currentAnswer} />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* CBT Navigation Controls */}
@@ -564,4 +616,6 @@ export const MistakesCbtTestArena: React.FC<MistakesCbtTestArenaProps> = ({
       )}
     </div>
   );
+
+  return typeof document !== 'undefined' ? ReactDOM.createPortal(arenaContent, document.body) : null;
 };

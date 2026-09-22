@@ -25,7 +25,7 @@ const getSubjectBadgeStyle = (subj?: SubjectId) => {
 
 export function CustomMissionHistoryModal({ isOpen, onClose }: CustomMissionHistoryModalProps) {
   const actions = useStudyBrainStore(s => s.actions);
-  const customMissions = useStudyBrainStore(s => s.customMissions);
+  const customMissions = useStudyBrainStore(s => s.customMissions) || [];
 
   // Filter only completed custom missions
   const completedMissions = customMissions.filter(m => m.completed);

@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Search, Bookmark, Star, Copy, Check, Printer, 
   Atom, FlaskConical, Binary, Filter, Sparkles, 
-  ChevronRight, BookOpen, Download, Layers, X, Zap
+  ChevronRight, BookOpen, Download, Layers, X, Zap,
+  Scale, Eye, EyeOff
 } from 'lucide-react';
 import { FORMULA_BANK, ChapterFormulas, FormulaEntry } from '@/constants/formulaBank';
 import { MathRenderer, BlockMath } from '@/components/MathRenderer';
@@ -11,6 +12,7 @@ import { springs } from '@/constants/motion';
 import { audioEngine } from '@/utils/audioEngine';
 import { useToast } from '@/components/ui/ToastProvider';
 import { FormulaSpeedDrillModal } from './components/FormulaSpeedDrillModal';
+import { DimensionalAnalysisModal } from './components/DimensionalAnalysisModal';
 
 export function FormulaVaultPage() {
   const { toast } = useToast();
@@ -20,6 +22,9 @@ export function FormulaVaultPage() {
   const [onlyBookmarked, setOnlyBookmarked] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [isSpeedDrillOpen, setIsSpeedDrillOpen] = useState(false);
+  const [isDimensionsOpen, setIsDimensionsOpen] = useState(false);
+  const [isClozeMode, setIsClozeMode] = useState(false);
+  const [revealedClozeKeys, setRevealedClozeKeys] = useState<Set<string>>(new Set());
 
   // Persistent bookmarked formulas
   const [bookmarkedFormulas, setBookmarkedFormulas] = useState<string[]>(() => {
@@ -112,10 +117,10 @@ export function FormulaVaultPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 text-left pb-16 font-sans">
+    <div className="max-w-6xl mx-auto space-y-6 text-left pb-32 sm:pb-36 font-sans">
       
       {/* 1. ACADEMIC HEADER & QUICK ACTIONS */}
-      <div className="p-6 md:p-7 rounded-3xl border border-white/10 glass-panel shadow-2xl relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-5 print:hidden">
+      <div className="surface-1 p-6 md:p-7 rounded-3xl shadow-2xl relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-5 print:hidden">
         <div className="space-y-1.5 min-w-0">
           <div className="flex items-center gap-2.5 flex-wrap">
             <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-indigo-950/60 border border-indigo-500/30 text-indigo-300">
@@ -133,7 +138,48 @@ export function FormulaVaultPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-2.5 flex-wrap shrink-0">
+          <button
+            type="button"
+            onClick={() => {
+              audioEngine.playMechanicalKey('clack').catch(() => {});
+              setIsClozeMode(prev => {
+                const next = !prev;
+                if (next) {
+                  setRevealedClozeKeys(new Set());
+                  toast({
+                    title: 'Cloze Active Recall Enabled',
+                    description: 'Formulas hidden. Click any card to reveal and test your recall.',
+                    type: 'info'
+                  });
+                }
+                return next;
+              });
+            }}
+            className={`px-3.5 py-2.5 rounded-xl border text-xs font-mono font-bold transition-all flex items-center gap-2 cursor-pointer shadow-sm ${
+              isClozeMode
+                ? 'bg-amber-500/20 border-amber-500/50 text-amber-300 shadow-amber-500/10'
+                : 'border-white/10 bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300'
+            }`}
+            title="Toggle Cloze Active Recall: hide equations behind interactive reveal buttons"
+          >
+            {isClozeMode ? <EyeOff className="w-4 h-4 text-amber-400" /> : <Eye className="w-4 h-4 text-zinc-400" />}
+            <span>{isClozeMode ? 'Cloze Active' : 'Cloze Recall'}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              audioEngine.playMechanicalKey('click').catch(() => {});
+              setIsDimensionsOpen(true);
+            }}
+            className="px-3.5 py-2.5 rounded-xl border border-sky-500/30 bg-sky-950/30 hover:bg-sky-900/40 text-sky-200 text-xs font-mono font-bold transition-all flex items-center gap-2 cursor-pointer shadow-sm"
+            title="Physical Constants, SI Units & Dimensional Analysis"
+          >
+            <Scale className="w-4 h-4 text-sky-400" />
+            <span>Dimensions & Units</span>
+          </button>
+
           <button
             type="button"
             onClick={() => setIsSpeedDrillOpen(true)}
@@ -147,18 +193,19 @@ export function FormulaVaultPage() {
           <button
             type="button"
             onClick={handlePrint}
-            className="px-4 py-2.5 rounded-xl border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] text-zinc-200 text-xs font-mono font-bold transition-all flex items-center gap-2 cursor-pointer shadow-sm"
+            className="px-3.5 py-2.5 rounded-xl border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] text-zinc-200 text-xs font-mono font-bold transition-all flex items-center gap-2 cursor-pointer shadow-sm"
             title="Print or Save as Clean PDF"
           >
             <Printer className="w-4 h-4 text-indigo-400" />
-            <span>Print / Save PDF</span>
+            <span>Print / PDF</span>
           </button>
         </div>
       </div>
 
       {/* 2. SUBJECT SELECTOR & LIVE FILTER TOOLBAR */}
-      <div className="sticky top-14 z-20 p-3.5 rounded-2xl glass-panel border border-white/10 shadow-xl backdrop-blur-2xl space-y-3 print:hidden">
-        <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+      <div className="sticky -top-6 z-20 pt-6 pb-2 -mt-6 bg-zinc-950/95 backdrop-blur-xl border-b border-zinc-800/80 shadow-2xl print:hidden">
+        <div className="p-3.5 rounded-2xl bg-zinc-900/90 border border-zinc-800/90 shadow-xl space-y-3">
+          <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
           
           {/* Subject Switcher Glider */}
           <div className="flex items-center gap-1 p-1 rounded-xl bg-zinc-950/80 border border-white/10 shrink-0">
@@ -262,11 +309,12 @@ export function FormulaVaultPage() {
           <span>Displaying <strong className="text-white">{totalFormulaCount}</strong> formulas across <strong className="text-white">{filteredChapters.length}</strong> chapters</span>
           {onlyBookmarked && <span className="text-amber-400">Showing Starred Only</span>}
         </div>
+        </div>
       </div>
 
       {/* 3. FORMULA SECTIONS & CARDS GRID */}
       {filteredChapters.length === 0 ? (
-        <div className="p-12 text-center border border-dashed border-zinc-800 rounded-3xl glass-panel space-y-3">
+        <div className="p-12 text-center border border-dashed border-zinc-800 rounded-3xl surface-1 space-y-3">
           <BookOpen className="w-10 h-10 text-zinc-600 mx-auto" />
           <h3 className="text-base font-bold text-white">No Formulas Found</h3>
           <p className="text-xs text-zinc-400 max-w-sm mx-auto font-sans">
@@ -320,7 +368,7 @@ export function FormulaVaultPage() {
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.15 }}
-                        className="p-5 rounded-2xl border border-white/10 glass-panel hover:border-indigo-500/40 transition-all flex flex-col justify-between space-y-4 shadow-lg relative group"
+                        className="p-5 rounded-2xl surface-2 transition-all flex flex-col justify-between space-y-4 shadow-lg relative group"
                       >
                         {/* Header: Title + Star + Copy */}
                         <div className="flex items-start justify-between gap-3">
@@ -358,10 +406,37 @@ export function FormulaVaultPage() {
                           </div>
                         </div>
 
-                        {/* KaTeX Math Box */}
-                        <div className="p-3.5 rounded-xl bg-black/50 border border-white/5 overflow-x-auto text-center font-mono text-zinc-100 shadow-inner">
-                          <MathRenderer text={formula.formula} />
-                        </div>
+                        {/* KaTeX Math Box or Cloze Placeholder */}
+                        {isClozeMode && !revealedClozeKeys.has(formulaKey) ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              audioEngine.playMechanicalKey('click').catch(() => {});
+                              setRevealedClozeKeys(prev => {
+                                const next = new Set(prev);
+                                next.add(formulaKey);
+                                return next;
+                              });
+                            }}
+                            className="w-full py-4 px-3 rounded-xl border border-dashed border-amber-500/40 bg-amber-950/20 hover:bg-amber-900/30 text-amber-300 font-mono text-xs flex flex-col items-center justify-center gap-1.5 transition-all group cursor-pointer shadow-inner"
+                            title="Click to reveal formula and test recall"
+                          >
+                            <div className="flex items-center gap-2 font-bold">
+                              <Eye className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" />
+                              <span>[ ? Click to Reveal Formula ]</span>
+                            </div>
+                            <span className="text-[10px] text-zinc-400 font-sans">Active Recall Challenge</span>
+                          </button>
+                        ) : (
+                          <div className="p-3.5 rounded-xl bg-black/50 border border-white/5 overflow-x-auto text-center font-mono text-zinc-100 shadow-inner relative">
+                            {isClozeMode && (
+                              <span className="absolute top-1.5 right-2 text-[9px] font-mono font-bold text-emerald-400 bg-emerald-950/70 border border-emerald-500/40 px-1.5 py-0.5 rounded shadow-sm">
+                                Revealed
+                              </span>
+                            )}
+                            <MathRenderer text={formula.formula} />
+                          </div>
+                        )}
                       </motion.div>
                     );
                   })}
@@ -379,6 +454,12 @@ export function FormulaVaultPage() {
         selectedSubject={activeSubject}
         onBookmarkFormula={toggleBookmark}
         bookmarkedKeys={bookmarkedFormulas}
+      />
+
+      {/* DIMENSIONAL ANALYSIS & PHYSICAL CONSTANT INSPECTOR MODAL */}
+      <DimensionalAnalysisModal
+        isOpen={isDimensionsOpen}
+        onClose={() => setIsDimensionsOpen(false)}
       />
 
     </div>

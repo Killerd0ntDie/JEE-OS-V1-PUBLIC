@@ -68,7 +68,7 @@ export const RevisionEngineService = {
 
   // 3. Estimate memory retention using the Forgetting Curve (half-life model)
   estimateRetention(chapter: Chapter): { retention: number; status: 'Fresh' | 'Stable' | 'Fading' | 'Forgotten' } {
-    const daysSince = Number.isFinite(chapter.lastRevisionDaysAgo) ? (chapter.lastRevisionDaysAgo ?? 999) : 999;
+    const daysSince = Number.isFinite(chapter.lastRevisionDaysAgo) ? (chapter.lastRevisionDaysAgo ?? 0) : 0;
     const stability = this.getMemoryStability(chapter.revisionStage || this.inferCurrentStage(chapter));
     
     // Retention R = 100 * (0.5) ^ (t / S)
@@ -210,7 +210,7 @@ export const RevisionEngineService = {
       const dynamicIntervalDays = Math.max(1, Math.round(baseIntervalDays * confidenceModifier));
 
       // Calculate days overdue
-      const daysSinceLast = Number.isFinite(chapter.lastRevisionDaysAgo) ? (chapter.lastRevisionDaysAgo ?? 999) : 999;
+      const daysSinceLast = Number.isFinite(chapter.lastRevisionDaysAgo) ? (chapter.lastRevisionDaysAgo ?? 0) : 0;
       const daysOverdue = Math.max(0, daysSinceLast - dynamicIntervalDays);
 
       // We revision is "due" if we are past the interval, OR if confidence is dangerously low (< 60)
@@ -278,8 +278,8 @@ export const RevisionEngineService = {
     });
 
     // Sort by priority bucket first, then by priorityScore descending (Bug 3.3)
+    const pMap = { 'High': 3, 'Medium': 2, 'Low': 1 };
     queue.sort((a, b) => {
-       const pMap = { 'High': 3, 'Medium': 2, 'Low': 1 };
        const aPri = pMap[a.priority];
        const bPri = pMap[b.priority];
        if (aPri !== bPri) return bPri - aPri;
@@ -346,13 +346,9 @@ export const RevisionEngineService = {
       });
     });
 
-    // Re-verify unlocks sequence
-    filteredMissions.forEach((m, idx) => {
-      if (idx > 0) {
-        m.unlocked = filteredMissions[idx - 1].completed;
-      } else {
-        m.unlocked = true;
-      }
+    // Allow flexible revision order
+    filteredMissions.forEach(m => {
+      m.unlocked = true;
     });
 
     return filteredMissions;

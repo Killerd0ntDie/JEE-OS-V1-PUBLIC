@@ -1,6 +1,6 @@
 import { TimelineBlock, StudySession, UserProfile, Chapter, SubjectId, Mistake, TodayMission } from '@/types/index';
 import { calculateLevelFromXP, getTitleAndColor } from '@/utils/levelingCalculations';
-import { KnowledgeEngine, SyllabusNode } from '@jee-os/engines';
+import { KnowledgeEngine, SyllabusNode, calculateMastery } from '@jee-os/engines';
 import { PlannerEngine, PlannerInput } from '@jee-os/engines';
 import { OptimizationEngine, OptimizationInput } from '@jee-os/engines';
 import { RevisionEngineService } from './revisionEngineService';
@@ -49,106 +49,9 @@ export const LevelingSystem = {
 };
 
 export const StudyBrainService = {
-  // 1. Mastery Calculation
+  // 1. Mastery Calculation (Delegated to @jee-os/engines canonical implementation)
   calculateMastery(chapter: Chapter, chapterMistakesCount: number): { score: number; explanation: string } {
-    const lectureProgress = chapter.totalLectures > 0 ? (chapter.currentLecture / chapter.totalLectures) : (chapter.theoryComplete ? 1 : 0);
-    const solvedQs = chapter.solvedQuestions ?? 0;
-    const questionAccuracy = solvedQs > 0 ? Math.max(30, Math.min(100, Math.round(100 - (chapterMistakesCount / (solvedQs + chapterMistakesCount)) * 100))) : 50;
-    
-    // Practice-Proven Bypass: If they haven't done theory, but have solved a significant number of questions or PYQs/DPP
-    // Bug 3.2: Only trigger if accuracy is acceptable (>= 70%) to prevent guessing bypass
-    const hasSignificantPractice = chapter.pyqsComplete || chapter.dppComplete || (solvedQs >= 30 && questionAccuracy >= 70);
-
-    if (lectureProgress === 0 && !chapter.theoryComplete && !hasSignificantPractice) {
-      return {
-        score: 0,
-        explanation: "Chapter has not been started yet. Complete lectures or theory to begin mastering."
-      };
-    }
-
-    // 1. Foundational Stage (Lectures & Theory) - Weight: 25% (Base)
-    const foundationalScore = (Math.min(1, lectureProgress) * 0.6 + (chapter.theoryComplete ? 0.4 : 0)) * 100;
-
-    // 2. Practice & Application (DPPs & PYQs) - Weight: 30% (Base)
-    // Up to 0.4 for DPP, 0.4 for PYQs, and 0.2 for volume (100 questions to reach max volume score)
-    const practiceVolume = Math.min(0.2, solvedQs / 500);
-    const practiceScore = ((chapter.dppComplete ? 0.4 : 0) + (chapter.pyqsComplete ? 0.4 : 0) + practiceVolume) * 100;
-
-    // 3. Spaced Retention & Revisions - Weight: 20% (Base)
-    const daysOverdue = chapter.lastRevisionDaysAgo ?? 0;
-    const retentionScore = chapter.retentionScore ?? Math.max(0, Math.min(100, chapter.revisionCount > 0 ? 100 - daysOverdue * 4 : 50));
-    const retentionComponent = (Math.min(1.0, (chapter.revisionCount || 0) / 3) * 0.4 + (retentionScore / 100) * 0.6) * 100;
-
-    // 4. Accuracy & Mistakes Penalty - Weight: 15% (Base)
-    const accuracyScore = (questionAccuracy * 0.8) + Math.max(0, 20 - chapterMistakesCount * 2);
-
-    // 5. Confidence & Mock Exam Readiness - Weight: 10% (Base)
-    const confidenceScore = chapter.healthScore ?? chapter.confidence ?? 50;
-
-    // Dynamic Weighting: Shift weight from foundation to practice/accuracy if practice-proven
-    let wFoundation = 0.25;
-    let wPractice = 0.30;
-    let wRetention = 0.20;
-    let wAccuracy = 0.15;
-    let wConfidence = 0.10;
-
-    if (hasSignificantPractice && foundationalScore < 50) {
-       wFoundation = 0.10;
-       wPractice = 0.35;
-       wAccuracy = 0.25;
-    }
-
-    // Weighted sum
-    const totalScore = Math.max(0, Math.min(100, Math.round(
-      (foundationalScore * wFoundation) +
-      (practiceScore * wPractice) +
-      (retentionComponent * wRetention) +
-      (accuracyScore * wAccuracy) +
-      (confidenceScore * wConfidence)
-    )));
-
-    // Generate detailed dynamic reason/explanation
-    const reasons: string[] = [];
-    if (lectureProgress >= 1 || chapter.theoryComplete) {
-      reasons.push("Completed all lectures");
-    } else if (lectureProgress > 0) {
-      reasons.push(`Lecture progress ${Math.round(lectureProgress * 100)}%`);
-    } else if (hasSignificantPractice) {
-      reasons.push("Practice-proven (Skipped theory)");
-    }
-
-    if (chapter.pyqsComplete) {
-      reasons.push("Completed PYQs");
-    } else if (solvedQs > 0) {
-      reasons.push(`Solved ${solvedQs} questions`);
-    }
-
-    if (chapter.dppComplete) {
-      reasons.push("Completed DPP");
-    }
-
-    if (chapter.revisionCount > 0) {
-      if (daysOverdue > 7) {
-        reasons.push(`Revision overdue by ${daysOverdue} days`);
-      } else {
-        reasons.push(`Revised ${chapter.revisionCount} times (${daysOverdue}d ago)`);
-      }
-    } else {
-      reasons.push("No formal revision completed");
-    }
-
-    reasons.push(`Accuracy ${Math.round(questionAccuracy)}%`);
-
-    if (chapterMistakesCount > 0) {
-      reasons.push(`${chapterMistakesCount} active mistake${chapterMistakesCount > 1 ? 's' : ''}`);
-    }
-
-    const explanation = reasons.join(', ');
-
-    return {
-      score: totalScore,
-      explanation
-    };
+    return calculateMastery(chapter, chapterMistakesCount);
   },
 
   calculateMistakeScore(chapter: Chapter, chapterMistakes: Mistake[]) {
@@ -359,7 +262,7 @@ export const StudyBrainService = {
     };
   },
 
-  getTodayMission(chapters: Chapter[], dailyQuota: number, studySessions?: StudySession[], todayMissions?: TodayMission[], mistakes?: Mistake[]): TodayMission[] {
+  getTodayMission(chapters: Chapter[], dailyQuota: number, studySessions?: StudySession[], todayMissions?: TodayMission[], mistakes?: Mistake[], targetYear?: string): TodayMission[] {
     if (!chapters || chapters.length === 0) return [];
     const syllabus = createSyllabusGraph(chapters);
     const knowledgeEngine = new KnowledgeEngine(syllabus);
@@ -367,6 +270,13 @@ export const StudyBrainService = {
     
     const progress: Record<string, any> = {};
     chapters.forEach(c => {
+      // Find the most recent session for this chapter
+      const chapterSessions = studySessions?.filter(s => s.chapterId === c.id) || [];
+      chapterSessions.sort((a, b) => new Date(b.endTime).getTime() - new Date(a.endTime).getTime());
+      const lastSessionDate = chapterSessions.length > 0 
+        ? chapterSessions[0].endTime 
+        : new Date(0).toISOString(); // Epoch if never studied
+
       progress[c.id] = {
         chapterId: c.id,
         chapterName: c.name,
@@ -385,7 +295,7 @@ export const StudyBrainService = {
         masteryScore: c.completion || 0,
         recentMistakesCount: 0,
         averageTimePerQuestion: 0,
-        lastStudiedDate: new Date().toISOString(),
+        lastStudiedDate: lastSessionDate,
         conceptConnections: []
       };
     });
@@ -394,8 +304,8 @@ export const StudyBrainService = {
       studyHours: dailyQuota || 4,
       chapterTelemetryMap: progress,
       revisionBacklog: [],
-      userPreferences: { targetYear: '2025' },
-      remainingDaysUntilJEE: 100,
+      userPreferences: { targetYear: targetYear || new Date().getFullYear().toString() },
+      remainingDaysUntilJEE: this.getDaysUntilExam(targetYear || new Date().getFullYear().toString()),
       studySessions,
       todayMissions,
       chapters,
@@ -411,7 +321,7 @@ export const StudyBrainService = {
       taskName: t.taskName,
       duration: t.duration,
       completed: false,
-      xp: Math.round(t.priorityScore * 10),
+      xp: Math.round(t.priorityScore),
       unlocked: true,
       priorityScore: t.priorityScore,
       expectedMarksGain: t.expectedMarksGain,
@@ -424,7 +334,7 @@ export const StudyBrainService = {
     return missions;
   },
 
-  getCompletionPrediction(chapters: Chapter[], targetCompletionDate: string, actualStudyHours: number[]) {
+  getCompletionPrediction(chapters: Chapter[], targetCompletionDate: string, actualStudyHours: number[], targetYear?: string) {
     if (!chapters || chapters.length === 0) return null;
     const syllabus = createSyllabusGraph(chapters);
     const knowledgeEngine = new KnowledgeEngine(syllabus);
@@ -450,7 +360,7 @@ export const StudyBrainService = {
         masteryScore: c.completion || 0,
         recentMistakesCount: 0,
         averageTimePerQuestion: 0,
-        lastStudiedDate: new Date().toISOString(),
+        lastStudiedDate: new Date(0).toISOString(),
         conceptConnections: []
       };
     });
@@ -459,8 +369,8 @@ export const StudyBrainService = {
       studyHours: 4,
       chapterTelemetryMap: progress,
       revisionBacklog: [],
-      userPreferences: { targetYear: '2025' },
-      remainingDaysUntilJEE: 100,
+      userPreferences: { targetYear: targetYear || new Date().getFullYear().toString() },
+      remainingDaysUntilJEE: this.getDaysUntilExam(targetYear || new Date().getFullYear().toString()),
       chapters
     };
 
@@ -474,6 +384,7 @@ export const StudyBrainService = {
     try {
       return optimization.optimize(input);
     } catch(err) {
+      console.error('[StudyBrainService] OptimizationEngine failed:', err);
       return null;
     }
   },
@@ -514,12 +425,18 @@ export const StudyBrainService = {
   },
 
   calculateSubjectCompletion(chapters: Chapter[], subject: SubjectId): { total: number, completed: number, percentage: number } {
-    const subjChaps = chapters.filter(c => c.subject === subject);
+    const subjChaps = (chapters || []).filter(c => c && c.subject === subject);
     const total = subjChaps.length;
-    const completed = subjChaps.filter(c => c.completion === 100).length;
-    const percentage = total > 0 
-      ? Math.round(subjChaps.reduce((acc, curr) => acc + (curr.completion ?? 0), 0) / total)
-      : 0;
+    const completed = subjChaps.filter(c => {
+      const comp = typeof c.completion === 'number' && !isNaN(c.completion) ? c.completion : 0;
+      return comp >= 100 || c.status === 'Mastered';
+    }).length;
+    const totalCompletion = subjChaps.reduce((acc, curr) => {
+      const comp = typeof curr?.completion === 'number' && !isNaN(curr.completion) ? curr.completion : 0;
+      return acc + Math.min(100, Math.max(0, comp));
+    }, 0);
+    const rawPct = total > 0 ? Math.round(totalCompletion / total) : 0;
+    const percentage = isNaN(rawPct) ? 0 : Math.min(100, Math.max(0, rawPct));
     return { total, completed, percentage };
   },
 

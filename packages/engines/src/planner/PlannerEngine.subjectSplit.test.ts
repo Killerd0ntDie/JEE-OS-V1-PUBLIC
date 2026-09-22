@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { PlannerEngine } from './PlannerEngine';
-import { KnowledgeEngine, SyllabusNode } from '@/engines/knowledge';
+import { KnowledgeEngine, SyllabusNode } from '../knowledge';
 import { PlannerInput } from './types';
-import { Chapter } from '@/types/index';
+import { Chapter } from '../types/index';
 
 const MOCK_SYLLABUS_3_SUBJECTS: SyllabusNode[] = [
   {

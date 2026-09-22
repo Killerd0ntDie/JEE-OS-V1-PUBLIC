@@ -24,11 +24,12 @@ export function DailyCheckinCard() {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
+    const hasProfileCheckinToday = mentorProfile?.dailyCheckins?.some(c => c.date === todayStr);
     const lastCheckin = localStorage.getItem('jeeos_last_daily_checkin_date');
     const dismissedToday = localStorage.getItem('jeeos_last_daily_checkin_dismissed');
-    const alreadyDone = lastCheckin === todayStr || dismissedToday === todayStr;
+    const alreadyDone = lastCheckin === todayStr || dismissedToday === todayStr || Boolean(hasProfileCheckinToday);
     setIsDismissed(alreadyDone);
-  }, [todayStr]);
+  }, [todayStr, mentorProfile?.dailyCheckins]);
 
   if (isDismissed) {
     return null;

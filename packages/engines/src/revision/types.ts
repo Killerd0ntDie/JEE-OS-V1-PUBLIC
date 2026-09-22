@@ -1,12 +1,15 @@
-import { SubjectId, Chapter, Mistake, StudySession } from '@/types/index';
-import { ChapterTelemetry } from '@/engines/chapterInfo';
-import { FormulaEntry } from '@/constants/formulaBank';
+import { SubjectId, Chapter, Mistake, StudySession, Note } from '../types/index';
+import { ChapterTelemetry } from '../chapterInfo';
+import { FormulaEntry } from '../constants/formulaBank';
 
 export interface RevisionCardItem extends FormulaEntry {
   id: string;
   chapterId: string;
   chapterName: string;
   subject: SubjectId;
+  cardType?: 'formula' | 'mistake' | 'note';
+  mistakeId?: string;
+  noteId?: string;
   retentionConfidence: 'High' | 'Medium' | 'Low';
   retentionScore: number;
   lastReviewedDate?: string;
@@ -42,6 +45,7 @@ export interface RevisionEngineInput {
   chapterTelemetryMap: Record<string, ChapterTelemetry>;
   sessions: StudySession[];
   mistakes: Mistake[];
+  notes?: Note[];
 }
 
 export interface RevisionEngineOutput {

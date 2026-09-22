@@ -14,7 +14,7 @@ export interface MissionActionBarWidgetProps {
   setIsCoachVisible: (v: boolean) => void;
 }
 
-export function MissionActionBarWidget({
+export const MissionActionBarWidget = React.memo(function MissionActionBarWidget({
   isNotesOpen,
   setIsNotesOpen,
   isFormulaOpen,
@@ -45,4 +45,4 @@ export function MissionActionBarWidget({
       </motion.button>
     </div>
   );
-}
+});

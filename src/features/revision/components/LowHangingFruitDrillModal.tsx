@@ -184,9 +184,9 @@ export function LowHangingFruitDrillModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[220] flex items-center justify-center p-4 bg-black/85 backdrop-blur-lg">
+    <div className="fixed inset-0 z-[220] flex items-center justify-center p-4 bg-black/35 backdrop-blur-sm">
       
-      <div className="w-full max-w-xl bg-[#121318] border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col p-6 space-y-6 text-left font-sans">
+      <div className="w-full max-w-xl bg-[#0e0f14] border border-zinc-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col p-6 space-y-6 text-left font-sans">
         
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/5 pb-4">

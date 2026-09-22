@@ -68,7 +68,11 @@ export const PERCENTILE_MATRIX: Record<string, ShiftTargetData> = {
   }
 };
 
-export function PercentileShiftCalibrator() {
+interface PercentileShiftCalibratorProps {
+  userAverageMockScore?: number;
+}
+
+export function PercentileShiftCalibrator({ userAverageMockScore = 0 }: PercentileShiftCalibratorProps) {
   const [selectedPercentile, setSelectedPercentile] = useState<string>('99');
   const [activeShiftMode, setActiveShiftMode] = useState<'easy' | 'moderate' | 'tough'>('moderate');
 
@@ -78,6 +82,27 @@ export function PercentileShiftCalibrator() {
     activeShiftMode === 'easy' ? currentData.easyShiftMarks :
     activeShiftMode === 'tough' ? currentData.toughShiftMarks :
     currentData.moderateShiftMarks;
+
+  // Predict percentile band from user's average mock score
+  const predictedBand = useMemo(() => {
+    if (!userAverageMockScore || userAverageMockScore <= 0) return null;
+    const tiers = ['99.9', '99.5', '99', '98', '97', '95'] as const;
+    const getMarks = (key: string) => {
+      const d = PERCENTILE_MATRIX[key];
+      if (!d) return 0;
+      return activeShiftMode === 'easy' ? d.easyShiftMarks.total :
+             activeShiftMode === 'tough' ? d.toughShiftMarks.total :
+             d.moderateShiftMarks.total;
+    };
+
+    for (const tier of tiers) {
+      if (userAverageMockScore >= getMarks(tier)) {
+        return { percentile: tier, marks: getMarks(tier) };
+      }
+    }
+    // Below 95th percentile
+    return { percentile: '<95', marks: getMarks('95') };
+  }, [userAverageMockScore, activeShiftMode]);
 
   return (
     <div className="p-6 rounded-3xl border border-white/10 glass-panel shadow-2xl space-y-6 text-left relative overflow-hidden font-sans">
@@ -155,6 +180,30 @@ export function PercentileShiftCalibrator() {
           Predicted AIR: <strong className="text-white">~{currentData.airEstimate.toLocaleString()}</strong>
         </span>
       </div>
+
+      {/* YOUR MOCK SCORE PREDICTION BADGE */}
+      {predictedBand && userAverageMockScore > 0 && (
+        <div className="p-3.5 rounded-2xl bg-indigo-950/40 border border-indigo-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2 font-mono text-xs">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-indigo-600/20 border border-indigo-500/40 flex items-center justify-center shrink-0">
+              <Award className="w-4 h-4 text-indigo-400" />
+            </div>
+            <div className="space-y-0.5">
+              <span className="text-[10px] uppercase font-bold text-indigo-300">Your Mock Score Prediction</span>
+              <div className="text-sm font-bold text-white">
+                Mock Avg: <span className="text-indigo-300">{userAverageMockScore}</span>/300 → Predicted <span className="text-emerald-300">{predictedBand.percentile}%ile</span> in {activeShiftMode.charAt(0).toUpperCase() + activeShiftMode.slice(1)} Shift
+              </div>
+            </div>
+          </div>
+          {predictedBand.percentile !== '<95' && (
+            <span className="text-[10px] text-zinc-400 shrink-0">
+              Gap to {selectedPercentile}%ile: <strong className={shiftMarks.total - userAverageMockScore > 0 ? 'text-red-400' : 'text-emerald-400'}>
+                {shiftMarks.total - userAverageMockScore > 0 ? `+${shiftMarks.total - userAverageMockScore} marks needed` : '✓ On target'}
+              </strong>
+            </span>
+          )}
+        </div>
+      )}
 
       {/* 2. SUBJECT TARGET SCORE SPLIT CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-3.5 font-mono text-xs">

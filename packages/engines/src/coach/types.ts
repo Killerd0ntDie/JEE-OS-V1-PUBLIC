@@ -1,12 +1,12 @@
-import { Chapter, Mistake, MockResult, StudySession, TodayMission, StudyRecommendation } from '@/types/index';
-import { AnalyticsOutput } from '@/engines/analytics';
+import { Chapter, Mistake, MockResult, StudySession, TodayMission, StudyRecommendation } from '../types/index';
+import { AnalyticsOutput } from '../analytics';
 
 export interface CoachInput {
-  mission: TodayMission[];
-  weakTopics: Mistake[];
-  revisionQueue: Chapter[]; // or mistakes
-  plannerDecisions: any[];
-  analyticsSummary: AnalyticsOutput;
+  mission?: TodayMission[];
+  weakTopics?: Mistake[];
+  revisionQueue?: Chapter[]; // or mistakes
+  plannerDecisions?: any[];
+  analyticsSummary?: AnalyticsOutput;
   plannerOutput?: any;
   chapters?: Chapter[];
   studyHistory?: StudySession[];

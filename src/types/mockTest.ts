@@ -1,6 +1,6 @@
 import { SubjectId } from './index';
 
-export type QuestionType = 'MCQ' | 'NUMERICAL';
+export type QuestionType = 'MCQ' | 'NUMERICAL' | 'MULTI';
 
 export interface MockQuestion {
   id: string;
@@ -17,6 +17,12 @@ export interface MockQuestion {
     incorrect: number; // e.g. -1
   };
   explanation?: string;
+  imageUrl?: string;
+  hasDiagram?: boolean;
+  isVerified?: boolean;
+  confidence?: 'high' | 'medium' | 'low';
+  solution?: { text?: string };
+  pageNumber?: number;
 }
 
 export interface MockTestSection {
@@ -30,6 +36,12 @@ export interface MockTest {
   durationMinutes: number; // e.g. 180
   totalMarks: number; // e.g. 300
   sections: MockTestSection[];
+  source?: 'builtin' | 'pyq' | 'dpp' | 'generated' | 'custom';
+  category?: 'grand' | 'pyq' | 'dpp' | 'sprint' | 'chapter';
+  chapterId?: string;
+  chapterName?: string;
+  createdAt?: number;
+  isCustom?: boolean;
 }
 
 // Used to track live exam state

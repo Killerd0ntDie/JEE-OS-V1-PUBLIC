@@ -153,7 +153,7 @@ export function MissionMode(props: MissionModeProps) {
 
   // Pomodoro Interval Handler (25m Focus -> 5m AT-Field Break)
   useEffect(() => {
-    if (focusPreset === 'pomodoro' && state.seconds > 0 && state.seconds % 1500 === 0 && !isPomodoroBreak) {
+    if (focusPreset === 'pomodoro' && state.seconds > 0 && !isPomodoroBreak && Math.floor(state.seconds / 1500) > Math.floor((state.seconds - 1) / 1500)) {
       audioEngine.playAlert();
       setIsPomodoroBreak(true);
       setPomodoroBreakSecs(300);
@@ -181,7 +181,7 @@ export function MissionMode(props: MissionModeProps) {
     setFocusPreset(preset);
     audioEngine.playTacticalSwitch().catch(() => {});
     
-    let text = 'DEEP FOCUS // 60-MIN TARGET ENGAGED';
+    let text = 'DEEP FOCUS // TARGET ENGAGED';
     let icon = Timer;
     if (preset === 'pomodoro') {
       text = 'POMODORO 25/5 // 25M SPRINT + AT-FIELD REST';
@@ -686,7 +686,7 @@ export function MissionMode(props: MissionModeProps) {
           setters.setCoachTip('CASINO PENALTY: You failed to provide Proof of Work. Wager lost.');
           await actions.deductCasinoWager(state.xpWager);
         }}
-        onComplete={() => {
+        onComplete={async (proofOfWork?: string) => {
           setters.setIsTimeUpModalOpen(false);
           setters.setChecklist({
             'Watch lecture': true,
@@ -696,6 +696,34 @@ export function MissionMode(props: MissionModeProps) {
             'Revise formulas': true,
           });
           setters.setIsCompleted(true);
+
+          if (proofOfWork && proofOfWork.trim()) {
+            try {
+              const chapName = state.activeDetails?.chapter || state.activeSubjectMission?.chapter || 'Core Module';
+              const chapId = state.activeSubjectMission?.chapterId;
+              await actions.addProofOfWorkNote({
+                text: proofOfWork.trim(),
+                subject: state.activeSubject,
+                chapter: chapName,
+                chapterId: chapId,
+                missionId: state.activeSubjectMission?.id,
+                xpWager: state.xpWager
+              });
+
+              // Add to local notes state so it immediately appears in the cockpit memory drawer
+              setters.setNotes(prev => [
+                {
+                  id: `pow-${Date.now()}`,
+                  timestamp: handlers.formatTime(state.seconds),
+                  text: proofOfWork.trim(),
+                  category: 'Proof of Work'
+                },
+                ...prev
+              ]);
+            } catch (err) {
+              console.error("Failed to save proof of work note:", err);
+            }
+          }
         }}
         onAddExtraTime={(mins) => {
           setters.setExtraTimeAdded(prev => prev + mins);

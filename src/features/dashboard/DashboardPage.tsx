@@ -1,6 +1,4 @@
 import React from 'react';
-import { Modal } from '@/components/ui/Modal';
-import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { QuickRevisionModal } from '@/components/ui/QuickRevisionModal';
 import { DailyMissionTimeline } from './components/DailyMissionTimeline';
@@ -13,9 +11,8 @@ import { RoutineBreakModal } from './components/RoutineBreakModal';
 import { DashboardFocusSection } from './components/DashboardFocusSection';
 import { BreakActiveModal } from './components/BreakActiveModal';
 import { useDashboardState } from './hooks/useDashboardState';
-import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 
-interface RecoverableSession {
+export interface RecoverableSession {
   missionId: string;
   chapterName: string;
   elapsedMinutes: number;
@@ -74,65 +71,16 @@ function SessionRecoveryBanner({ session, onResume, onDiscard }: {
 }
 
 export function DashboardPage() {
-  const navigate = useNavigate();
-  const { state, handlers, actions } = useDashboardState();
-  const [isRoutineBreakModalOpen, setIsRoutineBreakModalOpen] = React.useState(false);
-  const todayMissions = useStudyBrainStore(s => s.todayMissions);
-  const [recoverableSession, setRecoverableSession] = React.useState<RecoverableSession | null>(null);
-
-  // Scan localStorage for unfinished cockpit sessions on mount
-  React.useEffect(() => {
-    if (state.loading || !todayMissions.length) return;
-
-    const STALE_THRESHOLD_MS = 24 * 60 * 60 * 1000; // 24 hours
-    const now = Date.now();
-
-    for (const mission of todayMissions) {
-      if (mission.completed) continue;
-      const key = `jeeos_mission_state_${mission.id}`;
-      const raw = localStorage.getItem(key);
-      if (!raw) continue;
-
-      try {
-        const saved = JSON.parse(raw);
-        if (!saved.seconds || saved.seconds < 60) continue; // Ignore trivial sessions (<1 min)
-        
-        // Auto-discard stale sessions older than 24h
-        if (saved.timestamp && (now - saved.timestamp) > STALE_THRESHOLD_MS) {
-          localStorage.removeItem(key);
-          continue;
-        }
-
-        setRecoverableSession({
-          missionId: mission.id,
-          chapterName: mission.chapterName || mission.chapter || mission.taskName || 'Unknown',
-          elapsedMinutes: Math.round(saved.seconds / 60),
-          focusScore: Math.round(saved.focusScore ?? 100),
-          timestamp: saved.timestamp || now
-        });
-        break; // Only show the first recoverable session
-      } catch {
-        // Corrupted localStorage entry — ignore
-      }
-    }
-  }, [state.loading, todayMissions]);
-
-  const handleResumeSession = React.useCallback(() => {
-    if (!recoverableSession) return;
-    navigate(`/cockpit/${recoverableSession.missionId}`);
-    setRecoverableSession(null);
-  }, [recoverableSession, navigate]);
-
-  const handleDiscardSession = React.useCallback(() => {
-    if (!recoverableSession) return;
-    localStorage.removeItem(`jeeos_mission_state_${recoverableSession.missionId}`);
-    setRecoverableSession(null);
-  }, [recoverableSession]);
+  const { state, handlers } = useDashboardState();
+  
+  const recoverableSession = state.recoverableSession;
+  const handleResumeSession = handlers.handleResumeSession;
+  const handleDiscardSession = handlers.handleDiscardSession;
 
   if (state.loading) return <DashboardSkeleton />;
 
   return (
-    <div className="w-full max-w-6xl mx-auto flex flex-col gap-6 px-4 font-sans text-zinc-400 relative pb-8">
+    <div className="w-full max-w-6xl mx-auto flex flex-col gap-6 px-4 font-sans text-zinc-400 relative pb-32 sm:pb-36">
       
       {/* SESSION RECOVERY BANNER */}
       <AnimatePresence>
@@ -153,24 +101,24 @@ export function DashboardPage() {
         estimatedRemainingHours={Number(state.estimatedRemainingHours) || 0}
         nextTaskName={state.nextTaskName}
         energyLevel={state.energyLevel}
-        setEnergyLevel={(level) => actions.setEnergyLevel(level)}
-        onOpenRoutineBreak={() => setIsRoutineBreakModalOpen(true)}
+        setEnergyLevel={handlers.handleSetEnergyLevel}
+        onOpenRoutineBreak={handlers.handleOpenRoutineBreak}
         chapters={state.chapters || []}
-        onOpenChapter={(chapterId) => actions.openChapterEditModal(chapterId)}
-        onSetMonthlyObjective={() => handlers.setIsMonthlyObjectiveModalOpen(true)}
-        onSetDailyCapacity={() => navigate('/planner')}
+        onOpenChapter={handlers.handleOpenChapter}
+        onSetMonthlyObjective={handlers.handleOpenMonthlyObjective}
+        onSetDailyCapacity={handlers.handleNavigatePlanner}
         isHeaderExpanded={state.isHeaderExpanded}
         onToggleExpand={handlers.handleManualToggleHeader}
       />
 
       <RoutineBreakModal
-        isOpen={isRoutineBreakModalOpen}
-        onClose={() => setIsRoutineBreakModalOpen(false)}
+        isOpen={state.isRoutineBreakModalOpen}
+        onClose={handlers.handleCloseRoutineBreak}
       />
 
       <BreakActiveModal
         isOpen={!!state.activeBreakMissionId}
-        onClose={() => handlers.setActiveBreakMissionId(null)}
+        onClose={handlers.handleCloseActiveBreak}
         breakMission={state.todayMissions.find(m => m.id === state.activeBreakMissionId) || null}
       />
 
@@ -179,7 +127,7 @@ export function DashboardPage() {
 
       <MonthlyObjectiveModal 
         isOpen={state.isMonthlyObjectiveModalOpen} 
-        onClose={() => handlers.setIsMonthlyObjectiveModalOpen(false)} 
+        onClose={handlers.handleCloseMonthlyObjective} 
       />
 
       {/* TODAY'S MISSIONS HERO SECTION (65%/35% Split Layout) */}
@@ -191,11 +139,8 @@ export function DashboardPage() {
         handleStartSession={handlers.handleStartSession}
         handleResetSession={handlers.handleResetSession}
         formatTimer={handlers.formatTimer}
-        onEditMission={(mission) => {
-          handlers.setMissionToEdit(mission);
-          handlers.setIsCustomMissionModalOpen(true);
-        }}
-        onOpenCustomMission={() => handlers.setIsCustomMissionModalOpen(true)}
+        onEditMission={handlers.handleEditMission}
+        onOpenCustomMission={handlers.handleOpenCustomMission}
         selectedMissionId={state.selectedMissionId}
         setSelectedMissionId={handlers.setSelectedMissionId}
       />
@@ -223,20 +168,13 @@ export function DashboardPage() {
           isOpen={!!state.selectedRevision}
           revision={state.selectedRevision}
           onClose={() => handlers.setSelectedRevision(null)}
-          onAction={(chapterId, outcome) => {
-            if (outcome === 'skip') return;
-            const confidence = outcome === 'complete' ? 'High' : outcome === 'needs_another' ? 'Medium' : 'Low';
-            actions.completeRevision(chapterId, confidence);
-          }}
+          onAction={handlers.handleQuickRevisionAction}
         />
       )}
 
       <CustomMissionModal 
         isOpen={state.isCustomMissionModalOpen}
-        onClose={() => {
-          handlers.setIsCustomMissionModalOpen(false);
-          setTimeout(() => handlers.setMissionToEdit(null), 300); // clear after animation
-        }}
+        onClose={handlers.handleCloseCustomMission}
         missionToEdit={state.missionToEdit}
       />
 

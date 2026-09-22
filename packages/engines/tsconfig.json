@@ -15,13 +15,7 @@
     "moduleDetection": "force",
     "allowJs": true,
     "allowImportingTsExtensions": true,
-    "noEmit": true,
-    "ignoreDeprecations": "6.0",
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["../../src/*"],
-      "@/engines/*": ["./src/*"]
-    }
+    "noEmit": true
   },
-  "include": ["src", "../../src/vite-env.d.ts"]
+  "include": ["src"]
 }

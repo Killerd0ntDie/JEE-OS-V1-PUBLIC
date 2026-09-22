@@ -227,13 +227,19 @@ export const JEE_WEIGHTAGE_DATA: ChapterWeightageData[] = [
   }
 ];
 
-interface ChapterRoiWeightageMatrixProps {
+export interface ChapterRoiWeightageMatrixProps {
   onSelectChapter?: (chapterId: string) => void;
+  onPracticeChapter?: (chapterId: string, subject: string) => void;
+  defaultSubject?: SubjectId | 'all';
 }
 
-export function ChapterRoiWeightageMatrix({ onSelectChapter }: ChapterRoiWeightageMatrixProps) {
+export function ChapterRoiWeightageMatrix({ 
+  onSelectChapter,
+  onPracticeChapter,
+  defaultSubject = 'all'
+}: ChapterRoiWeightageMatrixProps) {
   const actions = useStudyBrainStore(state => state.actions);
-  const [activeSubject, setActiveSubject] = useState<SubjectId | 'all'>('all');
+  const [activeSubject, setActiveSubject] = useState<SubjectId | 'all'>(defaultSubject);
   const [activeTier, setActiveTier] = useState<number | 'all'>('all');
   const [sortBy, setSortBy] = useState<'roi' | 'jeeMain' | 'jeeAdv' | 'hours'>('roi');
 
@@ -466,7 +472,7 @@ export function ChapterRoiWeightageMatrix({ onSelectChapter }: ChapterRoiWeighta
               </div>
 
               {/* Action Button */}
-              <div className="pt-2 border-t border-white/5 flex items-center justify-between">
+              <div className="pt-2 border-t border-white/5 flex items-center justify-between gap-2">
                 <button
                   type="button"
                   onClick={() => {
@@ -475,9 +481,23 @@ export function ChapterRoiWeightageMatrix({ onSelectChapter }: ChapterRoiWeighta
                   }}
                   className="text-xs font-mono text-indigo-400 hover:text-indigo-300 font-bold flex items-center gap-1 transition-colors cursor-pointer"
                 >
-                  <span>Open Chapter Hub & Syllabus</span>
+                  <span>Chapter Hub</span>
                   <ChevronRight className="w-3.5 h-3.5" />
                 </button>
+
+                {onPracticeChapter && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      audioEngine.playMechanicalKey('clack').catch(() => {});
+                      onPracticeChapter(item.chapterId, item.subject);
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/40 text-indigo-200 font-mono text-[11px] font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm"
+                  >
+                    <Zap className="w-3 h-3 text-indigo-400" />
+                    <span>Launch Drill</span>
+                  </button>
+                )}
               </div>
 
             </motion.div>

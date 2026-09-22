@@ -61,21 +61,46 @@ export class MockTestParsingEngine {
     `;
 
     try {
-      const response = await this.ai.models.generateContent({
-        model: 'gemini-1.5-pro',
-        contents: prompt,
-        config: {
-          responseMimeType: 'application/json',
-          temperature: 0.1, // Keep it deterministic
+      let response;
+      const candidateModels = [
+        'gemini-3.8-flash',
+        'gemini-3.5-flash',
+        'gemini-3.5-flash-lite',
+        'gemini-3.1-flash-lite'
+      ];
+      let lastErr: any;
+      for (const model of candidateModels) {
+        try {
+          response = await this.ai.models.generateContent({
+            model,
+            contents: prompt,
+            config: {
+              responseMimeType: 'application/json',
+              temperature: 0.1, // Keep it deterministic
+            }
+          });
+          break;
+        } catch (error: any) {
+          lastErr = error;
+          const msg = String(error?.message || '');
+          const isUnavailable = error.status === 404 || error.status === 429 || error.status === 503 ||
+            msg.includes('high demand') || msg.includes('UNAVAILABLE') || msg.includes('RESOURCE_EXHAUSTED') || msg.includes('not available');
+          if (isUnavailable) {
+            console.warn(`[MockTestParsingEngine] Model ${model} unavailable. Falling back...`);
+            continue;
+          }
+          throw error;
         }
-      });
+      }
+      if (!response && lastErr) throw lastErr;
 
-      if (!response.text) {
+      const text = response.text ? response.text.replace(/<think>[\s\S]*?<\/think>/gi, '').trim() : '';
+      if (!text) {
         throw new Error("AI returned empty response");
       }
 
       // The new SDK returns text directly, which we configured as JSON
-      const parsedData = JSON.parse(response.text) as ParsedMockTestResult;
+      const parsedData = JSON.parse(text) as ParsedMockTestResult;
       
       return parsedData;
 

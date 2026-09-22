@@ -68,12 +68,12 @@ export const hoverPresets = {
   cardLift: { y: -3, transition: { duration: 0.2, ease: easings.expoOut } }
 };
 
-// 4. Modal & Dialog Animation Variants (GPU-Accelerated: Opacity & Transform Only)
+// 4. Modal & Dialog Animation Variants (GPU-Accelerated: Fluid Spring & Sliding Physics)
 export const modalVariants: Variants = {
   initial: {
     opacity: 0,
-    scale: 0.98,
-    y: 10
+    scale: 0.94,
+    y: 32,
   },
   animate: {
     opacity: 1,
@@ -81,18 +81,20 @@ export const modalVariants: Variants = {
     y: 0,
     transition: {
       type: 'spring',
-      stiffness: 420,
-      damping: 30,
-      mass: 0.8
+      damping: 24,
+      stiffness: 300,
+      mass: 0.85
     }
   },
   exit: {
     opacity: 0,
-    scale: 0.98,
-    y: 8,
+    scale: 0.94,
+    y: 24,
     transition: {
-      duration: 0.14,
-      ease: easings.expoOut
+      type: 'spring',
+      damping: 28,
+      stiffness: 340,
+      mass: 0.75
     }
   }
 };
@@ -102,11 +104,11 @@ export const backdropVariants: Variants = {
   initial: { opacity: 0 },
   animate: { 
     opacity: 1, 
-    transition: { duration: 0.18, ease: 'easeOut' }
+    transition: { duration: 0.2, ease: 'easeOut' }
   },
   exit: { 
     opacity: 0, 
-    transition: { duration: 0.14, ease: 'easeIn' } 
+    transition: { duration: 0.16, ease: 'easeIn' } 
   }
 };
 

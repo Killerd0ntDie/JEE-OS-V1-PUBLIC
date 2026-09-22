@@ -36,9 +36,9 @@ describe('sanitizeForFirestore', () => {
 
     expect(sanitizeForFirestore(input)).toEqual({
       twoDaySplitConfig: [
-        { '0': 'physics', '1': 'chemistry' },
-        { '0': 'chemistry', '1': 'maths' },
-        { '0': 'maths', '1': 'physics' }
+        { '0': 'physics', '1': 'chemistry', _isNestedArray: true },
+        { '0': 'chemistry', '1': 'maths', _isNestedArray: true },
+        { '0': 'maths', '1': 'physics', _isNestedArray: true }
       ]
     });
   });

@@ -38,6 +38,11 @@ export class KnowledgeEngine {
     }
   }
 
+  public invalidateCache(): void {
+    this.dependencyTreeCache.clear();
+    this.prerequisiteTreeCache.clear();
+  }
+
   public getNode(chapterId: string): SyllabusNode | undefined {
     return this.syllabus.get(chapterId);
   }

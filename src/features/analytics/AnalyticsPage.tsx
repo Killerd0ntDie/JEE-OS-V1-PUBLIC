@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo, startTransition } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { Icon } from '@/components/ui/Icon';
@@ -40,6 +40,7 @@ export function AnalyticsPage() {
   const chapters = useStudyBrainStore(state => state.chapters);
   const settings = useStudyBrainStore(state => state.settings);
   const revisionTelemetry = useStudyBrainStore(state => state.revisionTelemetry);
+  const mocks = useStudyBrainStore(state => state.mocks) || [];
 
   const [activeTab, setActiveTab] = useState<AnalyticsTab>('velocity');
   const [activeSubject, setActiveSubject] = useState<'all' | 'physics' | 'chemistry' | 'maths'>('all');
@@ -58,7 +59,7 @@ export function AnalyticsPage() {
     reviewedTodayCount: 0
   };
 
-  const chapterTelemetryList = (Object.values(chapterTelemetryMap || {}) as ChapterTelemetry[]);
+  const chapterTelemetryList = useMemo(() => (Object.values(chapterTelemetryMap || {}) as ChapterTelemetry[]), [chapterTelemetryMap]);
 
   const filteredTelemetry = useMemo(() => {
     if (activeSubject === 'all') return chapterTelemetryList;
@@ -103,9 +104,13 @@ export function AnalyticsPage() {
     return Math.round(sum / sessionsWithAccuracy.length);
   }, [studySessions, analytics.accuracy]);
   
-  const accuracyPct = analytics.questionsSolved > 0 
-    ? Math.round((analytics.correctAnswers / analytics.questionsSolved) * 100)
-    : trueAccuracy;
+  const accuracyPct = trueAccuracy;
+
+  const averageMockScore = useMemo(() => {
+    if (mocks.length === 0) return 0;
+    const sum = mocks.reduce((acc, m) => acc + (m.totalScore || 0), 0);
+    return Math.round(sum / mocks.length);
+  }, [mocks]);
 
   const subjectTimeDistribution = useMemo(() => {
     const dist = { physics: 0, chemistry: 0, maths: 0 };
@@ -185,9 +190,9 @@ export function AnalyticsPage() {
   }, [sevenDayVelocity]);
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto text-left relative pb-12 font-sans select-none">
+    <div className="space-y-6 max-w-6xl mx-auto text-left relative pb-32 sm:pb-36 font-sans select-none">
       
-      <div className="bg-zinc-900/90 border border-white/15 p-5 md:p-6 rounded-3xl shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="surface-2 p-5 md:p-6 rounded-3xl shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-indigo-400 font-mono text-[10px] uppercase font-bold tracking-widest">
             <Activity className="w-3.5 h-3.5 text-indigo-400" />
@@ -212,14 +217,18 @@ export function AnalyticsPage() {
         </div>
       </div>
 
-      <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-zinc-900/90 border border-white/15 backdrop-blur-xl shadow-xl overflow-x-auto no-scrollbar font-mono text-xs select-none">
+      <div className="flex items-center gap-1.5 p-1.5 rounded-2xl surface-1 shadow-xl overflow-x-auto no-scrollbar font-mono text-xs select-none">
         {TABS.map(tab => {
           const isActive = activeTab === tab.id;
           const IconComp = tab.icon;
           return (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => {
+                React.startTransition(() => {
+                  setActiveTab(tab.id);
+                });
+              }}
               className={`relative px-4 py-2.5 rounded-xl font-bold transition-all duration-200 cursor-pointer flex items-center gap-2 shrink-0 select-none ${
                 isActive ? 'text-white shadow-md' : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
               }`}
@@ -250,7 +259,7 @@ export function AnalyticsPage() {
             className="space-y-6"
           >
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 font-mono">
-              <div className="bg-zinc-900/70 border border-emerald-500/30 backdrop-blur-xl p-4 rounded-2xl space-y-1 shadow-xl">
+              <div className="surface-1 !border-emerald-500/30 p-4 rounded-2xl space-y-1 shadow-xl">
                 <span className="text-[10px] text-emerald-400 uppercase font-bold block tracking-wider">Overall Accuracy</span>
                 <div className="flex items-baseline gap-2">
                   <span className="text-2xl font-bold text-emerald-400 font-display">{accuracyPct}%</span>
@@ -258,7 +267,7 @@ export function AnalyticsPage() {
                 </div>
               </div>
 
-              <div className="bg-zinc-900/70 border border-indigo-500/30 backdrop-blur-xl p-4 rounded-2xl space-y-1 shadow-xl">
+              <div className="surface-1 !border-indigo-500/30 p-4 rounded-2xl space-y-1 shadow-xl">
                 <span className="text-[10px] text-indigo-300 uppercase font-bold block tracking-wider">Cumulative Study Time</span>
                 <div className="flex items-baseline gap-2">
                   <span className="text-2xl font-bold text-indigo-300 font-display">{studyHours}h</span>
@@ -266,7 +275,7 @@ export function AnalyticsPage() {
                 </div>
               </div>
 
-              <div className="bg-zinc-900/70 border border-amber-500/30 backdrop-blur-xl p-4 rounded-2xl space-y-1 shadow-xl">
+              <div className="surface-1 !border-amber-500/30 p-4 rounded-2xl space-y-1 shadow-xl">
                 <span className="text-[10px] text-amber-300 uppercase font-bold block tracking-wider">Active Daily Streak</span>
                 <div className="flex items-baseline gap-2">
                   <span className="text-2xl font-bold text-amber-400 font-display">{calculateCurrentStreak(studySessions || [], Math.round((settings?.minStreakHours ?? 0.5) * 60))} Days</span>
@@ -274,7 +283,7 @@ export function AnalyticsPage() {
                 </div>
               </div>
 
-              <div className="bg-zinc-900/70 border border-white/15 backdrop-blur-xl p-4 rounded-2xl space-y-1 shadow-xl">
+              <div className="surface-1 p-4 rounded-2xl space-y-1 shadow-xl">
                 <span className="text-[10px] text-zinc-300 uppercase font-bold block tracking-wider">Total Preparation XP</span>
                 <div className="flex items-baseline gap-2">
                   <span className="text-2xl font-bold text-white font-display">{totalXP}</span>
@@ -284,7 +293,7 @@ export function AnalyticsPage() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 font-mono">
-              <div className="bg-zinc-900/70 border border-white/15 backdrop-blur-xl p-4 rounded-2xl space-y-2 shadow-xl">
+              <div className="surface-1 p-4 rounded-2xl space-y-2 shadow-xl">
                 <span className="text-[10px] text-zinc-400 uppercase font-bold tracking-wider">Deep Focus Ratio</span>
                 <div className="flex justify-between items-end">
                   <span className="text-2xl font-bold text-indigo-300 font-display">
@@ -297,7 +306,7 @@ export function AnalyticsPage() {
                 </div>
               </div>
 
-              <div className="bg-zinc-900/70 border border-white/15 backdrop-blur-xl p-4 rounded-2xl space-y-2 shadow-xl">
+              <div className="surface-1 p-4 rounded-2xl space-y-2 shadow-xl">
                 <span className="text-[10px] text-zinc-400 uppercase font-bold tracking-wider">Total Interruptions & Idle</span>
                 <div className="flex justify-between items-end">
                   <span className="text-2xl font-bold text-amber-400 font-display">
@@ -307,7 +316,7 @@ export function AnalyticsPage() {
                 </div>
               </div>
 
-              <div className="bg-zinc-900/70 border border-white/15 backdrop-blur-xl p-4 rounded-2xl space-y-2 shadow-xl">
+              <div className="surface-1 p-4 rounded-2xl space-y-2 shadow-xl">
                 <span className="text-[10px] text-zinc-400 uppercase font-bold tracking-wider">Recovery & Break Time</span>
                 <div className="flex justify-between items-end">
                   <span className="text-2xl font-bold text-emerald-400 font-display">
@@ -319,7 +328,7 @@ export function AnalyticsPage() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              <div className="bg-zinc-900/70 border border-white/15 rounded-3xl p-5 space-y-3.5 text-left flex flex-col shadow-2xl">
+              <div className="surface-1 rounded-3xl p-5 space-y-3.5 text-left flex flex-col shadow-2xl">
                 <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
                   <div className="flex items-center gap-2">
                     <Target className="w-4 h-4 text-indigo-400" />
@@ -599,7 +608,7 @@ export function AnalyticsPage() {
           >
             <NegativeMarksAudit />
             <TimePerMarkMatrix studySessions={studySessions} />
-            <PercentileShiftCalibrator />
+            <PercentileShiftCalibrator userAverageMockScore={averageMockScore} />
           </motion.div>
         )}
 

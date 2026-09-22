@@ -49,23 +49,22 @@ export const KnowledgeGraphService = {
    * Useful for linear rendering or syllabus sequence ordering.
    */
   getTopologicalSort(subject?: SubjectId): KnowledgeNode[] {
-    const nodes = subject ? this.getSubjectNodes(subject) : this.getAllNodes();
+    const allNodes = this.getAllNodes();
     
     const inDegree: Record<string, number> = {};
     const adjList: Record<string, string[]> = {};
     const nodeMap: Record<string, KnowledgeNode> = {};
 
     // Initialize structures
-    nodes.forEach(node => {
+    allNodes.forEach(node => {
       inDegree[node.id] = 0;
       adjList[node.id] = [];
       nodeMap[node.id] = node;
     });
 
     // Build graph
-    nodes.forEach(node => {
+    allNodes.forEach(node => {
       node.prerequisites.forEach(prereqId => {
-        // Only consider prereqs that are in the filtered nodes
         if (nodeMap[prereqId]) {
           adjList[prereqId].push(node.id);
           inDegree[node.id]++;
@@ -92,11 +91,11 @@ export const KnowledgeGraphService = {
       });
     }
 
-    if (sorted.length !== nodes.length) {
+    if (sorted.length !== allNodes.length) {
       console.warn('Knowledge Graph contains cyclic dependencies. Topological sort is incomplete.');
     }
 
-    return sorted;
+    return subject ? sorted.filter(node => node.subject === subject) : sorted;
   },
 
   /**
@@ -113,7 +112,7 @@ export const KnowledgeGraphService = {
       const node = this.getNode(nodeId);
       if (node) {
         path.push(node);
-        node.unlocks.forEach(dfs);
+        (node.unlocks || []).forEach(dfs);
       }
     };
     

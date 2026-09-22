@@ -226,8 +226,8 @@ export const FocusHeatmapWidget: React.FC<FocusHeatmapWidgetProps> = ({ studySes
                   >
                     <div className="flex items-center gap-2 truncate">
                       <Clock className="w-3 h-3 text-indigo-400 shrink-0" />
-                      <span className="text-zinc-200 font-semibold truncate">{session.chapterId || session.subject || 'Deep Focus Sprint'}</span>
-                      <span className="text-[10px] text-zinc-500">{session.mode || 'Cockpit'}</span>
+                      <span className="text-zinc-200 font-semibold truncate">{session.chapterId || session.subjectId || 'Deep Focus Sprint'}</span>
+                      <span className="text-[10px] text-zinc-500">{session.type || 'Cockpit'}</span>
                     </div>
                     <span className="text-emerald-400 font-bold shrink-0">{session.duration} mins</span>
                   </div>

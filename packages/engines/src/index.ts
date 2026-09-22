@@ -8,3 +8,8 @@ export * from './planner/index';
 export * from './pyq/PyqEngine';
 export * from './revision/index';
 export * from './intelligence/index';
+export * from './academic/index';
+export * from './constants/formulaBank';
+export * from './planner/mistakeIntelligence';
+export * from './types/index';
+export * from './types/curriculum';

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { useShallow } from 'zustand/react/shallow';
@@ -80,11 +80,61 @@ export function useDashboardState() {
   const [isHeaderExpanded, setIsHeaderExpanded] = useState<boolean>(false);
 
   const hasBottleneckAlert = useMemo(() => {
-    const list = (Object.values(chapterTelemetryMap || {}) as any[]).filter(
+    const list = Object.values(chapterTelemetryMap || {}).filter(
       t => t && t.isBottleneck && t.bottleneckReason
     );
     return list.length > 0;
   }, [chapterTelemetryMap]);
+
+  const [recoverableSession, setRecoverableSession] = useState<any | null>(null);
+
+  useEffect(() => {
+    if (loading || !todayMissions?.length) return;
+
+    const STALE_THRESHOLD_MS = 24 * 60 * 60 * 1000;
+    const now = Date.now();
+
+    for (const mission of todayMissions) {
+      if (mission.completed) continue;
+      const key = `jeeos_mission_state_${mission.id}`;
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+
+      try {
+        const saved = JSON.parse(raw);
+        if (!saved.seconds || saved.seconds < 60) continue;
+        
+        if (saved.timestamp && (now - saved.timestamp) > STALE_THRESHOLD_MS) {
+          localStorage.removeItem(key);
+          continue;
+        }
+
+        setRecoverableSession({
+          missionId: mission.id,
+          chapterName: mission.chapterName || mission.chapter || mission.taskName || 'Unknown',
+          elapsedMinutes: Math.round(saved.seconds / 60),
+          focusScore: Math.round(saved.focusScore ?? 100),
+          timestamp: saved.timestamp || now
+        });
+        break;
+      } catch {
+        // ignore
+      }
+    }
+  }, [loading, todayMissions]);
+
+  const handleResumeSession = useCallback(() => {
+    if (!recoverableSession) return;
+    audioEngine.playClick().catch(() => {});
+    navigate(`/cockpit/${recoverableSession.missionId}`);
+    setRecoverableSession(null);
+  }, [recoverableSession, navigate]);
+
+  const handleDiscardSession = useCallback(() => {
+    if (!recoverableSession) return;
+    localStorage.removeItem(`jeeos_mission_state_${recoverableSession.missionId}`);
+    setRecoverableSession(null);
+  }, [recoverableSession]);
 
   useEffect(() => {
     // 1. Check if user already manually toggled the panel in this session
@@ -109,18 +159,18 @@ export function useDashboardState() {
     }
   }, [hasBottleneckAlert]);
 
-  const handleManualToggleHeader = () => {
+  const handleManualToggleHeader = useCallback(() => {
     setIsHeaderExpanded(prev => {
       const next = !prev;
       sessionStorage.setItem('jee_command_center_override', next ? 'expanded' : 'collapsed');
       return next;
     });
-  };
+  }, []);
 
   // Focus session timer is now strictly handled by MissionMode.tsx
   // Dashboard only holds the static paused value to prevent massive unneeded re-renders.
 
-  const handleStartSession = (missionId?: string) => {
+  const handleStartSession = useCallback((missionId?: string) => {
     let targetMissionId = missionId || selectedMissionId;
     if (!targetMissionId) {
       const nextMission = todayMissions.find(m => !m.completed);
@@ -137,34 +187,134 @@ export function useDashboardState() {
 
     audioEngine.playClick().catch(() => {});
     navigate(`/cockpit/${targetMissionId}`);
-  };
+  }, [selectedMissionId, todayMissions, navigate]);
 
-  const handleResetSession = (e?: React.MouseEvent) => {
+  const handleResetSession = useCallback((e?: React.MouseEvent) => {
     e?.stopPropagation();
     setSessionState('idle');
     setSecondsElapsed(0);
-  };
+  }, []);
 
-  const formatTimer = (totalSecs: number) => {
+  const formatTimer = useCallback((totalSecs: number) => {
     const hrs = Math.floor(totalSecs / 3600);
     const mins = Math.floor((totalSecs % 3600) / 60);
     const secs = totalSecs % 60;
     return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
+  }, []);
 
   // Dynamic Greeting based on time of day
-  const getGreeting = () => {
+  const getGreeting = useCallback(() => {
     const hour = new Date().getHours();
     if (hour >= 4 && hour < 12) return 'Good morning';
     if (hour >= 12 && hour < 17) return 'Good afternoon';
-    if (hour >= 17 && hour < 22) return 'Good evening';
+    if (hour >= 17 && hour < 21) return 'Good evening';
     return 'Good night';
-  };
+  }, []);
 
-  const userName = user?.displayName?.split(' ')[0] || (mentorProfile as any)?.name || (mentorProfile as any)?.userName || 'Aspirant';
+  const userName = user?.displayName?.split(' ')[0] || mentorProfile?.name || mentorProfile?.userName || 'Aspirant';
 
   const incompleteTasks = useMemo(() => todayMissions.filter(m => !m.completed), [todayMissions]);
   const nextTaskName = incompleteTasks[0]?.taskName || 'All daily tasks complete';
+
+  // Routine Break Modal state
+  const [isRoutineBreakModalOpen, setIsRoutineBreakModalOpen] = useState(false);
+
+  const handleOpenRoutineBreak = useCallback(() => setIsRoutineBreakModalOpen(true), []);
+  const handleCloseRoutineBreak = useCallback(() => setIsRoutineBreakModalOpen(false), []);
+
+  const handleSetEnergyLevel = useCallback((level: 'High' | 'Medium' | 'Low') => {
+    actions.setEnergyLevel(level);
+  }, [actions]);
+
+  const handleOpenChapter = useCallback((chapterId: string) => {
+    actions.openChapterEditModal(chapterId);
+  }, [actions]);
+
+  const handleOpenMonthlyObjective = useCallback(() => {
+    setIsMonthlyObjectiveModalOpen(true);
+  }, []);
+
+  const handleCloseMonthlyObjective = useCallback(() => {
+    setIsMonthlyObjectiveModalOpen(false);
+  }, []);
+
+  const handleNavigatePlanner = useCallback(() => {
+    navigate('/planner');
+  }, [navigate]);
+
+  const handleEditMission = useCallback((mission: any) => {
+    setMissionToEdit(mission);
+    setIsCustomMissionModalOpen(true);
+  }, []);
+
+  const handleOpenCustomMission = useCallback(() => {
+    setIsCustomMissionModalOpen(true);
+  }, []);
+
+  const handleCloseCustomMission = useCallback(() => {
+    setIsCustomMissionModalOpen(false);
+    setTimeout(() => setMissionToEdit(null), 300);
+  }, []);
+
+  const handleCloseActiveBreak = useCallback(() => {
+    setActiveBreakMissionId(null);
+  }, []);
+
+  const handleQuickRevisionAction = useCallback((chapterId: string, outcome: 'complete' | 'needs_another' | 'skip') => {
+    if (outcome === 'skip') return;
+    const confidence = outcome === 'complete' ? 'High' : outcome === 'needs_another' ? 'Medium' : 'Low';
+    actions.completeRevision(chapterId, confidence);
+  }, [actions]);
+
+  const handlers = useMemo(() => ({
+    setExpandedMission,
+    setSelectedRevision,
+    setIsCustomMissionModalOpen,
+    setMissionToEdit,
+    setActiveTab,
+    setIsMonthlyObjectiveModalOpen,
+    handleManualToggleHeader,
+    handleStartSession,
+    handleResetSession,
+    formatTimer,
+    setSecondsElapsed,
+    setSessionState,
+    setSelectedMissionId,
+    setActiveBreakMissionId,
+    handleResumeSession,
+    handleDiscardSession,
+    handleSetEnergyLevel,
+    handleOpenRoutineBreak,
+    handleCloseRoutineBreak,
+    handleOpenChapter,
+    handleOpenMonthlyObjective,
+    handleCloseMonthlyObjective,
+    handleNavigatePlanner,
+    handleEditMission,
+    handleOpenCustomMission,
+    handleCloseCustomMission,
+    handleCloseActiveBreak,
+    handleQuickRevisionAction,
+  }), [
+    handleManualToggleHeader,
+    handleStartSession,
+    handleResetSession,
+    formatTimer,
+    handleResumeSession,
+    handleDiscardSession,
+    handleSetEnergyLevel,
+    handleOpenRoutineBreak,
+    handleCloseRoutineBreak,
+    handleOpenChapter,
+    handleOpenMonthlyObjective,
+    handleCloseMonthlyObjective,
+    handleNavigatePlanner,
+    handleEditMission,
+    handleOpenCustomMission,
+    handleCloseCustomMission,
+    handleCloseActiveBreak,
+    handleQuickRevisionAction,
+  ]);
 
   return {
     state: {
@@ -177,6 +327,7 @@ export function useDashboardState() {
       missionToEdit,
       activeTab,
       isMonthlyObjectiveModalOpen,
+      isRoutineBreakModalOpen,
       isHeaderExpanded,
       userName,
       getGreeting,
@@ -201,23 +352,9 @@ export function useDashboardState() {
       xp,
       studySessions,
       projectedReadiness,
+      recoverableSession,
     },
-    handlers: {
-      setExpandedMission,
-      setSelectedRevision,
-      setIsCustomMissionModalOpen,
-      setMissionToEdit,
-      setActiveTab,
-      setIsMonthlyObjectiveModalOpen,
-      handleManualToggleHeader,
-      handleStartSession,
-      handleResetSession,
-      formatTimer,
-      setSecondsElapsed,
-      setSessionState,
-      setSelectedMissionId,
-      setActiveBreakMissionId,
-    },
+    handlers,
     actions
   };
 }

@@ -1,5 +1,5 @@
-import { SubjectId } from '@/types/index';
-import { PlannerInput, ScheduledTask } from '@/engines/planner/types';
+import { SubjectId } from '../types/index';
+import { PlannerInput, ScheduledTask } from '../planner/types';
 
 export interface OptimizationInput {
   plannerInput: PlannerInput;

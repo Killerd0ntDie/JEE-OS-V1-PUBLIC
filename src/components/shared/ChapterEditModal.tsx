@@ -4,10 +4,13 @@ import { getSubjectTheme } from '@/constants/subjectTheme';
 import {
   X, Save, CheckCircle2, Clock, BookOpen, Layers, Flame, Award,
   AlertCircle, SlidersHorizontal, Calendar, FileText, Target, Activity,
-  Check, Trash2, Sparkles, TrendingUp, AlertTriangle, ChevronRight
+  Check, Trash2, Sparkles, TrendingUp, AlertTriangle, ChevronRight,
+  Play, ArrowUpRight, Zap, FileUp
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Chapter, SubjectId, SyllabusDiagnosisStage } from '@/types/index';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
+import { isTestForChapter } from '@/features/mockTests/MockTestsPage';
 import { ChapterTelemetry } from '@jee-os/engines';
 import { Modal } from '@/components/ui/Modal';
 import { CustomSelect } from '@/components/ui/CustomSelect';
@@ -114,11 +117,13 @@ const PracticeModule = ({
   );
 };
 
+export type ChapterEditTab = 'progress' | 'practice' | 'mistakes' | 'meta' | 'radar';
+
 export interface ChapterEditModalProps {
   isOpen?: boolean;
   onClose?: () => void;
   chapterId?: string | null;
-  defaultTab?: 'progress' | 'practice' | 'meta' | 'radar';
+  defaultTab?: ChapterEditTab;
 }
 
 export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
@@ -153,7 +158,14 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
   const mistakes = useStudyBrainStore(state => state.mistakes);
   const chapterMistakes = chapter ? mistakes.filter(m => m.chapter === chapter.name && m.revisionStatus !== 'Mastered') : [];
 
-  const [activeTab, setActiveTab] = useState<'progress' | 'practice' | 'mistakes' | 'meta' | 'radar'>(defaultTab as any);
+  const navigate = useNavigate();
+  const customMockTests = useStudyBrainStore(state => state.customMockTests) || [];
+  const chapterTests = React.useMemo(() => {
+    if (!chapter) return [];
+    return customMockTests.filter(t => isTestForChapter(t, chapter.name, chapter.subject, chapter.id));
+  }, [chapter, customMockTests]);
+
+  const [activeTab, setActiveTab] = useState<ChapterEditTab>(defaultTab);
   const [newMistakeTitle, setNewMistakeTitle] = useState('');
   const [newMistakeDesc, setNewMistakeDesc] = useState('');
   const [newMistakeTag, setNewMistakeTag] = useState('Calculation');
@@ -331,7 +343,7 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
   const theme = chapter ? getSubjectTheme(chapter.subject) : { badge: 'bg-indigo-900/40 text-indigo-300 border-indigo-500/30' };
   const subjectColorClass = theme.badge;
 
-  const tabs = [
+  const tabs: Array<{ id: ChapterEditTab; label: string; icon: any }> = [
     { id: 'progress', label: 'Lectures', icon: BookOpen },
     { id: 'practice', label: 'Practice', icon: Target },
     { id: 'mistakes', label: `Mistakes (${chapterMistakes.length})`, icon: AlertTriangle },
@@ -431,7 +443,7 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
                     <button
                       key={tab.id}
                       type="button"
-                      onClick={() => setActiveTab(tab.id as any)}
+                      onClick={() => setActiveTab(tab.id)}
                       className={`relative py-2 px-2 rounded-lg font-mono text-xs font-bold transition-colors cursor-pointer select-none z-10 flex items-center justify-center gap-1.5 truncate ${
                         isActive ? 'text-white' : 'text-zinc-400 hover:text-zinc-200'
                       }`}
@@ -631,6 +643,95 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
                             className="w-full accent-indigo-500 cursor-pointer mt-2"
                           />
                         </div>
+                      </div>
+
+                      {/* Chapter Custom Mock Tests & DPP Drills */}
+                      <div className="p-4 rounded-2xl border border-zinc-850/80 bg-zinc-950/60 space-y-3 shadow-inner">
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-2">
+                            <Zap className="w-4 h-4 text-indigo-400" />
+                            <span className="text-xs font-mono font-bold text-zinc-200 uppercase tracking-wider">
+                              Chapter Tests & DPP Drills ({chapterTests.length})
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              actions.closeChapterEditModal();
+                              navigate(`/mock-tests?nav=${chapter.subject}&chapterId=${chapter.id}`);
+                            }}
+                            className="text-[10px] font-mono font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors cursor-pointer"
+                          >
+                            <span>Open in Mock Arena</span>
+                            <ArrowUpRight className="w-3 h-3" />
+                          </button>
+                        </div>
+
+                        {chapterTests.length > 0 ? (
+                          <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                            {chapterTests.map(test => {
+                              const totalQ = test.sections.reduce((sum, s) => sum + s.questions.length, 0);
+                              return (
+                                <div
+                                  key={test.id}
+                                  className="flex items-center justify-between p-3 rounded-xl bg-zinc-900/70 border border-zinc-800/80 hover:border-zinc-700 transition-all"
+                                >
+                                  <div className="min-w-0 flex-1 pr-3">
+                                    <h4 className="text-xs font-bold text-zinc-100 truncate font-display">{test.name}</h4>
+                                    <div className="flex items-center gap-2 mt-0.5 text-[10px] font-mono text-zinc-400">
+                                      <span>{totalQ} Questions</span>
+                                      <span>•</span>
+                                      <span>{test.durationMinutes} mins</span>
+                                      <span>•</span>
+                                      <span className="uppercase text-indigo-400 font-semibold">{test.category || test.source || 'Drill'}</span>
+                                    </div>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      actions.closeChapterEditModal();
+                                      navigate(`/mock-tests?nav=${chapter.subject}&chapterId=${chapter.id}&testId=${test.id}`);
+                                    }}
+                                    className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-mono text-[11px] font-bold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer shadow-sm active:scale-95"
+                                  >
+                                    <Play className="w-3 h-3 fill-current" />
+                                    <span>Start</span>
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <div className="p-4 rounded-xl bg-zinc-900/40 border border-zinc-800/60 text-center space-y-2.5">
+                            <p className="text-xs font-mono text-zinc-400">
+                              No custom tests or DPPs created for this chapter yet.
+                            </p>
+                            <div className="flex flex-wrap items-center justify-center gap-2 pt-0.5">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  actions.closeChapterEditModal();
+                                  navigate(`/mock-tests?nav=${chapter.subject}&chapterId=${chapter.id}&openStudio=true`);
+                                }}
+                                className="px-3 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 text-indigo-300 text-[11px] font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                              >
+                                <Zap className="w-3 h-3" />
+                                <span>Generate Chapter Drill</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  actions.closeChapterEditModal();
+                                  navigate(`/mock-tests?nav=${chapter.subject}&chapterId=${chapter.id}&openDpp=true`);
+                                }}
+                                className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-750 border border-zinc-700 text-zinc-300 text-[11px] font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                              >
+                                <FileUp className="w-3 h-3 text-emerald-400" />
+                                <span>Upload DPP</span>
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </motion.div>
                   )}

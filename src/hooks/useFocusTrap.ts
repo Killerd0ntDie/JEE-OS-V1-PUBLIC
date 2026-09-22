@@ -55,10 +55,25 @@ export function useFocusTrap(ref: RefObject<HTMLElement | null>, isActive: boole
       if (e.key !== 'Tab') return;
 
       const els = getFocusableElements();
-      if (els.length === 0) return;
+      if (els.length === 0) {
+        e.preventDefault();
+        element.focus();
+        return;
+      }
       
       const first = els[0];
       const last = els[els.length - 1];
+
+      // If focus is outside the trap container, intercept and pull it back in
+      if (!element.contains(document.activeElement)) {
+        e.preventDefault();
+        if (e.shiftKey) {
+          last?.focus();
+        } else {
+          first?.focus();
+        }
+        return;
+      }
 
       if (e.shiftKey) {
         // Shift + Tab
@@ -75,13 +90,14 @@ export function useFocusTrap(ref: RefObject<HTMLElement | null>, isActive: boole
       }
     };
 
-    element.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      element.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keydown', handleKeyDown);
       timeoutIds.forEach(id => clearTimeout(id));
+      timeoutIds.clear();
       // Restore focus
-      if (previousFocusRef.current) {
+      if (previousFocusRef.current && typeof previousFocusRef.current.focus === 'function') {
         previousFocusRef.current.focus();
       }
     };

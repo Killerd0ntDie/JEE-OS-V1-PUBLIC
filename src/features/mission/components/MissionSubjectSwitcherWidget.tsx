@@ -17,7 +17,7 @@ export interface MissionSubjectSwitcherWidgetProps {
   onChangeSubject: (subject: 'physics' | 'chemistry' | 'maths') => void;
 }
 
-export function MissionSubjectSwitcherWidget({
+export const MissionSubjectSwitcherWidget = React.memo(function MissionSubjectSwitcherWidget({
   activeSubject,
   activeDetails,
   subjectsDetails,
@@ -64,4 +64,4 @@ export function MissionSubjectSwitcherWidget({
       </div>
     </motion.div>
   );
-}
+});

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { PlannerEngine } from './PlannerEngine';
-import { KnowledgeEngine, SyllabusNode } from '@/engines/knowledge';
+import { KnowledgeEngine, SyllabusNode } from '../knowledge';
 import { PlannerInput } from './types';
 
 const MOCK_SYLLABUS: SyllabusNode[] = [
@@ -160,6 +160,54 @@ describe('PlannerEngine Explicit Reasoning Pipeline', () => {
       expect(task.priorityBreakdown?.jeeChapterWeightageScore).toBeDefined();
       expect(task.priorityBreakdown?.currentMasteryScore).toBeDefined();
       expect(task.priorityBreakdown?.revisionUrgencyScore).toBeDefined();
+    }
+  });
+
+  it('ensures lookahead score and selectionReason are strictly normalized <= 100 (BUG-08 fix)', () => {
+    const input: PlannerInput = {
+      studyHours: 6,
+      chapterTelemetryMap: {
+        'p1': {
+          masteryScore: 20,
+          currentLecture: 1,
+          totalLectures: 5,
+          theoryComplete: false,
+          dppComplete: false,
+          pyqsComplete: false,
+          isMastered: false
+        },
+        'p2': {
+          masteryScore: 40,
+          currentLecture: 1,
+          totalLectures: 4,
+          theoryComplete: false,
+          dppComplete: false,
+          pyqsComplete: false,
+          isMastered: false
+        }
+      } as any,
+      revisionBacklog: [
+        { chapterId: 'p1', daysOverdue: 20, retentionScore: 30 },
+        { chapterId: 'p2', daysOverdue: 15, retentionScore: 40 }
+      ],
+      userPreferences: {
+        targetYear: '2026',
+        focusSubject: 'physics'
+      },
+      remainingDaysUntilJEE: 200,
+      currentDate: '2026-01-01T00:00:00.000Z'
+    };
+
+    const output = plannerEngine.generateDailyPlan(input);
+
+    expect(output.selectionReason).toBeDefined();
+    // Parse score from "Score: X/100"
+    const scoreMatch = output.selectionReason?.match(/Score: (\d+)\/100/);
+    expect(scoreMatch).not.toBeNull();
+    if (scoreMatch) {
+      const score = parseInt(scoreMatch[1], 10);
+      expect(score).toBeGreaterThanOrEqual(0);
+      expect(score).toBeLessThanOrEqual(100);
     }
   });
 });

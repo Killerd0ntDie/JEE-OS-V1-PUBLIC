@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Icon } from '@/components/ui/Icon';
-import { ChatSession } from './AiCoachPage';
+import { ChatSession } from './hooks/useChatSessions';
 import { PageId } from '@/types';
 import { ConfirmDeleteModal } from '@/components/ui/ConfirmDeleteModal';
 import { useNavigate } from 'react-router-dom';
@@ -62,7 +62,7 @@ export function CoachHistoryPage() {
   };
 
   return (
-    <div className="space-y-8 max-w-4xl mx-auto text-left relative pb-12 font-sans">
+    <div className="space-y-8 max-w-4xl mx-auto text-left relative pb-32 sm:pb-36 font-sans">
       {/* Header Banner */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-850/80 pb-5">
         <div className="space-y-1">
@@ -108,7 +108,7 @@ export function CoachHistoryPage() {
             <div 
               key={session.id}
               onClick={() => handleResumeChat(session.id)}
-              className="group flex items-center justify-between p-5 bg-zinc-900/50 border border-zinc-800 rounded-2xl hover:border-indigo-500/30 hover:bg-zinc-800/50 transition-all cursor-pointer"
+              className="group flex items-center justify-between p-5 surface-2 rounded-2xl transition-all cursor-pointer"
             >
               <div className="space-y-1 overflow-hidden">
                 <h3 className="text-sm font-semibold text-white truncate group-hover:text-indigo-300 transition-colors">

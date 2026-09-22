@@ -7,6 +7,9 @@ import { ActiveRecallArena } from './components/ActiveRecallArena';
 import { FormulaSpeedDrillStage } from './components/FormulaSpeedDrillStage';
 import { FeynmanSandboxStage } from './components/FeynmanSandboxStage';
 import { RevisionFlashcardVault } from './components/RevisionFlashcardVault';
+import { DailyDoseCommandQueue } from './components/DailyDoseCommandQueue';
+import { DailyDoseSessionStage } from './components/DailyDoseSessionStage';
+import { EbbinghausDecayCurve } from './components/EbbinghausDecayCurve';
 import { 
   Flame, Brain, Sparkles, ShieldCheck, 
   Zap, ArrowRight
@@ -15,9 +18,10 @@ import {
 export function RevisionPage() {
   const studySessions = useStudyBrainStore(s => s.studySessions) || [];
   const revisionTelemetry = useStudyBrainStore(s => s.revisionTelemetry);
+  const mistakes = useStudyBrainStore(s => s.mistakes) || [];
 
-  // Sub-page navigation: 'hub' | 'vault' | 'arena' | 'speed_drill' | 'feynman'
-  const [activeView, setActiveView] = useState<'hub' | 'vault' | 'arena' | 'speed_drill' | 'feynman'>('hub');
+  // Sub-page navigation: 'hub' | 'vault' | 'arena' | 'speed_drill' | 'feynman' | 'daily_dose'
+  const [activeView, setActiveView] = useState<'hub' | 'vault' | 'arena' | 'speed_drill' | 'feynman' | 'daily_dose'>('hub');
 
   // Filter states for Flashcard Vault
   const [activeSubject, setActiveSubject] = useState<'all' | 'physics' | 'chemistry' | 'maths'>('all');
@@ -45,14 +49,17 @@ export function RevisionPage() {
     reviewedTodayCount: 0
   };
 
+  const cards = revisionData?.cards || [];
+  const urgentCards = revisionData?.urgentCards || [];
+
   return (
-    <div className="space-y-6 max-w-6xl mx-auto text-left relative pb-12 font-sans select-none">
+    <div className="space-y-6 max-w-6xl mx-auto text-left relative pb-32 sm:pb-36 font-sans select-none">
       
       <AnimatePresence mode="wait">
         
         {/* ══════════════════════════════════════════════════════════════════
             VIEW 1: REVISION COMMAND CENTER & RETENTION HUB
-           ══════════════════════════════════════════════════════════════════ */}
+            ══════════════════════════════════════════════════════════════════ */}
         {activeView === 'hub' && (
           <motion.div
             key="revision-hub"
@@ -62,7 +69,7 @@ export function RevisionPage() {
             className="space-y-6"
           >
             {/* 1. COMPACT HERO BANNER & REAL-TIME VITALS */}
-            <div className="bg-zinc-900/90 border border-white/15 p-5 md:p-6 rounded-3xl shadow-2xl flex flex-col lg:flex-row lg:items-center justify-between gap-5 relative overflow-hidden">
+            <div className="surface-2 p-5 md:p-6 rounded-3xl shadow-2xl flex flex-col lg:flex-row lg:items-center justify-between gap-5 relative overflow-hidden">
               {/* Ambient glow */}
               <div className={`absolute top-0 right-0 w-80 h-32 rounded-full filter blur-3xl pointer-events-none ${
                 stats.totalOverdue > 0 ? 'bg-red-600/15' : 'bg-indigo-600/15'
@@ -123,11 +130,21 @@ export function RevisionPage() {
               </div>
             </div>
 
-            {/* 2. PRIMARY REVISION HUBS GRID (4 DEDICATED ACTION HUBS) */}
+            {/* 2. NTA-CALIBRATED DAILY DOSE COMMAND QUEUE */}
+            <DailyDoseCommandQueue
+              urgentCards={urgentCards}
+              allCards={cards}
+              unresolvedMistakes={mistakes.filter(m => m.revisionStatus !== 'Mastered')}
+              onStartDailyDose={() => setActiveView('daily_dose')}
+              onLaunchArena={() => setActiveView('arena')}
+              onLaunchSpeedDrill={() => setActiveView('speed_drill')}
+            />
+
+            {/* 3. PRIMARY REVISION HUBS GRID (4 DEDICATED ACTION HUBS) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               
               {/* Card 1: Active Recall Vault & Syllabus Retention Matrix */}
-              <div className="bg-zinc-900/90 border border-white/15 hover:border-indigo-500/40 rounded-3xl p-6 relative overflow-hidden transition-all shadow-xl flex flex-col justify-between space-y-4">
+              <div className="surface-2 rounded-3xl p-6 relative overflow-hidden transition-all shadow-xl flex flex-col justify-between space-y-4">
                 <div className="space-y-2">
                   <div className="w-10 h-10 rounded-2xl bg-indigo-950/60 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-sm">
                     <Sparkles className="w-5 h-5 text-indigo-400" />
@@ -146,14 +163,14 @@ export function RevisionPage() {
                   onClick={() => setActiveView('vault')}
                   className="w-full py-3.5 rounded-2xl bg-indigo-600/30 hover:bg-indigo-600/40 border border-indigo-500/40 text-indigo-100 font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-indigo-950/40 transition-all cursor-pointer"
                 >
-                  <span>Open Vault & Matrix ({revisionData?.cards?.length || 0} Cards • 70 Ch)</span>
+                  <span>Open Vault & Matrix ({cards.length} Cards • 70 Ch)</span>
                   <ArrowRight className="w-4 h-4" />
                 </motion.button>
               </div>
 
               {/* Card 2: Timed Spaced Recall Arena (Color-Sensitive to Decay State) */}
-              <div className={`bg-zinc-900/90 border rounded-3xl p-6 relative overflow-hidden transition-all shadow-xl flex flex-col justify-between space-y-4 ${
-                stats.totalOverdue > 0 ? 'border-red-500/40 hover:border-red-500/60' : 'border-emerald-500/30 hover:border-emerald-500/50'
+              <div className={`surface-2 rounded-3xl p-6 relative overflow-hidden transition-all shadow-xl flex flex-col justify-between space-y-4 ${
+                stats.totalOverdue > 0 ? '!border-red-500/40 hover:!border-red-500/60' : '!border-emerald-500/30 hover:!border-emerald-500/50'
               }`}>
                 <div className="space-y-2">
                   <div className={`w-10 h-10 rounded-2xl border flex items-center justify-center shadow-sm ${
@@ -202,7 +219,7 @@ export function RevisionPage() {
               </div>
 
               {/* Card 3: 30-Second Rapid Speed Drill */}
-              <div className="bg-zinc-900/90 border border-white/15 hover:border-amber-500/40 rounded-3xl p-6 relative overflow-hidden transition-all shadow-xl flex flex-col justify-between space-y-4">
+              <div className="surface-2 rounded-3xl p-6 relative overflow-hidden transition-all shadow-xl flex flex-col justify-between space-y-4 hover:border-amber-500/40">
                 <div className="space-y-2">
                   <div className="w-10 h-10 rounded-2xl bg-amber-950/60 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-sm">
                     <Zap className="w-5 h-5 text-amber-400" />
@@ -227,7 +244,7 @@ export function RevisionPage() {
               </div>
 
               {/* Card 4: Feynman Technique Sandbox */}
-              <div className="bg-zinc-900/90 border border-white/15 hover:border-indigo-500/40 rounded-3xl p-6 relative overflow-hidden transition-all shadow-xl flex flex-col justify-between space-y-4">
+              <div className="surface-2 rounded-3xl p-6 relative overflow-hidden transition-all shadow-xl flex flex-col justify-between space-y-4">
                 <div className="space-y-2">
                   <div className="w-10 h-10 rounded-2xl bg-indigo-950/60 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-sm">
                     <Brain className="w-5 h-5 text-indigo-400" />
@@ -252,6 +269,39 @@ export function RevisionPage() {
               </div>
 
             </div>
+
+            {/* 4. INTEGRATED EBBINGHAUS DECAY CURVE & RETENTION SIMULATOR */}
+            <div className="pt-2">
+              <EbbinghausDecayCurve
+                avgRetentionScore={stats.avgRetentionScore}
+                overdueCount={stats.totalOverdue}
+                overdueChapters={overdueChapters}
+                upcomingChapters={upcomingChapters}
+                masteredChapters={masteredChapters}
+                onInspectChapter={(chId) => setInspectorChapterId(chId)}
+                onLaunchArena={() => setActiveView('arena')}
+              />
+            </div>
+
+          </motion.div>
+        )}
+
+        {/* ══════════════════════════════════════════════════════════════════
+            VIEW: DAILY DOSE SESSION RUNNER
+           ══════════════════════════════════════════════════════════════════ */}
+        {activeView === 'daily_dose' && (
+          <motion.div
+            key="revision-daily-dose-stage"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.2 }}
+          >
+            <DailyDoseSessionStage
+              cards={urgentCards.length > 0 ? urgentCards : (cards.slice(0, 10))}
+              mistakes={mistakes}
+              onExit={() => setActiveView('hub')}
+            />
           </motion.div>
         )}
 
@@ -279,7 +329,7 @@ export function RevisionPage() {
               setFilterScope={setFilterScope}
               searchQuery={searchQuery}
               setSearchQuery={setSearchQuery}
-              onCompleteRevision={(chapterId, diff) => useStudyBrainStore.getState().actions.completeRevision(chapterId, diff)}
+              onGradeFlashcard={(cardId, chapterId, quality) => useStudyBrainStore.getState().actions.gradeFlashcard(cardId, chapterId, quality)}
               onPracticeWithAI={(chapterId, subject) => setAiPracticeConfig({ chapterId, subject })}
               onInspectChapter={(chapterId) => setInspectorChapterId(chapterId)}
               onBackToHub={() => setActiveView('hub')}

@@ -1,22 +1,22 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Sidebar } from './components/layout/Sidebar';
-import { Topbar } from './components/layout/Topbar';
+import { easings } from '@/constants/motion';
+import { FloatingDynamicDock } from './components/layout/FloatingDynamicDock';
 import { CommandPalette } from './components/shared/CommandPalette';
 import { useStudyBrainStore } from './store/useStudyBrainStore';
 // Auth and Cockpit lazy imports will be below
 
 
-import { CockpitPage } from './features/mission/CockpitPage';
-const DevCockpitRipplePage = lazy(() => import('./features/mission/DevCockpitRipplePage').then(m => ({ default: m.DevCockpitRipplePage })));
 // Lazy-loaded Pages for Code-Splitting
+const CockpitPage = lazy(() => import('./features/mission/CockpitPage').then(m => ({ default: m.CockpitPage })));
+const DevCockpitRipplePage = lazy(() => import('./features/mission/DevCockpitRipplePage').then(m => ({ default: m.DevCockpitRipplePage })));
 const AuthPage = lazy(() => import('./features/auth/AuthPage').then(m => ({ default: m.AuthPage })));
 const DashboardPage = lazy(() => import('./features/dashboard/DashboardPage').then(m => ({ default: m.DashboardPage })));
 const PhysicsPage = lazy(() => import('./features/subjects/PhysicsPage').then(m => ({ default: m.PhysicsPage })));
 const ChemistryPage = lazy(() => import('./features/subjects/ChemistryPage').then(m => ({ default: m.ChemistryPage })));
 const MathsPage = lazy(() => import('./features/subjects/MathsPage').then(m => ({ default: m.MathsPage })));
-const PlannerPage = lazy(() => import('./features/mission/PlannerPage').then(m => ({ default: m.PlannerPage })));
+const PlannerPage = lazy(() => import('./features/planner/PlannerPage').then(m => ({ default: m.PlannerPage })));
 const RevisionPage = lazy(() => import('./features/revision/RevisionPage').then(m => ({ default: m.RevisionPage })));
 const FormulaVaultPage = lazy(() => import('./features/formulas/FormulaVaultPage').then(m => ({ default: m.FormulaVaultPage })));
 const MistakesPage = lazy(() => import('./features/mistakes/MistakesPage').then(m => ({ default: m.MistakesPage })));
@@ -26,6 +26,7 @@ const AiCoachPage = lazy(() => import('./features/coach/AiCoachPage').then(m => 
 const CoachHistoryPage = lazy(() => import('./features/coach/CoachHistoryPage').then(m => ({ default: m.CoachHistoryPage })));
 const SettingsPage = lazy(() => import('./features/dashboard/SettingsPage').then(m => ({ default: m.SettingsPage })));
 const MockTestsPage = lazy(() => import('./features/mockTests/MockTestsPage').then(m => ({ default: m.MockTestsPage })));
+const MockTestResultPage = lazy(() => import('./features/mockTests/MockTestResultPage').then(m => ({ default: m.MockTestResultPage })));
 const NeuralGraphPage = lazy(() => import('./features/neuralLink/NeuralGraphPage').then(m => ({ default: m.NeuralGraphPage })));
 const DiagnosticPage = lazy(() => import('./features/onboarding/DiagnosticPage').then(m => ({ default: m.DiagnosticPage })));
 const DevDashboardPage = lazy(() => import('./features/dashboard/DevDashboardPage').then(m => ({ default: m.DevDashboardPage })));
@@ -41,7 +42,6 @@ import { ProtectedRoute } from '@/features/auth/components/ProtectedRoute';
 
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { Icon } from '@/components/ui/Icon';
-import { audioEngine } from './utils/audioEngine';
 import { clearAppStorage } from './utils/storageUtils';
 
 function AppLayout() {
@@ -60,22 +60,9 @@ function AppLayout() {
   const navigate = useNavigate();
 
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
-  const [isSidebarMobileOpen, setIsSidebarMobileOpen] = useState(false);
   const [isResetCacheConfirmOpen, setIsResetCacheConfirmOpen] = useState(false);
   const [isShortcutGuideOpen, setIsShortcutGuideOpen] = useState(false);
   const [levelUpCelebration, setLevelUpCelebration] = useState<{ oldLevel: number; newLevel: number } | null>(null);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
-    const saved = localStorage.getItem('jeeos_sidebar_collapsed');
-    return saved !== null ? saved === 'true' : true;
-  });
-
-  const toggleSidebarCollapse = () => {
-    setIsSidebarCollapsed(prev => {
-      const next = !prev;
-      localStorage.setItem('jeeos_sidebar_collapsed', String(next));
-      return next;
-    });
-  };
 
   // Auto launch interview on first visit if profile is incomplete
   useEffect(() => {
@@ -87,16 +74,12 @@ function AppLayout() {
     }
   }, [loading, mentorProfile?.interviewCompleted, location.pathname, navigate]);
 
-  // Global Key Listener for Cmd+K / Ctrl+K, Cmd+B / Ctrl+B, and ?
+  // Global Key Listener for Cmd+K / Ctrl+K and ?
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         setIsCommandPaletteOpen(prev => !prev);
-      }
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'b') {
-        e.preventDefault();
-        toggleSidebarCollapse();
       }
       if (e.key === '?' && !e.ctrlKey && !e.altKey && !e.metaKey) {
         if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || (e.target as HTMLElement).isContentEditable) return;
@@ -116,7 +99,7 @@ function AppLayout() {
         oldLevel: levelUpData.oldLevel,
         newLevel: levelUpData.newLevel
       });
-      audioEngine.playSuccess();
+      import('./utils/audioEngine').then(m => m.audioEngine.playSuccess()).catch(() => {});
     }
   }, [levelUpData]);
 
@@ -205,9 +188,13 @@ function AppLayout() {
   const themeMode = settings?.themeMode || 'evangelion';
   const themeClass = `${isGodMode ? 'theme-god-mode' : isRotMode ? 'theme-rot-mode' : ''} ${themeMode === 'modern' ? 'theme-modern' : 'theme-evangelion'}`;
 
-  const isCockpit = location.pathname.startsWith('/cockpit') || location.pathname.startsWith('/dev-cockpit');
+  const isCockpit = location.pathname.startsWith('/cockpit') || location.pathname.startsWith('/dev-cockpit') || location.pathname.startsWith('/mission');
   const isDiagnostic = location.pathname.startsWith('/diagnostic');
-  const isStandalone = isCockpit || isDiagnostic;
+  const isResultPage = location.pathname.startsWith('/mock-tests/result') || location.pathname.startsWith('/result') || location.pathname.startsWith('/mock-test/result');
+  const isNeuralLink = location.pathname.startsWith('/neural-link');
+  const isStandalone = isCockpit || isDiagnostic || isResultPage;
+  const isFullBleed = isStandalone || isNeuralLink;
+  const isMockTests = location.pathname.startsWith('/mock-tests');
 
   return (
     <div className={`flex min-h-screen bg-zinc-950 text-zinc-400 font-sans antialiased overflow-x-hidden selection:bg-indigo-500/30 selection:text-zinc-100 relative ${themeClass}`}>
@@ -216,31 +203,16 @@ function AppLayout() {
       <div className="fixed bottom-[-10%] right-[-5%] w-[40vw] h-[40vw] rounded-full bg-emerald-600/5 blur-[140px] pointer-events-none -z-10" />
       <div className="fixed top-[40%] right-[15%] w-[30vw] h-[30vw] rounded-full bg-purple-600/5 blur-[100px] pointer-events-none -z-10" />
 
-      {/* Sidebar Navigation */}
-      {!isStandalone && (
-        <Sidebar
-          isOpenMobile={isSidebarMobileOpen}
-          onCloseMobile={() => setIsSidebarMobileOpen(false)}
-          isCollapsed={isSidebarCollapsed}
-          onToggleCollapse={toggleSidebarCollapse}
-        />
-      )}
+      {/* Floating Dynamic Dock (macOS / Arc Style Unified Navigation & Telemetry) */}
+      <FloatingDynamicDock
+        onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+        onOpenShortcutGuide={() => setIsShortcutGuideOpen(true)}
+      />
 
-      {/* Main Workspace Frame */}
-      <div className={`flex-1 flex flex-col min-w-0 h-[100dvh] ${location.pathname.startsWith('/planner') || isStandalone ? 'overflow-hidden' : 'overflow-y-auto scrollbar'} relative`}>
-        {/* Topbar Nav (Disabled for Planner, Cockpit, and Diagnostic pages) */}
-        {!isStandalone && !location.pathname.startsWith('/planner') && (
-          <Topbar
-            onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
-            onOpenShortcutGuide={() => setIsShortcutGuideOpen(true)}
-            onToggleSidebarMobile={() => setIsSidebarMobileOpen(true)}
-            isSidebarCollapsed={isSidebarCollapsed}
-            onToggleSidebarCollapse={toggleSidebarCollapse}
-          />
-        )}
-
+      {/* Main Workspace Frame - 100% Full-Bleed Edge-to-Edge Canvas */}
+      <div className={`w-full flex flex-col min-w-0 h-[100dvh] ${location.pathname.startsWith('/planner') || isAiCoach || isFullBleed ? 'overflow-hidden' : 'overflow-y-auto scrollbar'} relative`}>
         {/* Central Router Stage with Smooth Framer Motion Transition */}
-        <main id="main-content" className={`flex-1 flex flex-col relative min-h-0 ${isStandalone ? 'p-0 overflow-hidden' : 'px-3 sm:px-4 md:px-6 lg:px-8 py-4 md:py-6 pb-12'}`}>
+        <main id="main-content" className={`flex-1 flex flex-col relative min-h-0 ${isFullBleed ? 'p-0 overflow-hidden' : isAiCoach ? 'pl-3 sm:pl-6 md:pl-8 pr-20 sm:pr-24 md:pr-28 lg:pr-32 pt-2 sm:pt-3 pb-2 overflow-hidden' : isMockTests ? 'px-3 sm:px-6 lg:px-8 py-5 pb-32 sm:pb-36 max-w-[1600px] w-full mx-auto' : 'px-4 sm:px-8 md:px-12 lg:px-16 py-6 pb-32 sm:pb-36'}`}>
           {!isOnline && (
             <div className="bg-amber-500/10 border border-amber-500/30 text-amber-300 px-4 py-3 rounded-xl mb-4 flex items-center justify-center font-mono text-xs shadow-lg animate-fade-in shrink-0">
               <div className="flex items-center gap-2">
@@ -266,49 +238,51 @@ function AppLayout() {
           )}
           <ErrorBoundary>
             <AnimatePresence mode="wait">
-              {!isAiCoach && (
-                <motion.div
-                  key={location.pathname}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.1, ease: "linear" }}
-                  className="flex-1 flex flex-col min-h-0"
-                >
-                  <Suspense fallback={<PageSkeleton />}>
-                    <Routes location={location} key={location.pathname}>
-                      <Route path="/dashboard" element={<ErrorBoundary><DashboardPage /></ErrorBoundary>} />
-                      <Route path="/dev-dashboard" element={<ErrorBoundary><DevDashboardPage /></ErrorBoundary>} />
-                      <Route path="/cockpit/:missionId?" element={<ErrorBoundary><CockpitPage /></ErrorBoundary>} />
-                      <Route path="/dev-cockpit" element={<ErrorBoundary><DevCockpitRipplePage /></ErrorBoundary>} />
-                      <Route path="/physics" element={<ErrorBoundary><PhysicsPage /></ErrorBoundary>} />
-                      <Route path="/chemistry" element={<ErrorBoundary><ChemistryPage /></ErrorBoundary>} />
-                      <Route path="/maths" element={<ErrorBoundary><MathsPage /></ErrorBoundary>} />
-                      <Route path="/planner" element={<ErrorBoundary><PlannerPage /></ErrorBoundary>} />
-                      <Route path="/focus-vault" element={<ErrorBoundary><FocusVaultPage /></ErrorBoundary>} />
-                      <Route path="/revision" element={<ErrorBoundary><RevisionPage /></ErrorBoundary>} />
-                      <Route path="/formulas" element={<ErrorBoundary><FormulaVaultPage /></ErrorBoundary>} />
-                      <Route path="/mistakes" element={<ErrorBoundary><MistakesPage /></ErrorBoundary>} />
-                      <Route path="/analytics" element={<ErrorBoundary><AnalyticsPage /></ErrorBoundary>} />
-                      <Route path="/coach-history" element={<ErrorBoundary><CoachHistoryPage /></ErrorBoundary>} />
-                      <Route path="/mock-tests" element={<ErrorBoundary><MockTestsPage /></ErrorBoundary>} />
-                      <Route path="/neural-link" element={<ErrorBoundary><NeuralGraphPage onNavigate={(pageId) => navigate(`/${pageId}`)} /></ErrorBoundary>} />
-                      <Route path="/settings" element={<ErrorBoundary><SettingsPage /></ErrorBoundary>} />
-                      <Route path="/diagnostic" element={<ErrorBoundary><DiagnosticPage /></ErrorBoundary>} />
-                      <Route path="*" element={<Navigate to="/dashboard" replace />} />
-                    </Routes>
-                  </Suspense>
-                </motion.div>
-              )}
+              <motion.div
+                key={location.pathname}
+                initial={{ opacity: 0, y: 8, filter: 'blur(3px)' }}
+                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                exit={{ opacity: 0, y: -8, filter: 'blur(3px)' }}
+                transition={{ duration: 0.18, ease: easings.expoOut }}
+                className="flex-1 flex flex-col min-h-0 h-full"
+              >
+                <Suspense fallback={<PageSkeleton />}>
+                  <Routes location={location} key={location.pathname}>
+                    <Route path="/dashboard" element={<ErrorBoundary><DashboardPage /></ErrorBoundary>} />
+                    <Route path="/dev-dashboard" element={<ErrorBoundary><DevDashboardPage /></ErrorBoundary>} />
+                    <Route path="/cockpit/:missionId?" element={<ErrorBoundary><CockpitPage /></ErrorBoundary>} />
+                    <Route path="/mission/:missionId?" element={<ErrorBoundary><CockpitPage /></ErrorBoundary>} />
+                    <Route path="/dev-cockpit" element={<ErrorBoundary><DevCockpitRipplePage /></ErrorBoundary>} />
+                    <Route path="/physics" element={<ErrorBoundary><PhysicsPage /></ErrorBoundary>} />
+                    <Route path="/chemistry" element={<ErrorBoundary><ChemistryPage /></ErrorBoundary>} />
+                    <Route path="/maths" element={<ErrorBoundary><MathsPage /></ErrorBoundary>} />
+                    <Route path="/planner" element={<ErrorBoundary><PlannerPage /></ErrorBoundary>} />
+                    <Route path="/focus-vault" element={<ErrorBoundary><FocusVaultPage /></ErrorBoundary>} />
+                    <Route path="/revision" element={<ErrorBoundary><RevisionPage /></ErrorBoundary>} />
+                    <Route path="/formulas" element={<ErrorBoundary><FormulaVaultPage /></ErrorBoundary>} />
+                    <Route path="/mistakes" element={<ErrorBoundary><MistakesPage /></ErrorBoundary>} />
+                    <Route path="/analytics" element={<ErrorBoundary><AnalyticsPage /></ErrorBoundary>} />
+                    <Route path="/ai-coach" element={<ErrorBoundary><AiCoachPage isActive={isAiCoach} /></ErrorBoundary>} />
+                    <Route path="/coach-history" element={<ErrorBoundary><CoachHistoryPage /></ErrorBoundary>} />
+                    <Route path="/mock-tests" element={<ErrorBoundary><MockTestsPage /></ErrorBoundary>} />
+                    <Route path="/mock-tests/result/:attemptId?" element={<ErrorBoundary><MockTestResultPage /></ErrorBoundary>} />
+                    <Route path="/mock-tests/*" element={<ErrorBoundary><MockTestsPage /></ErrorBoundary>} />
+                    <Route path="/result/:attemptId?" element={<ErrorBoundary><MockTestResultPage /></ErrorBoundary>} />
+                    <Route path="/mock-test/result/:attemptId?" element={<ErrorBoundary><MockTestResultPage /></ErrorBoundary>} />
+                    <Route path="/neural-link" element={<ErrorBoundary><NeuralGraphPage onNavigate={(pageId) => navigate(`/${pageId}`)} /></ErrorBoundary>} />
+                    <Route path="/settings" element={<ErrorBoundary><SettingsPage /></ErrorBoundary>} />
+                    <Route path="/diagnostic" element={<ErrorBoundary><DiagnosticPage /></ErrorBoundary>} />
+                    <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                  </Routes>
+                </Suspense>
+              </motion.div>
             </AnimatePresence>
-
-            {/* AI Coach Page (Persisted across renders to maintain chat state & network streams) */}
-            <div className={`flex-1 flex-col min-h-0 ${isAiCoach ? 'flex animate-fade-in' : 'hidden'}`}>
-              <Suspense fallback={<PageSkeleton />}>
-                <AiCoachPage isActive={isAiCoach} />
-              </Suspense>
-            </div>
           </ErrorBoundary>
+
+          {/* Bottom Dock Clearance Spacer ensuring content is never hidden behind FloatingDynamicDock */}
+          {!isStandalone && !location.pathname.startsWith('/planner') && !isAiCoach && (
+            <div className="h-24 sm:h-28 w-full shrink-0 pointer-events-none" aria-hidden="true" />
+          )}
         </main>
       </div>
 

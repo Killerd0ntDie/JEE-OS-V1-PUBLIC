@@ -18,6 +18,8 @@ export interface ModalProps {
   fullScreen?: boolean;
   ariaLabelledBy?: string;
   style?: React.CSSProperties;
+  variants?: any;
+  containerClassName?: string;
 }
 
 export function Modal({
@@ -26,12 +28,14 @@ export function Modal({
   children,
   className = '',
   hideBackdrop = false,
-  backdropClassName = 'bg-black/50 backdrop-blur-md',
+  backdropClassName = 'bg-black/35 backdrop-blur-sm',
   zIndex = 999,
   center = true,
   fullScreen = false,
   ariaLabelledBy,
-  style
+  style,
+  variants = modalVariants,
+  containerClassName = ''
 }: ModalProps) {
   // Prevent scrolling on body when modal is open and handle ESC key
   const modalRef = React.useRef<HTMLDivElement>(null);
@@ -41,11 +45,13 @@ export function Modal({
   }, isOpen);
   useFocusTrap(modalRef, isOpen);
 
+  const hasExplicitBg = className.includes('bg-') || className.includes('!bg-');
+
   const modalContent = (
     <AnimatePresence mode="wait">
       {isOpen && (
         <div 
-          className={`fixed inset-0 flex ${center ? 'items-center justify-center' : 'items-start justify-center pt-[10vh]'} ${fullScreen ? 'p-0' : 'p-4'}`}
+          className={`fixed inset-0 flex ${center ? 'items-center justify-center' : 'items-start justify-center pt-[10vh]'} ${fullScreen ? 'p-0' : 'p-4'} ${containerClassName}`}
           style={{ zIndex }}
         >
           {/* Backdrop with Physics-Based Entrance & Blur Dynamics */}
@@ -64,16 +70,17 @@ export function Modal({
           {/* Modal Dialog with Spring Physics Scale & Filter Transition */}
           <motion.div
             ref={modalRef}
-            variants={modalVariants}
+            variants={variants}
             initial="initial"
             animate="animate"
             exit="exit"
             style={style}
-            className={`relative flex flex-col overflow-hidden shadow-2xl glass-panel ${fullScreen ? 'w-full h-full rounded-none' : 'rounded-2xl'} ${className}`}
+            className={`relative flex flex-col overflow-hidden shadow-2xl ${hasExplicitBg ? '' : 'glass-panel'} ${fullScreen ? 'w-full h-full rounded-none' : 'rounded-2xl'} ${className}`}
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
             aria-labelledby={ariaLabelledBy}
+            tabIndex={-1}
           >
             {children}
           </motion.div>

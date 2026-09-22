@@ -59,7 +59,7 @@ describe('App-Wide UI Integration & Modal Cleanup empirical verification', () =>
 
     it('Domain 2: Subject Command Center / Trackers triggers openChapterEditModal', () => {
       const cardPath = path.join(rootSrcDir, 'features', 'subjects', 'components', 'ChapterCommandCard.tsx');
-      const expandedPath = path.join(rootSrcDir, 'features', 'subjects', 'components', 'SubjectExpandedView.tsx');
+      const expandedPath = path.join(rootSrcDir, 'features', 'subjects', 'components', 'SubjectCommandCenter.tsx');
       
       const cardContent = fs.readFileSync(cardPath, 'utf-8');
       const expandedContent = fs.readFileSync(expandedPath, 'utf-8');

@@ -7,95 +7,23 @@ import { useAuth } from '@/features/auth';
 import { Icon } from '@/components/ui/Icon';
 import { audioEngine as soundSystem } from '@/utils/audioEngine';
 import { getValidTargetYears } from '@/utils/dateUtils';
-import { SubjectId } from '@/types';
 import { springs } from '@/constants/motion';
-import { CustomSelect } from '@/components/ui/CustomSelect';
 import { 
-  Target, Clock, Volume2, VolumeX, Bell, BellOff, ShieldCheck, 
-  Sparkles, CheckCircle2, RotateCcw, AlertTriangle, User, LogOut, Lock, 
-  SlidersHorizontal, Flame, Zap, Shield, Laptop
+  ShieldCheck, CheckCircle2, RotateCcw, AlertTriangle, LogOut 
 } from 'lucide-react';
 
 import { normalizeTwoDaySplitConfig } from '@jee-os/engines';
 import { DangerZoneSection } from './components/DangerZoneSection';
-import { UserRepository } from '@/repositories/userRepository';
-import { StudySessionRepository } from '@/repositories/studySessionRepository';
-
-// Reusable Framer Motion Toggle Switch
-function SpringToggle({ checked, onChange, activeColor = 'bg-indigo-600' }: { checked: boolean; onChange: (v: boolean) => void; activeColor?: string }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      onClick={() => onChange(!checked)}
-      className={`w-12 h-6.5 rounded-full p-0.5 transition-colors cursor-pointer flex items-center shrink-0 ${
-        checked ? activeColor : 'bg-zinc-800 border border-white/10'
-      }`}
-    >
-      <motion.div
-        layout
-        transition={springs.snappy}
-        className={`w-5.5 h-5.5 rounded-full bg-white shadow-md ${checked ? 'ml-auto' : 'mr-auto'}`}
-      />
-    </button>
-  );
-}
-
-// Modern Time Input with White Clock Indicator & Presets
-function ModernTimeInput({
-  id,
-  label,
-  value,
-  onChange,
-  presets
-}: {
-  id?: string;
-  label: string;
-  value: string;
-  onChange: (val: string) => void;
-  presets?: string[];
-}) {
-  return (
-    <div className="space-y-2">
-      <label htmlFor={id} className="text-xs font-mono font-medium text-zinc-300 block">{label}</label>
-      <div className="relative flex items-center">
-        <Clock className="w-4 h-4 text-white pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 z-10" />
-        <input
-          id={id}
-          type="time"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="w-full bg-zinc-900/90 hover:bg-zinc-850 border border-white/15 hover:border-white/30 text-white rounded-2xl pl-10 pr-4 py-3 text-xs font-mono focus:outline-none focus:border-indigo-500 cursor-pointer shadow-inner [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-inner-spin-button]:hidden [&::-webkit-clear-button]:hidden [&::-ms-clear]:hidden"
-        />
-      </div>
-      {presets && (
-        <div className="flex gap-1.5 flex-wrap pt-1">
-          {presets.map(p => (
-            <button
-              key={p}
-              type="button"
-              onClick={() => onChange(p)}
-              className={`text-[10px] font-mono px-2 py-0.5 rounded-lg border transition-all cursor-pointer ${
-                value === p 
-                  ? 'bg-indigo-600/40 border-indigo-400 text-white font-bold' 
-                  : 'bg-zinc-900/60 border-white/10 text-zinc-400 hover:text-zinc-200'
-              }`}
-            >
-              {p}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
+import { ExamProfileSettingsSection } from './components/settings/ExamProfileSettingsSection';
+import { ScheduleCapacitySettingsSection } from './components/settings/ScheduleCapacitySettingsSection';
+import { ThemeVisualSettingsSection } from './components/settings/ThemeVisualSettingsSection';
+import { GamificationSettingsSection } from './components/settings/GamificationSettingsSection';
+import { AudioAlertsSettingsSection } from './components/settings/AudioAlertsSettingsSection';
 
 export function SettingsPage() {
   const actions = useStudyBrainStore(state => state.actions);
   const settings = useStudyBrainStore(state => state.settings);
   const mentorProfile = useStudyBrainStore(state => state.mentorProfile);
-  const xp = useStudyBrainStore(state => state.xp);
   const { user, loginWithGoogle, loginWithEmail, registerWithEmail, logout } = useAuth();
   
   // Settings Form States
@@ -156,31 +84,9 @@ export function SettingsPage() {
   const [isRegistering, setIsRegistering] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
 
-  const handleUndoMissionBug = async () => {
+  const handleUndoPreviousMission = async () => {
     try {
-      const currentXp = xp;
-      const newXp = {
-        ...currentXp,
-        daily: Math.max(0, currentXp.daily - 50),
-        weekly: Math.max(0, currentXp.weekly - 50),
-        monthly: Math.max(0, (currentXp.monthly || 0) - 50),
-        total: Math.max(0, currentXp.total - 50)
-      };
-      
-      const sessions = useStudyBrainStore.getState().studySessions || [];
-      const latestSession = sessions[0];
-      
-      if (latestSession) {
-         await actions.safeDbCall(() => StudySessionRepository.deleteStudySession(actions.userId, latestSession.id), 'deleteStudySession');
-      }
-      
-      await actions.safeDbCall(() => UserRepository.updateUserProfile(actions.userId, { xp: newXp }), 'updateUserProfile');
-      
-      const newSessions = sessions.filter(s => s.id !== latestSession?.id);
-      actions.runtime.updateStateOptimistic({ xp: newXp, studySessions: newSessions });
-      await actions.runtime.refresh('INIT');
-      
-      actions.triggerToast('Bug Fixed', 'Decreased 75m and 1 mission score', 'success');
+      await actions.undoLatestMission(50);
       setShowUndoConfirm(false);
     } catch (e) {
       console.error(e);
@@ -225,7 +131,7 @@ export function SettingsPage() {
       minStreakHours: settings.minStreakHours ?? 0.5,
       enablePomodoroCasino: settings.enablePomodoroCasino ?? false,
       prerequisiteEnforcementStrategy: settings.prerequisiteEnforcementStrategy || 'parallel',
-      themeMode: settings.themeMode || 'evangelion',
+      themeMode: (settings.themeMode || 'evangelion') as 'evangelion' | 'modern',
     });
   }, [settings, mentorProfile]);
 
@@ -265,17 +171,15 @@ export function SettingsPage() {
         themeMode: themeMode || 'evangelion'
       });
 
-      if (mentorProfile) {
-        await actions.updateMentorProfile({
-          ...mentorProfile,
-          dailyAvailableHours: dailyQuota,
-          targetYear,
-          targetCollege: dreamIit,
-          targetBranch,
-          subjectSplitStrategy,
-          twoDaySplitConfig
-        });
-      }
+      await actions.updateMentorProfile({
+        ...(mentorProfile || {}),
+        dailyAvailableHours: dailyQuota,
+        targetYear,
+        targetCollege: dreamIit,
+        targetBranch,
+        subjectSplitStrategy,
+        twoDaySplitConfig
+      });
 
       setIsSaved(true);
       setTimeout(() => setIsSaved(false), 3000);
@@ -302,7 +206,6 @@ export function SettingsPage() {
     try {
       await actions.purgeUserData();
       clearAppStorage();
-      // Removed indiscriminate sessionStorage wipe
       setShowResetConfirm(false);
       setShowResetSuccess(true);
       setTimeout(() => {
@@ -369,7 +272,7 @@ export function SettingsPage() {
   ];
 
   return (
-    <div className="space-y-8 max-w-4xl mx-auto text-left relative pb-16 font-sans select-none">
+    <div className="space-y-8 max-w-4xl mx-auto text-left relative pb-32 sm:pb-36 font-sans select-none">
       
       {/* Header Banner */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/10 pb-5">
@@ -404,492 +307,51 @@ export function SettingsPage() {
       </div>
 
       <form onSubmit={handleSave} className="space-y-8">
-        
         {/* SECTION 1: ACADEMIC GOALS & TARGET HORIZON */}
-        <div className="bg-zinc-900/90 border border-white/15 rounded-3xl p-6 md:p-8 space-y-6 shadow-xl text-left relative z-30 overflow-visible">
-          <div className="flex items-center gap-3 border-b border-white/10 pb-4">
-            <div className="w-9 h-9 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-sm">
-              <Target className="w-4.5 h-4.5" />
-            </div>
-            <div>
-              <h3 className="text-base font-display font-bold text-white tracking-tight">
-                Academic Targets & Exam Horizon
-              </h3>
-              <p className="text-xs text-zinc-400 font-sans">
-                Defines target year metrics, dream IIT benchmark, and branch priority.
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {/* Target Year Custom Dropdown */}
-            <CustomSelect
-              id="targetYear"
-              label="Target Exam Year"
-              value={targetYear}
-              options={targetYearOptions}
-              onChange={(val) => handleChange('targetYear', val)}
-            />
-
-            {/* Target Institute Custom Dropdown */}
-            <CustomSelect
-              id="dreamIit"
-              label="Dream Institute / Goal"
-              value={dreamIit}
-              options={targetInstituteOptions}
-              onChange={(val) => handleChange('dreamIit', val)}
-            />
-
-            {/* Target Branch Custom Dropdown */}
-            <CustomSelect
-              id="targetBranch"
-              label="Target Branch / Focus"
-              value={targetBranch}
-              options={targetBranchOptions}
-              onChange={(val) => handleChange('targetBranch', val)}
-            />
-          </div>
-        </div>
+        <ExamProfileSettingsSection
+          targetYear={targetYear}
+          dreamIit={dreamIit}
+          targetBranch={targetBranch}
+          targetYearOptions={targetYearOptions}
+          targetInstituteOptions={targetInstituteOptions}
+          targetBranchOptions={targetBranchOptions}
+          onChange={handleChange}
+        />
 
         {/* SECTION 2: DAILY STUDY BUDGET & SPLIT STRATEGY */}
-        <div className="bg-zinc-900/90 border border-white/15 rounded-3xl p-6 md:p-8 space-y-6 shadow-xl text-left relative z-20 overflow-visible">
-          <div className="flex items-center gap-3 border-b border-white/10 pb-4">
-            <div className="w-9 h-9 rounded-2xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 shadow-sm">
-              <Clock className="w-4.5 h-4.5" />
-            </div>
-            <div>
-              <h3 className="text-base font-display font-bold text-white tracking-tight">
-                Daily Study Budget & Split Strategy
-              </h3>
-              <p className="text-xs text-zinc-400 font-sans">
-                Determines how many hours the Planner Engine schedules per day across subjects.
-              </p>
-            </div>
-          </div>
+        <ScheduleCapacitySettingsSection
+          dailyQuota={dailyQuota}
+          subjectSplitStrategy={subjectSplitStrategy}
+          prerequisiteEnforcementStrategy={prerequisiteEnforcementStrategy}
+          dayStartTime={dayStartTime}
+          dayEndTime={dayEndTime}
+          minStreakHours={minStreakHours}
+          minStreakOptions={minStreakOptions}
+          onChange={handleChange}
+        />
 
-          <div className="space-y-6">
-            
-            {/* Daily Quota Slider with Fluid Progress */}
-            <div className="bg-zinc-850/60 border border-white/10 rounded-2xl p-5 space-y-3 shadow-inner">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-mono font-bold text-zinc-200">
-                  Daily Available Study Capacity
-                </label>
-                <motion.span 
-                  key={dailyQuota}
-                  initial={{ scale: 1.15 }}
-                  animate={{ scale: 1 }}
-                  transition={springs.snappy}
-                  className="text-xs font-mono font-bold text-indigo-300 bg-indigo-950/80 border border-indigo-500/40 px-3 py-1 rounded-xl shadow-sm"
-                >
-                  {dailyQuota} Hours / Day
-                </motion.span>
-              </div>
-
-              {/* Range Slider Track */}
-              <div className="relative flex items-center py-2">
-                <input
-                  type="range"
-                  min="2"
-                  max="14"
-                  step="1"
-                  value={dailyQuota}
-                  onChange={(e) => handleChange('dailyQuota', Number(e.target.value))}
-                  className="w-full h-2.5 bg-zinc-950 rounded-lg appearance-none cursor-pointer accent-indigo-500 border border-white/10"
-                />
-              </div>
-
-              <div className="flex justify-between text-[10px] font-mono text-zinc-500">
-                <span>2 hrs (Light)</span>
-                <span>8 hrs (Standard)</span>
-                <span>14 hrs (Hardcore)</span>
-              </div>
-            </div>
-
-            {/* Subject Split Strategy (Sliding Spring Glider Tabs) */}
-            <div className="space-y-2.5">
-              <label className="text-xs font-mono font-bold text-zinc-300 block">
-                Subject Rotation Strategy
-              </label>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 p-1.5 rounded-2xl bg-zinc-950/70 border border-white/10">
-                {[
-                  { id: '3_a_day', title: '3 Subjects Daily', desc: 'Balanced Coverage' },
-                  { id: '2_a_day_alternating', title: '2 Subjects Alternating', desc: 'Deeper Focus' },
-                  { id: '1_a_day_alternating', title: '1 Subject Focus', desc: 'Deep-Dive' }
-                ].map((tab) => {
-                  const isSelected = subjectSplitStrategy === tab.id;
-                  return (
-                    <button
-                      key={tab.id}
-                      type="button"
-                      onClick={() => handleChange('subjectSplitStrategy', tab.id)}
-                      className={`relative px-4 py-3 rounded-xl text-left transition-colors cursor-pointer z-10 flex flex-col justify-center ${
-                        isSelected ? 'text-white font-bold' : 'text-zinc-400 hover:text-zinc-200'
-                      }`}
-                    >
-                      {isSelected && (
-                        <motion.div
-                          layoutId="subjectStrategyGlider"
-                          className="absolute inset-0 bg-indigo-600 rounded-xl shadow-md -z-10"
-                          transition={springs.fluid}
-                        />
-                      )}
-                      <span className="text-xs font-mono font-bold block">{tab.title}</span>
-                      <span className="text-[10px] opacity-80 block">{tab.desc}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Prerequisite Enforcement Strategy (Sliding Spring Glider Tabs) */}
-            <div className="space-y-2.5">
-              <label className="text-xs font-mono font-bold text-zinc-300 block">
-                Prerequisite Enforcement
-              </label>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 p-1.5 rounded-2xl bg-zinc-950/70 border border-white/10">
-                {[
-                  { id: 'parallel', title: 'Parallel Execution', desc: 'Bypass & Learn Foundations Simultaneously' },
-                  { id: 'strict', title: 'Strict Hierarchy', desc: 'Enforce Foundations Before Advancing' }
-                ].map((tab) => {
-                  const isSelected = prerequisiteEnforcementStrategy === tab.id;
-                  return (
-                    <button
-                      key={tab.id}
-                      type="button"
-                      onClick={() => handleChange('prerequisiteEnforcementStrategy', tab.id)}
-                      className={`relative px-4 py-3 rounded-xl text-left transition-colors cursor-pointer z-10 flex flex-col justify-center ${
-                        isSelected ? 'text-white font-bold' : 'text-zinc-400 hover:text-zinc-200'
-                      }`}
-                    >
-                      {isSelected && (
-                        <motion.div
-                          layoutId="prereqStrategyGlider"
-                          className="absolute inset-0 bg-indigo-600 rounded-xl shadow-md -z-10"
-                          transition={springs.fluid}
-                        />
-                      )}
-                      <span className="text-xs font-mono font-bold block">{tab.title}</span>
-                      <span className="text-[10px] opacity-80 block">{tab.desc}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Modern Time Boundaries & Minimum Streak Threshold */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-              <ModernTimeInput
-                id="dayStartTime"
-                label="Day Start Time"
-                value={dayStartTime}
-                onChange={(val) => handleChange('dayStartTime', val)}
-                presets={['06:00', '07:00', '08:00']}
-              />
-
-              <ModernTimeInput
-                id="dayEndTime"
-                label="Day End Cutoff"
-                value={dayEndTime}
-                onChange={(val) => handleChange('dayEndTime', val)}
-                presets={['22:00', '23:00', '00:00', '01:00']}
-              />
-
-              <CustomSelect
-                id="minStreakHours"
-                label="Min Streak Threshold"
-                value={minStreakHours ?? 0.5}
-                options={minStreakOptions}
-                onChange={(val) => handleChange('minStreakHours', parseFloat(val))}
-              />
-            </div>
-
-          </div>
-        </div>
-
-        {/* SECTION: VISUAL THEME & INTERFACE AESTHETICS */}
-        <div className="bg-zinc-900/90 border border-indigo-500/20 rounded-3xl p-6 md:p-8 space-y-6 shadow-xl relative overflow-hidden text-left">
-          <div className="flex items-center gap-3 border-b border-white/10 pb-4">
-            <div className="w-9 h-9 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-sm">
-              <SlidersHorizontal className="w-4.5 h-4.5" />
-            </div>
-            <div>
-              <h3 className="text-base font-display font-bold text-white tracking-tight">
-                Visual Theme & Aesthetics
-              </h3>
-              <p className="text-xs text-zinc-400 font-sans">
-                Choose between the Tactical Evangelion (Neo-Tokyo HUD) theme and the Modern Minimalist interface.
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Option A: Tactical Evangelion */}
-            <div 
-              onClick={() => handleToggleThemeMode('evangelion')}
-              className={`p-5 rounded-2xl border transition-all cursor-pointer select-none relative overflow-hidden flex flex-col justify-between space-y-3 ${
-                themeMode !== 'modern'
-                  ? 'bg-indigo-950/40 border-indigo-500 shadow-[0_0_25px_rgba(99,102,241,0.25)] ring-1 ring-indigo-400'
-                  : 'bg-zinc-850/40 border-white/10 hover:border-zinc-700'
-              }`}
-            >
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-mono font-bold uppercase text-indigo-400 px-2 py-0.5 rounded bg-indigo-950/80 border border-indigo-800/60">
-                    NERV HUD // CYBERNETIC
-                  </span>
-                  {themeMode !== 'modern' && <CheckCircle2 className="w-4 h-4 text-indigo-400" />}
-                </div>
-                <h4 className="text-sm font-bold text-white pt-1">Tactical Evangelion (Neo-Tokyo)</h4>
-                <p className="text-xs text-zinc-400 leading-relaxed font-sans">
-                  Dynamic subject hazard ribbons, 4-corner caliper crosshairs, telemetry badges, and high-contrast tabular HUD typography.
-                </p>
-              </div>
-
-              <div className="flex items-center gap-1.5 pt-1 text-[10px] font-mono text-indigo-300">
-                <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
-                <span>MAGI-01 Synaptic Map & Tactical HUD Active</span>
-              </div>
-            </div>
-
-            {/* Option B: Modern Minimalist */}
-            <div 
-              onClick={() => handleToggleThemeMode('modern')}
-              className={`p-5 rounded-2xl border transition-all cursor-pointer select-none relative overflow-hidden flex flex-col justify-between space-y-3 ${
-                themeMode === 'modern'
-                  ? 'bg-zinc-900 border-white/40 shadow-[0_0_25px_rgba(255,255,255,0.15)] ring-1 ring-white/60'
-                  : 'bg-zinc-850/40 border-white/10 hover:border-zinc-700'
-              }`}
-            >
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-mono font-bold uppercase text-zinc-300 px-2 py-0.5 rounded bg-zinc-800 border border-zinc-700">
-                    DEFAULT // MODERN
-                  </span>
-                  {themeMode === 'modern' && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
-                </div>
-                <h4 className="text-sm font-bold text-white pt-1">Modern Minimalist (Clean Glass)</h4>
-                <p className="text-xs text-zinc-400 leading-relaxed font-sans">
-                  Reverts all Evangelion theming back to sleek, minimalist modern dark glassmorphism without hazard stripes or anime telemetry.
-                </p>
-              </div>
-
-              <div className="flex items-center gap-1.5 pt-1 text-[10px] font-mono text-zinc-400">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                <span>Distraction-Free Minimal Glass Aesthetic</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Quick Toggle Switch Bar */}
-          <div className="flex items-center justify-between p-4.5 rounded-2xl bg-zinc-850/60 border border-white/10 gap-4 shadow-sm">
-            <div className="space-y-0.5">
-              <span className="text-sm font-mono font-bold text-white block">
-                {themeMode === 'modern' ? 'Modern Minimalist Theme Active' : 'Tactical Evangelion Theme Active'}
-              </span>
-              <span className="text-xs text-zinc-400 font-sans block">
-                Toggle to instantly switch between Tactical Evangelion HUD and Modern Minimalist theme across the entire application.
-              </span>
-            </div>
-            <SpringToggle 
-              checked={themeMode !== 'modern'} 
-              onChange={(v) => handleToggleThemeMode(v ? 'evangelion' : 'modern')} 
-              activeColor="bg-indigo-600"
-            />
-          </div>
-        </div>
+        {/* SECTION 3: VISUAL THEME & INTERFACE AESTHETICS */}
+        <ThemeVisualSettingsSection
+          themeMode={themeMode}
+          onToggleThemeMode={handleToggleThemeMode}
+        />
 
         {/* SECTION 4: GAMIFICATION & GOD MODE */}
-        <div className="bg-zinc-900/90 border border-amber-500/20 rounded-3xl p-6 md:p-8 space-y-6 shadow-xl relative overflow-hidden text-left">
-          <div className="flex items-center gap-3 border-b border-white/10 pb-4">
-            <div className="w-9 h-9 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-sm">
-              <Sparkles className="w-4.5 h-4.5" />
-            </div>
-            <div>
-              <h3 className="text-base font-display font-bold text-white tracking-tight">
-                Gamification & God Mode
-              </h3>
-              <p className="text-xs text-zinc-400 font-sans">
-                Unlock God Mode themes and XP multipliers for maintaining high study streaks.
-              </p>
-            </div>
-          </div>
+        <GamificationSettingsSection
+          enableGodMode={enableGodMode}
+          enablePomodoroCasino={enablePomodoroCasino}
+          onChange={handleChange}
+        />
 
-          <div className="grid grid-cols-1 gap-4">
-            {/* God Mode Toggle Switch */}
-            <div className="flex items-center justify-between p-4.5 rounded-2xl bg-zinc-850/60 border border-white/10 gap-4 shadow-sm">
-              <div className="space-y-1 pr-2">
-                <div className="text-sm font-mono font-bold text-white flex items-center gap-2">
-                  <span>Enable God Mode</span>
-                  <span className="text-[10px] font-mono text-amber-400 bg-amber-950/60 border border-amber-800/60 px-2 py-0.5 rounded-md">1.5x XP</span>
-                </div>
-                <p className="text-xs text-zinc-400 leading-relaxed font-sans">
-                  Maintaining a 7-day streak activates God Mode, applying a radiant amber theme and 1.5x XP bonus.
-                </p>
-              </div>
-              <SpringToggle 
-                checked={enableGodMode} 
-                onChange={(v) => handleChange('enableGodMode', v)} 
-                activeColor="bg-amber-500"
-              />
-            </div>
-
-            {/* Pomodoro Casino Toggle Switch */}
-            <div className="flex items-center justify-between p-4.5 rounded-2xl bg-zinc-850/60 border border-white/10 gap-4 shadow-sm">
-              <div className="space-y-1 pr-2">
-                <div className="text-sm font-mono font-bold text-white flex items-center gap-2">
-                  <span>Pomodoro Casino (XP Wager)</span>
-                  <span className="text-[10px] font-mono text-rose-400 bg-rose-950/60 border border-rose-800/60 px-2 py-0.5 rounded-md">2.5x Payout</span>
-                </div>
-                <p className="text-xs text-zinc-400 leading-relaxed font-sans">
-                  Wager XP on study sessions. Submit Proof-of-Work to earn a 2.5x payout, or forfeit your wager on premature exit.
-                </p>
-              </div>
-              <SpringToggle 
-                checked={enablePomodoroCasino} 
-                onChange={(v) => handleChange('enablePomodoroCasino', v)} 
-                activeColor="bg-rose-500"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* SECTION 4: AUDIO & DESKTOP ALERTS */}
-        <div className="bg-zinc-900/90 border border-white/15 rounded-3xl p-6 md:p-8 space-y-6 shadow-xl text-left">
-          <div className="flex items-center gap-3 border-b border-white/10 pb-4">
-            <div className="w-9 h-9 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-sm">
-              <Volume2 className="w-4.5 h-4.5" />
-            </div>
-            <div>
-              <h3 className="text-base font-display font-bold text-white tracking-tight">
-                Audio & Web Desktop Alerts
-              </h3>
-              <p className="text-xs text-zinc-400 font-sans">
-                Configure browser sound chimes and desktop system alerts for study sessions.
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Sound Chimes */}
-            <div className="p-4.5 rounded-2xl bg-zinc-850/60 border border-white/10 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <Volume2 className="w-4 h-4 text-emerald-400" />
-                  <div>
-                    <span className="text-xs font-mono font-bold text-white block">Web Audio Chimes</span>
-                    <span className="text-[10px] text-zinc-400">Play chime upon mission completion</span>
-                  </div>
-                </div>
-                <SpringToggle 
-                  checked={soundEffects} 
-                  onChange={(v) => handleChange('soundEffects', v)} 
-                  activeColor="bg-emerald-500"
-                />
-              </div>
-
-              {soundEffects && (
-                <div className="pt-2 border-t border-white/10 flex items-center justify-between gap-3">
-                  <input
-                    type="range"
-                    min="10"
-                    max="100"
-                    value={volume}
-                    onChange={(e) => handleChange('volume', Number(e.target.value))}
-                    className="flex-1 h-2 bg-zinc-950 rounded-lg appearance-none cursor-pointer accent-emerald-500"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => soundSystem.playSuccess()}
-                    className="text-[10px] font-mono bg-zinc-900 hover:bg-zinc-850 border border-white/10 text-zinc-200 px-2.5 py-1 rounded-xl cursor-pointer shrink-0"
-                  >
-                    Test Chime
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Desktop Notifications */}
-            <div className="flex items-center justify-between p-4.5 rounded-2xl bg-zinc-850/60 border border-white/10 gap-3">
-              <div className="flex items-center gap-2.5">
-                <Bell className="w-4 h-4 text-indigo-400" />
-                <div>
-                  <span className="text-xs font-mono font-bold text-white block">Desktop Alerts</span>
-                  <span className="text-[10px] text-zinc-400">Receive browser popups for missions</span>
-                </div>
-              </div>
-              <SpringToggle 
-                checked={desktopNotifications} 
-                onChange={async (v) => {
-                  handleChange('desktopNotifications', v);
-                  if (v) await soundSystem.requestNotificationPermission();
-                }} 
-                activeColor="bg-indigo-600"
-              />
-            </div>
-
-            {/* Cockpit Themes & Start Sound Volume */}
-            <div className="p-4.5 rounded-2xl bg-zinc-850/60 border border-white/10 space-y-3 md:col-span-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <Sparkles className="w-4 h-4 text-amber-400" />
-                  <div>
-                    <span className="text-xs font-mono font-bold text-white block">Cockpit Start Sound & Theme Songs Volume</span>
-                    <span className="text-[10px] text-zinc-400">Adjust the volume of the laser start stinger and Evangelion theme melodies (Entrance & Exit)</span>
-                  </div>
-                </div>
-                <span className="text-xs font-mono font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-lg">
-                  {cockpitVolume}%
-                </span>
-              </div>
-
-              <div className="pt-2 border-t border-white/10 flex flex-wrap sm:flex-nowrap items-center justify-between gap-3">
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={cockpitVolume}
-                  onChange={(e) => handleChange('cockpitVolume', Number(e.target.value))}
-                  className="flex-1 min-w-[160px] h-2 bg-zinc-950 rounded-lg appearance-none cursor-pointer accent-amber-500"
-                />
-                <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => soundSystem.playAnimeLaserCharge('maths')}
-                    className="text-[10px] font-mono bg-zinc-900 hover:bg-zinc-850 border border-white/10 text-zinc-200 px-2.5 py-1 rounded-xl cursor-pointer hover:border-amber-500/30 transition-colors"
-                  >
-                    Test Start Sound
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => soundSystem.playCruelAngelsThesisEntrance('maths')}
-                    className="text-[10px] font-mono bg-zinc-900 hover:bg-zinc-850 border border-white/10 text-zinc-200 px-2.5 py-1 rounded-xl cursor-pointer hover:border-indigo-500/30 transition-colors"
-                  >
-                    Test Theme Song
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Pause on Tab Change */}
-            <div className="flex items-center justify-between p-4.5 rounded-2xl bg-zinc-850/60 border border-white/10 gap-3 md:col-span-2">
-              <div className="flex items-center gap-2.5">
-                <Laptop className="w-4 h-4 text-amber-400" />
-                <div>
-                  <span className="text-xs font-mono font-bold text-white block">Pause on Tab Change</span>
-                  <span className="text-[10px] text-zinc-400">Auto-pause study timer when switching browser tabs</span>
-                </div>
-              </div>
-              <SpringToggle 
-                checked={pauseOnTabChange} 
-                onChange={(v) => handleChange('pauseOnTabChange', v)} 
-                activeColor="bg-amber-500"
-              />
-            </div>
-          </div>
-        </div>
+        {/* SECTION 5: AUDIO & DESKTOP ALERTS */}
+        <AudioAlertsSettingsSection
+          soundEffects={soundEffects}
+          volume={volume}
+          desktopNotifications={desktopNotifications}
+          cockpitVolume={cockpitVolume}
+          pauseOnTabChange={pauseOnTabChange}
+          onChange={handleChange}
+        />
 
         {/* SAVE BUTTON */}
         <div className="flex items-center justify-end gap-4 pt-2">
@@ -908,10 +370,9 @@ export function SettingsPage() {
             <span>{isSaved ? 'Saved & Synced!' : 'Save Workspace Configuration'}</span>
           </motion.button>
         </div>
-
       </form>
 
-      {/* SECTION 5: CLOUD SYNC & AUTHENTICATION (FEATURING USER PROFILE AVATAR) */}
+      {/* SECTION 6: CLOUD SYNC & AUTHENTICATION */}
       <div className="bg-zinc-900/90 border border-white/15 rounded-3xl p-6 md:p-8 space-y-6 shadow-xl text-left">
         <div className="flex items-center justify-between border-b border-white/10 pb-4">
           <div className="flex items-center gap-3">
@@ -933,7 +394,6 @@ export function SettingsPage() {
           {user && !user.isAnonymous ? (
             <div className="flex items-center justify-between p-4.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30">
               <div className="flex items-center gap-3.5">
-                {/* User Avatar Image Matching Sidebar / Profile */}
                 <div className="w-12 h-12 rounded-full border border-emerald-400/40 overflow-hidden flex items-center justify-center bg-emerald-500/20 shadow-md shrink-0">
                   {user.photoURL ? (
                     <img
@@ -1039,7 +499,7 @@ export function SettingsPage() {
         </div>
       </div>
 
-      {/* SECTION 6: DANGER ZONE */}
+      {/* SECTION 7: DANGER ZONE */}
       <DangerZoneSection
         onOpenResetXP={() => setShowXpResetConfirm(true)}
         onOpenResetMissions={() => setShowCustomMissionsConfirm(true)}
@@ -1048,7 +508,7 @@ export function SettingsPage() {
         onUndoMissionBug={() => setShowUndoConfirm(true)}
       />
 
-      {/* Modals with Softened Backdrops */}
+      {/* Modals */}
       <Modal
         isOpen={showUndoConfirm}
         onClose={() => setShowUndoConfirm(false)}
@@ -1073,7 +533,7 @@ export function SettingsPage() {
           </button>
           <button
             type="button"
-            onClick={handleUndoMissionBug}
+            onClick={handleUndoPreviousMission}
             className="px-4 py-2 rounded-xl text-xs font-bold font-mono bg-orange-600 hover:bg-orange-500 text-white shadow-lg shadow-orange-900/20 transition-all cursor-pointer"
           >
             Fix Time/Score

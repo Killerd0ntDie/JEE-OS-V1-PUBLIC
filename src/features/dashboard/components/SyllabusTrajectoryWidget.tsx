@@ -7,7 +7,7 @@ interface SyllabusTrajectoryWidgetProps {
   estCompletionDate: string;
   dailyHoursRequired: number;
   highestRiskSubject: string;
-  highestRiskChapters: Array<{ name: string; [key: string]: any }>;
+  highestRiskChapters: Array<{ name: string; chapterName?: string }>;
   currentPaceCompletion: string;
   plusOneHourCompletion: string;
   avgDailyHours: number;
@@ -56,7 +56,7 @@ export function SyllabusTrajectoryWidget({
             </div>
             <div className="flex justify-between items-baseline">
               <span className="text-xs text-zinc-400">Readiness Score</span>
-              <span className="text-sm font-mono font-bold text-indigo-400">{estimatedReadinessScore}/100</span>
+              <span className="text-sm font-mono font-bold text-indigo-400">{typeof estimatedReadinessScore === 'number' && !isNaN(estimatedReadinessScore) ? estimatedReadinessScore : 0}/100</span>
             </div>
           </div>
         </div>
@@ -91,7 +91,7 @@ export function SyllabusTrajectoryWidget({
             <div className="space-y-0.5">
               <span className="text-[10px] text-zinc-400 block">Top At-Risk Chapters:</span>
               <span className="text-xs text-zinc-300 truncate block">
-                {highestRiskChapters && highestRiskChapters.length > 0 ? highestRiskChapters.map(c => c.name || (c as any).chapterName || String(c)).join(', ') : 'None'}
+                {highestRiskChapters && highestRiskChapters.length > 0 ? highestRiskChapters.map(c => c.name || c.chapterName || String(c)).join(', ') : 'None'}
               </span>
             </div>
           </div>

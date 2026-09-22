@@ -18,6 +18,8 @@ interface ActiveRecallArenaProps {
 export function ActiveRecallArena({ cards, onExit }: ActiveRecallArenaProps) {
   const actions = useStudyBrainStore(state => state.actions);
   
+  // Freeze cards on mount for an immutable, stable sprint experience
+  const [sessionCards] = useState<RevisionCardItem[]>(() => [...cards]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [timeLeft, setTimeLeft] = useState(15);
   const [isRevealed, setIsRevealed] = useState(false);
@@ -31,9 +33,10 @@ export function ActiveRecallArena({ cards, onExit }: ActiveRecallArenaProps) {
   const autoAdvanceRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef<string>(new Date().toISOString());
   const sessionFeedbackRef = useRef<Map<string, number[]>>(new Map());
+  const completedGradesRef = useRef<Array<{ cardId: string; chapterId: string; quality: number }>>([]);
 
-  const currentCard = cards[currentIndex];
-  const isFinished = cards.length > 0 && currentIndex >= cards.length;
+  const currentCard = sessionCards[currentIndex];
+  const isFinished = sessionCards.length > 0 && currentIndex >= sessionCards.length;
 
   const renderMathText = (text: string | undefined | null) => {
     if (!text) return null;
@@ -76,6 +79,12 @@ export function ActiveRecallArena({ cards, onExit }: ActiveRecallArenaProps) {
     }
     map.get(currentCard.chapterId)!.push(0);
 
+    completedGradesRef.current.push({
+      cardId: currentCard.id,
+      chapterId: currentCard.chapterId,
+      quality: 0
+    });
+
     setSessionResults(prev => [...prev, { id: currentCard.id, success: false, quality: 0 }]);
     showFeedback('wrong', 0);
 
@@ -90,7 +99,7 @@ export function ActiveRecallArena({ cards, onExit }: ActiveRecallArenaProps) {
 
   // Timer countdown logic
   useEffect(() => {
-    if (isFinished || isRevealed || isTransitioning || cards.length === 0) {
+    if (isFinished || isRevealed || isTransitioning || sessionCards.length === 0) {
       if (timerRef.current) clearInterval(timerRef.current);
       return;
     }
@@ -108,7 +117,7 @@ export function ActiveRecallArena({ cards, onExit }: ActiveRecallArenaProps) {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [currentIndex, isFinished, isRevealed, isTransitioning, cards.length, handleTimeUp]);
+  }, [isFinished, isRevealed, isTransitioning, handleTimeUp, sessionCards.length]);
 
   // Clean up auto advance timeouts
   useEffect(() => {
@@ -119,7 +128,7 @@ export function ActiveRecallArena({ cards, onExit }: ActiveRecallArenaProps) {
 
   // Keyboard Shortcuts (Space = Reveal, 1 = Blackout, 2 = Hard, 3 = Good, 4 = Perfect)
   useEffect(() => {
-    if (isFinished || isTransitioning || cards.length === 0) return;
+    if (isFinished || isTransitioning || sessionCards.length === 0) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code === 'Space') {
@@ -136,31 +145,36 @@ export function ActiveRecallArena({ cards, onExit }: ActiveRecallArenaProps) {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isFinished, isRevealed, isTransitioning, currentIndex, cards.length]);
+  }, [isFinished, isRevealed, isTransitioning, currentIndex, sessionCards.length]);
 
-  // Log study session when arena finishes
+  // Log study session and persist per-card SM-2 updates when arena finishes
   useEffect(() => {
-    if (isFinished && cards.length > 0 && !sessionLogged) {
+    if (isFinished && sessionCards.length > 0 && !sessionLogged) {
       setSessionLogged(true);
       const successCount = sessionResults.filter(r => r.success).length;
-      const totalXp = successCount * 120 + (cards.length - successCount) * 40;
+      const totalXp = successCount * 120 + (sessionCards.length - successCount) * 40;
       actions.completeStudySession({
         type: 'Revision',
         duration: Math.max(1, Math.round((Date.now() - new Date(startTimeRef.current).getTime()) / 60000)),
-        questionsSolved: cards.length,
+        questionsSolved: sessionCards.length,
         correct: successCount,
-        accuracy: cards.length > 0 ? Math.round((successCount / cards.length) * 100) : 0,
+        accuracy: sessionCards.length > 0 ? Math.round((successCount / sessionCards.length) * 100) : 0,
         xpEarned: totalXp,
       }).catch(() => {});
 
-      // Submit batched SM-2 updates
+      // Submit batched SM-2 chapter confidence updates
       sessionFeedbackRef.current.forEach((scores, chapterId) => {
         const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
         const confidence = avg >= 4 ? 'High' : avg >= 2 ? 'Medium' : 'Low';
         actions.completeRevision(chapterId, confidence);
       });
+
+      // Submit per-card SM-2 state persistence
+      if (completedGradesRef.current.length > 0) {
+        actions.gradeFlashcardsBatch(completedGradesRef.current).catch(() => {});
+      }
     }
-  }, [isFinished, sessionLogged, cards.length, sessionResults, actions]);
+  }, [isFinished, sessionLogged, sessionCards.length, sessionResults, actions]);
 
   const handleDecision = (quality: number, label: string) => {
     if (!currentCard || isTransitioning) return;
@@ -172,6 +186,12 @@ export function ActiveRecallArena({ cards, onExit }: ActiveRecallArenaProps) {
       map.set(currentCard.chapterId, []);
     }
     map.get(currentCard.chapterId)!.push(quality);
+
+    completedGradesRef.current.push({
+      cardId: currentCard.id,
+      chapterId: currentCard.chapterId,
+      quality
+    });
     
     const isSuccess = quality >= 3;
     if (isSuccess) {
@@ -195,6 +215,13 @@ export function ActiveRecallArena({ cards, onExit }: ActiveRecallArenaProps) {
     }, 350);
   };
 
+  const handleExit = () => {
+    if (completedGradesRef.current.length > 0 && !sessionLogged) {
+      actions.gradeFlashcardsBatch(completedGradesRef.current).catch(() => {});
+    }
+    onExit();
+  };
+
   const handleRestart = () => {
     setCurrentIndex(0);
     setTimeLeft(15);
@@ -204,10 +231,11 @@ export function ActiveRecallArena({ cards, onExit }: ActiveRecallArenaProps) {
     setSessionLogged(false);
     startTimeRef.current = new Date().toISOString();
     sessionFeedbackRef.current.clear();
+    completedGradesRef.current = [];
   };
 
   // ── EMPTY STATE (No cards available) ──
-  if (cards.length === 0) {
+  if (sessionCards.length === 0) {
     return (
       <div className="max-w-4xl mx-auto space-y-6 text-left font-sans select-none pb-16">
         <div className="flex items-center justify-between border-b border-white/10 pb-4">
@@ -360,7 +388,7 @@ export function ActiveRecallArena({ cards, onExit }: ActiveRecallArenaProps) {
             <motion.button 
               type="button"
               whileTap={{ scale: 0.95 }}
-              onClick={onExit}
+              onClick={handleExit}
               className="w-full sm:w-auto px-8 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-mono text-xs font-bold uppercase tracking-wider transition-all shadow-xl shadow-indigo-600/30 cursor-pointer"
             >
               Return to Command Center
@@ -415,7 +443,7 @@ export function ActiveRecallArena({ cards, onExit }: ActiveRecallArenaProps) {
           <motion.button
             type="button"
             whileTap={{ scale: 0.92 }}
-            onClick={onExit}
+            onClick={handleExit}
             className="p-2.5 rounded-2xl bg-zinc-900/60 hover:bg-zinc-800 border border-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer shrink-0 shadow-sm"
             title="Exit Arena"
             aria-label="Exit Arena"
@@ -429,7 +457,7 @@ export function ActiveRecallArena({ cards, onExit }: ActiveRecallArenaProps) {
                 <Flame className="w-3 h-3 text-red-400 animate-pulse" />
                 <span>Timed Recall Arena</span>
               </span>
-              <span className="text-zinc-400">• Card {currentIndex + 1} of {cards.length}</span>
+              <span className="text-zinc-400">• Card {currentIndex + 1} of {sessionCards.length}</span>
             </div>
             <h1 className="text-xl md:text-2xl font-display font-black text-white tracking-tight">
               Active Recall Sprint
@@ -489,6 +517,16 @@ export function ActiveRecallArena({ cards, onExit }: ActiveRecallArenaProps) {
                 {currentCard.subject}
               </span>
               <span className="text-zinc-300">{currentCard.chapterName}</span>
+              {currentCard.cardType === 'mistake' && (
+                <span className="px-2 py-0.5 rounded-lg border bg-rose-950/60 border-rose-500/40 text-rose-300 text-[10px]">
+                  Mistake Recall
+                </span>
+              )}
+              {currentCard.cardType === 'note' && (
+                <span className="px-2 py-0.5 rounded-lg border bg-amber-950/60 border-amber-500/40 text-amber-300 text-[10px]">
+                  Proof of Work
+                </span>
+              )}
             </div>
 
             <span className="text-[10px] font-mono text-zinc-500 font-bold">
@@ -500,7 +538,7 @@ export function ActiveRecallArena({ cards, onExit }: ActiveRecallArenaProps) {
           <div className="space-y-4 py-2">
             <div className="space-y-1">
               <span className="text-[11px] font-mono uppercase text-indigo-400 font-bold tracking-wider block">
-                Target Concept / Formula:
+                {currentCard.cardType === 'mistake' ? 'Target Mistake / Error Analysis:' : currentCard.cardType === 'note' ? 'Study Reflection / Proof of Work:' : 'Target Concept / Formula:'}
               </span>
               <h2 className="text-2xl md:text-3xl font-display font-bold text-white tracking-tight">
                 {renderMathText(currentCard.title)}
@@ -509,7 +547,7 @@ export function ActiveRecallArena({ cards, onExit }: ActiveRecallArenaProps) {
 
             <div className="p-4 rounded-2xl bg-zinc-950/70 border border-white/5 space-y-1 shadow-inner">
               <span className="text-[10px] font-mono uppercase text-zinc-400 font-bold tracking-wider block">
-                Concept Prompt:
+                {currentCard.cardType === 'mistake' ? 'Question & Approach Prompt:' : 'Concept Prompt:'}
               </span>
               <p className="text-sm text-zinc-200 leading-relaxed font-sans font-medium">
                 "{renderMathText(currentCard.concept)}"
@@ -527,7 +565,7 @@ export function ActiveRecallArena({ cards, onExit }: ActiveRecallArenaProps) {
                   className="space-y-2 overflow-hidden pt-2"
                 >
                   <span className="text-[10px] font-mono uppercase text-emerald-400 font-bold tracking-wider block">
-                    Formula Expression & Mechanism:
+                    {currentCard.cardType === 'mistake' ? 'Correct Method & Key Takeaway:' : 'Formula Expression & Mechanism:'}
                   </span>
                   <div className="p-5 rounded-2xl bg-zinc-950/90 border border-emerald-500/30 text-emerald-200 font-mono text-sm leading-relaxed overflow-x-auto shadow-inner">
                     {renderMathText(currentCard.formula || 'No formula string mapped')}

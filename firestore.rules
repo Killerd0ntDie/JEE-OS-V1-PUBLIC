@@ -11,7 +11,7 @@ service cloud.firestore {
       allow read, write: if isOwner(userId);
       
       match /{collectionId}/{documentId} {
-        allow read, write: if isOwner(userId) && collectionId in ['chapters', 'notes', 'mistakes', 'studySessions', 'mockResults', 'customMockTests', 'timelineBlocks', 'customTimelineBlocks', 'customMissions'];
+        allow read, write: if isOwner(userId) && collectionId in ['chapters', 'notes', 'mistakes', 'studySessions', 'mockResults', 'customMockTests', 'timelineBlocks', 'customTimelineBlocks', 'customMissions', 'customQuestions'];
       }
     }
 

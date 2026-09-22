@@ -46,11 +46,12 @@ export class SpacedRepetitionEngine {
     // Update ease factor: EF':=EF+(0.1-(5-q)*(0.08+(5-q)*0.02))
     easeFactor = easeFactor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02));
     
-    // Ease factor bounds (1.3 to 2.5)
-    easeFactor = Math.min(2.5, Math.max(1.3, easeFactor));
+    // Ease factor lower bound (1.3), uncapped upper bound per SM-2
+    easeFactor = Math.max(1.3, easeFactor);
 
-    // Calculate next review date
+    // Calculate next review date, normalized to local midnight to prevent timezone drift
     const nextReviewDate = new Date();
+    nextReviewDate.setHours(0, 0, 0, 0);
     nextReviewDate.setDate(nextReviewDate.getDate() + interval);
 
     return {

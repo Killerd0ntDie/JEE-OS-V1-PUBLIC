@@ -57,7 +57,7 @@ export function PrerequisiteFoundationAlert({
       if (!found) {
         return { name, id: '', confidence: 50, isDecaying: true, exists: false };
       }
-      const confidence = found.confidenceScore || found.confidence || 0;
+      const confidence = found.confidence || 0;
       const isDecaying = (found.lastRevisionDaysAgo ?? 0) > 7 || found.retentionStatus === 'Fading' || found.retentionStatus === 'Forgotten';
       return {
         name: found.name,

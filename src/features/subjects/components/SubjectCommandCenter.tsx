@@ -6,10 +6,12 @@ import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { ChapterTelemetry } from '@jee-os/engines';
 import { ChapterCommandCard } from './ChapterCommandCard';
 import { Icon } from '@/components/ui/Icon';
-import { Search, Filter, ArrowUpDown, Network, ListFilter, Plus, Target, ArrowRight, Activity, Sparkles } from 'lucide-react';
+import { Search, Filter, ArrowUpDown, Network, ListFilter, Plus, Target, ArrowRight, Activity, Sparkles, TrendingUp } from 'lucide-react';
 import { GlassSelect, GlassSelectOption } from '@/components/ui/GlassSelect';
 import { AddCustomChapterModal } from './AddCustomChapterModal';
 import { RpgKnowledgeTreeWidget } from './RpgKnowledgeTreeWidget';
+import { ChapterRoiWeightageMatrix } from './ChapterRoiWeightageMatrix';
+import { AiPracticeModal } from '@/components/mentor/AiPracticeModal';
 import { springs } from '@/constants/motion';
 
 interface SubjectCommandCenterProps {
@@ -39,8 +41,9 @@ export function SubjectCommandCenter({
   const [activeUnit, setActiveUnit] = useState<string>('All');
   const [sortBy, setSortBy] = useState<SortType>('default');
   const [isAddChapterOpen, setIsAddChapterOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<'list' | 'rpg'>(() => {
-    return (localStorage.getItem('syllabusViewMode') as 'list' | 'rpg') || 'list';
+  const [aiPracticeConfig, setAiPracticeConfig] = useState<{ chapterId: string; subject: string } | null>(null);
+  const [viewMode, setViewMode] = useState<'list' | 'matrix' | 'rpg'>(() => {
+    return (localStorage.getItem('syllabusViewMode') as 'list' | 'matrix' | 'rpg') || 'list';
   });
 
   const searchInputRef = React.useRef<HTMLInputElement>(null);
@@ -193,9 +196,9 @@ export function SubjectCommandCenter({
   ];
 
   return (
-    <div className="space-y-6 pb-12 text-left">
+    <div className="space-y-6 pb-32 sm:pb-36 text-left">
       {/* STREAMLINED HEADER CONTAINER */}
-      <div className="p-5 md:p-6 lg:p-7 rounded-2xl border border-zinc-850/80 bg-zinc-950/90 space-y-5 shadow-2xl">
+      <div className="p-5 md:p-6 lg:p-7 rounded-2xl surface-1 space-y-5 shadow-2xl">
         
         {/* Title & Header Stats */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -232,12 +235,12 @@ export function SubjectCommandCenter({
               <span>Add Chapter</span>
             </motion.button>
 
-            {/* View Mode Toggle */}
-            <div className="grid grid-cols-2 gap-1 p-1 bg-zinc-950/80 border border-zinc-850 rounded-xl relative select-none">
+            {/* View Mode Toggle (List | ROI Matrix | Tree) */}
+            <div className="grid grid-cols-3 gap-1 p-1 bg-zinc-950/80 border border-zinc-850 rounded-xl relative select-none">
               <button
                 type="button"
                 onClick={() => setViewMode('list')}
-                className={`relative px-3 py-1.5 rounded-lg text-xs font-mono font-bold uppercase transition-colors cursor-pointer select-none z-10 flex items-center justify-center gap-1.5 ${
+                className={`relative px-2.5 py-1.5 rounded-lg text-xs font-mono font-bold uppercase transition-colors cursor-pointer select-none z-10 flex items-center justify-center gap-1.5 ${
                   viewMode === 'list' ? 'text-white' : 'text-zinc-400 hover:text-zinc-200'
                 }`}
               >
@@ -254,8 +257,26 @@ export function SubjectCommandCenter({
 
               <button
                 type="button"
+                onClick={() => setViewMode('matrix')}
+                className={`relative px-2.5 py-1.5 rounded-lg text-xs font-mono font-bold uppercase transition-colors cursor-pointer select-none z-10 flex items-center justify-center gap-1.5 ${
+                  viewMode === 'matrix' ? 'text-white' : 'text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                {viewMode === 'matrix' && (
+                  <motion.div
+                    layoutId={`subjectViewMode_${subjectId}`}
+                    className="absolute inset-0 bg-indigo-600/30 border border-indigo-500/40 rounded-lg shadow-sm -z-10"
+                    transition={springs.snappy}
+                  />
+                )}
+                <TrendingUp className="w-3.5 h-3.5" />
+                <span>ROI Matrix</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => setViewMode('rpg')}
-                className={`relative px-3 py-1.5 rounded-lg text-xs font-mono font-bold uppercase transition-colors cursor-pointer select-none z-10 flex items-center justify-center gap-1.5 ${
+                className={`relative px-2.5 py-1.5 rounded-lg text-xs font-mono font-bold uppercase transition-colors cursor-pointer select-none z-10 flex items-center justify-center gap-1.5 ${
                   viewMode === 'rpg' ? 'text-white' : 'text-zinc-400 hover:text-zinc-200'
                 }`}
               >
@@ -341,7 +362,22 @@ export function SubjectCommandCenter({
       </div>
 
       {/* MAIN CONTENT AREA */}
-      {viewMode === 'rpg' ? (
+      {viewMode === 'matrix' ? (
+        <AnimatePresence mode="wait">
+          <motion.div
+            key="matrix-view"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={springs.snappy}
+          >
+            <ChapterRoiWeightageMatrix
+              defaultSubject={subjectId}
+              onPracticeChapter={(chapterId, subject) => setAiPracticeConfig({ chapterId, subject })}
+            />
+          </motion.div>
+        </AnimatePresence>
+      ) : viewMode === 'rpg' ? (
         <AnimatePresence mode="wait">
           <motion.div
             key="rpg-view"
@@ -538,6 +574,13 @@ export function SubjectCommandCenter({
         onClose={() => setIsAddChapterOpen(false)}
         defaultSubject={subjectId}
         defaultUnit={activeUnit !== 'All' ? activeUnit : undefined}
+      />
+
+      <AiPracticeModal
+        isOpen={aiPracticeConfig !== null}
+        onClose={() => setAiPracticeConfig(null)}
+        chapterId={aiPracticeConfig?.chapterId || null}
+        subject={aiPracticeConfig?.subject || subjectId}
       />
     </div>
   );

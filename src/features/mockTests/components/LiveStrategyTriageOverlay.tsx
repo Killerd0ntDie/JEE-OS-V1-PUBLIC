@@ -9,7 +9,8 @@ import { audioEngine } from '@/utils/audioEngine';
 export type TriageCategory = 'instant-kill' | 'second-pass' | 'trap-skip';
 
 interface LiveStrategyTriageOverlayProps {
-  timeLeftSeconds: number;
+  timeLeftSeconds?: number;
+  targetEndTime?: number;
   totalDurationMinutes: number;
   currentQuestionId: string;
   triageMap: Record<string, TriageCategory>;
@@ -18,6 +19,7 @@ interface LiveStrategyTriageOverlayProps {
 
 export function LiveStrategyTriageOverlay({
   timeLeftSeconds,
+  targetEndTime,
   totalDurationMinutes,
   currentQuestionId,
   triageMap,
@@ -25,15 +27,39 @@ export function LiveStrategyTriageOverlay({
 }: LiveStrategyTriageOverlayProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Compute current strategic exam round based on time remaining
-  const elapsedMinutes = Math.max(0, totalDurationMinutes - Math.floor(timeLeftSeconds / 60));
+  // Compute current strategic exam round based on time elapsed without parent 1s re-renders
+  const [elapsedMinutes, setElapsedMinutes] = useState(() => {
+    if (typeof timeLeftSeconds === 'number') {
+      return Math.max(0, totalDurationMinutes - Math.floor(timeLeftSeconds / 60));
+    }
+    if (targetEndTime) {
+      const startTime = targetEndTime - totalDurationMinutes * 60000;
+      return Math.max(0, Math.floor((Date.now() - startTime) / 60000));
+    }
+    return 0;
+  });
+
+  useEffect(() => {
+    if (typeof timeLeftSeconds === 'number') {
+      setElapsedMinutes(Math.max(0, totalDurationMinutes - Math.floor(timeLeftSeconds / 60)));
+      return;
+    }
+    if (!targetEndTime) return;
+    const update = () => {
+      const startTime = targetEndTime - totalDurationMinutes * 60000;
+      setElapsedMinutes(Math.max(0, Math.floor((Date.now() - startTime) / 60000)));
+    };
+    update();
+    const interval = setInterval(update, 30000);
+    return () => clearInterval(interval);
+  }, [timeLeftSeconds, targetEndTime, totalDurationMinutes]);
   
   const currentRound = 
     elapsedMinutes <= 55 
-      ? { round: 1, title: 'Round 1: Rapid Fire Scan', advice: 'Solve direct formulas & fact questions (<75s each). Skip all heavy calculations.', color: 'text-emerald-400', border: 'border-emerald-500/40', bg: 'bg-emerald-950/60' }
+      ? { round: 1, title: 'Round 1: Rapid Fire Scan', advice: 'Solve direct formulas & fact questions (<75s each). Skip all heavy calculations.', color: 'text-emerald-300', border: 'border-emerald-500/50', bg: 'bg-emerald-950/80' }
       : elapsedMinutes <= 135
-      ? { round: 2, title: 'Round 2: Standard Numericals', advice: 'Tackle standard 2-step calculations (90-150s). Return to all 🟡 Second-Pass questions.', color: 'text-sky-400', border: 'border-sky-500/40', bg: 'bg-sky-950/60' }
-      : { round: 3, title: 'Round 3: High-Yield Sprints', advice: 'Review multi-concept problems and check calculation signs. Protect negative marks!', color: 'text-purple-400', border: 'border-purple-500/40', bg: 'bg-purple-950/60' };
+      ? { round: 2, title: 'Round 2: Standard Numericals', advice: 'Tackle standard 2-step calculations (90-150s). Return to all 🟡 Second-Pass questions.', color: 'text-sky-300', border: 'border-sky-500/50', bg: 'bg-sky-950/80' }
+      : { round: 3, title: 'Round 3: High-Yield Sprints', advice: 'Review multi-concept problems and check calculation signs. Protect negative marks!', color: 'text-purple-300', border: 'border-purple-500/50', bg: 'bg-purple-950/80' };
 
   // Current question's triage state
   const activeTriage = triageMap[currentQuestionId];
@@ -61,13 +87,13 @@ export function LiveStrategyTriageOverlay({
           <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md border ${currentRound.bg} ${currentRound.border} ${currentRound.color}`}>
             {currentRound.title}
           </span>
-          <span className="text-[10px] text-zinc-400">({elapsedMinutes}m elapsed)</span>
+          <span className="text-[10px] text-zinc-300 font-medium">({elapsedMinutes}m elapsed)</span>
         </div>
 
         <button
           type="button"
           onClick={() => setIsExpanded(prev => !prev)}
-          className="text-[10px] text-zinc-400 hover:text-white underline cursor-pointer"
+          className="text-[10px] text-zinc-300 hover:text-white font-medium underline cursor-pointer"
         >
           {isExpanded ? 'Hide Strategy' : 'Strategy Guide'}
         </button>

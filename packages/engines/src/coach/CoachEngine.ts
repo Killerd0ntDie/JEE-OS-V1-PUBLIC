@@ -1,22 +1,45 @@
 import { CoachInput, CoachOutput, CoachAction } from './types';
 
+export type AuthTokenProvider = () => Promise<string | null>;
+
+export interface CoachEngineOptions {
+  tokenProvider?: AuthTokenProvider;
+}
+
 export class CoachEngine {
   public static cachedWorkingModel: string | null = null;
+  public static tokenProvider: AuthTokenProvider | null = null;
 
-  private async getAuthToken(): Promise<string | null> {
-    try {
-      const { auth } = await import('@/firebase');
-      const user = auth?.currentUser;
-      if (!user) return null;
-      return await user.getIdToken();
-    } catch {
-      return null;
+  constructor(private options?: CoachEngineOptions) {}
+
+  public static setTokenProvider(provider: AuthTokenProvider | null): void {
+    CoachEngine.tokenProvider = provider;
+  }
+
+  private async getAuthToken(input?: CoachInput): Promise<string | null> {
+    if ((input as any)?.authToken) {
+      return (input as any).authToken;
     }
+    if (this.options?.tokenProvider) {
+      try {
+        return await this.options.tokenProvider();
+      } catch {
+        return null;
+      }
+    }
+    if (CoachEngine.tokenProvider) {
+      try {
+        return await CoachEngine.tokenProvider();
+      } catch {
+        return null;
+      }
+    }
+    return null;
   }
 
   public async getAnalysis(input: CoachInput): Promise<CoachOutput> {
     try {
-      const token = await this.getAuthToken();
+      const token = await this.getAuthToken(input);
       if (token) {
         const response = await fetch('/api/coach/analyze', {
           method: 'POST',
@@ -47,7 +70,7 @@ export class CoachEngine {
     const target = input.targetCollege || 'IIT';
     const year = input.targetYear || '2026';
 
-    const activeChapters = (input.chapters || []).filter((c: any) => c.status !== 'Unstarted' || (c.progress && c.progress > 0));
+    const activeChapters = (input.chapters || []).filter((c: any) => c.status !== 'Not Started' || (c.progress && c.progress > 0));
     const weakTopics = input.weakTopics || [];
     const inFlightCount = activeChapters.length;
     const actions: CoachAction[] = [];
@@ -74,9 +97,9 @@ export class CoachEngine {
           type: 'ADD_MISSION',
           payload: {
             title: `Solve 15 PYQs: ${topChap.name}`,
-            subject: q.includes('chemistry') ? 'chemistry' : q.includes('physics') ? 'physics' : 'maths',
+            subject: topChap.subject,
             duration: 60,
-            chapterId: topChap.name
+            chapterId: topChap.id
           }
         });
       }

@@ -1,0 +1,161 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import React from 'react';
+import { FormulaVaultPage } from './FormulaVaultPage';
+
+// Mock Toast
+const mockToast = vi.fn();
+vi.mock('@/components/ui/ToastProvider', () => ({
+  useToast: () => ({
+    toast: mockToast
+  })
+}));
+
+// Mock audioEngine
+vi.mock('@/utils/audioEngine', () => ({
+  audioEngine: {
+    playMechanicalKey: vi.fn().mockResolvedValue(undefined),
+    playHover: vi.fn(),
+    playTap: vi.fn(),
+  }
+}));
+
+describe('FormulaVaultPage Feature View (Magnitude 5.1)', { timeout: 20000 }, () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+    Object.assign(navigator, {
+      clipboard: {
+        writeText: vi.fn().mockResolvedValue(undefined),
+      },
+    });
+  });
+
+  it('renders Formula & Theorem Vault banner, search bar, and subject pills', () => {
+    render(<FormulaVaultPage />);
+
+    expect(screen.getByText('JEE FORMULA REPOSITORY')).toBeInTheDocument();
+    expect(screen.getByText('Formula & Theorem Vault')).toBeInTheDocument();
+
+    // Verify Subject filters
+    expect(screen.getByRole('button', { name: 'All' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Physics/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Chemistry/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Maths/i })).toBeInTheDocument();
+
+    // Verify Search Input
+    expect(
+      screen.getByPlaceholderText('Search formulas, concepts, theorems, or symbols...')
+    ).toBeInTheDocument();
+  });
+
+  it('filters formulas when typing in the search input', async () => {
+    render(<FormulaVaultPage />);
+
+    const searchInput = screen.getByPlaceholderText('Search formulas, concepts, theorems, or symbols...');
+    fireEvent.change(searchInput, { target: { value: 'Kinematics' } });
+
+    // Should display filtered results or chapter
+    expect(screen.getByRole('heading', { name: 'Kinematics' })).toBeInTheDocument();
+
+    // Now search something nonexistent
+    fireEvent.change(searchInput, { target: { value: 'xyzrandomnonexistentformula' } });
+    expect(screen.getByText('No Formulas Found')).toBeInTheDocument();
+
+    // Click Reset Filters
+    const resetBtn = screen.getByRole('button', { name: 'Reset Filters' });
+    fireEvent.click(resetBtn);
+    expect(screen.queryByText('No Formulas Found')).not.toBeInTheDocument();
+  });
+
+  it('switches subject tabs to filter formula repository', () => {
+    render(<FormulaVaultPage />);
+
+    const physicsBtn = screen.getByRole('button', { name: /Physics/i });
+    fireEvent.click(physicsBtn);
+    expect(screen.getByText(/Displaying/i)).toBeInTheDocument();
+
+    const mathsBtn = screen.getByRole('button', { name: /Maths/i });
+    fireEvent.click(mathsBtn);
+    expect(screen.getByText(/Displaying/i)).toBeInTheDocument();
+  });
+
+  it('bookmarks a formula and toggles starred view', async () => {
+    render(<FormulaVaultPage />);
+
+    // Find the first bookmark button
+    const bookmarkButtons = screen.getAllByTitle('Bookmark Formula');
+    expect(bookmarkButtons.length).toBeGreaterThan(0);
+
+    // Click first bookmark
+    fireEvent.click(bookmarkButtons[0]);
+
+    // Check localStorage was updated
+    const saved = localStorage.getItem('jeeos_bookmarked_formulas');
+    expect(saved).not.toBeNull();
+    const parsed = JSON.parse(saved || '[]');
+    expect(parsed.length).toBe(1);
+
+    // Filter to Starred
+    const starredFilterBtn = screen.getByTitle('Filter Starred Formulas');
+    fireEvent.click(starredFilterBtn);
+
+    expect(screen.getByText('Showing Starred Only')).toBeInTheDocument();
+  });
+
+  it('copies formula LaTeX code to clipboard', () => {
+    render(<FormulaVaultPage />);
+
+    const copyButtons = screen.getAllByTitle('Copy LaTeX formula');
+    expect(copyButtons.length).toBeGreaterThan(0);
+
+    fireEvent.click(copyButtons[0]);
+    expect(navigator.clipboard.writeText).toHaveBeenCalled();
+    expect(mockToast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'LaTeX Formula Copied'
+      })
+    );
+  });
+
+  it('toggles Cloze Recall mode and allows revealing hidden formula', () => {
+    render(<FormulaVaultPage />);
+
+    // Click Cloze Recall button
+    const clozeBtn = screen.getByRole('button', { name: /Cloze Recall/i });
+    fireEvent.click(clozeBtn);
+
+    // Should indicate Cloze is active
+    expect(screen.getByText('Cloze Active')).toBeInTheDocument();
+
+    // Look for cloze reveal buttons
+    const revealBtns = screen.getAllByText('[ ? Click to Reveal Formula ]');
+    expect(revealBtns.length).toBeGreaterThan(0);
+
+    // Click first reveal button
+    fireEvent.click(revealBtns[0]);
+
+    // First card should now show Revealed badge
+    expect(screen.getByText('Revealed')).toBeInTheDocument();
+  });
+
+  it('opens and closes the Dimensional Analysis & Physical Constants modal', async () => {
+    render(<FormulaVaultPage />);
+
+    // Find and click Dimensions & Units button
+    const dimsBtn = screen.getByRole('button', { name: /Dimensions & Units/i });
+    fireEvent.click(dimsBtn);
+
+    // Modal header should be present
+    expect(screen.getByText('High-Yield JEE Constants & Dimensions')).toBeInTheDocument();
+    expect(screen.getByText('Universal Gravitational Constant')).toBeInTheDocument();
+
+    // Close modal
+    const closeBtn = screen.getByRole('button', { name: 'Close Dimensions Modal' });
+    fireEvent.click(closeBtn);
+
+    await waitFor(() => {
+      expect(screen.queryByText('High-Yield JEE Constants & Dimensions')).not.toBeInTheDocument();
+    }, { timeout: 10000 });
+  });
+});

@@ -29,7 +29,7 @@ export const CustomMissionModal: React.FC<CustomMissionModalProps> = ({ isOpen, 
   useEffect(() => {
     if (missionToEdit && isOpen) {
       setTaskName(missionToEdit.taskName);
-      setSubject(missionToEdit.subject);
+      setSubject(missionToEdit.subject === 'break' ? 'physics' : missionToEdit.subject);
       setChapter(missionToEdit.chapter || '');
       setType(missionToEdit.type || 'Solve DPP');
       setDuration(missionToEdit.duration || 60);

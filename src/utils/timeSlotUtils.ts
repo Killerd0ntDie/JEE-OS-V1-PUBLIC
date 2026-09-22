@@ -62,14 +62,15 @@ export function formatTimeSlotDisplay(timeSlot: TimeSlot): string {
  * (used for sequential scheduling)
  */
 export function calculateNextTimeSlot(currentHour: number, currentMinute: number, durationMinutes: number): TimeSlot {
-  const startMins = currentHour * 60 + currentMinute;
+  const normCurrentHour = ((currentHour % 24) + 24) % 24;
+  const startMins = normCurrentHour * 60 + currentMinute;
   const endMins = startMins + durationMinutes;
   
-  const endHour = Math.floor(endMins / 60);
+  const endHour = Math.floor(endMins / 60) % 24;
   const endMinute = endMins % 60;
   
   return {
-    start: `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`,
+    start: `${normCurrentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`,
     end: `${endHour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}`,
     duration: durationMinutes
   };

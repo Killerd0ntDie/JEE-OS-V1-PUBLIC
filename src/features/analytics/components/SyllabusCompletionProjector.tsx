@@ -20,7 +20,7 @@ export function SyllabusCompletionProjector({ chapters, studySessions }: Syllabu
   // Total syllabus scope metrics
   const totalChapters = chapters.length || 56;
   const completedChapters = useMemo(() => {
-    return chapters.filter(c => c.completed || (c.lectureProgress ?? 0) >= 100).length;
+    return chapters.filter(c => (c.completion ?? 0) >= 100 || c.status === 'Mastered' || c.theoryComplete).length;
   }, [chapters]);
 
   const remainingChapters = Math.max(0, totalChapters - completedChapters);
@@ -29,7 +29,7 @@ export function SyllabusCompletionProjector({ chapters, studySessions }: Syllabu
   const remainingLectures = useMemo(() => {
     return chapters.reduce((acc, c) => {
       const total = c.totalLectures || 8;
-      const done = c.completedLectures || 0;
+      const done = c.currentLecture || c.lectureProgress?.completedLectures || 0;
       return acc + Math.max(0, total - done);
     }, 0);
   }, [chapters]);

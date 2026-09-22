@@ -1,6 +1,6 @@
-import { SubjectId } from '@/types/index';
-import { PlannerInput } from '@/engines/planner/types';
-import { KnowledgeEngine, ProgressState } from '@/engines/knowledge';
+import { SubjectId } from '../types/index';
+import { PlannerInput } from '../planner/types';
+import { KnowledgeEngine, ProgressState } from '../knowledge';
 import { OptimizationInput, OptimizationResult } from './types';
 
 // -----------------------------------------------------------------
@@ -31,7 +31,7 @@ export class OptimizationEngine {
       : 0;
     
     // Clamp target daily quota between 2 and 12 hrs/day to prevent impossible 30 hrs/day or 0 hrs/day values
-    const rawQuota = plannerInput.userPreferences.dailyQuota || plannerInput.studyHours || 6;
+    const rawQuota = plannerInput.userPreferences?.dailyQuota || plannerInput.studyHours || 6;
     const targetQuota = Math.min(12, Math.max(2, rawQuota));
     
     // Implement Velocity Smoothing (EWMA) proportional to sample size
@@ -146,8 +146,8 @@ export class OptimizationEngine {
       ...plannerInput,
       studyHours: Math.round(optimizedStudyHours * 10) / 10,
       userPreferences: {
-        ...plannerInput.userPreferences,
-        focusSubject: neglectedSubjects.length > 0 ? neglectedSubjects[0] : plannerInput.userPreferences.focusSubject
+        ...(plannerInput.userPreferences || { targetYear: '2026' }),
+        focusSubject: neglectedSubjects.length > 0 ? neglectedSubjects[0] : plannerInput.userPreferences?.focusSubject
       }
     };
 

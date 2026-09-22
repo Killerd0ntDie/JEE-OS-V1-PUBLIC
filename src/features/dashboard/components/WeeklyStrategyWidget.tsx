@@ -132,7 +132,7 @@ export function WeeklyStrategyWidget({ chapters, mentorProfile, projectedReadine
           <div className="p-3 rounded-xl bg-zinc-950/60 border border-white/10 flex items-center justify-between gap-2 shadow-sm">
             <div className="space-y-0.5">
               <span className="text-[10px] font-mono text-zinc-400 font-bold uppercase block">Target Readiness</span>
-              <span className="text-sm font-bold font-mono text-sky-400">{projectedReadiness}% Projected</span>
+              <span className="text-sm font-bold font-mono text-sky-400">{typeof projectedReadiness === 'number' && !isNaN(projectedReadiness) ? projectedReadiness : 0}% Projected</span>
             </div>
             <div className="w-8 h-8 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center shrink-0">
               <Target className="w-4 h-4 text-sky-400" />

@@ -8,6 +8,7 @@ export interface Toast {
   id: string;
   title: string;
   message?: string;
+  description?: string;
   type?: 'info' | 'success' | 'warning' | 'error';
   duration?: number;
 }
@@ -39,7 +40,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     if (settings.desktopNotifications && 'Notification' in window && Notification.permission === 'granted') {
       try {
         new Notification(options.title, {
-          body: options.message,
+          body: options.description || options.message,
           icon: '/favicon.ico',
         });
       } catch (e) {
@@ -71,7 +72,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       {children}
       
       {/* Modern Dynamic Island Style Toast UI Container */}
-      <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center gap-3 pointer-events-none max-w-md w-full px-4">
+      <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[99999] flex flex-col items-center gap-3 pointer-events-none max-w-md w-full px-4">
         <AnimatePresence>
           {toasts.map((t) => (
             <motion.div
@@ -95,7 +96,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               
               <div className="flex-1 relative z-10 py-0.5 min-w-[200px]">
                 <h4 className="text-sm font-semibold text-white tracking-tight">{t.title}</h4>
-                {t.message && <p className="text-[11px] text-zinc-400 mt-0.5 leading-snug">{t.message}</p>}
+                {(t.description || t.message) && <p className="text-[11px] text-zinc-400 mt-0.5 leading-snug">{t.description || t.message}</p>}
               </div>
               
               <button 

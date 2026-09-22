@@ -29,6 +29,21 @@ export const MistakeRepository = {
     await deleteDoc(mistakeDoc);
   },
 
+  // Save multiple mistakes atomically in chunked batches (up to 450 per batch)
+  async saveMistakesBatch(userId: string, mistakes: Mistake[]): Promise<void> {
+    if (!mistakes || mistakes.length === 0) return;
+    const CHUNK_SIZE = 450;
+    for (let i = 0; i < mistakes.length; i += CHUNK_SIZE) {
+      const chunk = mistakes.slice(i, i + CHUNK_SIZE);
+      const batch = writeBatch(db);
+      chunk.forEach(mistake => {
+        const mistakeDoc = doc(db, 'users', userId, 'mistakes', mistake.id);
+        batch.set(mistakeDoc, sanitizeForFirestore(mistake), { merge: true });
+      });
+      await batch.commit();
+    }
+  },
+
   // Seed initial mistakes
   async seedMistakes(userId: string, initialMistakes: Mistake[]): Promise<void> {
     const CHUNK_SIZE = 450;

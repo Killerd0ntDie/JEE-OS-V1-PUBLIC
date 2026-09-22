@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CustomSelect } from '@/components/ui/CustomSelect';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { RevisionCardItem } from '@jee-os/engines';
 import { 
   ArrowLeft, Brain, Sparkles, CheckCircle2, 
-  Lightbulb, BookOpen, ShieldCheck, Zap, ArrowRight, RotateCcw
+  Lightbulb, BookOpen, Mic, MicOff, RotateCcw
 } from 'lucide-react';
-import { BlockMath, InlineMath } from 'react-katex';
+import { MathRenderer } from '@/components/MathRenderer';
 import { springs } from '@/constants/motion';
 
 interface FeynmanSandboxStageProps {
@@ -23,9 +23,19 @@ export const FeynmanSandboxStage: React.FC<FeynmanSandboxStageProps> = ({
 
   const [selectedCardId, setSelectedCardId] = useState<string>(cards[0]?.id || '');
   const [explanationText, setExplanationText] = useState('');
+  const [isListening, setIsListening] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(false);
+
+  const recognitionRef = useRef<any>(null);
+
   const [feedback, setFeedback] = useState<{
     depthScore: number;
     clarityTier: string;
+    rubric: {
+      intuition: { score: number; comment: string };
+      boundaryCases: { score: number; comment: string };
+      prerequisites: { score: number; comment: string };
+    };
     strengths: string[];
     advice: string;
     xp: number;
@@ -33,23 +43,53 @@ export const FeynmanSandboxStage: React.FC<FeynmanSandboxStageProps> = ({
 
   const selectedCard = cards.length > 0 ? (cards.find(c => c.id === selectedCardId) || cards[0]) : null;
 
-  const renderMathText = (text: string | undefined | null) => {
-    if (!text) return null;
-    try {
-      const cleanText = text.replace(/\\\$/g, '$');
-      const parts = cleanText.split(/(\$\$.*?\$\$|\$.*?\$)/gs);
-      return parts.map((part, i) => {
-        if (part.startsWith('$$') && part.endsWith('$$')) {
-          const math = part.slice(2, -2);
-          return <BlockMath key={i} math={math} errorColor="#ef4444" />;
-        } else if (part.startsWith('$') && part.endsWith('$')) {
-          const math = part.slice(1, -1);
-          return <InlineMath key={i} math={math} errorColor="#ef4444" />;
+  // Check Web Speech API availability
+  useEffect(() => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      setSpeechSupported(true);
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+
+      recognition.onresult = (event: any) => {
+        let currentTranscript = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          currentTranscript += event.results[i][0].transcript;
         }
-        return <span key={i}>{part}</span>;
-      });
-    } catch {
-      return <span className="font-mono text-xs text-zinc-300">{text}</span>;
+        if (currentTranscript) {
+          setExplanationText(prev => {
+            const trimmed = prev.trim();
+            return trimmed ? `${trimmed} ${currentTranscript.trim()}` : currentTranscript.trim();
+          });
+        }
+      };
+
+      recognition.onerror = () => {
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+    }
+  }, []);
+
+  const toggleSpeechRecognition = () => {
+    if (!recognitionRef.current) return;
+    if (isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    } else {
+      try {
+        recognitionRef.current.start();
+        setIsListening(true);
+      } catch (err) {
+        console.warn('Speech recognition start failed:', err);
+      }
     }
   };
 
@@ -58,44 +98,81 @@ export const FeynmanSandboxStage: React.FC<FeynmanSandboxStageProps> = ({
   const handleEvaluateExplanation = () => {
     if (!explanationText.trim() || wordCount < 5 || !selectedCard) return;
 
-    // Advanced conceptual depth evaluation
-    let depthScore = 65;
-    let clarityTier = 'Developing';
-    const strengths: string[] = [];
+    // Multi-dimensional conceptual depth rubric
+    const textLower = explanationText.toLowerCase();
 
-    if (wordCount >= 25) {
-      depthScore = 95;
-      clarityTier = 'Mastery Level';
-      strengths.push('Elaborated deep physical mechanism with comprehensive detail.');
-      strengths.push('Avoided superficial rote-memorization phrasing.');
-    } else if (wordCount >= 14) {
-      depthScore = 82;
-      clarityTier = 'Solid Intuition';
-      strengths.push('Captured the core qualitative relationship cleanly.');
-    } else {
-      depthScore = 70;
-      clarityTier = 'Basic Overview';
-      strengths.push('Stated the foundational concept correctly.');
+    // 1. Intuition & Physical Meaning
+    const intuitionKeywords = ['because', 'means', 'proportional', 'increases', 'decreases', 'energy', 'force', 'rate', 'conserved', 'ratio', 'flow', 'density'];
+    const matchedIntuition = intuitionKeywords.filter(kw => textLower.includes(kw));
+    const intuitionScore = Math.min(98, 60 + matchedIntuition.length * 8 + (wordCount >= 20 ? 15 : 5));
+
+    // 2. Boundary Cases & Gotchas
+    const boundaryKeywords = ['limit', 'zero', 'infinity', 'maximum', 'minimum', 'boundary', 'constant', 'sign', 'direction', 'threshold', 'vacuum', 'infinite'];
+    const matchedBoundary = boundaryKeywords.filter(kw => textLower.includes(kw));
+    const boundaryScore = Math.min(96, 55 + matchedBoundary.length * 12);
+
+    // 3. Prerequisite Concepts
+    const prereqKeywords = ['law', 'conservation', 'theorem', 'derivative', 'integral', 'vector', 'scalar', 'potential', 'equilibrium', 'momentum', 'charge'];
+    const matchedPrereq = prereqKeywords.filter(kw => textLower.includes(kw));
+    const prereqScore = Math.min(95, 58 + matchedPrereq.length * 10);
+
+    // Composite Depth Score
+    const depthScore = Math.round(intuitionScore * 0.45 + boundaryScore * 0.3 + prereqScore * 0.25);
+    
+    let clarityTier = 'Developing';
+    if (depthScore >= 85) clarityTier = 'Mastery Level';
+    else if (depthScore >= 75) clarityTier = 'Solid Intuition';
+    else if (depthScore >= 65) clarityTier = 'Foundational Baseline';
+
+    const strengths: string[] = [];
+    if (matchedIntuition.length > 0) {
+      strengths.push('Articulated the underlying physical mechanism without robotic symbol reciting.');
+    }
+    if (matchedBoundary.length > 0) {
+      strengths.push('Addressed asymptotic boundaries or limit behaviors.');
+    }
+    if (matchedPrereq.length > 0) {
+      strengths.push('Connected concept directly to foundational physical conservation laws.');
+    }
+    if (strengths.length === 0) {
+      strengths.push('Captured the basic qualitative relationship cleanly.');
     }
 
-    const advice = wordCount >= 20
-      ? 'Outstanding intuitive grasp. You distilled the core physical variables without relying on mechanical symbol manipulation. Memory interval upgraded to maximum stability.'
-      : 'Good baseline. To reach full mastery, try integrating a real-world physical analogy or discussing what happens at the boundary limits.';
+    const advice = depthScore >= 85
+      ? 'Outstanding intuitive explanation! You distilled the core physical variables without relying on mechanical symbol manipulation. Memory interval upgraded to maximum SM-2 stability.'
+      : matchedBoundary.length === 0
+        ? 'Great baseline. To reach full mastery, try explaining what happens at the boundary conditions (e.g., when the variable approaches zero or infinity).'
+        : 'Good effort. Try anchoring your reasoning in an everyday physical analogy or relating it to conservation laws.';
 
     const xpEarned = depthScore >= 90 ? 150 : depthScore >= 80 ? 100 : 50;
 
     setFeedback({
       depthScore,
       clarityTier,
+      rubric: {
+        intuition: {
+          score: intuitionScore,
+          comment: matchedIntuition.length >= 2 ? 'Strong qualitative reasoning' : 'Basic qualitative overview'
+        },
+        boundaryCases: {
+          score: boundaryScore,
+          comment: matchedBoundary.length >= 1 ? 'Boundary awareness present' : 'Consider extreme limits'
+        },
+        prerequisites: {
+          score: prereqScore,
+          comment: matchedPrereq.length >= 1 ? 'Linked to foundational laws' : 'Link to core principles'
+        }
+      },
       strengths,
       advice,
       xp: xpEarned
     });
 
+    // Auto-promote SM-2 retention interval upon achieving solid or mastery score
     actions.completeRevision(selectedCard.chapterId, depthScore >= 80 ? 'High' : 'Medium');
     actions.completeStudySession({
       type: 'Revision',
-      duration: 3,
+      duration: 4,
       questionsSolved: 1,
       correct: 1,
       accuracy: 100,
@@ -223,7 +300,7 @@ export const FeynmanSandboxStage: React.FC<FeynmanSandboxStageProps> = ({
                   Concept Challenge:
                 </span>
                 <h3 className="text-lg md:text-xl font-display font-bold text-white tracking-tight">
-                  {renderMathText(selectedCard.title)}
+                  <MathRenderer text={selectedCard.title} />
                 </h3>
               </div>
 
@@ -232,7 +309,7 @@ export const FeynmanSandboxStage: React.FC<FeynmanSandboxStageProps> = ({
                   Formal Mathematical Statement:
                 </span>
                 <div className="font-mono text-xs text-indigo-200 overflow-x-auto leading-relaxed">
-                  {renderMathText(selectedCard.formula || 'No formula mapped')}
+                  <MathRenderer text={selectedCard.formula || selectedCard.latex || 'No formula mapped'} />
                 </div>
               </div>
 
@@ -240,9 +317,9 @@ export const FeynmanSandboxStage: React.FC<FeynmanSandboxStageProps> = ({
                 <span className="text-[10px] font-mono uppercase text-zinc-400 font-bold tracking-wider block">
                   Core Principle to Articulate:
                 </span>
-                <p className="text-xs text-zinc-300 leading-relaxed font-sans font-medium">
-                  "{renderMathText(selectedCard.concept)}"
-                </p>
+                <div className="text-xs text-zinc-300 leading-relaxed font-sans font-medium">
+                  <MathRenderer text={selectedCard.concept} />
+                </div>
               </div>
 
             </div>
@@ -269,7 +346,7 @@ export const FeynmanSandboxStage: React.FC<FeynmanSandboxStageProps> = ({
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-indigo-400 font-mono font-bold">3.</span>
-                <span>Use metaphors or analogies to anchor memory in intuition.</span>
+                <span>Address what happens at boundary limits ($x \to 0$ or $x \to \infty$).</span>
               </li>
             </ul>
           </div>
@@ -288,7 +365,24 @@ export const FeynmanSandboxStage: React.FC<FeynmanSandboxStageProps> = ({
                   <span>Your Intuitive Explanation</span>
                 </span>
 
-                <div className="flex items-center gap-2 font-mono text-[11px] text-zinc-400">
+                <div className="flex items-center gap-3 font-mono text-[11px] text-zinc-400">
+                  {/* Audio Speech-to-Text Toggle */}
+                  {speechSupported && (
+                    <button
+                      type="button"
+                      onClick={toggleSpeechRecognition}
+                      className={`px-2.5 py-1 rounded-xl border flex items-center gap-1.5 transition-all cursor-pointer ${
+                        isListening
+                          ? 'bg-red-950/80 border-red-500/60 text-red-300 animate-pulse'
+                          : 'bg-zinc-950/80 border-white/10 text-zinc-400 hover:text-white'
+                      }`}
+                      title={isListening ? 'Stop voice recording' : 'Dictate explanation with voice'}
+                    >
+                      {isListening ? <Mic className="w-3 h-3 text-red-400" /> : <MicOff className="w-3 h-3" />}
+                      <span>{isListening ? 'Listening...' : 'Voice Dictation'}</span>
+                    </button>
+                  )}
+
                   <span>Words: <strong className={wordCount >= 15 ? 'text-emerald-400' : 'text-zinc-300'}>{wordCount}</strong></span>
                 </div>
               </div>
@@ -308,7 +402,7 @@ export const FeynmanSandboxStage: React.FC<FeynmanSandboxStageProps> = ({
                 {[
                   'Physically, this means that...',
                   'Think of it like...',
-                  'If the radius increases, then...',
+                  'When the variable approaches infinity...',
                   'The energy gets conserved because...'
                 ].map((chip, idx) => (
                   <button
@@ -368,6 +462,25 @@ export const FeynmanSandboxStage: React.FC<FeynmanSandboxStageProps> = ({
                       Score: {feedback.depthScore}%
                     </span>
                     <span className="text-indigo-300 font-bold">+{feedback.xp} XP</span>
+                  </div>
+                </div>
+
+                {/* 3-Dimensional Rubric Breakdown */}
+                <div className="grid grid-cols-3 gap-2 font-mono text-[11px] relative z-10">
+                  <div className="p-2.5 rounded-xl bg-zinc-950/80 border border-zinc-800 space-y-0.5">
+                    <span className="text-[10px] text-zinc-400 uppercase font-bold block">Intuition</span>
+                    <span className="text-white font-bold block">{feedback.rubric.intuition.score}%</span>
+                    <span className="text-[9px] text-indigo-300 truncate block">{feedback.rubric.intuition.comment}</span>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-zinc-950/80 border border-zinc-800 space-y-0.5">
+                    <span className="text-[10px] text-zinc-400 uppercase font-bold block">Boundary Cases</span>
+                    <span className="text-white font-bold block">{feedback.rubric.boundaryCases.score}%</span>
+                    <span className="text-[9px] text-amber-300 truncate block">{feedback.rubric.boundaryCases.comment}</span>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-zinc-950/80 border border-zinc-800 space-y-0.5">
+                    <span className="text-[10px] text-zinc-400 uppercase font-bold block">Prerequisites</span>
+                    <span className="text-white font-bold block">{feedback.rubric.prerequisites.score}%</span>
+                    <span className="text-[9px] text-emerald-300 truncate block">{feedback.rubric.prerequisites.comment}</span>
                   </div>
                 </div>
 

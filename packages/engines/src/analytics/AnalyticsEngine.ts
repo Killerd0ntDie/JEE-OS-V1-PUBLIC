@@ -1,4 +1,4 @@
-import { SubjectId } from '@/types/index';
+import { SubjectId } from '../types/index';
 import { AnalyticsInput, AnalyticsOutput } from './types';
 
 function getLocalDateKey(date: Date): string {
@@ -42,7 +42,9 @@ export class AnalyticsEngine {
       }
       
       const sessionDate = new Date(session.startTime);
-      const diffDays = Math.floor((now.getTime() - sessionDate.getTime()) / msPerDay);
+      const sessionMidnight = new Date(sessionDate.getFullYear(), sessionDate.getMonth(), sessionDate.getDate()).getTime();
+      const nowMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+      const diffDays = Math.round((nowMidnight - sessionMidnight) / msPerDay);
       
       const dateStr = getLocalDateKey(sessionDate);
       dailyStudyMins[dateStr] = (dailyStudyMins[dateStr] || 0) + session.duration;
@@ -60,10 +62,10 @@ export class AnalyticsEngine {
     const studyVelocity = studyHoursPastWeek.reduce((a, b) => a + b, 0) / 7;
     const consistencyScore = Math.round((activeDaysInLast30.size / 30) * 100);
     
-    // Calculate Streak
+    // Calculate Streak using calendar days
     let currentStreak = 0;
     for (let i = 0; i < 365; i++) {
-      const d = new Date(now.getTime() - i * msPerDay);
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
       const dateStr = getLocalDateKey(d);
       if (dailyStudyMins[dateStr] > 0) {
         currentStreak++;
@@ -148,9 +150,18 @@ export class AnalyticsEngine {
     if (studyVelocity > 0 && remainingLectures > 0) {
       // rough heuristic: 1.5 hours per lecture
       const remainingHours = remainingLectures * 1.5;
-      const daysToComplete = isNaN(remainingHours / studyVelocity) || !isFinite(remainingHours / studyVelocity) ? 365 : remainingHours / studyVelocity;
+      const rawDays = remainingHours / studyVelocity;
+      // BUG-11: Clamp daysToComplete to prevent JavaScript Date overflow (RangeError: Invalid time value)
+      // Supports realistic horizon between 1 day and 10 years (3650 days)
+      const daysToComplete = isNaN(rawDays) || !isFinite(rawDays) || rawDays <= 0
+        ? 365
+        : Math.min(3650, Math.max(1, rawDays));
       const futureMs = now.getTime() + daysToComplete * msPerDay;
-      predictedDate = isNaN(futureMs) ? new Date().toISOString() : new Date(futureMs).toISOString();
+      try {
+        predictedDate = isNaN(futureMs) ? new Date().toISOString() : new Date(futureMs).toISOString();
+      } catch {
+        predictedDate = new Date().toISOString();
+      }
     } else if (remainingLectures === 0) {
       predictedDate = now.toISOString();
     }

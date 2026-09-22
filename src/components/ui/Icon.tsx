@@ -71,6 +71,9 @@ import {
   Eye,
   Layers,
   ShieldCheck,
+  ShieldAlert,
+  GraduationCap,
+  ClipboardCheck,
   Compass,
   Brain,
   Trash,
@@ -154,6 +157,9 @@ export const iconMap = {
   EyeOff,
   Layers,
   ShieldCheck,
+  ShieldAlert,
+  GraduationCap,
+  ClipboardCheck,
   Compass,
   Brain
 };

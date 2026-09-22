@@ -30,11 +30,44 @@ export function FocusVaultPage() {
   const lastTickTime = useRef<number>(Date.now());
   const youtubeRef = useRef<HTMLIFrameElement>(null);
 
+  // Persist session state to sessionStorage for crash recovery
+  const SESSION_STORAGE_KEY = 'jeeos_focus_vault_state';
+
   const activeStateRef = useRef({ isActive, timeLeft, sessionDuration, isCompleted });
 
   useEffect(() => {
     activeStateRef.current = { isActive, timeLeft, sessionDuration, isCompleted };
   }, [isActive, timeLeft, sessionDuration, isCompleted]);
+
+  // Periodically persist session state to sessionStorage for refresh recovery
+  useEffect(() => {
+    if (isActive && sessionDuration > 0) {
+      try {
+        sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({
+          timeLeft, sessionDuration, selectedSubject, isActive, timestamp: Date.now()
+        }));
+      } catch { /* ignore */ }
+    }
+  }, [isActive, timeLeft, sessionDuration, selectedSubject]);
+
+  // Recover state from sessionStorage on mount
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem(SESSION_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        const FIVE_HOURS = 5 * 60 * 60 * 1000;
+        if (parsed.timestamp && (Date.now() - parsed.timestamp) < FIVE_HOURS && parsed.sessionDuration > 0) {
+          setTimeLeft(parsed.timeLeft ?? 0);
+          setSessionDuration(parsed.sessionDuration ?? 0);
+          setSelectedSubject(parsed.selectedSubject ?? 'physics');
+          // Don't auto-resume; let user click play
+        } else {
+          sessionStorage.removeItem(SESSION_STORAGE_KEY);
+        }
+      }
+    } catch { /* ignore */ }
+  }, []);
 
   // Sync active state to session storage to block navigation in App.tsx
   useEffect(() => {
@@ -87,7 +120,7 @@ export function FocusVaultPage() {
             const nextTime = Math.max(0, prev - deltaSecs);
             return nextTime;
           });
-          setSessionDuration(prev => prev + deltaSecs);
+          setSessionDuration(prev => prev + Math.min(deltaSecs, Math.max(0, activeStateRef.current.timeLeft)));
         }
       }, 1000);
     } else if (timerRef.current) {
@@ -115,11 +148,13 @@ export function FocusVaultPage() {
     setTimeLeft(finalMins * 60);
     setSessionDuration(0);
     setIsCompleted(false);
+    sessionStorage.removeItem(SESSION_STORAGE_KEY);
   };
 
   const handleComplete = () => {
     setIsActive(false);
     setIsCompleted(true);
+    sessionStorage.removeItem(SESSION_STORAGE_KEY);
     
     // Log the session via the actions dispatcher
     const minutesFocused = Math.max(1, Math.floor(sessionDuration / 60));
@@ -303,7 +338,7 @@ export function FocusVaultPage() {
       </div>
 
       {/* Floating Lo-Fi Player (YouTube Embed) */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 md:translate-x-0 md:left-auto md:right-8 w-[90vw] max-w-[350px] min-h-[80px] bg-zinc-950/80 backdrop-blur-md rounded-2xl border border-zinc-800/80 overflow-hidden shadow-2xl flex items-center p-3 gap-4 group transition-all duration-300 hover:border-indigo-500/30 hover:bg-zinc-900">
+      <div className="absolute bottom-24 sm:bottom-28 md:bottom-8 left-1/2 -translate-x-1/2 md:translate-x-0 md:left-auto md:right-8 w-[90vw] max-w-[350px] min-h-[80px] surface-elevated rounded-2xl overflow-hidden shadow-2xl flex items-center p-3 gap-4 group transition-all duration-300 hover:border-indigo-500/40">
         <div className="w-14 h-14 rounded-xl overflow-hidden relative shrink-0 bg-black">
           {/* Lofi Girl YouTube Stream - Invisible click overlay to prevent navigating out */}
           <div className="absolute inset-0 z-10"></div>

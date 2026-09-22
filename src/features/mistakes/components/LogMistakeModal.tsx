@@ -1,12 +1,12 @@
 import React from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import { Plus, X, Tag, Sparkles, Clock, AlertTriangle, Image as ImageIcon, Trash2, Upload } from 'lucide-react';
 import { CustomSelect } from '@/components/ui/CustomSelect';
 import { SubjectId, Mistake } from '@/types/index';
-import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
-import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
-import { springs, modalVariants } from '@/constants/motion';
+import { springs } from '@/constants/motion';
+import { Modal } from '@/components/ui/Modal';
+import { RichTextRenderer } from '@/components/MathRenderer';
 
 export interface LogMistakeModalProps {
   isOpen: boolean;
@@ -21,8 +21,6 @@ export const LogMistakeModal: React.FC<LogMistakeModalProps> = ({
 }) => {
   const actions = useStudyBrainStore(state => state.actions);
   const chapters = useStudyBrainStore(state => state.chapters) || [];
-  useEscapeKey(onClose, isOpen);
-  useLockBodyScroll(isOpen);
 
   const [formSubject, setFormSubject] = React.useState<SubjectId>('physics');
   const [formChapter, setFormChapter] = React.useState('');
@@ -44,7 +42,18 @@ export const LogMistakeModal: React.FC<LogMistakeModalProps> = ({
     return chapters.filter(c => c.subject === formSubject);
   }, [chapters, formSubject]);
 
-  if (!isOpen) return null;
+  const handleSubjectChange = (newSub: SubjectId) => {
+    if (newSub === formSubject) return;
+    setFormSubject(newSub);
+    const newSubChapters = chapters.filter(c => c.subject === newSub);
+    const stillValid = newSubChapters.some(
+      c => c.name.toLowerCase() === formChapter.trim().toLowerCase()
+    );
+    if (!stillValid) {
+      setFormChapter('');
+      setFormChapterId('');
+    }
+  };
 
   const handleImageFileChange = (file: File | undefined, type: 'wrong' | 'correct') => {
     if (!file) return;
@@ -130,49 +139,52 @@ export const LogMistakeModal: React.FC<LogMistakeModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/10 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 select-none overflow-y-auto">
-      <motion.div
-        variants={modalVariants}
-        initial="initial"
-        animate="animate"
-        exit="exit"
-        className="w-full max-w-2xl border border-zinc-850/90 rounded-2xl shadow-2xl overflow-hidden my-auto text-left"
-      >
-        {/* Modal Header */}
-        <div className="p-5 border-b border-zinc-850/80 flex justify-between items-center bg-zinc-950/60">
-          <div className="space-y-0.5">
-            <h2 className="text-base font-bold text-white flex items-center gap-2 font-display">
-              <Plus className="w-4 h-4 text-red-500" />
-              Log Conceptual / Tactical Prep Error
-            </h2>
-            <p className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">
-              Documenting errors is the fastest road to securing an IIT rank
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 text-zinc-400 hover:text-white border border-zinc-800 transition-colors cursor-pointer"
-          >
-            <X className="w-4 h-4" />
-          </button>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      zIndex={100010}
+      backdropClassName="bg-black/35 backdrop-blur-sm"
+      className="w-full max-w-2xl bg-[#0e0f14] border border-zinc-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col text-left max-h-[90vh] my-auto"
+    >
+      {/* Modal Header */}
+      <div className="p-5 border-b border-zinc-800/90 flex justify-between items-center bg-zinc-950/90 shrink-0">
+        <div className="space-y-0.5">
+          <h2 className="text-base font-bold text-white flex items-center gap-2 font-display">
+            <Plus className="w-4 h-4 text-red-500" />
+            Log Conceptual / Tactical Prep Error
+          </h2>
+          <p className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">
+            Documenting errors is the fastest road to securing an IIT rank
+          </p>
         </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="p-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 text-zinc-400 hover:text-white border border-zinc-800 transition-colors cursor-pointer"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
 
-        {/* Modal Form */}
-        <form onSubmit={onSubmit} className="p-5 sm:p-6 space-y-4 max-h-[calc(85vh-120px)] overflow-y-auto custom-scrollbar font-mono text-xs">
+      {/* Modal Form */}
+      <form onSubmit={onSubmit} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        
+        {/* Scrollable Fields Body */}
+        <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4 custom-scrollbar font-mono text-xs">
           
           {/* Subject Switcher with Glider */}
           <div className="space-y-1.5">
             <label className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider block">
               Subject Class
             </label>
-            <div className="grid grid-cols-3 gap-1 p-1 bg-zinc-900/80 border border-zinc-850 rounded-xl relative select-none">
+            <div className="grid grid-cols-3 gap-1 p-1 bg-zinc-900/90 border border-zinc-800 rounded-xl relative select-none">
               {(['physics', 'chemistry', 'maths'] as const).map(sub => {
                 const isActive = formSubject === sub;
                 return (
                   <button
                     key={sub}
                     type="button"
-                    onClick={() => setFormSubject(sub)}
+                    onClick={() => handleSubjectChange(sub)}
                     className={`relative py-2 rounded-lg font-mono text-xs font-bold uppercase transition-colors cursor-pointer select-none z-10 flex items-center justify-center ${
                       isActive ? 'text-white' : 'text-zinc-400 hover:text-zinc-200'
                     }`}
@@ -180,7 +192,11 @@ export const LogMistakeModal: React.FC<LogMistakeModalProps> = ({
                     {isActive && (
                       <motion.div
                         layoutId="mistakeSubjectTabGlider"
-                        className="absolute inset-0 bg-indigo-600 rounded-lg shadow-md shadow-indigo-600/30 -z-10"
+                        className={`absolute inset-0 rounded-lg shadow-md -z-10 ${
+                          sub === 'physics' ? 'bg-indigo-600 shadow-indigo-600/30' :
+                          sub === 'chemistry' ? 'bg-emerald-600 shadow-emerald-600/30' :
+                          'bg-amber-600 shadow-amber-600/30'
+                        }`}
                         transition={springs.fluid}
                       />
                     )}
@@ -288,6 +304,16 @@ export const LogMistakeModal: React.FC<LogMistakeModalProps> = ({
               placeholder="Describe or paste the exact question text with equations ($v = u + at$)..."
               className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-white placeholder-zinc-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 leading-relaxed custom-scrollbar"
             />
+            {formQuestionText && (formQuestionText.includes('$') || formQuestionText.includes('\\') || formQuestionText.includes('^') || formQuestionText.includes('_')) && (
+              <div className="p-2.5 rounded-xl bg-zinc-950/80 border border-indigo-500/30 text-xs">
+                <span className="text-[10px] font-mono text-indigo-400 uppercase tracking-wider block mb-1">
+                  Question Formula Preview:
+                </span>
+                <div className="text-zinc-100 font-sans leading-relaxed">
+                  <RichTextRenderer content={formQuestionText} />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Faulty Attempt vs Correct Solution */}
@@ -355,6 +381,16 @@ export const LogMistakeModal: React.FC<LogMistakeModalProps> = ({
                 placeholder="Write the correct method or final key formula derivation..."
                 className="w-full bg-zinc-900/80 border border-emerald-900/40 rounded-xl p-3 text-emerald-200 placeholder-zinc-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 leading-relaxed custom-scrollbar"
               />
+              {formCorrectSolution && (formCorrectSolution.includes('$') || formCorrectSolution.includes('\\') || formCorrectSolution.includes('^') || formCorrectSolution.includes('_')) && (
+                <div className="p-2.5 rounded-xl bg-zinc-950/80 border border-emerald-500/30 text-xs">
+                  <span className="text-[10px] font-mono text-emerald-400 uppercase tracking-wider block mb-1">
+                    Solution Formula Preview:
+                  </span>
+                  <div className="text-zinc-100 font-sans leading-relaxed">
+                    <RichTextRenderer content={formCorrectSolution} />
+                  </div>
+                </div>
+              )}
               {correctSolutionImage && (
                 <div className="relative rounded-xl overflow-hidden border border-emerald-900/40 bg-zinc-950 p-1.5 flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -398,26 +434,26 @@ export const LogMistakeModal: React.FC<LogMistakeModalProps> = ({
               })}
             </div>
           </div>
+        </div>
 
-          {/* Submit Footer */}
-          <div className="pt-2 flex items-center justify-end gap-3 border-t border-zinc-850">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-850 text-zinc-400 hover:text-white border border-zinc-800 transition-colors cursor-pointer"
-            >
-              Cancel
-            </button>
-            <motion.button
-              type="submit"
-              whileTap={{ scale: 0.94 }}
-              className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold uppercase tracking-wider shadow-lg shadow-red-600/25 transition-colors cursor-pointer"
-            >
-              Log & Classify in Error Book
-            </motion.button>
-          </div>
-        </form>
-      </motion.div>
-    </div>
+        {/* Sticky Submit Footer */}
+        <div className="p-4 border-t border-zinc-800/90 bg-zinc-950/95 flex items-center justify-end gap-3 shrink-0">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-850 text-zinc-400 hover:text-white border border-zinc-800 transition-colors cursor-pointer"
+          >
+            Cancel
+          </button>
+          <motion.button
+            type="submit"
+            whileTap={{ scale: 0.94 }}
+            className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold uppercase tracking-wider shadow-lg shadow-red-600/25 transition-colors cursor-pointer"
+          >
+            Log & Classify in Error Book
+          </motion.button>
+        </div>
+      </form>
+    </Modal>
   );
 };

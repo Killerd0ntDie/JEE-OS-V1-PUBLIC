@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   ArrowLeft, Sparkles, Search, Skull, Timer, 
@@ -8,6 +8,190 @@ import {
 import { RevisionCardItem, ChapterRevisionSummary } from '@jee-os/engines';
 import { BlockMath, InlineMath } from 'react-katex';
 import { audioEngine } from '@/utils/audioEngine';
+
+function renderMathText(text: string | undefined | null) {
+  if (!text) return null;
+  try {
+    const cleanText = text.replace(/\\\$/g, '$');
+    const parts = cleanText.split(/(\$\$.*?\$\$|\$.*?\$)/gs);
+    return parts.map((part, i) => {
+      if (part.startsWith('$$') && part.endsWith('$$')) {
+        const math = part.slice(2, -2);
+        return <BlockMath key={i} math={math} errorColor="#ef4444" />;
+      } else if (part.startsWith('$') && part.endsWith('$')) {
+        const math = part.slice(1, -1);
+        return <InlineMath key={i} math={math} errorColor="#ef4444" />;
+      }
+      return <span key={i}>{part}</span>;
+    });
+  } catch {
+    return <span className="font-mono text-xs text-zinc-300">{text}</span>;
+  }
+}
+
+function getConfidenceBadge(confidence: 'High' | 'Medium' | 'Low' | 'Not Started') {
+  switch (confidence) {
+    case 'High':
+      return 'bg-emerald-950/60 text-emerald-400 border-emerald-500/40 shadow-sm';
+    case 'Medium':
+      return 'bg-amber-950/60 text-amber-400 border-amber-500/40 shadow-sm';
+    case 'Low':
+      return 'bg-red-950/60 text-red-400 border-red-500/40 shadow-sm';
+    case 'Not Started':
+      return 'bg-zinc-950/60 text-zinc-400 border-white/10';
+  }
+}
+
+interface RevisionFlashcardItemProps {
+  card: RevisionCardItem;
+  isAnimating: boolean;
+  animatingType?: 'success' | 'fail';
+  onMarkRecall: (card: RevisionCardItem, result: 'Low' | 'Medium' | 'High') => void;
+}
+
+export const RevisionFlashcardItem = React.memo(function RevisionFlashcardItem({
+  card,
+  isAnimating,
+  animatingType,
+  onMarkRecall
+}: RevisionFlashcardItemProps) {
+  const [isFlipped, setIsFlipped] = useState(false);
+
+  const handleToggleFlip = () => {
+    audioEngine.playCardFlip();
+    setIsFlipped(prev => !prev);
+  };
+
+  const isUrgent = card.retentionConfidence === 'Low';
+  const isMedium = card.retentionConfidence === 'Medium';
+
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, scale: 0.98 }}
+      animate={{ 
+        opacity: isAnimating ? 0.4 : 1, 
+        scale: isAnimating ? (animatingType === 'success' ? 1.02 : 0.98) : 1 
+      }}
+      transition={{ duration: 0.15 }}
+      className={`p-5 rounded-3xl border text-left flex flex-col justify-between space-y-4 transition-all shadow-lg ${
+        isFlipped
+          ? 'bg-indigo-950/25 border-indigo-500/40 shadow-indigo-950/20'
+          : isUrgent 
+          ? 'bg-red-950/20 border-red-500/40 hover:border-red-500/70 shadow-red-950/20' 
+          : isMedium
+          ? 'bg-amber-950/15 border-amber-500/30 hover:border-amber-500/60 shadow-amber-950/20'
+          : 'bg-zinc-900/60 border-white/10 hover:border-white/20'
+      }`}
+    >
+      {/* Card Header */}
+      <div className="flex items-start justify-between gap-2 border-b border-white/10 pb-3">
+        <div className="space-y-1 min-w-0 pr-2">
+          <div className="flex items-center gap-1.5 font-mono text-[10px] uppercase font-bold tracking-wider">
+            <span className={`px-2 py-0.5 rounded-lg border ${
+              card.subject === 'physics' ? 'bg-indigo-950/60 text-indigo-300 border-indigo-500/40' :
+              card.subject === 'chemistry' ? 'bg-emerald-950/60 text-emerald-300 border-emerald-500/40' :
+              'bg-amber-950/60 text-amber-300 border-amber-500/40'
+            }`}>
+              {card.subject}
+            </span>
+            <span className="text-zinc-400 truncate block max-w-[140px]">{card.chapterName}</span>
+          </div>
+          <h4 className="text-sm font-semibold text-white truncate block">
+            {renderMathText(card.title)}
+          </h4>
+        </div>
+
+        <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-lg border shrink-0 ${getConfidenceBadge(card.retentionConfidence)}`}>
+          {card.retentionConfidence}
+        </span>
+      </div>
+
+      {/* Upright Clean Flip Card Body */}
+      <div 
+        onClick={handleToggleFlip}
+        className={`cursor-pointer min-h-[140px] flex flex-col justify-between rounded-2xl p-4 transition-all shadow-inner group relative select-none ${
+          isFlipped 
+            ? 'bg-zinc-950/90 border border-indigo-500/40' 
+            : 'bg-zinc-950/80 border border-white/5 hover:border-white/15'
+        }`}
+      >
+        {isFlipped ? (
+          <div className="space-y-2">
+            <span className="text-[10px] font-mono text-emerald-400 uppercase font-bold tracking-wider block">
+              Formula Expression:
+            </span>
+            <div className="font-mono text-xs text-emerald-200 overflow-x-auto whitespace-pre-wrap leading-relaxed">
+              {renderMathText(card.formula || 'No formula string mapped')}
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-1.5">
+            <span className="text-[10px] font-mono text-zinc-400 uppercase font-bold tracking-wider block">
+              Concept Prompt:
+            </span>
+            <p className="text-xs text-zinc-200 leading-relaxed font-sans font-medium">
+              "{renderMathText(card.concept)}"
+            </p>
+          </div>
+        )}
+
+        <div className="flex justify-end pt-2">
+          <span className={`px-2 py-0.5 rounded-lg border text-[9px] font-mono transition-colors flex items-center gap-1 shadow-sm ${
+            isFlipped
+              ? 'bg-indigo-900/60 border-indigo-500/30 text-indigo-300'
+              : 'bg-zinc-900/90 border border-white/10 text-zinc-400 group-hover:text-indigo-300'
+          }`}>
+            <RotateCw className="w-2.5 h-2.5" />
+            <span>{isFlipped ? 'Show Prompt' : 'Reveal Formula'}</span>
+          </span>
+        </div>
+      </div>
+
+      {/* Card Actions (SM-2 Grading Buttons) */}
+      <div className="flex items-center justify-between gap-1.5 pt-2 border-t border-white/10">
+        <button
+          type="button"
+          onClick={() => {
+            setIsFlipped(false);
+            onMarkRecall(card, 'Low');
+          }}
+          className="flex-1 py-2 px-2.5 rounded-xl bg-red-950/60 hover:bg-red-900/80 text-red-300 border border-red-800/60 font-mono text-[10px] font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-1 cursor-pointer active:scale-95 shadow-sm"
+          title="Blackout: Reset interval to 1 day"
+        >
+          <Skull className="w-3 h-3" />
+          <span>Blackout</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setIsFlipped(false);
+            onMarkRecall(card, 'Medium');
+          }}
+          className="flex-1 py-2 px-2.5 rounded-xl bg-amber-950/60 hover:bg-amber-900/80 text-amber-300 border border-amber-800/60 font-mono text-[10px] font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-1 cursor-pointer active:scale-95 shadow-sm"
+          title="Hard: Reinforce interval to 3 days"
+        >
+          <Timer className="w-3 h-3" />
+          <span>Hard</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setIsFlipped(false);
+            onMarkRecall(card, 'High');
+          }}
+          className="flex-1 py-2 px-2.5 rounded-xl bg-emerald-950/60 hover:bg-emerald-900/80 text-emerald-300 border border-emerald-800/60 font-mono text-[10px] font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-1 cursor-pointer active:scale-95 shadow-sm"
+          title="Good: Expand interval to 7+ days"
+        >
+          <CheckCircle2 className="w-3 h-3" />
+          <span>Good</span>
+        </button>
+      </div>
+    </motion.div>
+  );
+});
 
 export interface RevisionFlashcardVaultProps {
   cards: RevisionCardItem[];
@@ -22,7 +206,7 @@ export interface RevisionFlashcardVaultProps {
   setFilterScope: (scope: 'urgent' | 'overdue' | 'all') => void;
   searchQuery: string;
   setSearchQuery: (q: string) => void;
-  onCompleteRevision: (chapterId: string, difficulty: 'High' | 'Medium' | 'Low') => void;
+  onGradeFlashcard: (cardId: string, chapterId: string, quality: number) => void;
   onPracticeWithAI: (chapterId: string, subject: string) => void;
   onInspectChapter: (chapterId: string) => void;
   onBackToHub: () => void;
@@ -41,7 +225,7 @@ export const RevisionFlashcardVault: React.FC<RevisionFlashcardVaultProps> = ({
   setFilterScope,
   searchQuery,
   setSearchQuery,
-  onCompleteRevision,
+  onGradeFlashcard,
   onPracticeWithAI,
   onInspectChapter,
   onBackToHub
@@ -50,7 +234,6 @@ export const RevisionFlashcardVault: React.FC<RevisionFlashcardVaultProps> = ({
   const [vaultView, setVaultView] = useState<'cards' | 'matrix'>('cards');
   const [matrixScope, setMatrixScope] = useState<'active' | 'overdue' | 'mastered' | 'all'>('active');
 
-  const [flippedCards, setFlippedCards] = useState<Record<string, boolean>>({});
   const [animatingCard, setAnimatingCard] = useState<{ id: string; type: 'success' | 'fail' } | null>(null);
   const [recalledToast, setRecalledToast] = useState<{ title: string; xp: number } | null>(null);
 
@@ -132,38 +315,19 @@ export const RevisionFlashcardVault: React.FC<RevisionFlashcardVaultProps> = ({
     return pool;
   }, [overdueChapters, upcomingChapters, masteredChapters, notStartedChapters, matrixScope, activeSubject, searchQuery]);
 
-  const toggleFlip = (id: string) => {
-    audioEngine.playCardFlip();
-    setFlippedCards(prev => ({ ...prev, [id]: !prev[id] }));
-  };
+  const markCardRecall = useCallback((card: RevisionCardItem, result: 'Low' | 'Medium' | 'High') => {
+    // Map result to 0-5 SM2 quality score
+    let quality = 0;
+    if (result === 'Low') quality = 1;      // Incorrect, felt familiar
+    else if (result === 'Medium') quality = 3; // Correct, serious difficulty
+    else if (result === 'High') quality = 5; // Perfect response
 
-  const renderMathText = (text: string | undefined | null) => {
-    if (!text) return null;
-    try {
-      const cleanText = text.replace(/\\\$/g, '$');
-      const parts = cleanText.split(/(\$\$.*?\$\$|\$.*?\$)/gs);
-      return parts.map((part, i) => {
-        if (part.startsWith('$$') && part.endsWith('$$')) {
-          const math = part.slice(2, -2);
-          return <BlockMath key={i} math={math} errorColor="#ef4444" />;
-        } else if (part.startsWith('$') && part.endsWith('$')) {
-          const math = part.slice(1, -1);
-          return <InlineMath key={i} math={math} errorColor="#ef4444" />;
-        }
-        return <span key={i}>{part}</span>;
-      });
-    } catch {
-      return <span className="font-mono text-xs text-zinc-300">{text}</span>;
-    }
-  };
+    setAnimatingCard({ id: card.id, type: result === 'Low' ? 'fail' : 'success' });
+    onGradeFlashcard(card.id, card.chapterId, quality);
 
-  const markCardRecall = (card: RevisionCardItem, difficulty: 'High' | 'Medium' | 'Low') => {
-    setAnimatingCard({ id: card.id, type: difficulty === 'Low' ? 'fail' : 'success' });
-    onCompleteRevision(card.chapterId, difficulty);
+    const xpEarned = result === 'High' ? 100 : result === 'Medium' ? 50 : 20;
 
-    const xpEarned = difficulty === 'High' ? 100 : difficulty === 'Medium' ? 50 : 20;
-
-    if (difficulty !== 'Low') {
+    if (result !== 'Low') {
       audioEngine.playSuccess();
       setRecalledToast({ title: card.title, xp: xpEarned });
       setTimeout(() => setRecalledToast(null), 3000);
@@ -173,22 +337,8 @@ export const RevisionFlashcardVault: React.FC<RevisionFlashcardVaultProps> = ({
 
     setTimeout(() => {
       setAnimatingCard(null);
-      setFlippedCards(prev => ({ ...prev, [card.id]: false }));
     }, 250);
-  };
-
-  const getConfidenceBadge = (confidence: 'High' | 'Medium' | 'Low' | 'Not Started') => {
-    switch (confidence) {
-      case 'High':
-        return 'bg-emerald-950/60 text-emerald-400 border-emerald-500/40 shadow-sm';
-      case 'Medium':
-        return 'bg-amber-950/60 text-amber-400 border-amber-500/40 shadow-sm';
-      case 'Low':
-        return 'bg-red-950/60 text-red-400 border-red-500/40 shadow-sm';
-      case 'Not Started':
-        return 'bg-zinc-950/60 text-zinc-400 border-white/10';
-    }
-  };
+  }, [onGradeFlashcard]);
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto text-left relative font-sans select-none pb-16">
@@ -336,18 +486,18 @@ export const RevisionFlashcardVault: React.FC<RevisionFlashcardVaultProps> = ({
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-[11px] text-zinc-400 uppercase font-bold">Recall Scope:</span>
               <div className="flex gap-1">
-                {[
-                  { id: 'urgent', label: `Urgent Recall (${urgentCards.length})`, icon: AlertTriangle },
-                  { id: 'overdue', label: 'Overdue Only', icon: Flame },
-                  { id: 'all', label: `All Formulas (${cards.length})`, icon: BookOpen }
-                ].map(scope => {
+                {([
+                  { id: 'urgent' as const, label: `Urgent Recall (${urgentCards.length})`, icon: AlertTriangle },
+                  { id: 'overdue' as const, label: 'Overdue Only', icon: Flame },
+                  { id: 'all' as const, label: `All Formulas (${cards.length})`, icon: BookOpen }
+                ]).map(scope => {
                   const isActive = filterScope === scope.id;
                   const ScopeIcon = scope.icon;
                   return (
                     <button
                       key={scope.id}
                       onClick={() => {
-                        setFilterScope(scope.id as any);
+                        setFilterScope(scope.id);
                         audioEngine.playClick();
                       }}
                       className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer border flex items-center gap-1.5 ${
@@ -367,19 +517,19 @@ export const RevisionFlashcardVault: React.FC<RevisionFlashcardVaultProps> = ({
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-[11px] text-zinc-400 uppercase font-bold">Matrix Scope:</span>
               <div className="flex gap-1">
-                {[
-                  { id: 'active', label: 'Active Syllabus', icon: Activity },
-                  { id: 'overdue', label: `Overdue (${overdueChapters.length})`, icon: Flame },
-                  { id: 'mastered', label: `Mastered (${masteredChapters.length})`, icon: ShieldCheck },
-                  { id: 'all', label: 'All 70 Chapters', icon: Layers }
-                ].map(scope => {
+                {([
+                  { id: 'active' as const, label: 'Active Syllabus', icon: Activity },
+                  { id: 'overdue' as const, label: `Overdue (${overdueChapters.length})`, icon: Flame },
+                  { id: 'mastered' as const, label: `Mastered (${masteredChapters.length})`, icon: ShieldCheck },
+                  { id: 'all' as const, label: 'All 70 Chapters', icon: Layers }
+                ]).map(scope => {
                   const isActive = matrixScope === scope.id;
                   const ScopeIcon = scope.icon;
                   return (
                     <button
                       key={scope.id}
                       onClick={() => {
-                        setMatrixScope(scope.id as any);
+                        setMatrixScope(scope.id);
                         audioEngine.playClick();
                       }}
                       className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer border flex items-center gap-1.5 ${
@@ -421,131 +571,15 @@ export const RevisionFlashcardVault: React.FC<RevisionFlashcardVaultProps> = ({
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {cardsToDisplay.map((card) => {
-                const isFlipped = !!flippedCards[card.id];
-                const isAnimating = animatingCard?.id === card.id;
-                const isUrgent = card.retentionConfidence === 'Low';
-                const isMedium = card.retentionConfidence === 'Medium';
-
-                return (
-                  <motion.div
-                    key={card.id}
-                    layout
-                    initial={{ opacity: 0, scale: 0.98 }}
-                    animate={{ 
-                      opacity: isAnimating ? 0.4 : 1, 
-                      scale: isAnimating ? (animatingCard?.type === 'success' ? 1.02 : 0.98) : 1 
-                    }}
-                    transition={{ duration: 0.15 }}
-                    className={`p-5 rounded-3xl border text-left flex flex-col justify-between space-y-4  transition-all shadow-lg ${
-                      isFlipped
-                        ? 'bg-indigo-950/25 border-indigo-500/40 shadow-indigo-950/20'
-                        : isUrgent 
-                        ? 'bg-red-950/20 border-red-500/40 hover:border-red-500/70 shadow-red-950/20' 
-                        : isMedium
-                        ? 'bg-amber-950/15 border-amber-500/30 hover:border-amber-500/60 shadow-amber-950/20'
-                        : 'bg-zinc-900/60 border-white/10 hover:border-white/20'
-                    }`}
-                  >
-                    {/* Card Header */}
-                    <div className="flex items-start justify-between gap-2 border-b border-white/10 pb-3">
-                      <div className="space-y-1 min-w-0 pr-2">
-                        <div className="flex items-center gap-1.5 font-mono text-[10px] uppercase font-bold tracking-wider">
-                          <span className={`px-2 py-0.5 rounded-lg border ${
-                            card.subject === 'physics' ? 'bg-indigo-950/60 text-indigo-300 border-indigo-500/40' :
-                            card.subject === 'chemistry' ? 'bg-emerald-950/60 text-emerald-300 border-emerald-500/40' :
-                            'bg-amber-950/60 text-amber-300 border-amber-500/40'
-                          }`}>
-                            {card.subject}
-                          </span>
-                          <span className="text-zinc-400 truncate block max-w-[140px]">{card.chapterName}</span>
-                        </div>
-                        <h4 className="text-sm font-semibold text-white truncate block">
-                          {renderMathText(card.title)}
-                        </h4>
-                      </div>
-
-                      <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-lg border shrink-0 ${getConfidenceBadge(card.retentionConfidence)}`}>
-                        {card.retentionConfidence}
-                      </span>
-                    </div>
-
-                    {/* Upright Clean Flip Card Body */}
-                    <div 
-                      onClick={() => toggleFlip(card.id)}
-                      className={`cursor-pointer min-h-[140px] flex flex-col justify-between rounded-2xl p-4 transition-all shadow-inner group relative select-none ${
-                        isFlipped 
-                          ? 'bg-zinc-950/90 border border-indigo-500/40' 
-                          : 'bg-zinc-950/80 border border-white/5 hover:border-white/15'
-                      }`}
-                    >
-                      {isFlipped ? (
-                        <div className="space-y-2">
-                          <span className="text-[10px] font-mono text-emerald-400 uppercase font-bold tracking-wider block">
-                            Formula Expression:
-                          </span>
-                          <div className="font-mono text-xs text-emerald-200 overflow-x-auto whitespace-pre-wrap leading-relaxed">
-                            {renderMathText(card.formula || 'No formula string mapped')}
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-1.5">
-                          <span className="text-[10px] font-mono text-zinc-400 uppercase font-bold tracking-wider block">
-                            Concept Prompt:
-                          </span>
-                          <p className="text-xs text-zinc-200 leading-relaxed font-sans font-medium">
-                            "{renderMathText(card.concept)}"
-                          </p>
-                        </div>
-                      )}
-
-                      <div className="flex justify-end pt-2">
-                        <span className={`px-2 py-0.5 rounded-lg border text-[9px] font-mono transition-colors flex items-center gap-1 shadow-sm ${
-                          isFlipped
-                            ? 'bg-indigo-900/60 border-indigo-500/30 text-indigo-300'
-                            : 'bg-zinc-900/90 border border-white/10 text-zinc-400 group-hover:text-indigo-300'
-                        }`}>
-                          <RotateCw className="w-2.5 h-2.5" />
-                          <span>{isFlipped ? 'Show Prompt' : 'Reveal Formula'}</span>
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Card Actions (SM-2 Grading Buttons) */}
-                    <div className="flex items-center justify-between gap-1.5 pt-2 border-t border-white/10">
-                      <button
-                        type="button"
-                        onClick={() => markCardRecall(card, 'Low')}
-                        className="flex-1 py-2 px-2.5 rounded-xl bg-red-950/60 hover:bg-red-900/80 text-red-300 border border-red-800/60 font-mono text-[10px] font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-1 cursor-pointer active:scale-95 shadow-sm"
-                        title="Blackout: Reset interval to 1 day"
-                      >
-                        <Skull className="w-3 h-3" />
-                        <span>Blackout</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => markCardRecall(card, 'Medium')}
-                        className="flex-1 py-2 px-2.5 rounded-xl bg-amber-950/60 hover:bg-amber-900/80 text-amber-300 border border-amber-800/60 font-mono text-[10px] font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-1 cursor-pointer active:scale-95 shadow-sm"
-                        title="Hard: Reinforce interval to 3 days"
-                      >
-                        <Timer className="w-3 h-3" />
-                        <span>Hard</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => markCardRecall(card, 'High')}
-                        className="flex-1 py-2 px-2.5 rounded-xl bg-emerald-950/60 hover:bg-emerald-900/80 text-emerald-300 border border-emerald-800/60 font-mono text-[10px] font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-1 cursor-pointer active:scale-95 shadow-sm"
-                        title="Good: Expand interval to 7+ days"
-                      >
-                        <CheckCircle2 className="w-3 h-3" />
-                        <span>Good</span>
-                      </button>
-                    </div>
-                  </motion.div>
-                );
-              })}
+              {cardsToDisplay.map((card) => (
+                <RevisionFlashcardItem
+                  key={card.id}
+                  card={card}
+                  isAnimating={animatingCard?.id === card.id}
+                  animatingType={animatingCard?.type}
+                  onMarkRecall={markCardRecall}
+                />
+              ))}
             </div>
           )}
         </>

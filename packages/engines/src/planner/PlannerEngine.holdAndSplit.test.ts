@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { PlannerEngine, getDayFocusPill } from './PlannerEngine';
-import { KnowledgeEngine, SyllabusNode } from '@/engines/knowledge';
+import { PlannerEngine, getDayFocusPill, generateWeeklyMatrix } from './PlannerEngine';
+import { KnowledgeEngine, SyllabusNode } from '../knowledge';
 import { PlannerInput } from './types';
-import { Chapter } from '@/types';
+import { Chapter } from '../types/index';
 
 const MOCK_SYLLABUS: SyllabusNode[] = [
   {
@@ -189,5 +189,35 @@ describe('PlannerEngine - Chapter Hold & Custom 2-Day Split Tests', () => {
     // On Day 0 with customConfig ['physics', 'maths'], physics tasks are allowed, but chemistry candidates should be filtered out
     const chemTasks = output.todaysMission.filter(t => t.subjectId === 'chemistry');
     expect(chemTasks.length).toBe(0);
+  });
+
+  it('aligns morning schedule slot with custom dayStartTime in generateWeeklyMatrix', () => {
+    const blocksEarly = generateWeeklyMatrix(
+      '1_a_day_alternating',
+      mockChapters,
+      null,
+      null,
+      0,
+      undefined,
+      [],
+      {},
+      '06:00'
+    );
+    const earlyMorningBlock = blocksEarly.find(b => b.timeSlot?.includes('Morning'));
+    expect(earlyMorningBlock?.timeSlot).toBe('Morning (06:00 - 08:30)');
+
+    const blocksLate = generateWeeklyMatrix(
+      '1_a_day_alternating',
+      mockChapters,
+      null,
+      null,
+      0,
+      undefined,
+      [],
+      {},
+      '08:00'
+    );
+    const lateMorningBlock = blocksLate.find(b => b.timeSlot?.includes('Morning'));
+    expect(lateMorningBlock?.timeSlot).toBe('Morning (08:00 - 10:30)');
   });
 });

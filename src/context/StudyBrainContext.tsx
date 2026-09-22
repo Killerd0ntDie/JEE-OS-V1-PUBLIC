@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { onSnapshot, collection, doc } from 'firebase/firestore';
 import { db } from '@/firebase';
 import { StudyBrainRuntime, StudyBrainState } from '@/runtime/StudyBrainRuntime';
@@ -15,8 +15,11 @@ import { TimelineRepository } from '@/repositories/timelineRepository';
 import { StudyBrainActions } from '@/actions/StudyBrainActions';
 
 import { restoreNestedArrays } from '@/utils/firestoreSanitizer';
-import { Chapter, Mistake, TimelineBlock, UserProfile } from '@/types/index';
+import { Chapter, Mistake, TimelineBlock, UserProfile, MockResult } from '@/types/index';
+import { MockTest } from '@/types/mockTest';
 import { normalizeChapter } from '@/utils/academicState';
+import { mockTest1 } from '@/data/mockTests/jeeMain2024Shift1';
+import { idbGet, idbSet } from '@/utils/idb';
 
 const validateAndSanitizeChapters = (chaps: any[]): Chapter[] => {
   if (!Array.isArray(chaps)) {
@@ -119,14 +122,6 @@ const validateAndSanitizeMistakes = (msts: any[]): Mistake[] => {
   });
 };
 
-interface StudyBrainContextType {
-  state: StudyBrainState;
-  runtime: StudyBrainRuntime;
-  actions: StudyBrainActions;
-}
-
-const StudyBrainContext = createContext<StudyBrainContextType | null>(null);
-
 export const StudyBrainProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, loading: authLoading } = useAuth();
   const runtime = StudyBrainRuntime.getInstance();
@@ -135,12 +130,10 @@ export const StudyBrainProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   useEffect(() => {
     useStudyBrainStore.getState().setActions(actions);
-    
-    const unsubscribe = runtime.subscribe((newState) => {
-      useStudyBrainStore.getState().syncFromRuntime(newState);
-    });
-    return unsubscribe;
-  }, [runtime, actions]);
+    if (user?.uid) {
+      actions.setUserId(user.uid);
+    }
+  }, [actions, user]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -149,6 +142,25 @@ export const StudyBrainProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
     if (!user) {
       runtime.resetToInitialState();
+      Promise.all([
+        idbGet<MockTest[]>('jeeos_custom_mock_tests'),
+        idbGet<MockResult[]>('jeeos_mock_results')
+      ]).then(([localMocks, localResults]) => {
+        if (!active) return;
+        const updates: any = {};
+        if (localMocks && localMocks.length > 0) {
+          const testMap = new Map<string, MockTest>();
+          testMap.set(mockTest1.id, mockTest1);
+          localMocks.forEach(t => testMap.set(t.id, t));
+          updates.customMockTests = Array.from(testMap.values());
+        }
+        if (localResults && localResults.length > 0) {
+          updates.mocks = localResults;
+        }
+        if (Object.keys(updates).length > 0) {
+          runtime.updateStateOptimistic(updates);
+        }
+      }).catch(() => {});
       return;
     }
     const currentUid = user.uid;
@@ -159,19 +171,15 @@ export const StudyBrainProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       mistakes: [],
       studySessions: [],
       mocks: [],
-      customMockTests: [],
+      customMockTests: [mockTest1],
       timeline: [],
       customMissions: [],
     };
 
-    const loadedFlags = {
+    // Magnitude 2.2: Core Bootstrapping flags for instant Time-to-Interactive
+    const coreLoadedFlags = {
       profile: false,
       chapters: false,
-      notes: false,
-      mistakes: false,
-      studySessions: false,
-      mocks: false,
-      customMocks: false,
       timeline: false,
       customMissions: false,
     };
@@ -179,12 +187,12 @@ export const StudyBrainProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     let isFullyLoaded = false;
     let debounceTimer: any = null;
 
-    const checkAndInit = () => {
+    const checkAndInitCore = () => {
       if (!active) return;
       
-      const allLoaded = Object.values(loadedFlags).every(Boolean);
+      const allCoreLoaded = Object.values(coreLoadedFlags).every(Boolean);
       
-      if (allLoaded && !isFullyLoaded) {
+      if (allCoreLoaded && !isFullyLoaded) {
         isFullyLoaded = true;
         runtime.initialize({
           ...snapshotState,
@@ -218,11 +226,25 @@ export const StudyBrainProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         } catch (e) {
           console.error("Error processing offline mocks:", e);
         }
-      } else if (allLoaded && isFullyLoaded) {
-        // For subsequent real-time updates after initial load, we updateoptimistic and trigger a lightweight refresh
+      } else if (allCoreLoaded && isFullyLoaded) {
+        // For subsequent real-time updates after initial load, we update optimistic and trigger a lightweight refresh
         if (debounceTimer) clearTimeout(debounceTimer);
         debounceTimer = setTimeout(() => {
-          runtime.updateStateOptimistic(snapshotState);
+          const currentRuntimeState = runtime.getState();
+          const mergedState = {
+            ...snapshotState,
+            mocks: currentRuntimeState.mocks && currentRuntimeState.mocks.length > 0 ? currentRuntimeState.mocks : snapshotState.mocks,
+            customMockTests: currentRuntimeState.customMockTests && currentRuntimeState.customMockTests.length > 0 ? currentRuntimeState.customMockTests : snapshotState.customMockTests,
+            notes: currentRuntimeState.notes && currentRuntimeState.notes.length > 0 ? currentRuntimeState.notes : snapshotState.notes,
+            mistakes: currentRuntimeState.mistakes && currentRuntimeState.mistakes.length > 0 ? currentRuntimeState.mistakes : snapshotState.mistakes,
+            studySessions: currentRuntimeState.studySessions && currentRuntimeState.studySessions.length > 0 ? currentRuntimeState.studySessions : snapshotState.studySessions,
+          };
+          snapshotState.mocks = mergedState.mocks;
+          snapshotState.customMockTests = mergedState.customMockTests;
+          snapshotState.notes = mergedState.notes;
+          snapshotState.mistakes = mergedState.mistakes;
+          snapshotState.studySessions = mergedState.studySessions;
+          runtime.updateStateOptimistic(mergedState);
           runtime.refresh('INIT');
         }, 50);
       }
@@ -230,7 +252,7 @@ export const StudyBrainProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
     const userDocRef = doc(db, 'users', currentUid);
     
-    // 1. Profile Listener
+    // 1. Core Profile Listener (Real-Time)
     const unsubProfile = onSnapshot(userDocRef, async (snap) => {
       if (!active) return;
       if (!snap.exists()) {
@@ -282,119 +304,39 @@ export const StudyBrainProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         snapshotState.mentorProfile = profile.mentorProfile;
         snapshotState.settings = profile.settings || {};
         snapshotState.weeklyGoals = profile.weeklyGoals;
-        // Restore the user's deleted-mission blocklist so planner-regenerated missions
-        // that were previously dismissed don't reappear after a page reload.
         snapshotState.deletedMissionIds = profile.deletedMissionIds || [];
         snapshotState.completedPlannerMissionIds = profile.completedPlannerMissionIds || [];
         snapshotState.scheduleOverrides = profile.scheduleOverrides || {};
         
-        loadedFlags.profile = true;
-        checkAndInit();
+        coreLoadedFlags.profile = true;
+        checkAndInitCore();
       } catch (e) {
         console.error("Error processing profile snapshot:", e);
       }
     }, (error) => {
       console.error("Profile snapshot error:", error);
+      coreLoadedFlags.profile = true;
+      checkAndInitCore();
     });
 
-    // 2. Chapters Listener
+    // 2. Core Chapters Listener (Real-Time)
     const unsubChapters = onSnapshot(collection(db, 'users', currentUid, 'chapters'), (snap) => {
-      if (!active) return;
       if (!active) return;
       try {
         snapshotState.chapters = validateAndSanitizeChapters(snap.docs.map(d => restoreNestedArrays(d.data())));
       } catch (e) {
         console.error("Error processing chapters snapshot:", e);
       } finally {
-        loadedFlags.chapters = true;
-        checkAndInit();
+        coreLoadedFlags.chapters = true;
+        checkAndInitCore();
       }
     }, (error) => {
       console.error("chapters snapshot error:", error);
-      loadedFlags.chapters = true; checkAndInit();
+      coreLoadedFlags.chapters = true;
+      checkAndInitCore();
     });
 
-    // 3. Notes Listener
-    const unsubNotes = onSnapshot(collection(db, 'users', currentUid, 'notes'), (snap) => {
-      if (!active) return;
-      try {
-        snapshotState.notes = snap.docs.map(d => restoreNestedArrays(d.data()));
-      } catch (e) {
-        console.error("Error processing notes snapshot:", e);
-      } finally {
-        loadedFlags.notes = true;
-        checkAndInit();
-      }
-    }, (error) => {
-      console.error("notes snapshot error:", error);
-      loadedFlags.notes = true; checkAndInit();
-    });
-
-    // 4. Mistakes Listener
-    const unsubMistakes = onSnapshot(collection(db, 'users', currentUid, 'mistakes'), (snap) => {
-      if (!active) return;
-      try {
-        snapshotState.mistakes = validateAndSanitizeMistakes(snap.docs.map(d => restoreNestedArrays(d.data())));
-      } catch (e) {
-        console.error("Error processing mistakes snapshot:", e);
-      } finally {
-        loadedFlags.mistakes = true;
-        checkAndInit();
-      }
-    }, (error) => {
-      console.error("mistakes snapshot error:", error);
-      loadedFlags.mistakes = true; checkAndInit();
-    });
-
-    // 5. Study Sessions Listener
-    const unsubSessions = onSnapshot(collection(db, 'users', currentUid, 'studySessions'), (snap) => {
-      if (!active) return;
-      try {
-        snapshotState.studySessions = snap.docs.map(d => restoreNestedArrays(d.data()));
-      } catch (e) {
-        console.error("Error processing study sessions snapshot:", e);
-      } finally {
-        loadedFlags.studySessions = true;
-        checkAndInit();
-      }
-    }, (error) => {
-      console.error("studySessions snapshot error:", error);
-      loadedFlags.studySessions = true; checkAndInit();
-    });
-
-    // 6. Mock Results Listener
-    const unsubMocks = onSnapshot(collection(db, 'users', currentUid, 'mockResults'), (snap) => {
-      if (!active) return;
-      try {
-        snapshotState.mocks = snap.docs.map(d => restoreNestedArrays(d.data()));
-      } catch (e) {
-        console.error("Error processing mock results snapshot:", e);
-      } finally {
-        loadedFlags.mocks = true;
-        checkAndInit();
-      }
-    }, (error) => {
-      console.error("mockResults snapshot error:", error);
-      loadedFlags.mocks = true; checkAndInit();
-    });
-
-    // 7. Custom Mock Tests Listener
-    const unsubCustomMocks = onSnapshot(collection(db, 'users', currentUid, 'customMockTests'), (snap) => {
-      if (!active) return;
-      try {
-        snapshotState.customMockTests = snap.docs.map(d => restoreNestedArrays(d.data()));
-      } catch (e) {
-        console.error("Error processing custom mock tests snapshot:", e);
-      } finally {
-        loadedFlags.customMocks = true;
-        checkAndInit();
-      }
-    }, (error) => {
-      console.error("customMockTests snapshot error:", error);
-      loadedFlags.customMocks = true; checkAndInit();
-    });
-
-    // 8. Timeline Listener
+    // 3. Core Timeline Listener (Real-Time)
     const unsubTimeline = onSnapshot(collection(db, 'users', currentUid, 'customTimelineBlocks'), (snap) => {
       if (!active) return;
       try {
@@ -402,15 +344,16 @@ export const StudyBrainProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       } catch (e) {
         console.error("Error processing timeline snapshot:", e);
       } finally {
-        loadedFlags.timeline = true;
-        checkAndInit();
+        coreLoadedFlags.timeline = true;
+        checkAndInitCore();
       }
     }, (error) => {
       console.error("customTimelineBlocks snapshot error:", error);
-      loadedFlags.timeline = true; checkAndInit();
+      coreLoadedFlags.timeline = true;
+      checkAndInitCore();
     });
 
-    // 9. Custom Missions Listener
+    // 4. Core Custom Missions Listener (Real-Time)
     const unsubCustomMissions = onSnapshot(collection(db, 'users', currentUid, 'customMissions'), (snap) => {
       if (!active) return;
       try {
@@ -418,12 +361,85 @@ export const StudyBrainProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       } catch (e) {
         console.error("Error processing custom missions snapshot:", e);
       } finally {
-        loadedFlags.customMissions = true;
-        checkAndInit();
+        coreLoadedFlags.customMissions = true;
+        checkAndInitCore();
       }
     }, (error) => {
       console.error("customMissions snapshot error:", error);
-      loadedFlags.customMissions = true; checkAndInit();
+      coreLoadedFlags.customMissions = true;
+      checkAndInitCore();
+    });
+
+    // Magnitude 2.2: Decoupled Parallel Hydration for Secondary Collections
+    // Fetches notes, mistakes, study sessions, and mock tests once without permanent WebSocket polling
+    Promise.allSettled([
+      NoteRepository.getNotes(currentUid),
+      MistakeRepository.getMistakes(currentUid),
+      StudySessionRepository.getStudySessions(currentUid, 100),
+      MockResultRepository.getMockResults(currentUid),
+      MockTestRepository.getCustomMockTests(currentUid),
+    ]).then(async ([notesRes, mistakesRes, sessionsRes, mocksRes, customMocksRes]) => {
+      if (!active) return;
+      const updates: any = {};
+      if (notesRes.status === 'fulfilled') {
+        snapshotState.notes = notesRes.value.map(d => restoreNestedArrays(d));
+        updates.notes = snapshotState.notes;
+      }
+      if (mistakesRes.status === 'fulfilled') {
+        snapshotState.mistakes = validateAndSanitizeMistakes(mistakesRes.value.map(d => restoreNestedArrays(d)));
+        updates.mistakes = snapshotState.mistakes;
+      }
+      if (sessionsRes.status === 'fulfilled') {
+        snapshotState.studySessions = sessionsRes.value.map(d => restoreNestedArrays(d));
+        updates.studySessions = snapshotState.studySessions;
+      }
+      let localMockResults: MockResult[] = [];
+      try {
+        localMockResults = (await idbGet<MockResult[]>('jeeos_mock_results')) || [];
+      } catch (e) {
+        console.warn("Failed to read local mock results from IndexedDB:", e);
+      }
+
+      const remoteMocks: MockResult[] = mocksRes.status === 'fulfilled' ? mocksRes.value.map(d => restoreNestedArrays(d)) : [];
+      const currentRuntimeMocks: MockResult[] = runtime.getState().mocks || [];
+      const resultMap = new Map<string, MockResult>();
+      localMockResults.forEach(r => resultMap.set(r.id, r));
+      remoteMocks.forEach(r => resultMap.set(r.id, r));
+      currentRuntimeMocks.forEach(r => resultMap.set(r.id, r));
+      snapshotState.mocks = Array.from(resultMap.values());
+      updates.mocks = snapshotState.mocks;
+      idbSet('jeeos_mock_results', snapshotState.mocks).catch(() => {});
+      let localCustomMocks: MockTest[] = [];
+      try {
+        localCustomMocks = (await idbGet<MockTest[]>('jeeos_custom_mock_tests')) || [];
+      } catch (e) {
+        console.warn("Failed to read local custom mock tests from IndexedDB:", e);
+      }
+
+      if (customMocksRes.status === 'fulfilled') {
+        const userMocks = customMocksRes.value.map(d => restoreNestedArrays(d));
+        const testMap = new Map<string, MockTest>();
+        testMap.set(mockTest1.id, mockTest1);
+        localCustomMocks.forEach(t => testMap.set(t.id, t));
+        userMocks.forEach(t => testMap.set(t.id, t));
+
+        snapshotState.customMockTests = Array.from(testMap.values());
+        updates.customMockTests = snapshotState.customMockTests;
+        idbSet('jeeos_custom_mock_tests', snapshotState.customMockTests).catch(() => {});
+      } else if (localCustomMocks.length > 0) {
+        const testMap = new Map<string, MockTest>();
+        testMap.set(mockTest1.id, mockTest1);
+        localCustomMocks.forEach(t => testMap.set(t.id, t));
+        snapshotState.customMockTests = Array.from(testMap.values());
+        updates.customMockTests = snapshotState.customMockTests;
+      }
+
+      runtime.updateStateOptimistic(updates);
+      if (isFullyLoaded) {
+        runtime.refresh('INIT');
+      }
+    }).catch((err) => {
+      console.error("[StudyBrainProvider] Background hydration error:", err);
     });
 
     return () => {
@@ -431,11 +447,6 @@ export const StudyBrainProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       if (debounceTimer) clearTimeout(debounceTimer);
       unsubProfile();
       unsubChapters();
-      unsubNotes();
-      unsubMistakes();
-      unsubSessions();
-      unsubMocks();
-      unsubCustomMocks();
       unsubTimeline();
       unsubCustomMissions();
     };

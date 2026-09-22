@@ -54,18 +54,18 @@ export function MissionNotesDrawer({
             </div>
 
             {/* Category tabs */}
-            <div className="flex border-b border-zinc-900/60 px-2 shrink-0">
-              {['Quick Notes', 'Important Formula', 'Doubts', 'Bookmarks'].map(cat => (
+            <div className="flex border-b border-zinc-900/60 px-2 shrink-0 overflow-x-auto custom-scrollbar">
+              {['Quick Notes', 'Important Formula', 'Doubts', 'Proof of Work', 'Bookmarks'].map(cat => (
                 <button
                   key={cat}
                   onClick={() => setActiveNoteCategory(cat)}
-                  className={`flex-1 text-[10px] py-2 border-b-2 font-mono font-medium transition-all ${
+                  className={`flex-1 text-[10px] py-2 px-1 border-b-2 font-mono font-medium whitespace-nowrap transition-all ${
                     activeNoteCategory === cat
                       ? 'border-indigo-500 text-indigo-400'
                       : 'border-transparent text-zinc-400 hover:text-zinc-300'
                   }`}
                 >
-                  {cat.split(' ')[0]}
+                  {cat === 'Proof of Work' ? 'PoW' : cat.split(' ')[0]}
                 </button>
               ))}
             </div>

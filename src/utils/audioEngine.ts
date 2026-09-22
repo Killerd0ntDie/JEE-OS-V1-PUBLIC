@@ -889,6 +889,7 @@ class AudioEngine {
   public async playEvangelionEject(subject?: string) { await this.playCruelAngelsThesisExit(subject); }
   public async playStartChime() { await this.playCruelAngelsThesisEntrance(); }
   public async playSuccessChime() { await this.playSuccess(); }
+  public async playVictoryFanfare() { await this.playStreakChime(10); }
   public async playAlertPop() { await this.playAlert(); }
   public stopCockpitTheme() { this.stopEntrancePlayback(); }
   public startCockpitTheme() { /* no-op */ }

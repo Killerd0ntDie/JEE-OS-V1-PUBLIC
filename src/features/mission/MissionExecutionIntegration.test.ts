@@ -192,9 +192,9 @@ describe('Mission Execution & Chapter State Flow Integration Audit', () => {
 
     await expect(actions.completeTask('custom-m-1')).rejects.toThrow('Sync Error (completeTask): Sync Error (updateUserProfile): Network error');
 
-    // Local state should NOT be mutated? Actually, optimistic updates are not reverted automatically here.
+    // Local state should be reverted back to its original state on failure
     const m1 = runtime.getState().todayMissions.find(m => m.id === 'custom-m-1');
-    expect(m1?.completed).toBe(true);
+    expect(m1?.completed).toBe(false);
     expect(runtime.getState().lastSyncError).toContain('Sync Error (completeTask)');
 
     userSaveSpy.mockRestore();

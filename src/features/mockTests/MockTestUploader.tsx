@@ -34,15 +34,50 @@ export function MockTestUploader({ isOpen, onUpload, onCancel }: MockTestUploade
       return;
     }
 
+    if (file.size === 0) {
+      setError("The uploaded JSON file is empty (0 bytes).");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError("JSON file exceeds 5MB limit. Please upload a reasonably sized test definition.");
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
         const text = e.target?.result as string;
         const json = JSON.parse(text) as MockTest;
         
-        // Basic Validation
-        if (!json.name || !json.durationMinutes || !json.sections || !Array.isArray(json.sections)) {
+        // Structural Validation
+        if (!json.name || typeof json.durationMinutes !== 'number' || !Array.isArray(json.sections)) {
           setError("Invalid mock test format. Ensure 'name', 'durationMinutes', and 'sections' exist.");
+          return;
+        }
+
+        if (json.sections.length === 0) {
+          setError("Mock test must contain at least one section.");
+          return;
+        }
+
+        let totalQuestions = 0;
+        for (const sec of json.sections) {
+          if (!sec.subject || !Array.isArray(sec.questions)) {
+            setError("Each section must specify a 'subject' and an array of 'questions'.");
+            return;
+          }
+          totalQuestions += sec.questions.length;
+          for (const q of sec.questions) {
+            if (!q.id || !q.content || q.correctAnswer === undefined || q.correctAnswer === null) {
+              setError(`Malformed question detected in section '${sec.subject}'. Each question must have 'id', 'content', and 'correctAnswer'.`);
+              return;
+            }
+          }
+        }
+
+        if (totalQuestions === 0) {
+          setError("Mock test contains 0 questions across all sections.");
           return;
         }
 
@@ -74,7 +109,7 @@ export function MockTestUploader({ isOpen, onUpload, onCancel }: MockTestUploade
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onCancel} zIndex={50} backdropClassName="bg-black/10 backdrop-blur-md p-4" className="border border-zinc-800 rounded-3xl p-6 w-full max-w-md shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] relative text-left glass-panel">
+    <Modal isOpen={isOpen} onClose={onCancel} zIndex={100} backdropClassName="bg-black/10 backdrop-blur-md p-4" className="border border-zinc-800 rounded-3xl p-6 w-full max-w-md shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] relative text-left glass-panel">
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">

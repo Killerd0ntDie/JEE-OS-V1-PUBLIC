@@ -1,40 +1,26 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
 import { 
-  Settings,
-  Trash2,
-  Pause,
   History,
   Plus,
   Moon,
   Clock,
-  Check,
-  X,
-  Coffee,
-  Play,
-  Flame,
-  SlidersHorizontal,
-  Edit,
   ChevronDown,
-  Activity,
-  Sparkles,
-  RotateCcw,
-  Compass,
-  Atom,
-  Orbit,
-  Layers,
-  ArrowRight
+  Sparkles
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { springs } from '@/constants/motion';
-import { TodayMission, SubjectId, Chapter } from '@/types/index';
+import { TodayMission, SubjectId } from '@/types/index';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { ConfirmDeleteModal } from '@/components/ui/ConfirmDeleteModal';
 import { CustomMissionHistoryModal } from '@/features/mission/components/CustomMissionHistoryModal';
 import { audioEngine } from '@/utils/audioEngine';
 import { getStartMinutesFromTimeSlot, parseTimeSlotToRange } from '@/utils/timeSlotUtils';
 import { useToast } from '@/components/ui/ToastProvider';
+import { EmptyOrbitStandby } from './EmptyOrbitStandby';
+import { TacticalMissionConsole } from './TacticalMissionConsole';
+import { TimelineMissionItem } from './TimelineMissionItem';
 
 interface DailyMissionTimelineProps {
   sessionState: 'idle' | 'active' | 'paused';
@@ -50,9 +36,7 @@ interface DailyMissionTimelineProps {
   setSelectedMissionId?: (id: string | null) => void;
 }
 
-
-
-const getSubjectBadgeStyle = (subj: SubjectId) => {
+const getSubjectBadgeStyle = (subj: SubjectId | string) => {
   switch (subj) {
     case 'physics':
       return 'bg-sky-500/10 text-sky-400 border-sky-500/20';
@@ -65,7 +49,7 @@ const getSubjectBadgeStyle = (subj: SubjectId) => {
   }
 };
 
-export function DailyMissionTimeline({
+export const DailyMissionTimeline = React.memo(function DailyMissionTimeline({
   sessionState,
   secondsElapsed,
   expandedMission,
@@ -82,18 +66,42 @@ export function DailyMissionTimeline({
   
   const actions = useStudyBrainStore(state => state.actions);
   const todayMissions = useStudyBrainStore(s => s.todayMissions);
-  const energyLevel = useStudyBrainStore(s => s.energyLevel);
   const estimatedRemainingHours = useStudyBrainStore(s => s.estimatedRemainingHours);
   const plannedQuestions = useStudyBrainStore(s => s.plannedQuestions);
   const targetFinishTime = useStudyBrainStore(s => s.targetFinishTime);
   const chapters = useStudyBrainStore(s => s.chapters);
   const chapterTelemetryMap = useStudyBrainStore(s => s.chapterTelemetryMap);
   const settings = useStudyBrainStore(s => s.settings);
-  const [missionToDelete, setMissionToDelete] = useState<string | null>(null);
-  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const weeklySchedule = useStudyBrainStore(s => s.weeklySchedule) || [];
   const { toast } = useToast();
 
+  const [missionToDelete, setMissionToDelete] = useState<string | null>(null);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [isExtendMenuOpen, setIsExtendMenuOpen] = useState(false);
+  const [extensionConfirmation, setExtensionConfirmation] = useState<{
+    isOpen: boolean;
+    label: string;
+    newEndTime: string;
+  } | null>(null);
+  const extendMenuRef = useRef<HTMLDivElement>(null);
+
   const [resumableMissions, setResumableMissions] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    const handlePointerDown = (e: MouseEvent | TouchEvent) => {
+      if (extendMenuRef.current && !extendMenuRef.current.contains(e.target as Node)) {
+        setIsExtendMenuOpen(false);
+      }
+    };
+    if (isExtendMenuOpen) {
+      document.addEventListener('mousedown', handlePointerDown);
+      document.addEventListener('touchstart', handlePointerDown);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('touchstart', handlePointerDown);
+    };
+  }, [isExtendMenuOpen]);
 
   useEffect(() => {
     const checkResumable = () => {
@@ -112,7 +120,6 @@ export function DailyMissionTimeline({
 
   const completedCount = todayMissions.filter(m => m.completed && !m.dismissed).length;
   const totalCount = todayMissions.filter(m => !m.dismissed).length;
-  const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
   // Active mission selection logic: automatically advance focus to next incomplete mission upon task completion
   const incompleteMissions = todayMissions.filter(m => !m.completed);
@@ -123,8 +130,15 @@ export function DailyMissionTimeline({
   const now = new Date();
   const dayStartTime = settings?.dayStartTime || '07:00';
   const dayEndTime = settings?.dayEndTime || '23:00';
+
+  const parseTimeVal = (val: string | undefined, fallback: number) => {
+    const p = parseInt(val || '', 10);
+    return isNaN(p) ? fallback : p;
+  };
+  const startHourVal = parseTimeVal(dayStartTime.split(':')[0], 7);
+
   let logicalRealCurrentHour = now.getHours();
-  if (logicalRealCurrentHour < (parseInt(dayStartTime.split(':')[0]) || 7)) {
+  if (logicalRealCurrentHour < startHourVal) {
     logicalRealCurrentHour += 24;
   }
   const realMinsTotal = logicalRealCurrentHour * 60 + now.getMinutes();
@@ -136,15 +150,11 @@ export function DailyMissionTimeline({
     return `${y}-${m}-${d2}`;
   };
   const todayDateObj = new Date();
-  todayDateObj.setHours(0,0,0,0);
+  if (todayDateObj.getHours() < startHourVal) {
+    todayDateObj.setDate(todayDateObj.getDate() - 1);
+  }
+  todayDateObj.setHours(0, 0, 0, 0);
   const todayDateStr = getLocalDateKey(todayDateObj);
-
-  const parseTimeVal = (val: string | undefined, fallback: number) => {
-    const p = parseInt(val || '', 10);
-    return isNaN(p) ? fallback : p;
-  };
-
-  const startHourVal = parseTimeVal(dayStartTime.split(':')[0], 7);
 
   const getTimeMins = (tStr: string) => {
     const parts = (tStr || '').split(':');
@@ -155,7 +165,9 @@ export function DailyMissionTimeline({
   };
 
   let effectiveEndTime = dayEndTime;
-  if ((settings as any)?.sessionExtensionDate === todayDateStr && (settings as any)?.sessionExtensionEnd) {
+  const calendarDateStr = getLocalDateKey(new Date());
+  const isSessionExtended = ((settings as any)?.sessionExtensionDate === todayDateStr || (settings as any)?.sessionExtensionDate === calendarDateStr) && !!(settings as any)?.sessionExtensionEnd;
+  if (isSessionExtended) {
     const extEnd = (settings as any).sessionExtensionEnd;
     if (getTimeMins(extEnd) > getTimeMins(dayEndTime)) {
       effectiveEndTime = extEnd;
@@ -163,8 +175,57 @@ export function DailyMissionTimeline({
   }
 
   const endMinsTotal = getTimeMins(effectiveEndTime);
-
   const isPastDayEnd = realMinsTotal > endMinsTotal;
+
+  const handleExtendSession = async (hours: number, label: string) => {
+    setIsExtendMenuOpen(false);
+    audioEngine.playPowerUp().catch(() => {});
+    try {
+      await actions.extendSession(hours);
+
+      const baseMins = getTimeMins(dayEndTime);
+      const targetStartMins = Math.max(baseMins, realMinsTotal);
+      const newEndMins = targetStartMins + Math.round(hours * 60);
+      const newEndH = Math.floor((newEndMins % 1440) / 60).toString().padStart(2, '0');
+      const newEndM = (newEndMins % 60).toString().padStart(2, '0');
+      const calculatedNewEndTime = `${newEndH}:${newEndM}`;
+
+      setExtensionConfirmation({
+        isOpen: true,
+        label,
+        newEndTime: calculatedNewEndTime
+      });
+
+      toast({
+        title: `Session Extended (+${label})`,
+        description: `Study bedtime extended to ${calculatedNewEndTime}. Overtime active!`,
+        type: 'success'
+      });
+    } catch {
+      toast({
+        title: 'Extension Failed',
+        description: 'Could not update session extension.',
+        type: 'error'
+      });
+    }
+  };
+
+  const handleWrapUpSession = async () => {
+    audioEngine.playTacticalBeep(800).catch(() => {});
+    try {
+      await actions.updateSettings({
+        sessionExtensionDate: undefined,
+        sessionExtensionEnd: undefined
+      });
+      toast({
+        title: 'Session Wrapped Up',
+        description: 'Great work tonight! Rest up and recharge for tomorrow.',
+        type: 'info'
+      });
+    } catch {
+      // fallback
+    }
+  };
   
   // Safe mission selection with null checks to prevent crashes
   const activeMission = todayMissions.find(m => m.id === effectiveSelectedId) || 
@@ -186,7 +247,7 @@ export function DailyMissionTimeline({
       'Formula Speed Memory Recall'
     ],
     pitfalls: rawRadar?.pitfalls || 'Verify calculations carefully to avoid silly sign and unit mistakes!',
-    recommendedPYQs: rawRadar?.recommendedPYQs || undefined, // handled dynamically below
+    recommendedPYQs: rawRadar?.recommendedPYQs || undefined,
     weightageGain: rawRadar?.weightageGain || rawRadar?.examWeightagePercent || (activeMission?.subject === 'chemistry' ? 18 : activeMission?.subject === 'physics' ? 16 : 14),
     conceptTags: rawRadar?.conceptTags || ['Formula Recall', 'PYQ Solving', 'Concept Application']
   };
@@ -198,7 +259,7 @@ export function DailyMissionTimeline({
   } else if (strategyRadar.recommendedPYQs !== undefined) {
     targetPYQs = strategyRadar.recommendedPYQs;
   } else if (activeMission?.type === 'Solve PYQs' || activeMission?.type === 'Solve DPP' || activeMission?.taskName.toLowerCase().includes('pyq')) {
-    targetPYQs = Math.max(1, Math.round((activeMission?.duration || 60) / 3)); // 3 mins per question
+    targetPYQs = Math.max(1, Math.round((activeMission?.duration || 60) / 3));
   }
 
   // Resolve XP Award
@@ -207,34 +268,71 @@ export function DailyMissionTimeline({
     displayXp = targetPYQs ? Math.round(targetPYQs * 2) : Math.round((activeMission?.duration || 60) * 1.5);
   }
 
-  const memoizedTimelineState = React.useMemo(() => {
+  const memoizedTimelineState = useMemo(() => {
+    const extractLecNum = (name: string): number => {
+      const match = (name || '').match(/Lecture\s+(\d+)/i);
+      return match ? parseInt(match[1], 10) : Number.MAX_SAFE_INTEGER;
+    };
+
+    const getEffectiveLecScore = (m: (typeof todayMissions)[0]): number => {
+      const isLec = m.type === 'Watch Lecture' || /Lecture\s+\d+/i.test(m.taskName || '');
+      if (isLec) {
+        return extractLecNum(m.taskName);
+      }
+      const isBreak = m.subject === 'break' || m.type === 'Break' || m.taskName?.toLowerCase().includes('break');
+      if (isBreak) {
+        const linkedId = m.id.replace(/^today-break-/, '').replace(/^break-/, '').replace(/^break-after-/, '');
+        const parent = todayMissions.find(x => x.id === linkedId);
+        if (parent) {
+          const pNum = extractLecNum(parent.taskName);
+          if (pNum !== Number.MAX_SAFE_INTEGER) return pNum + 0.5;
+        }
+      }
+      return Number.MAX_SAFE_INTEGER;
+    };
+
+    const getMissionChapter = (m: (typeof todayMissions)[0]): string => {
+      const isBreak = m.subject === 'break' || m.type === 'Break' || m.taskName?.toLowerCase().includes('break');
+      if (isBreak) {
+        const linkedId = m.id.replace(/^today-break-/, '').replace(/^break-/, '').replace(/^break-after-/, '');
+        const parent = todayMissions.find(x => x.id === linkedId);
+        if (parent?.chapter) return parent.chapter.toLowerCase();
+      }
+      return (m.chapter || m.chapterName || '').toLowerCase();
+    };
+
     const sortedMissions = [...todayMissions].sort((a, b) => {
-      // Sort order: active → completed → dismissed
+      // 1. Sort order: active (0) → completed (1) → dismissed (2)
       const rank = (m: typeof a) => m.dismissed ? 2 : m.completed ? 1 : 0;
       const rankDiff = rank(a) - rank(b);
       if (rankDiff !== 0) return rankDiff;
 
-      // Secondary sort by chronological timeSlot if available to sync with Planner's Single Source of Truth
+      // 2. Sequential order for same-chapter lectures and their linked breaks:
+      const chapA = getMissionChapter(a);
+      const chapB = getMissionChapter(b);
+      const sameChapter = Boolean(chapA && chapB && chapA === chapB);
+      if (sameChapter) {
+        const scoreA = getEffectiveLecScore(a);
+        const scoreB = getEffectiveLecScore(b);
+        if (scoreA !== scoreB) {
+          return scoreA - scoreB;
+        }
+      }
+
+      // 3. Chronological timeSlot if available to sync with Planner
       const minA = getStartMinutesFromTimeSlot(a.timeSlot);
       const minB = getStartMinutesFromTimeSlot(b.timeSlot);
       if (minA !== minB) return minA - minB;
 
-      // Tertiary sort: same-chapter lectures must be in sequential order (Lecture 5 before Lecture 7)
-      const sameChapter = (a.chapter || '').toLowerCase() === (b.chapter || '').toLowerCase();
-      const extractLecNum = (name: string): number => {
-        const match = (name || '').match(/Lecture\s+(\d+)/i);
-        return match ? parseInt(match[1], 10) : Number.MAX_SAFE_INTEGER;
-      };
-      const aIsLec = (a.type === 'Watch Lecture' || /Lecture\s+\d+/i.test(a.taskName || ''));
-      const bIsLec = (b.type === 'Watch Lecture' || /Lecture\s+\d+/i.test(b.taskName || ''));
-      if (sameChapter && aIsLec && bIsLec) {
-        return extractLecNum(a.taskName) - extractLecNum(b.taskName);
-      }
-      return 0;
+      // 4. Linked break ordering fallback
+      if (a.id === `break-${b.id}` || a.id === `today-break-${b.id}` || a.id === `break-after-${b.id}`) return 1;
+      if (b.id === `break-${a.id}` || b.id === `today-break-${a.id}` || b.id === `break-after-${a.id}`) return -1;
+
+      // 5. Total tie-breaker by ID
+      return (a.id || '').localeCompare(b.id || '');
     });
 
     const uncompletedMissions = sortedMissions.filter(m => !m.completed && !m.dismissed);
-    
     const nowMins = realMinsTotal;
 
     let liveMissionId: string | null = null;
@@ -250,7 +348,7 @@ export function DailyMissionTimeline({
     } else {
       let runningPushMins = nowMins;
 
-      uncompletedMissions.forEach((m, idx) => {
+      uncompletedMissions.forEach((m) => {
         let duration = m.duration || 60;
         let startMins = runningPushMins;
         let endMins = startMins + duration;
@@ -277,33 +375,25 @@ export function DailyMissionTimeline({
           const sM = (startMins % 60).toString().padStart(2, '0');
           const eH = Math.floor((endMins % 1440) / 60).toString().padStart(2, '0');
           const eM = (endMins % 60).toString().padStart(2, '0');
-          
-          pushedSlotsMap.set(m.id, {
-            slot: `${sH}:${sM} - ${eH}:${eM}`,
-            isPushed: true
-          });
+          pushedSlotsMap.set(m.id, { slot: `${sH}:${sM} - ${eH}:${eM}`, isPushed: true });
+        } else if (m.timeSlot) {
+          pushedSlotsMap.set(m.id, { slot: m.timeSlot, isPushed: false });
         }
 
-        // If this uncompleted mission's cascaded start time reaches bedtime or spills past bedtime (and it's not the live mission), mark as over budget
-        if (startMins >= endMinsTotal || (endMins > endMinsTotal && idx > 0)) {
+        if (endMins > endMinsTotal) {
           overBudgetMissionIds.add(m.id);
-        }
-
-        if (nowMins >= startMins && nowMins < endMins && startMins < endMinsTotal) {
-          if (!liveMissionId) {
-            liveMissionId = m.id;
-          }
         }
 
         runningPushMins = endMins;
       });
     }
 
-    // Find Next Up Mission
-    if (liveMissionId) {
-      const liveIdx = uncompletedMissions.findIndex(m => m.id === liveMissionId);
-      nextUpMissionId = uncompletedMissions[liveIdx + 1]?.id || null;
-    } else if (uncompletedMissions.length > 0) {
+    if (uncompletedMissions.length > 0) {
+      liveMissionId = uncompletedMissions[0].id;
+    }
+    if (uncompletedMissions.length > 1) {
+      nextUpMissionId = uncompletedMissions[1].id;
+    } else if (uncompletedMissions.length === 1) {
       nextUpMissionId = uncompletedMissions[0].id;
     }
 
@@ -333,8 +423,6 @@ export function DailyMissionTimeline({
 
             {/* Right: Actions */}
             <div className="flex items-center gap-1.5 text-xs">
-
-
               <motion.button
                 type="button"
                 whileHover={{ scale: 1.03 }}
@@ -394,759 +482,204 @@ export function DailyMissionTimeline({
                 </div>
                 
                 <div className="flex items-center gap-2 font-mono shrink-0 w-full sm:w-auto justify-end">
-                  <div className="relative group">
+                  <div className="relative" ref={extendMenuRef}>
                     <button
                       type="button"
-                      className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-600/30 cursor-pointer flex items-center gap-1.5"
+                      onClick={() => setIsExtendMenuOpen(prev => !prev)}
+                      aria-expanded={isExtendMenuOpen}
+                      className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-600/30 cursor-pointer flex items-center gap-1.5 select-none"
                     >
                       <Clock className="w-3.5 h-3.5" />
                       <span>Extend</span>
+                      <ChevronDown className={`w-3 h-3 transition-transform ${isExtendMenuOpen ? 'rotate-180' : ''}`} />
                     </button>
                     
-                    {/* Dropdown for extension */}
-                    <div className="absolute top-full right-0 mt-1 w-36 bg-zinc-950/95 bg-zinc-900 border border-white/10 rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 overflow-hidden flex flex-col z-30 font-mono text-xs">
-                      <button onClick={() => actions.extendSession(0.5)} className="px-3 py-2 text-zinc-300 hover:bg-indigo-600 hover:text-white text-left cursor-pointer transition-colors border-b border-white/5">+30 mins</button>
-                      <button onClick={() => actions.extendSession(1)} className="px-3 py-2 text-zinc-300 hover:bg-indigo-600 hover:text-white text-left cursor-pointer transition-colors border-b border-white/5">+1 hour</button>
-                      <button onClick={() => actions.extendSession(2)} className="px-3 py-2 text-zinc-300 hover:bg-indigo-600 hover:text-white text-left cursor-pointer transition-colors">+2 hours</button>
-                    </div>
+                    {/* Controlled Dropdown for extension on Mobile, iPad, and PC */}
+                    {isExtendMenuOpen && (
+                      <div className="absolute top-full right-0 mt-1.5 w-44 bg-zinc-950/95 border border-white/10 rounded-xl shadow-2xl backdrop-blur-xl overflow-hidden flex flex-col z-50 font-mono text-xs animate-in fade-in zoom-in-95 duration-150">
+                        <button 
+                          type="button"
+                          onClick={() => handleExtendSession(0.5, '30 mins')} 
+                          className="px-3.5 py-2.5 text-zinc-300 hover:bg-indigo-600 hover:text-white text-left cursor-pointer transition-colors border-b border-white/5 active:bg-indigo-700 flex items-center justify-between"
+                        >
+                          <span className="font-semibold">+30 mins</span>
+                          <span className="text-[10px] text-zinc-500">Fast sprint</span>
+                        </button>
+                        <button 
+                          type="button"
+                          onClick={() => handleExtendSession(1, '1 hour')} 
+                          className="px-3.5 py-2.5 text-zinc-300 hover:bg-indigo-600 hover:text-white text-left cursor-pointer transition-colors border-b border-white/5 active:bg-indigo-700 flex items-center justify-between"
+                        >
+                          <span className="font-semibold">+1 hour</span>
+                          <span className="text-[10px] text-zinc-500">Standard</span>
+                        </button>
+                        <button 
+                          type="button"
+                          onClick={() => handleExtendSession(2, '2 hours')} 
+                          className="px-3.5 py-2.5 text-zinc-300 hover:bg-indigo-600 hover:text-white text-left cursor-pointer transition-colors active:bg-indigo-700 flex items-center justify-between"
+                        >
+                          <span className="font-semibold">+2 hours</span>
+                          <span className="text-[10px] text-zinc-500">Deep study</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
             )}
 
-            {todayMissions.length === 0 ? (
-              <motion.div
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-                className="p-6 sm:p-8 flex flex-col items-center text-center rounded-3xl border border-white/10 glass-panel shadow-2xl relative overflow-hidden space-y-6"
-              >
-                {/* Ambient Glows */}
-                <div className="absolute -top-12 -right-12 w-56 h-56 rounded-full bg-indigo-600/10 blur-3xl pointer-events-none" />
-                <div className="absolute -bottom-12 -left-12 w-56 h-56 rounded-full bg-emerald-600/10 blur-3xl pointer-events-none" />
-
-                {/* Radar Icon & Telemetry Header */}
-                <div className="flex flex-col items-center space-y-2 relative z-10">
-                  <div className="w-12 h-12 rounded-2xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-[0_0_25px_rgba(99,102,241,0.3)] mb-1">
-                    <Compass className="w-6 h-6 animate-pulse" />
+            {/* Overtime Study Session Active Banner */}
+            {isSessionExtended && !isPastDayEnd && (
+              <div className="p-3.5 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border border-amber-500/30 rounded-2xl bg-gradient-to-r from-amber-950/30 via-zinc-900/70 to-indigo-950/30 shadow-lg mb-3 font-mono">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/40 flex items-center justify-center shrink-0 shadow-md">
+                    <Sparkles className="w-4 h-4 text-amber-400 animate-pulse" />
                   </div>
-                  <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-indigo-950/50 border border-indigo-500/30 text-indigo-300 text-[10px] font-mono font-bold uppercase tracking-widest">
-                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping" />
-                    <span>作戦待機 // EXECUTION QUEUE STANDBY</span>
+                  <div>
+                    <div className="text-white font-display font-bold text-xs sm:text-sm tracking-tight flex items-center gap-2">
+                      <span>Overtime Session Active</span>
+                      <span className="px-2 py-0.5 rounded-md bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[10px] font-mono uppercase font-bold">
+                        Extended to {effectiveEndTime}
+                      </span>
+                    </div>
+                    <div className="text-zinc-400 text-xs font-sans mt-0.5">
+                      Bedtime extended. Remaining missions unlocked for tonight. Wrap up whenever you are ready.
+                    </div>
                   </div>
-                  <h3 className="text-lg sm:text-xl font-display font-bold text-white tracking-tight">
-                    No Missions in Active Orbit
-                  </h3>
-                  <p className="text-xs text-zinc-400 max-w-md font-sans leading-relaxed">
-                    Your daily execution queue is clear. Select a foundational module below to engage learning velocity, or launch an AI sprint.
-                  </p>
                 </div>
-
-                {/* 3 Interactive Holographic Module Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 w-full relative z-10">
-                  
-                  {/* Card 1: Chemistry */}
-                  <motion.div
-                    whileHover={{ y: -3, scale: 1.01 }}
-                    whileTap={{ scale: 0.98 }}
-                    transition={springs.snappy}
-                    onClick={() => {
-                      audioEngine.playMechanicalKey('clack').catch(() => {});
-                      audioEngine.playTacticalBeep(1200).catch(() => {});
-                      const c = chapters.find(ch => 
-                        ch.name.toLowerCase().includes("general organic") || 
-                        ch.name.toLowerCase().includes("goc") ||
-                        ch.name.toLowerCase().includes("organic chemistry")
-                      );
-                      if (c) {
-                        actions.updateChapterData(c.id, { status: "Learning", currentLecture: 1 });
-                        actions.setEnergyLevel("High");
-                        toast({
-                          title: `Mission Initialized: ${c.name}`,
-                          description: `Status set to Learning (Lecture 1). Priority queued for today.`,
-                          type: 'success'
-                        });
-                      }
-                    }}
-                    className="group p-4.5 rounded-2xl border border-emerald-500/20 bg-emerald-950/15 hover:bg-emerald-950/35 hover:border-emerald-500/50 transition-all cursor-pointer text-left flex flex-col justify-between shadow-lg shadow-emerald-950/20 relative overflow-hidden"
-                  >
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 blur-2xl rounded-full pointer-events-none group-hover:bg-emerald-500/10 transition-colors" />
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-400 bg-emerald-950/60 border border-emerald-500/30 px-2 py-0.5 rounded-md flex items-center gap-1">
-                          <Atom className="w-3 h-3" />
-                          Chemistry
-                        </span>
-                        <span className="text-[9px] font-mono text-zinc-500 group-hover:text-emerald-300 transition-colors">CORE PREREQ</span>
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-bold font-display text-white group-hover:text-emerald-300 transition-colors">
-                          General Organic Chemistry
-                        </h4>
-                        <p className="text-[11px] text-zinc-400 mt-0.5 leading-snug">
-                          Foundational IUPAC, electronic effects & reaction mechanisms.
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between pt-3 mt-2 border-t border-emerald-500/15 text-xs font-mono font-semibold text-emerald-400 group-hover:text-emerald-300">
-                      <span>Engage GOC</span>
-                      <ArrowRight className="w-3.5 h-3.5 transform group-hover:translate-x-1 transition-transform" />
-                    </div>
-                  </motion.div>
-
-                  {/* Card 2: Mathematics */}
-                  <motion.div
-                    whileHover={{ y: -3, scale: 1.01 }}
-                    whileTap={{ scale: 0.98 }}
-                    transition={springs.snappy}
-                    onClick={() => {
-                      audioEngine.playMechanicalKey('clack').catch(() => {});
-                      audioEngine.playTacticalBeep(1200).catch(() => {});
-                      const c = chapters.find(ch => 
-                        ch.name.toLowerCase().includes("sets") || 
-                        ch.name.toLowerCase().includes("relations") ||
-                        ch.name.toLowerCase().includes("functions")
-                      );
-                      if (c) {
-                        actions.updateChapterData(c.id, { status: "Learning", currentLecture: 1 });
-                        actions.setEnergyLevel("High");
-                        toast({
-                          title: `Mission Initialized: ${c.name}`,
-                          description: `Status set to Learning (Lecture 1). Priority queued for today.`,
-                          type: 'success'
-                        });
-                      }
-                    }}
-                    className="group p-4.5 rounded-2xl border border-purple-500/20 bg-purple-950/15 hover:bg-purple-950/35 hover:border-purple-500/50 transition-all cursor-pointer text-left flex flex-col justify-between shadow-lg shadow-purple-950/20 relative overflow-hidden"
-                  >
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 blur-2xl rounded-full pointer-events-none group-hover:bg-purple-500/10 transition-colors" />
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-purple-400 bg-purple-950/60 border border-purple-500/30 px-2 py-0.5 rounded-md flex items-center gap-1">
-                          <Layers className="w-3 h-3" />
-                          Maths
-                        </span>
-                        <span className="text-[9px] font-mono text-zinc-500 group-hover:text-purple-300 transition-colors">CALCULUS BASE</span>
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-bold font-display text-white group-hover:text-purple-300 transition-colors">
-                          Sets, Relations & Functions
-                        </h4>
-                        <p className="text-[11px] text-zinc-400 mt-0.5 leading-snug">
-                          Mappings, domain/range & foundational modern algebra.
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between pt-3 mt-2 border-t border-purple-500/15 text-xs font-mono font-semibold text-purple-400 group-hover:text-purple-300">
-                      <span>Engage Sets</span>
-                      <ArrowRight className="w-3.5 h-3.5 transform group-hover:translate-x-1 transition-transform" />
-                    </div>
-                  </motion.div>
-
-                  {/* Card 3: Physics */}
-                  <motion.div
-                    whileHover={{ y: -3, scale: 1.01 }}
-                    whileTap={{ scale: 0.98 }}
-                    transition={springs.snappy}
-                    onClick={() => {
-                      audioEngine.playMechanicalKey('clack').catch(() => {});
-                      audioEngine.playTacticalBeep(1200).catch(() => {});
-                      const c = chapters.find(ch => 
-                        ch.name.toLowerCase().includes("units") || 
-                        ch.name.toLowerCase().includes("kinematics") ||
-                        ch.name.toLowerCase().includes("vectors")
-                      );
-                      if (c) {
-                        actions.updateChapterData(c.id, { status: "Learning", currentLecture: 1 });
-                        actions.setEnergyLevel("High");
-                        toast({
-                          title: `Mission Initialized: ${c.name}`,
-                          description: `Status set to Learning (Lecture 1). Priority queued for today.`,
-                          type: 'success'
-                        });
-                      }
-                    }}
-                    className="group p-4.5 rounded-2xl border border-sky-500/20 bg-sky-950/15 hover:bg-sky-950/35 hover:border-sky-500/50 transition-all cursor-pointer text-left flex flex-col justify-between shadow-lg shadow-sky-950/20 relative overflow-hidden"
-                  >
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-sky-500/5 blur-2xl rounded-full pointer-events-none group-hover:bg-sky-500/10 transition-colors" />
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-sky-400 bg-sky-950/60 border border-sky-500/30 px-2 py-0.5 rounded-md flex items-center gap-1">
-                          <Orbit className="w-3 h-3" />
-                          Physics
-                        </span>
-                        <span className="text-[9px] font-mono text-zinc-500 group-hover:text-sky-300 transition-colors">MECHANICS CORE</span>
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-bold font-display text-white group-hover:text-sky-300 transition-colors">
-                          Units, Dimensions & Vectors
-                        </h4>
-                        <p className="text-[11px] text-zinc-400 mt-0.5 leading-snug">
-                          Dimensional analysis, error estimation & vector algebra.
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between pt-3 mt-2 border-t border-sky-500/15 text-xs font-mono font-semibold text-sky-400 group-hover:text-sky-300">
-                      <span>Engage Physics</span>
-                      <ArrowRight className="w-3.5 h-3.5 transform group-hover:translate-x-1 transition-transform" />
-                    </div>
-                  </motion.div>
-
-                </div>
-
-                {/* Bottom Quick Links / Alternative Sprints */}
-                <div className="flex flex-wrap items-center justify-center gap-3 pt-2 relative z-10">
+                <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
                   <button
                     type="button"
-                    onClick={() => {
-                      audioEngine.playMechanicalKey('click').catch(() => {});
-                      navigate('/planner');
-                    }}
-                    className="px-4 py-2 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.08] hover:border-indigo-500/40 text-zinc-300 hover:text-white text-xs font-mono transition-colors flex items-center gap-2 cursor-pointer shadow-sm"
+                    onClick={() => handleExtendSession(0.5, '30 mins')}
+                    className="px-2.5 py-1.5 bg-zinc-800 hover:bg-zinc-700 active:scale-95 text-zinc-200 hover:text-white rounded-lg text-xs font-semibold border border-zinc-700 transition-colors cursor-pointer flex items-center gap-1"
                   >
-                    <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-                    <span>Open AI Sprint Planner</span>
+                    <Plus className="w-3 h-3 text-amber-400" />
+                    <span>+30m</span>
                   </button>
-
-                  {onOpenCustomMission && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        audioEngine.playMechanicalKey('click').catch(() => {});
-                        onOpenCustomMission();
-                      }}
-                      className="px-4 py-2 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.08] hover:border-zinc-400 text-zinc-400 hover:text-zinc-200 text-xs font-mono transition-colors flex items-center gap-2 cursor-pointer shadow-sm"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>Custom Mission</span>
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={handleWrapUpSession}
+                    className="px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 active:scale-95 text-amber-300 border border-amber-500/40 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                  >
+                    Wrap Up
+                  </button>
                 </div>
-              </motion.div>
+              </div>
+            )}
+
+            {todayMissions.length === 0 ? (
+              <EmptyOrbitStandby
+                chapters={chapters}
+                weeklySchedule={weeklySchedule}
+                onEngageChapter={(chapterId, chapterName) => {
+                  actions.setEnergyLevel("High");
+                  const chap = chapters.find(c => c.id === chapterId);
+                  const nextLec = (chap?.currentLecture && chap.currentLecture > 0) ? chap.currentLecture : 1;
+                  actions.updateChapterData(chapterId, { status: "Learning" });
+                  const taskTitle = chap?.totalLectures 
+                    ? `Lecture ${nextLec}/${chap.totalLectures}: ${chapterName}` 
+                    : `Lecture ${nextLec}: ${chapterName}`;
+                  actions.addTodayMission({
+                    id: `mission-eng-${Date.now()}`,
+                    subject: (chap?.subject || 'physics') as SubjectId,
+                    chapter: chapterName,
+                    chapterId: chapterId,
+                    type: 'Watch Lecture',
+                    taskName: taskTitle,
+                    duration: 45,
+                    completed: false,
+                    unlocked: true,
+                    priorityScore: 90,
+                    timeSlot: 'Current Session',
+                    scheduledDate: todayDateStr
+                  });
+                  toast({
+                    title: `Mission Initialized: ${chapterName}`,
+                    description: `Active orbit engaged with ${taskTitle}!`,
+                    type: 'success'
+                  });
+                }}
+                onAdvanceScheduleTask={async (task) => {
+                  audioEngine.playPowerUp().catch(() => {});
+                  await actions.addTodayMission({
+                    id: `mission-adv-${Date.now()}`,
+                    subject: task.subject as SubjectId,
+                    chapter: task.chapterName,
+                    chapterId: task.chapterId,
+                    type: task.taskType,
+                    taskName: task.activity,
+                    duration: task.durationMinutes || 45,
+                    completed: false,
+                    unlocked: true,
+                    priorityScore: task.priorityScore || 85,
+                    timeSlot: 'Current Session',
+                    scheduledDate: todayDateStr
+                  });
+                  toast({
+                    title: `Task Activated: ${task.activity}`,
+                    description: `Pulled from ${task.dayName} schedule into today's active execution queue!`,
+                    type: 'success'
+                  });
+                }}
+                onOpenCustomMission={onOpenCustomMission}
+              />
             ) : (
-                <AnimatePresence mode="popLayout">
-                  {visibleMissions.map((mission, idx) => {
+              <AnimatePresence mode="popLayout">
+                {visibleMissions.map((mission) => {
                   const isDismissed = !!mission.dismissed;
                   const badgeStyle = getSubjectBadgeStyle(mission.subject);
                   const isExpanded = expandedMission === mission.id;
                   const isSelected = activeMission?.id === mission.id;
-                  
                   const isLive = mission.id === liveMissionId;
                   const isNextUp = mission.id === nextUpMissionId;
 
-                  // Chapter metadata & Ebbinghaus decay telemetry
                   const chap = chapters.find(c => 
                     c.name.toLowerCase() === (mission.chapter || mission.chapterName || '').toLowerCase() || 
                     (mission.chapterId && c.id === mission.chapterId)
                   );
 
-                  const chapTelemetry = chap && chapterTelemetryMap ? chapterTelemetryMap[chap.id] : null;
-                  const retentionScore = chapTelemetry?.strategyRadar?.retentionConfidenceScore 
-                    ?? chap?.revisionProgress?.retentionScore 
-                    ?? (chap?.confidence !== undefined ? (chap.confidence >= 4 ? 88 : chap.confidence >= 2 ? 65 : 42) : (chap?.completion && chap.completion > 0 ? 70 : undefined));
-
-                  const currentLec = chap?.currentLecture ?? 0;
-                  const totalLec = chap?.totalLectures ?? 12;
-                  const lecPercent = totalLec > 0 ? Math.min(100, Math.round((currentLec / totalLec) * 100)) : 0;
-
-                  const weightageMarks = (chap?.weightage || 4) * 3;
-                  const priorityTier = chap?.priority === 1
-                    ? { iconName: 'Flame', label: 'Tier 1', color: 'text-amber-400' }
-                    : chap?.priority === 2
-                    ? { iconName: 'Zap', label: 'Tier 2', color: 'text-sky-400' }
-                    : { iconName: 'Star', label: 'Tier 3', color: 'text-indigo-400' };
-                  
-                  const unitName = chap?.unit || 'Core Module';
-
-                  const isBreak = (mission.subject as string) === 'break' || (mission.type as string) === 'BREAK' || mission.taskName?.toLowerCase().includes('break');
-
-                  if (isBreak) {
-                    return (
-                      <motion.div
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.96 }}
-                        transition={springs.snappy}
-                        key={mission.id}
-                        onClick={() => {
-                          if (sessionState !== 'idle' && selectedMissionId !== mission.id) {
-                            handleResetSession();
-                          }
-                          setSelectedMissionId?.(mission.id);
-                        }}
-                        style={{
-                          background: 'rgba(20, 14, 10, 0.85)',
-                          backdropFilter: 'blur(20px)',
-                          border: '1px solid rgba(245, 158, 11, 0.3)',
-                          borderTop: '1.5px solid rgba(245, 158, 11, 0.6)',
-                          boxShadow: '0 8px 25px rgba(0, 0, 0, 0.5)'
-                        }}
-                        className={`group transition-all duration-150 cursor-pointer focus:outline-none flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 px-4 py-3 rounded-2xl relative mb-3 overflow-hidden ${
-                          isDismissed
-                            ? 'opacity-40 grayscale cursor-default'
-                            : mission.completed
-                            ? 'opacity-60'
-                            : 'hover:border-amber-500/50'
-                        }`}
-                      >
-                         {/* Top Amber Hazard Stripes Ribbon */}
-                         <div 
-                           className="absolute top-0 inset-x-0 h-1 opacity-75 pointer-events-none"
-                           style={{
-                             background: 'repeating-linear-gradient(-45deg, #f59e0b 0px, #f59e0b 8px, transparent 8px, transparent 16px)'
-                           }}
-                         />
-                         {/* Caliper Crosshairs */}
-                         <span className="absolute top-2 left-2 text-xs opacity-50 font-mono text-zinc-600 select-none pointer-events-none">+</span>
-                         <span className="absolute top-2 right-2 text-xs opacity-50 font-mono text-zinc-600 select-none pointer-events-none">+</span>
-                         <span className="absolute bottom-2 left-2 text-xs opacity-50 font-mono text-zinc-600 select-none pointer-events-none">+</span>
-                         <span className="absolute bottom-2 right-2 text-xs opacity-50 font-mono text-zinc-600 select-none pointer-events-none">+</span>
-
-                         <div className="flex items-center gap-3 relative z-10">
-                           {!isDismissed && (
-                           <button
-                             type="button"
-                             onClick={(e) => {
-                               e.stopPropagation();
-                               actions.completeTask(mission.id);
-                               if (!mission.completed) {
-                                 audioEngine.playSuccess();
-                               } else {
-                                 audioEngine.playAlert();
-                               }
-                             }}
-                             className={`rounded-full border flex items-center justify-center transition-all cursor-pointer ${
-                               mission.completed
-                                 ? 'w-5 h-5 bg-amber-500 border-amber-400 text-zinc-950 font-bold'
-                                 : 'w-5 h-5 border-zinc-700 bg-zinc-950/50 text-transparent hover:border-amber-500 hover:text-amber-500/60'
-                             }`}
-                           >
-                             <Check className="w-3 h-3 stroke-[3]" />
-                           </button>
-                           )}
-                           {isDismissed && (
-                             <div className="w-5 h-5 rounded-full border border-red-900/40 bg-red-950/30 flex items-center justify-center shrink-0">
-                               <X className="w-3 h-3 text-red-500/60" />
-                             </div>
-                           )}
-                           
-                           <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${isLive ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40' : mission.completed ? 'bg-amber-950/40 text-amber-600' : 'bg-zinc-900/80 text-zinc-400 border border-white/10'}`}>
-                             <Coffee className="w-3.5 h-3.5 text-amber-400" />
-                           </div>
-                           <div className="flex flex-col">
-                             <p className={`text-xs font-tactical font-bold tracking-tight uppercase ${isLive ? 'text-amber-300' : mission.completed ? 'text-zinc-500 line-through' : 'text-zinc-200'}`}>
-                               {mission.taskName}
-                             </p>
-                             <div className="flex items-center gap-2 text-xs opacity-75 font-mono text-zinc-400 mt-0.5">
-                               {isLive && <span className="text-amber-400 font-bold tracking-wider animate-pulse">LIVE NOW</span>}
-                               {pushedSlotsMap.has(mission.id) && (
-                                 <span className="text-amber-400/80 flex items-center gap-1">
-                                   <Clock className="w-3 h-3 inline" /> {pushedSlotsMap.get(mission.id)?.slot}
-                                 </span>
-                               )}
-                             </div>
-                           </div>
-                         </div>
-                         <div className="flex items-center gap-2.5 ml-auto relative z-10 font-mono">
-                           <span className="text-xs font-mono font-bold text-amber-300 bg-amber-950/60 border border-amber-500/40 px-2.5 py-0.5 rounded-lg">
-                             {mission.duration}m
-                           </span>
-                           {!isDismissed && (
-                             <button
-                               type="button"
-                               onClick={(e) => {
-                                 e.stopPropagation();
-                                 setMissionToDelete(mission.id);
-                               }}
-                               className="w-6 h-6 rounded-lg border border-white/10 bg-zinc-950/60 hover:bg-red-500/20 hover:border-red-500/40 text-zinc-500 hover:text-red-400 flex items-center justify-center transition-colors cursor-pointer"
-                               title="Delete break"
-                             >
-                               <Trash2 className="w-3 h-3" />
-                             </button>
-                           )}
-                           {isLive && (
-                             <button
-                               type="button"
-                               onClick={(e) => {
-                                 e.stopPropagation();
-                                 handleStartSession(mission.id);
-                               }}
-                               className="px-3.5 py-1 bg-amber-500 hover:bg-amber-400 text-zinc-950 shadow-[0_0_12px_rgba(245,158,11,0.4)] text-xs opacity-75 font-mono font-bold uppercase tracking-wider rounded-lg flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
-                             >
-                               <Play className="w-3 h-3 fill-current" /> START
-                             </button>
-                           )}
-                         </div>
-                      </motion.div>
-                    );
-                  }
-
                   return (
-                    <motion.div
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.96 }}
-                      transition={springs.snappy}
+                    <TimelineMissionItem
                       key={mission.id}
-                        onClick={() => {
-                          if (sessionState !== 'idle' && selectedMissionId !== mission.id) {
-                            handleResetSession();
-                          }
-                          setSelectedMissionId?.(mission.id);
-                          if (chap) {
-                            actions.setRadarFocusedChapter(chap.id);
-                          }
-                        }}
-                      style={{
-                        background: isLive
-                          ? 'rgba(10, 22, 18, 0.88)'
-                          : isSelected
-                          ? 'rgba(18, 14, 28, 0.88)'
-                          : 'rgba(10, 14, 23, 0.80)',
-                        backdropFilter: 'blur(24px) saturate(190%)',
-                        border: isLive
-                          ? '1.5px solid rgba(16, 185, 129, 0.55)'
-                          : isSelected
-                          ? '1.5px solid rgba(99, 102, 241, 0.5)'
-                          : '1px solid rgba(255, 255, 255, 0.08)',
-                        borderTop: isLive
-                          ? '2px solid rgba(16, 185, 129, 0.85)'
-                          : isSelected
-                          ? '2px solid rgba(99, 102, 241, 0.75)'
-                          : '1.5px solid rgba(255, 255, 255, 0.18)',
-                        boxShadow: isLive
-                          ? '0 16px 40px rgba(0, 0, 0, 0.7), 0 0 30px rgba(16, 185, 129, 0.12)'
-                          : isSelected
-                          ? '0 12px 30px rgba(0, 0, 0, 0.6), 0 0 20px rgba(99, 102, 241, 0.1)'
-                          : '0 8px 24px rgba(0, 0, 0, 0.4)'
+                      mission={mission}
+                      chap={chap}
+                      chapterTelemetryMap={chapterTelemetryMap}
+                      isLive={isLive}
+                      isNextUp={isNextUp}
+                      isSelected={isSelected}
+                      isExpanded={isExpanded}
+                      isDismissed={isDismissed}
+                      isResumable={!!resumableMissions[mission.id]}
+                      sessionState={sessionState}
+                      selectedMissionId={selectedMissionId}
+                      badgeStyle={badgeStyle}
+                      slotText={pushedSlotsMap.get(mission.id)?.slot}
+                      isOverBudget={overBudgetMissionIds.has(mission.id)}
+                      onSelect={() => {
+                        setSelectedMissionId?.(mission.id);
+                        if (chap) {
+                          actions.setRadarFocusedChapter(chap.id);
+                        }
                       }}
-                      className={`group transition-all duration-150 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 active:scale-[0.99] relative overflow-hidden ${
-                          isLive
-                            ? 'p-4.5 sm:p-5 rounded-2xl mb-3'
-                            : isDismissed
-                            ? 'p-3.5 rounded-2xl opacity-40 cursor-default'
-                            : mission.completed
-                            ? 'p-3.5 rounded-2xl opacity-60'
-                            : 'p-4 rounded-2xl hover:border-indigo-500/40 mb-2.5'
-                        }`}
-                      >
-                      {/* Top Hazard Warning Stripes Ribbon for Live Sortie */}
-                      {isLive && (
-                        <div 
-                          className="absolute top-0 inset-x-0 h-1 opacity-85 pointer-events-none"
-                          style={{
-                            background: mission.subject === 'maths' 
-                              ? 'repeating-linear-gradient(-45deg, #a855f7 0px, #a855f7 8px, transparent 8px, transparent 16px)'
-                              : mission.subject === 'physics'
-                              ? 'repeating-linear-gradient(-45deg, #0ea5e9 0px, #0ea5e9 8px, transparent 8px, transparent 16px)'
-                              : 'repeating-linear-gradient(-45deg, #10b981 0px, #10b981 8px, transparent 8px, transparent 16px)'
-                          }}
-                        />
-                      )}
-
-                      {/* Caliper Crosshairs */}
-                      <span className="absolute top-2 left-2 text-xs opacity-50 font-mono text-zinc-600 select-none pointer-events-none">+</span>
-                      <span className="absolute top-2 right-2 text-xs opacity-50 font-mono text-zinc-600 select-none pointer-events-none">+</span>
-                      <span className="absolute bottom-2 left-2 text-xs opacity-50 font-mono text-zinc-600 select-none pointer-events-none">+</span>
-                      <span className="absolute bottom-2 right-2 text-xs opacity-50 font-mono text-zinc-600 select-none pointer-events-none">+</span>
-                      <div className="flex items-start justify-between gap-4 relative z-10">
-                        
-                        {/* Circular Checkbox — hidden for dismissed missions */}
-                        {!isDismissed && (
-                        <motion.button
-                          type="button"
-                          whileHover={{ scale: 1.14 }}
-                          whileTap={{ scale: 0.88 }}
-                          transition={springs.snappy}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            actions.completeTask(mission.id);
-                            if (!mission.completed) {
-                              audioEngine.playSuccess();
-                            } else {
-                              audioEngine.playAlert();
-                            }
-                          }}
-                          className={`rounded-full border flex items-center justify-center shrink-0 transition-colors cursor-pointer ${
-                            isLive ? 'w-6 h-6 mt-0.5 border-2 border-emerald-400' : 'w-5 h-5'
-                          } ${
-                            mission.completed
-                              ? 'bg-emerald-500 border-emerald-400 text-white shadow-[0_0_10px_rgba(16,185,129,0.3)]'
-                              : isLive
-                              ? 'border-emerald-400 bg-transparent text-transparent hover:text-emerald-400/60'
-                              : 'border-zinc-700 hover:border-indigo-400 bg-transparent text-transparent hover:text-indigo-400/60'
-                          }`}
-                          title={mission.completed ? "Mark incomplete" : "Mark complete"}
-                        >
-                          <Check className={`${isLive ? 'w-3.5 h-3.5' : 'w-3 h-3'} stroke-[3]`} />
-                        </motion.button>
-                        )}
-                        {isDismissed && (
-                          <div className="w-5 h-5 rounded-full border border-red-900/40 bg-red-950/30 flex items-center justify-center shrink-0">
-                            <X className="w-3 h-3 text-red-500/60" />
-                          </div>
-                        )}
-
-                        {/* Content Area */}
-                        <div className={`${isLive ? 'space-y-2.5' : 'space-y-2'} min-w-0 flex-1`}>
-                          {/* Consolidated Decluttered 1-Row Label Header with Merged Time */}
-                          <div className="flex items-center gap-2 flex-wrap text-xs leading-none">
-                            {isDismissed && (
-                              <span className="font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border bg-red-950/30 text-red-400/70 border-red-900/30 text-xs opacity-75 shrink-0">
-                                Dismissed
-                              </span>
-                            )}
-
-                            {/* Subject Badge */}
-                            <span className={`font-bold uppercase tracking-wider ${isLive ? 'px-2.5 py-0.5 text-xs opacity-90' : 'px-2 py-0.5 text-xs opacity-75'} rounded-md border shrink-0 ${badgeStyle}`}>
-                              {mission.subject.toUpperCase()}
-                            </span>
-
-                            {/* Merged Status + Time Pill for Live & Next Up */}
-                            {isLive ? (
-                              <span className="bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-bold px-2.5 py-0.5 rounded-md uppercase tracking-wider flex items-center gap-1.5 shadow-sm text-xs opacity-90 shrink-0">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                                LIVE {pushedSlotsMap.has(mission.id) ? `· ${pushedSlotsMap.get(mission.id)?.slot}` : ''}
-                              </span>
-                            ) : isNextUp ? (
-                              <span className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-bold px-2 py-0.5 rounded-md uppercase tracking-wider flex items-center gap-1.5 text-xs opacity-75 shrink-0">
-                                <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
-                                NEXT UP {pushedSlotsMap.has(mission.id) ? `· ${pushedSlotsMap.get(mission.id)?.slot}` : ''}
-                              </span>
-                            ) : pushedSlotsMap.has(mission.id) ? (
-                              <span className="text-zinc-400 flex items-center gap-1 text-xs font-mono shrink-0">
-                                <Clock className="w-3 h-3 text-zinc-500" />
-                                <span>{pushedSlotsMap.get(mission.id)?.slot}</span>
-                              </span>
-                            ) : null}
-
-                            <span className="text-zinc-600 hidden sm:inline">•</span>
-
-                            {/* Mission Type (Quiet Clean Text) */}
-                            <span className="text-zinc-300 font-sans text-xs shrink-0">
-                              {mission.type}
-                            </span>
-
-                            <span className="text-zinc-600">•</span>
-
-                            {/* Marks Leverage */}
-                            <span className="text-amber-400 font-medium flex items-center gap-1 text-xs shrink-0">
-                              <Flame className="w-3 h-3 text-amber-400" />
-                              <span>+{weightageMarks}M</span>
-                            </span>
-
-                            {/* Urgent Memory Decay Badge */}
-                            {retentionScore !== undefined && (retentionScore < 60 || mission.type === 'Revise Formulas' || mission.type === 'Review Mistakes') && (
-                              <span 
-                                className={`px-1.5 py-0.5 rounded border flex items-center gap-1 font-mono text-xs opacity-75 font-bold ${
-                                  retentionScore < 50 
-                                    ? 'bg-rose-950/50 border-rose-500/40 text-rose-300 animate-pulse' 
-                                    : 'bg-amber-950/40 border-amber-500/40 text-amber-300'
-                                }`}
-                                title={`Ebbinghaus Retention Index: ${retentionScore}% retention`}
-                              >
-                                <span>{retentionScore}% Memory</span>
-                              </span>
-                            )}
-
-                            {/* Bedtime badge */}
-                            {!mission.completed && !isDismissed && overBudgetMissionIds.has(mission.id) && (
-                              <span className="text-amber-400 bg-amber-950/30 border border-amber-800/40 text-xs opacity-75 px-1.5 py-0.5 rounded flex items-center gap-1">
-                                <Moon className="w-2.5 h-2.5 text-amber-400" /> Bedtime
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Title */}
-                          <p className={`tracking-tight transition-colors ${
-                              isLive
-                                ? 'text-lg sm:text-xl font-tactical font-black text-white group-hover:text-emerald-300 leading-snug'
-                                : isDismissed ? 'text-xs md:text-sm font-tactical text-zinc-600 line-through' 
-                                : mission.completed ? 'text-xs md:text-sm font-tactical text-zinc-400 line-through' 
-                                : 'text-xs md:text-sm font-tactical font-bold text-zinc-100 group-hover:text-indigo-300'
-                            }`}>
-                            {mission.taskName}
-                          </p>
-
-                          {/* Sub-line */}
-                          <div className={`flex items-center gap-2 text-zinc-400 flex-wrap ${isLive ? 'text-xs sm:text-sm' : 'text-xs'} font-sans`}>
-                            <span>
-                              Unit: <strong className="text-zinc-200 font-medium">{unitName}</strong>
-                            </span>
-
-                            {chap && (
-                              <>
-                                <span className="text-zinc-600">•</span>
-                                <div className="flex items-center gap-1.5 font-mono text-xs opacity-75 shrink-0">
-                                  <span className="text-zinc-400">Lec {currentLec}/{totalLec}</span>
-                                  <div className={`${isLive ? 'w-20 h-1.5' : 'w-16 h-1.5'} bg-zinc-950 rounded-full overflow-hidden border border-white/10`}>
-                                    <div
-                                      className="bg-indigo-400 h-full rounded-full transition-all duration-300"
-                                      style={{ width: `${lecPercent}%` }}
-                                    />
-                                  </div>
-                                  <span className="text-indigo-400 font-medium font-mono">{lecPercent}%</span>
-                                </div>
-                              </>
-                            )}
-                          </div>
-
-                          {/* Action Buttons: 1-Row Sleek Layout */}
-                          <div className="pt-2 flex items-center gap-2 flex-wrap font-mono">
-                            {isLive && (
-                              <motion.button
-                                type="button"
-                                whileHover={{ scale: 1.03 }}
-                                whileTap={{ scale: 0.95 }}
-                                transition={springs.snappy}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleStartSession(mission.id);
-                                }}
-                                className="px-5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-mono text-xs font-bold uppercase tracking-wider rounded-xl flex items-center gap-1.5 cursor-pointer transition-all shadow-[0_0_15px_rgba(16,185,129,0.35)] border border-emerald-400/40 active:scale-95"
-                              >
-                                <Play className="w-3.5 h-3.5 fill-white text-white" />
-                                <span>{resumableMissions[mission.id] ? 'Resume Mission' : 'Start Mission'}</span>
-                              </motion.button>
-                            )}
-
-                            {chap && (
-                              <motion.button
-                                type="button"
-                                whileHover={{ scale: 1.04 }}
-                                whileTap={{ scale: 0.95 }}
-                                transition={springs.snappy}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  actions.openChapterEditModal(chap.id);
-                                }}
-                                className="text-xs bg-zinc-950/70 hover:bg-zinc-850 text-zinc-300 hover:text-white px-3 py-1.5 rounded-xl cursor-pointer transition-colors border border-white/10 flex items-center gap-1.5 shadow-sm font-mono font-bold uppercase select-none"
-                                title="Configure Chapter"
-                              >
-                                <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-400" />
-                                <span>Configure</span>
-                              </motion.button>
-                            )}
-
-                            <motion.button
-                              type="button"
-                              whileHover={{ scale: 1.04 }}
-                              whileTap={{ scale: 0.95 }}
-                              transition={springs.snappy}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onEditMission?.(mission);
-                              }}
-                              className="text-xs bg-zinc-950/70 hover:bg-zinc-850 text-zinc-300 hover:text-white px-3 py-1.5 rounded-xl cursor-pointer transition-colors border border-white/10 flex items-center gap-1.5 shadow-sm font-mono font-bold uppercase select-none"
-                              title="Edit Mission Details"
-                            >
-                              <Edit className="w-3.5 h-3.5 text-zinc-400" />
-                              <span>Edit</span>
-                            </motion.button>
-                          </div>
-                        </div>
-
-                        {/* Duration & Chevron */}
-                        <div className="flex items-center gap-2 shrink-0 font-mono">
-                          <span className="text-xs font-mono font-bold text-zinc-300 bg-zinc-950/80 border border-white/10 px-2.5 py-1 rounded-xl flex items-center gap-1.5 shadow-sm">
-                            <Clock className="w-3 h-3 text-indigo-400" /> {mission.duration}m
-                          </span>
-
-                          {/* Delete button — hidden for dismissed missions (already dismissed) */}
-                          {!isDismissed && (
-                          <motion.button
-                            type="button"
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            transition={springs.snappy}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setMissionToDelete(mission.id);
-                            }}
-                            className="w-7 h-7 rounded-lg border border-zinc-800 bg-zinc-900/40 hover:bg-red-500/20 hover:border-red-500/40 text-zinc-400 hover:text-red-400 flex items-center justify-center transition-colors cursor-pointer"
-                            title="Delete mission"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </motion.button>
-                          )}
-
-                          <motion.button
-                            type="button"
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            transition={springs.snappy}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setExpandedMission(isExpanded ? null : mission.id);
-                            }}
-                            className="w-7 h-7 rounded-lg border border-zinc-800 bg-zinc-900/40 flex items-center justify-center text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer"
-                          >
-                            <motion.div animate={{ rotate: isExpanded ? 180 : 0 }} transition={springs.snappy}>
-                              <ChevronDown className="w-3.5 h-3.5" />
-                            </motion.div>
-                          </motion.button>
-                        </div>
-
-                      </div>
-
-                      {/* Expandable Details Drawer */}
-                      <AnimatePresence initial={false}>
-                        {isExpanded && (
-                          <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: "auto", opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-                            className="overflow-hidden border-t border-zinc-900/60"
-                          >
-                            <div className="px-3 py-2.5 mt-2.5 bg-zinc-950/40 text-xs text-zinc-400 space-y-2 rounded-xl">
-                              <div className="flex items-center justify-between text-zinc-300 font-mono text-xs opacity-75">
-                                <span>Estimated Time: <strong className="text-white">{mission.duration} mins</strong></span>
-                                <span>XP Award: <strong className="text-indigo-400">+{mission.xp} XP</strong></span>
-                              </div>
-
-                              <div className="pt-2 flex gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    actions.completeTask(mission.id);
-                                    if (!mission.completed) {
-                                      audioEngine.playSuccess();
-                                      setExpandedMission(null);
-                                    } else {
-                                      audioEngine.playAlert();
-                                    }
-                                  }}
-                                  className={`text-xs opacity-75 font-bold py-1.5 px-3 rounded-md transition-all cursor-pointer border active:scale-[0.98] hover:scale-[1.02] ${
-                                    mission.completed 
-                                      ? 'bg-emerald-950/40 text-emerald-400 border-emerald-900/60 hover:bg-emerald-950/60 hover:text-emerald-300' 
-                                      : 'bg-zinc-800 hover:bg-emerald-600/90 text-zinc-300 hover:text-white border-zinc-700 hover:border-emerald-500 shadow-sm'
-                                  }`}
-                                >
-                                  {mission.completed ? 'Mark Incomplete' : 'Complete Module'}
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setMissionToDelete(mission.id);
-                                    setExpandedMission(null);
-                                  }}
-                                  className="bg-transparent hover:bg-red-950/40 text-zinc-400 hover:text-red-300 text-xs opacity-75 py-1.5 px-3 rounded-md transition-all active:scale-[0.98] hover:scale-[1.02] cursor-pointer border border-zinc-800 hover:border-red-900/60 flex items-center gap-1"
-                                >
-                                  <Trash2 className="w-3 h-3" />
-                                  <span>Remove Mission</span>
-                                </button>
-                              </div>
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-
-                    </motion.div>
+                      onToggleComplete={() => {
+                        actions.completeTask(mission.id);
+                        if (!mission.completed) {
+                          audioEngine.playSuccess();
+                        } else {
+                          audioEngine.playAlert();
+                        }
+                      }}
+                      onDelete={() => setMissionToDelete(mission.id)}
+                      onToggleExpand={() => setExpandedMission(isExpanded ? null : mission.id)}
+                      onEditMission={() => onEditMission?.(mission)}
+                      onStartSession={() => handleStartSession(mission.id)}
+                      onOpenChapterEditModal={(chapId) => actions.openChapterEditModal(chapId)}
+                      handleResetSession={handleResetSession}
+                    />
                   );
                 })}
-                </AnimatePresence>
-              )}
+              </AnimatePresence>
+            )}
           </div>
         </div>
 
@@ -1175,211 +708,21 @@ export function DailyMissionTimeline({
       </div>
 
       {/* RIGHT COLUMN: 35% width (~400px) — Sleek Strategy & Formula Radar */}
-      <div className="lg:col-span-5 xl:col-span-5 self-start sticky top-4 max-h-[calc(100vh-2rem)] overflow-y-auto custom-scrollbar">
-        <div 
-          style={{
-            background: 'rgba(10, 14, 23, 0.85)',
-            backdropFilter: 'blur(24px) saturate(190%)',
-            border: '1px solid rgba(255, 255, 255, 0.10)',
-            borderTop: '1.5px solid rgba(255, 255, 255, 0.25)',
-            boxShadow: '0 12px 35px rgba(0, 0, 0, 0.6)'
-          }}
-          className="p-4 md:p-5 rounded-2xl space-y-3.5 shadow-sm relative overflow-hidden text-left font-sans"
-        >
-          {/* Top Hazard Warning Tape Ribbon */}
-          <div 
-            className="absolute top-0 inset-x-0 h-1 opacity-75 pointer-events-none"
-            style={{
-              background: 'repeating-linear-gradient(-45deg, #6366f1 0px, #6366f1 8px, transparent 8px, transparent 16px)'
-            }}
-          />
-
-          {/* Caliper Crosshairs */}
-          <span className="absolute top-2.5 left-2.5 text-xs opacity-50 font-mono text-zinc-600 select-none pointer-events-none">+</span>
-          <span className="absolute top-2.5 right-2.5 text-xs opacity-50 font-mono text-zinc-600 select-none pointer-events-none">+</span>
-          <span className="absolute bottom-2.5 left-2.5 text-xs opacity-50 font-mono text-zinc-600 select-none pointer-events-none">+</span>
-          <span className="absolute bottom-2.5 right-2.5 text-xs opacity-50 font-mono text-zinc-600 select-none pointer-events-none">+</span>
-          
-          <div className="space-y-4 relative z-10">
-            
-            {/* Compact Header Radar */}
-            <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
-              <div className="flex items-center gap-2.5">
-                {/* Animated Kinetic Rings Indicator */}
-                <div className="relative w-7 h-7 flex items-center justify-center shrink-0">
-                  <svg viewBox="0 0 30 30" className="eva-kinetic-ring w-full h-full absolute inset-0 animate-[spin_8s_linear_infinite]">
-                    <circle cx="15" cy="15" r="13" className="stroke-indigo-400/40 fill-none" strokeWidth="1.5" strokeDasharray="3 3" />
-                  </svg>
-                  <span className="w-2 h-2 rounded-full bg-indigo-400 animate-ping" />
-                </div>
-                <h3 className="text-base font-bold font-mono text-white tracking-tight uppercase">
-                  <span className="eva-japanese-badge">戦略誘導 // </span>STRATEGY RADAR
-                </h3>
-              </div>
-              
-              {activeChap && (
-                <motion.button
-                  type="button"
-                  whileHover={{ scale: 1.04 }}
-                  whileTap={{ scale: 0.95 }}
-                  transition={springs.snappy}
-                  onClick={() => {
-                    audioEngine.playRadioRelayClick().catch(() => {});
-                    actions.openChapterEditModal(activeChap.id);
-                  }}
-                  className="text-xs font-mono font-bold text-zinc-300 hover:text-white bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-700/60 px-2.5 py-1 rounded-xl cursor-pointer transition-colors select-none flex items-center gap-1.5 shadow-sm uppercase tracking-wider"
-                >
-                  <SlidersHorizontal className="w-3 h-3 text-indigo-400" />
-                  <span>Configure</span>
-                </motion.button>
-              )}
-            </div>
-
-            <AnimatePresence mode="wait">
-            {activeMission ? (
-              <motion.div
-                key={activeMission.id}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.2 }}
-                className="space-y-4 text-left"
-              >
-                
-                {/* Active Module Header */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className={`text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-lg border shadow-sm ${getSubjectBadgeStyle(activeMission.subject)}`}>
-                      {activeMission.subject.toUpperCase()}
-                    </span>
-                    <span className="text-xs font-semibold text-amber-300 bg-amber-950/40 border border-amber-500/30 px-2.5 py-0.5 rounded-lg shadow-sm">
-                      +{strategyRadar.weightageGain} Marks Gain
-                    </span>
-                  </div>
-                  <h4 className="text-base font-bold text-white tracking-tight pt-0.5 leading-snug">
-                    {activeMission.taskName}
-                  </h4>
-                </div>
-
-                {/* Chapter Vitals */}
-                {activeChap ? (
-                  <div className="space-y-2 mt-2">
-                    <span className="text-xs font-semibold text-zinc-400 block">
-                      Chapter Vitals
-                    </span>
-                    <div className="grid grid-cols-2 gap-2.5">
-                      <div className="p-3 rounded-xl bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 transition-colors flex flex-col gap-1.5">
-                        <span className="text-xs text-zinc-400 font-medium">Completion</span>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-white font-mono">{activeChap.completion}%</span>
-                          <div className="w-16 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-                            <motion.div 
-                              initial={{ width: 0 }}
-                              animate={{ width: `${activeChap.completion}%` }}
-                              transition={{ duration: 0.5, ease: 'easeOut' }}
-                              className="h-full bg-indigo-500 rounded-full" 
-                            />
-                          </div>
-                        </div>
-                      </div>
-                      <div className="p-3 rounded-xl bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 transition-colors flex flex-col gap-1.5">
-                        <span className="text-xs text-zinc-400 font-medium">Confidence</span>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-white font-mono">{activeChap.confidence}%</span>
-                          <div className="w-16 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-                            <motion.div 
-                              initial={{ width: 0 }}
-                              animate={{ width: `${activeChap.confidence}%` }}
-                              transition={{ duration: 0.5, ease: 'easeOut' }}
-                              className={`h-full rounded-full ${activeChap.confidence > 70 ? 'bg-emerald-500' : activeChap.confidence > 40 ? 'bg-amber-500' : 'bg-rose-500'}`} 
-                            />
-                          </div>
-                        </div>
-                      </div>
-                      <div className="p-3 rounded-xl bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 transition-colors flex flex-col gap-1">
-                        <span className="text-xs text-zinc-400 font-medium">Difficulty</span>
-                        <span className={`text-xs font-semibold ${activeChap.difficulty === 'Hard' ? 'text-rose-400' : activeChap.difficulty === 'Medium' ? 'text-amber-400' : 'text-emerald-400'}`}>{activeChap.difficulty}</span>
-                      </div>
-                      <div className="p-3 rounded-xl bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 transition-colors flex flex-col gap-1">
-                        <span className="text-xs text-zinc-400 font-medium">Lectures</span>
-                        <span className="text-xs font-bold text-white font-mono">{activeChap.currentLecture} / {activeChap.totalLectures}</span>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="p-3 rounded-xl bg-zinc-900/40 border border-zinc-800 text-xs text-zinc-400">
-                    Custom task selected — chapter telemetry unavailable.
-                  </div>
-                )}
-
-                {/* Performance Metrics: Clean 3-Box Row */}
-                <div className="grid grid-cols-3 gap-2.5 pt-1">
-                  <div className="p-3 rounded-xl bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 transition-colors text-center flex flex-col justify-center">
-                    <span className="text-xs text-zinc-400 font-medium">Est. Time</span>
-                    <span className="text-sm font-bold text-white font-mono mt-0.5">{(strategyRadar as any).estimatedMinutes || activeMission?.duration || 45}m</span>
-                  </div>
-                  <div className="p-3 rounded-xl bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 transition-colors text-center flex flex-col justify-center">
-                    <span className="text-xs text-zinc-400 font-medium">Target PYQs</span>
-                    <span className="text-sm font-bold text-indigo-400 font-mono mt-0.5">{strategyRadar.recommendedPYQs} Qs</span>
-                  </div>
-                  <div className="p-3 rounded-xl bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 transition-colors text-center flex flex-col justify-center">
-                    <span className="text-xs text-zinc-400 font-medium">XP Reward</span>
-                    <span className="text-sm font-bold text-emerald-400 font-mono mt-0.5">+{((strategyRadar as any).estimatedMinutes || activeMission?.duration || 45) > 45 ? 83 : 45}</span>
-                  </div>
-                </div>
-
-              </motion.div>
-            ) : (
-              <div className="p-8 rounded-2xl bg-zinc-900/30 border border-zinc-800 text-center space-y-3">
-                <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center mx-auto text-indigo-400 shadow-sm">
-                  <Activity className="w-5 h-5" />
-                </div>
-                <div className="text-xs text-zinc-400 max-w-xs mx-auto font-sans leading-relaxed">
-                  Select a mission from the Execution Queue to view strategic telemetry and formula radar.
-                </div>
-              </div>
-            )}
-            </AnimatePresence>
-
-            {/* Launch Focus Cockpit Session CTA Button */}
-            <motion.button
-              type="button"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.97 }}
-              transition={springs.snappy}
-              onClick={() => {
-                if (activeChap) {
-                  actions.setRadarFocusedChapter(activeChap.id);
-                  actions.setActiveSubject(activeChap.subject);
-                }
-                handleStartSession(activeMission?.id);
-              }}
-              className={`w-full py-3 px-4 font-mono text-xs font-bold uppercase tracking-wider rounded-xl transition-colors cursor-pointer shadow-lg flex items-center justify-center gap-2 ${
-                sessionState === 'active'
-                  ? 'bg-indigo-950/80 border border-indigo-500/50 text-indigo-200 hover:bg-indigo-900'
-                  : sessionState === 'paused'
-                  ? 'bg-amber-500 hover:bg-amber-400 text-zinc-950 shadow-amber-500/20'
-                  : 'bg-white hover:bg-zinc-100 text-zinc-950'
-              }`}
-            >
-              {sessionState === 'active' ? (
-                <span className="flex items-center justify-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse" />
-                  <span>PAUSE FOCUS COCKPIT ({formatTimer(secondsElapsed)})</span>
-                </span>
-              ) : sessionState === 'paused' ? (
-                <span className="flex items-center justify-center gap-2">
-                  <Pause className="w-3.5 h-3.5" />
-                  <span>RESUME FOCUS COCKPIT ({formatTimer(secondsElapsed)})</span>
-                </span>
-              ) : (
-                <span>{(activeMission?.id && resumableMissions[activeMission.id]) ? 'RESUME FOCUS COCKPIT SESSION' : 'ARM FOCUS COCKPIT SESSION'}</span>
-              )}
-            </motion.button>
-          </div>
-
-        </div>
-      </div>
+      <TacticalMissionConsole
+        activeMission={activeMission || undefined}
+        activeChap={activeChap || undefined}
+        strategyRadar={strategyRadar}
+        targetPYQs={targetPYQs || undefined}
+        displayXp={displayXp}
+        sessionState={sessionState}
+        secondsElapsed={secondsElapsed}
+        formatTimer={formatTimer}
+        resumableMissions={resumableMissions}
+        onStartSession={handleStartSession}
+        onOpenChapterEditModal={(chapterId) => actions.openChapterEditModal(chapterId)}
+        onSetRadarFocusedChapter={(chapterId) => actions.setRadarFocusedChapter(chapterId)}
+        onSetActiveSubject={(subject) => actions.setActiveSubject(subject)}
+      />
 
       <ConfirmDeleteModal
         isOpen={!!missionToDelete}
@@ -1396,6 +739,55 @@ export function DailyMissionTimeline({
         isOpen={isHistoryModalOpen} 
         onClose={() => setIsHistoryModalOpen(false)} 
       />
+
+      {/* Explicit Session Extension Confirmation Modal */}
+      <AnimatePresence>
+        {extensionConfirmation?.isOpen && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100050] flex items-center justify-center p-4 font-mono">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={springs.snappy}
+              className="max-w-md w-full p-6 rounded-3xl border border-amber-500/40 bg-zinc-950/95 shadow-2xl shadow-amber-500/20 text-center relative overflow-hidden flex flex-col items-center space-y-4"
+            >
+              {/* Top ambient glow */}
+              <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-amber-500/20 blur-3xl pointer-events-none" />
+              <div className="absolute -bottom-10 -left-10 w-40 h-40 rounded-full bg-indigo-500/20 blur-3xl pointer-events-none" />
+
+              <div className="w-14 h-14 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shadow-lg shadow-amber-500/30">
+                <Sparkles className="w-7 h-7 animate-pulse text-amber-400" />
+              </div>
+
+              <div className="space-y-1.5">
+                <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold uppercase tracking-wider border border-amber-500/30">
+                  OVERTIME ACTIVATED · +{extensionConfirmation.label}
+                </span>
+                <h3 className="text-xl font-display font-bold text-white tracking-tight">
+                  Study Session Extended!
+                </h3>
+                <p className="text-xs text-zinc-300 max-w-sm font-sans leading-relaxed">
+                  Your bedtime cutoff has been extended to <span className="font-bold text-amber-300 font-mono">{extensionConfirmation.newEndTime}</span>.
+                  All missions are unlocked for tonight. Keep your study streak alive!
+                </p>
+              </div>
+
+              <div className="w-full pt-2 flex items-center justify-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    audioEngine.playMechanicalKey('click').catch(() => {});
+                    setExtensionConfirmation(null);
+                  }}
+                  className="w-full py-2.5 px-4 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-zinc-950 font-bold rounded-xl text-xs uppercase tracking-wider transition-all shadow-lg shadow-amber-500/30 active:scale-95 cursor-pointer"
+                >
+                  Got It · Continue Studying
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
-}
+});

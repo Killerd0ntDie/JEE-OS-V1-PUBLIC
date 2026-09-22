@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { OptimizationEngine } from './OptimizationEngine';
-import { KnowledgeEngine, SyllabusNode } from '@/engines/knowledge';
-import { PlannerInput } from '@/engines/planner/types';
+import { KnowledgeEngine, SyllabusNode } from '../knowledge';
+import { PlannerInput } from '../planner/types';
 
 const MOCK_SYLLABUS: SyllabusNode[] = [
   { id: 'p1', name: 'Physics 1', subject: 'physics', module: 'Mechanics', prerequisites: [], unlockedChapters: [], lectureCount: 5, estimatedHours: 10, weightage: 5,
@@ -75,5 +75,22 @@ describe('OptimizationEngine', () => {
 
     expect(result.isOverloaded).toBe(false);
     expect(result.scheduleStatus).toBe('On Track');
+  });
+
+  it('safely handles missing or undefined userPreferences without crashing (BUG-23)', () => {
+    const inputWithoutPrefs: PlannerInput = {
+      ...basePlannerInput,
+      userPreferences: undefined as any
+    };
+
+    expect(() => {
+      const result = engine.optimize({
+        plannerInput: inputWithoutPrefs,
+        targetCompletionDate: '2024-04-10T00:00:00.000Z',
+        actualStudyHoursPastWeek: [4, 5, 4],
+        skippedTasks: []
+      });
+      expect(result.optimizedPlannerInput.userPreferences).toBeDefined();
+    }).not.toThrow();
   });
 });
