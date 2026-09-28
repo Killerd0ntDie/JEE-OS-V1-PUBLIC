@@ -12,7 +12,20 @@ export const MockTestRepository = {
 
   async saveCustomMockTest(userId: string, test: MockTest): Promise<void> {
     const mockDoc = doc(db, 'users', userId, 'customMockTests', test.id);
-    const sanitized = sanitizeForFirestore(test);
+    const leanTest: MockTest = {
+      ...test,
+      sections: (test.sections || []).map(sec => ({
+        ...sec,
+        questions: (sec.questions || []).map(q => {
+          const { imageUrl, ...rest } = q;
+          return {
+            ...rest,
+            hasDiagram: Boolean(q.hasDiagram || imageUrl)
+          };
+        })
+      }))
+    };
+    const sanitized = sanitizeForFirestore(leanTest);
     await setDoc(mockDoc, sanitized, { merge: true });
   },
 

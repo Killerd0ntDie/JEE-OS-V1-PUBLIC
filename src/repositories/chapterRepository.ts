@@ -37,6 +37,23 @@ export const ChapterRepository = {
     }
   },
 
+  // Batch save multiple chapters
+  async saveChaptersBatch(userId: string, chapters: Chapter[]): Promise<void> {
+    if (chapters.length === 1) {
+      return this.saveChapter(userId, chapters[0]);
+    }
+    const CHUNK_SIZE = 450;
+    for (let i = 0; i < chapters.length; i += CHUNK_SIZE) {
+      const chunk = chapters.slice(i, i + CHUNK_SIZE);
+      const batch = writeBatch(db);
+      chunk.forEach(chap => {
+        const chapDoc = doc(db, 'users', userId, 'chapters', chap.id);
+        batch.set(chapDoc, sanitizeForFirestore(chap), { merge: true });
+      });
+      await batch.commit();
+    }
+  },
+
   // Delete a chapter document
   async deleteChapter(userId: string, chapterId: string): Promise<void> {
     const chapDoc = doc(db, 'users', userId, 'chapters', chapterId);

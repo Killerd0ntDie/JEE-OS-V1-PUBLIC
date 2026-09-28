@@ -229,4 +229,42 @@ Ans: A
     expect(questions[0].options).toHaveLength(4);
     expect(questions[0].options?.[0].text).toBe('10 m/s');
   });
+
+  it('correctly handles multi-statement (A)-(E) questions across page headers without premature commits', () => {
+    const raw = `
+6. Identify the correct statements from the following:
+[JEE MAIN 290123_S2]
+(A) Work done by a man in lifting a bucket out of a well is negative.
+(B) Work done by gravitational force is negative.
+[PAGE 2]
+PHYSICS P-11 BATCH - PRAGYAAN
+(C) Work done by friction is positive.
+(D) Work done by an applied force is zero.
+(E) Work done by air resistance is negative.
+Choose the correct answer from the options given below:
+(1) B and E only (2) A and C only
+(3) B, D and E only (4) B and D only
+Ans: (1)
+`;
+
+    const questions = PdfLexicalParser.parse(raw);
+    expect(questions).toHaveLength(1);
+    expect(questions[0].qNum).toBe(6);
+    expect(questions[0].content).toContain('(A) Work done by a man');
+    expect(questions[0].content).toContain('(B) Work done by gravitational');
+    expect(questions[0].content).toContain('(C) Work done by friction');
+    expect(questions[0].content).toContain('(D) Work done by an applied');
+    expect(questions[0].content).toContain('(E) Work done by air resistance');
+    expect(questions[0].content).toContain('Choose the correct answer from the options given below:');
+    expect(questions[0].options).toHaveLength(4);
+    expect(questions[0].options?.[0].id).toBe('A');
+    expect(questions[0].options?.[0].text).toBe('B and E only');
+    expect(questions[0].options?.[1].id).toBe('B');
+    expect(questions[0].options?.[1].text).toBe('A and C only');
+    expect(questions[0].options?.[2].id).toBe('C');
+    expect(questions[0].options?.[2].text).toBe('B, D and E only');
+    expect(questions[0].options?.[3].id).toBe('D');
+    expect(questions[0].options?.[3].text).toBe('B and D only');
+    expect(questions[0].correctAnswer).toBe('0'); // (1) -> 0 (Option A)
+  });
 });

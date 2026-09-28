@@ -5,6 +5,9 @@ export interface SubjectTheme {
   bg: string;
   border: string;
   badge: string;
+  badgeBg?: string;
+  badgeBorder?: string;
+  badgeText?: string;
   glow: string;
   gradient: string;
   iconColor: string;
@@ -18,6 +21,9 @@ export const SUBJECT_THEMES: Record<'physics' | 'chemistry' | 'maths', SubjectTh
     bg: 'bg-sky-950/20',
     border: 'border-sky-900/50',
     badge: 'bg-sky-950/40 text-sky-400 border border-sky-900/50',
+    badgeBg: 'bg-sky-950/40',
+    badgeBorder: 'border-sky-900/50',
+    badgeText: 'text-sky-400',
     glow: 'from-sky-500/20',
     gradient: 'from-sky-500/20 via-sky-500/5 to-transparent',
     iconColor: 'text-sky-400',
@@ -29,6 +35,9 @@ export const SUBJECT_THEMES: Record<'physics' | 'chemistry' | 'maths', SubjectTh
     bg: 'bg-emerald-950/20',
     border: 'border-emerald-900/50',
     badge: 'bg-emerald-950/40 text-emerald-400 border border-emerald-900/50',
+    badgeBg: 'bg-emerald-950/40',
+    badgeBorder: 'border-emerald-900/50',
+    badgeText: 'text-emerald-400',
     glow: 'from-emerald-500/20',
     gradient: 'from-emerald-500/20 via-emerald-500/5 to-transparent',
     iconColor: 'text-emerald-400',
@@ -40,6 +49,9 @@ export const SUBJECT_THEMES: Record<'physics' | 'chemistry' | 'maths', SubjectTh
     bg: 'bg-indigo-950/20',
     border: 'border-indigo-900/50',
     badge: 'bg-indigo-950/40 text-indigo-400 border border-indigo-900/50',
+    badgeBg: 'bg-indigo-950/40',
+    badgeBorder: 'border-indigo-900/50',
+    badgeText: 'text-indigo-400',
     glow: 'from-indigo-500/20',
     gradient: 'from-indigo-500/20 via-indigo-500/5 to-transparent',
     iconColor: 'text-indigo-400',

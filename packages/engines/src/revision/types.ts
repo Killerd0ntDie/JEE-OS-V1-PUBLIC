@@ -10,6 +10,7 @@ export interface RevisionCardItem extends FormulaEntry {
   cardType?: 'formula' | 'mistake' | 'note';
   mistakeId?: string;
   noteId?: string;
+  latex?: string;
   retentionConfidence: 'High' | 'Medium' | 'Low';
   retentionScore: number;
   lastReviewedDate?: string;

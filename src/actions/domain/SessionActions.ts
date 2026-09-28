@@ -142,7 +142,11 @@ export class SessionActions extends BaseActions {
 
   async undoLatestMission(deductXp: number = 50) {
     this.checkWriteBlock();
-    const sessions = this.state.studySessions || [];
+    const sessions = [...(this.state.studySessions || [])].sort((a, b) => {
+      const timeA = new Date(a.startTime || a.endTime || 0).getTime();
+      const timeB = new Date(b.startTime || b.endTime || 0).getTime();
+      return timeB - timeA;
+    });
     const latestSession = sessions[0];
     
     const currentXp = this.state.xp;
@@ -155,19 +159,30 @@ export class SessionActions extends BaseActions {
     };
     
     const originalSnapshot = {
-      xp: this.state.xp,
-      studySessions: this.state.studySessions
+      xp: { ...this.state.xp },
+      studySessions: [...(this.state.studySessions || [])]
     };
 
-    const newSessions = latestSession ? sessions.filter(s => s.id !== latestSession.id) : sessions;
+    const newSessions = latestSession ? (this.state.studySessions || []).filter(s => s.id !== latestSession.id) : (this.state.studySessions || []);
 
     this.runtime.updateStateOptimistic({ xp: newXp, studySessions: newSessions });
 
+    if (this.isGuestUser()) {
+      this.triggerToast('Mission Undone', `Deducted ${deductXp} XP and removed latest session`, 'success');
+      return;
+    }
+
     try {
       if (latestSession) {
-        await this.safeDbCall(() => StudySessionRepository.deleteStudySession(this.userId, latestSession.id), 'deleteStudySession');
+        await this.runAtomicBatch((batch) => {
+          const sessionDoc = doc(db, 'users', this.userId, 'studySessions', latestSession.id);
+          batch.delete(sessionDoc);
+          const userDoc = doc(db, 'users', this.userId);
+          batch.set(userDoc, sanitizeForFirestore({ xp: newXp }), { merge: true });
+        }, 'undoLatestMission');
+      } else {
+        await this.safeDbCall(() => UserRepository.updateUserProfile(this.userId, { xp: newXp }), 'updateUserProfile');
       }
-      await this.safeDbCall(() => UserRepository.updateUserProfile(this.userId, { xp: newXp }), 'updateUserProfile');
       await this.runtime.refresh('INIT', { xp: newXp, studySessions: newSessions, lastSyncError: null });
       this.triggerToast('Mission Undone', `Deducted ${deductXp} XP and removed latest session`, 'success');
     } catch (err) {

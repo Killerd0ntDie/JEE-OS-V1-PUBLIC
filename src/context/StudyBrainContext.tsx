@@ -19,7 +19,8 @@ import { Chapter, Mistake, TimelineBlock, UserProfile, MockResult } from '@/type
 import { MockTest } from '@/types/mockTest';
 import { normalizeChapter } from '@/utils/academicState';
 import { mockTest1 } from '@/data/mockTests/jeeMain2024Shift1';
-import { idbGet, idbSet } from '@/utils/idb';
+import { idbGet, idbSet, idbRemove } from '@/utils/idb';
+import { storageAdapter } from '@/services/StorageAdapter';
 
 const validateAndSanitizeChapters = (chaps: any[]): Chapter[] => {
   if (!Array.isArray(chaps)) {
@@ -201,13 +202,19 @@ export const StudyBrainProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           writeBlocked: false
         });
 
-        // Sync offline mock results
-        try {
-          const offlineQueue = JSON.parse(localStorage.getItem('jeeos_offline_mocks') || '[]');
-          if (offlineQueue.length > 0) {
-            console.log(`Syncing ${offlineQueue.length} offline mock results...`);
-            (async () => {
-              const remainingQueue = [];
+        // Sync offline mock results from Tier 2 IndexedDB (with legacy Tier 4 cleanup)
+        (async () => {
+          try {
+            const idbQueue = (await idbGet<MockResult[]>('jeeos_offline_mocks')) || [];
+            const legacyQueue = storageAdapter.getItem<MockResult[]>('jeeos_offline_mocks') || [];
+            if (legacyQueue.length > 0) {
+              storageAdapter.removeItem('jeeos_offline_mocks');
+            }
+            const offlineQueue = [...idbQueue, ...legacyQueue];
+
+            if (offlineQueue.length > 0) {
+              console.log(`Syncing ${offlineQueue.length} offline mock results...`);
+              const remainingQueue: MockResult[] = [];
               for (const mock of offlineQueue) {
                 try {
                   await actions.addMockResult(mock);
@@ -217,15 +224,15 @@ export const StudyBrainProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                 }
               }
               if (remainingQueue.length === 0) {
-                localStorage.removeItem('jeeos_offline_mocks');
+                await idbRemove('jeeos_offline_mocks');
               } else {
-                localStorage.setItem('jeeos_offline_mocks', JSON.stringify(remainingQueue));
+                await idbSet('jeeos_offline_mocks', remainingQueue);
               }
-            })();
+            }
+          } catch (e) {
+            console.error("Error processing offline mocks:", e);
           }
-        } catch (e) {
-          console.error("Error processing offline mocks:", e);
-        }
+        })();
       } else if (allCoreLoaded && isFullyLoaded) {
         // For subsequent real-time updates after initial load, we update optimistic and trigger a lightweight refresh
         if (debounceTimer) clearTimeout(debounceTimer);
@@ -233,11 +240,11 @@ export const StudyBrainProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           const currentRuntimeState = runtime.getState();
           const mergedState = {
             ...snapshotState,
-            mocks: currentRuntimeState.mocks && currentRuntimeState.mocks.length > 0 ? currentRuntimeState.mocks : snapshotState.mocks,
-            customMockTests: currentRuntimeState.customMockTests && currentRuntimeState.customMockTests.length > 0 ? currentRuntimeState.customMockTests : snapshotState.customMockTests,
-            notes: currentRuntimeState.notes && currentRuntimeState.notes.length > 0 ? currentRuntimeState.notes : snapshotState.notes,
-            mistakes: currentRuntimeState.mistakes && currentRuntimeState.mistakes.length > 0 ? currentRuntimeState.mistakes : snapshotState.mistakes,
-            studySessions: currentRuntimeState.studySessions && currentRuntimeState.studySessions.length > 0 ? currentRuntimeState.studySessions : snapshotState.studySessions,
+            mocks: Array.isArray(currentRuntimeState.mocks) ? currentRuntimeState.mocks : snapshotState.mocks,
+            customMockTests: Array.isArray(currentRuntimeState.customMockTests) ? currentRuntimeState.customMockTests : snapshotState.customMockTests,
+            notes: Array.isArray(currentRuntimeState.notes) ? currentRuntimeState.notes : snapshotState.notes,
+            mistakes: Array.isArray(currentRuntimeState.mistakes) ? currentRuntimeState.mistakes : snapshotState.mistakes,
+            studySessions: Array.isArray(currentRuntimeState.studySessions) ? currentRuntimeState.studySessions : snapshotState.studySessions,
           };
           snapshotState.mocks = mergedState.mocks;
           snapshotState.customMockTests = mergedState.customMockTests;
@@ -268,7 +275,7 @@ export const StudyBrainProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             targetYear: String(new Date().getFullYear() + 2),
             dreamIit: 'IIT Bombay',
             targetBranch: 'Computer Science & Engineering',
-            dailyQuota: 30,
+            dailyQuota: 6,
             showStatusInBar: true,
             soundEffects: false,
             desktopNotifications: false,
@@ -307,11 +314,13 @@ export const StudyBrainProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         snapshotState.deletedMissionIds = profile.deletedMissionIds || [];
         snapshotState.completedPlannerMissionIds = profile.completedPlannerMissionIds || [];
         snapshotState.scheduleOverrides = profile.scheduleOverrides || {};
+        snapshotState.bookmarkedFormulaIds = profile.bookmarkedFormulaIds || [];
         
-        coreLoadedFlags.profile = true;
-        checkAndInitCore();
       } catch (e) {
         console.error("Error processing profile snapshot:", e);
+      } finally {
+        coreLoadedFlags.profile = true;
+        checkAndInitCore();
       }
     }, (error) => {
       console.error("Profile snapshot error:", error);
@@ -402,9 +411,45 @@ export const StudyBrainProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
       const remoteMocks: MockResult[] = mocksRes.status === 'fulfilled' ? mocksRes.value.map(d => restoreNestedArrays(d)) : [];
       const currentRuntimeMocks: MockResult[] = runtime.getState().mocks || [];
+      const localResultMap = new Map<string, MockResult>();
+      localMockResults.forEach(r => localResultMap.set(r.id, r));
       const resultMap = new Map<string, MockResult>();
       localMockResults.forEach(r => resultMap.set(r.id, r));
-      remoteMocks.forEach(r => resultMap.set(r.id, r));
+
+        remoteMocks.forEach(remoteResult => {
+        const localResult = localResultMap.get(remoteResult.id);
+        if (localResult && localResult.testSnapshot && remoteResult.testSnapshot) {
+          const mergedSections = (remoteResult.testSnapshot.sections || []).map((rSec, sIdx) => {
+            const lSec = localResult.testSnapshot?.sections?.find(s => s.subject === rSec.subject) || localResult.testSnapshot?.sections?.[sIdx];
+            return {
+              ...rSec,
+              questions: (rSec.questions || []).map((rQ, qIdx) => {
+                const lQ = lSec?.questions?.find(q => q.id === rQ.id) || (localResult.testSnapshot?.sections || []).flatMap(s => s.questions).find(q => q.id === rQ.id) || lSec?.questions?.[qIdx];
+                return {
+                  ...rQ,
+                  imageUrl: rQ.imageUrl || lQ?.imageUrl,
+                  hasDiagram: Boolean(rQ.hasDiagram || lQ?.hasDiagram || lQ?.imageUrl)
+                };
+              })
+            };
+          });
+          resultMap.set(remoteResult.id, {
+            ...remoteResult,
+            testSnapshot: {
+              ...remoteResult.testSnapshot,
+              sections: mergedSections
+            }
+          });
+        } else if (localResult && localResult.testSnapshot && !remoteResult.testSnapshot) {
+          resultMap.set(remoteResult.id, {
+            ...remoteResult,
+            testSnapshot: localResult.testSnapshot
+          });
+        } else {
+          resultMap.set(remoteResult.id, remoteResult);
+        }
+      });
+
       currentRuntimeMocks.forEach(r => resultMap.set(r.id, r));
       snapshotState.mocks = Array.from(resultMap.values());
       updates.mocks = snapshotState.mocks;
@@ -418,10 +463,38 @@ export const StudyBrainProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
       if (customMocksRes.status === 'fulfilled') {
         const userMocks = customMocksRes.value.map(d => restoreNestedArrays(d));
+        const localTestMap = new Map<string, MockTest>();
+        localCustomMocks.forEach(t => localTestMap.set(t.id, t));
+
         const testMap = new Map<string, MockTest>();
         testMap.set(mockTest1.id, mockTest1);
         localCustomMocks.forEach(t => testMap.set(t.id, t));
-        userMocks.forEach(t => testMap.set(t.id, t));
+
+        userMocks.forEach(remoteTest => {
+          const localTest = localTestMap.get(remoteTest.id);
+          if (localTest) {
+            const mergedSections = (remoteTest.sections || []).map((rSec, sIdx) => {
+              const lSec = localTest.sections?.find(s => s.subject === rSec.subject) || localTest.sections?.[sIdx];
+              return {
+                ...rSec,
+                questions: (rSec.questions || []).map((rQ, qIdx) => {
+                  const lQ = lSec?.questions?.find(q => q.id === rQ.id) || (localTest.sections || []).flatMap(s => s.questions).find(q => q.id === rQ.id) || lSec?.questions?.[qIdx];
+                  return {
+                    ...rQ,
+                    imageUrl: rQ.imageUrl || lQ?.imageUrl,
+                    hasDiagram: Boolean(rQ.hasDiagram || lQ?.hasDiagram || lQ?.imageUrl)
+                  };
+                })
+              };
+            });
+            testMap.set(remoteTest.id, {
+              ...remoteTest,
+              sections: mergedSections
+            });
+          } else {
+            testMap.set(remoteTest.id, remoteTest);
+          }
+        });
 
         snapshotState.customMockTests = Array.from(testMap.values());
         updates.customMockTests = snapshotState.customMockTests;

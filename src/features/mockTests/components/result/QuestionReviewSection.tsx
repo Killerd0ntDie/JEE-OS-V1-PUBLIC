@@ -20,6 +20,7 @@ import {
   getAllCorrectOptionIndices
 } from '@/utils/mockScoring';
 import { AiExplanationCard } from './AiExplanationCard';
+import { storageAdapter } from '@/services/StorageAdapter';
 
 export interface QuestionReviewSectionProps {
   test: MockTest;
@@ -779,7 +780,7 @@ export function QuestionReviewSection({
                   type="button"
                   onClick={() => {
                     const prompt = `I need help understanding Question ${currentQItem.globalIndex} from Mock Test "${test.name}".\n\nQuestion Statement:\n${currentQItem.question.content}\n\nOfficial Answer: ${currentQItem.question.correctAnswer}\n\nMy Attempt: ${currentQItem.attempt.selectedAnswer || 'Skipped'}\n\nCan you explain the intuition, common traps, and how to approach this problem step-by-step?`;
-                    sessionStorage.setItem('pendingCoachPrompt', prompt);
+                    storageAdapter.setSession('jeeos_pending_coach_prompt', prompt);
                     onNavigate?.('ai-coach');
                   }}
                   className="px-3 py-1.5 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"

@@ -16,7 +16,7 @@ export function registerMockTestParserRoutes(app: any, deps: MockTestParserDeps)
 
   const PyqPaperSchema = z.object({
     rawText: z.string().max(500000).optional().default(''),
-    pdfBase64: z.string().max(100000000).optional(),
+    pdfBase64: z.string().max(10000000).optional(),
     paperTitle: z.string().optional(),
     targetSubject: z.string().optional(),
     isDpp: z.boolean().optional(),
@@ -32,9 +32,11 @@ export function registerMockTestParserRoutes(app: any, deps: MockTestParserDeps)
     next();
   };
 
-  const unpackProseFromMath = (text: string): string => {
-        if (!text) return '';
-        return text.replace(/(\$\$[\s\S]*?\$\$|\$[^\$\n]+?\$)/g, (fullMatch, block) => {
+  const unpackProseFromMath = (text: unknown): string => {
+        if (text === null || text === undefined) return '';
+        const str = typeof text === 'string' ? text : String(text);
+        if (!str.trim()) return '';
+        return str.replace(/(\$\$[\s\S]*?\$\$|\$[^$\n]+?\$)/g, (fullMatch, block) => {
           const isDouble = block.startsWith('$$');
           const inner = isDouble ? block.slice(2, -2) : block.slice(1, -1);
 
@@ -78,6 +80,27 @@ export function registerMockTestParserRoutes(app: any, deps: MockTestParserDeps)
           .replace(/(?<![a-zA-Z\\])ext\s+([A-Z][a-z0-9_]*)/g, '\\text{$1}');
       };
 
+      const validateDiagramBbox = (bbox: any): number[] | undefined => {
+        if (!Array.isArray(bbox) || bbox.length !== 4) return undefined;
+        const numBbox = bbox.map((v: any) => typeof v === 'number' ? v : parseFloat(v));
+        if (numBbox.some((v: any) => typeof v !== 'number' || isNaN(v) || !isFinite(v))) return undefined;
+
+        let [ymin, xmin, ymax, xmax] = numBbox;
+        if (ymin > ymax) { const temp = ymin; ymin = ymax; ymax = temp; }
+        if (xmin > xmax) { const temp = xmin; xmin = xmax; xmax = temp; }
+
+        const isZeroToOne = ymax <= 1.0 && xmax <= 1.0 && ymin >= 0 && xmin >= 0;
+        const minSpan = isZeroToOne ? 0.015 : 15;
+        if ((ymax - ymin) < minSpan || (xmax - xmin) < minSpan) return undefined;
+
+        return [
+          isZeroToOne ? Math.max(0, Math.min(1, ymin)) : Math.max(0, Math.min(1000, Math.round(ymin))),
+          isZeroToOne ? Math.max(0, Math.min(1, xmin)) : Math.max(0, Math.min(1000, Math.round(xmin))),
+          isZeroToOne ? Math.max(0, Math.min(1, ymax)) : Math.max(0, Math.min(1000, Math.round(ymax))),
+          isZeroToOne ? Math.max(0, Math.min(1, xmax)) : Math.max(0, Math.min(1000, Math.round(xmax)))
+        ];
+      };
+
       const normalizeChemistryAndOrbitals = (str: string): string => {
         if (!str) return '';
         let out = sanitizeCorruptedLatex(unpackProseFromMath(str));
@@ -90,7 +113,7 @@ export function registerMockTestParserRoutes(app: any, deps: MockTestParserDeps)
           .replace(/\\n(?![a-zA-Z])/g, '\n')
           .replace(/\\r(?![a-zA-Z])/g, '');
 
-        out = out.replace(/^(?:PART\s*[-–]\s*[IVX\d]+(?:\s*[:.\-]?\s*[^\n]+)?\n*)/i, '');
+        out = out.replace(/^(?:PART\s*[-–]\s*[IVX\d]+(?:\s*[:.-]?\s*[^\n]+)?\n*)/i, '');
 
         // Unpack invalid \text{...} wrappers around brackets and math commands
         out = out.replace(/\\text\{\s*(\[[^\]]*?\\[a-zA-Z]+[^\]]*?\])\s*\}/g, '$1');
@@ -98,7 +121,7 @@ export function registerMockTestParserRoutes(app: any, deps: MockTestParserDeps)
 
         // Unpack prose/sentence \text{...} wrappers (e.g. \text{Bond angles are not affected in } or \text{All } or \text{ are identical.})
         // Leaves single chemical symbols like \text{H}_2\text{CO}_3 and scientific units like \text{ J} untouched.
-        out = out.replace(/\\text\{\s*([a-zA-Z0-9\s,.:;!?'"()\-]{2,})\s*\}/g, (_m, inner) => {
+        out = out.replace(/\\text\{\s*([a-zA-Z0-9\s,.:;!?'"()-]{2,})\s*\}/g, (_m, inner) => {
           const trimmed = inner.trim();
           if (trimmed.split(/\s+/).length >= 2 || /^\(?\d+\)/.test(trimmed) || /\b(in|of|for|the|are|is|not|due|to|all|above|statements|incorrect|identical|affected|none|these|bond|angles|strength|which|case|maximum|lone|pair|electrons|trigonal|tetrahedral|octahedral|bipyramidal)\b/i.test(trimmed)) {
             return inner;
@@ -142,11 +165,11 @@ export function registerMockTestParserRoutes(app: any, deps: MockTestParserDeps)
 
         // Protect existing $$...$$ and $...$
         const mathTokens: string[] = [];
-        out = out.replace(/(\$\$[\s\S]*?\$\$|\$[^\$\n]+?\$)/g, (match) => {
+        out = out.replace(/(\$\$[\s\S]*?\$\$|\$[^$\n]+?\$)/g, (match) => {
           // Normalize colliding ion charges inside math tokens to prevent KaTeX vertical stacking collision:
           // e.g. \text{PO}_4^{3-} -> {\text{PO}_4}^{3-}, O_2^+ -> {O_2}^+, O_2^{2-} -> {O_2}^{2-}
           const cleanedTok = match
-            .replace(/(?<!\{)(\\text\{[^{}]+\}(?:_\d+|_\{[^}]+\})?|[A-Z][a-z]?(?:_\d+|_\{[^}]+\})?)(?:_(\d+)|_\{([^}]+)\})\^([+0-9\-]+|\{[^}]+\})/g, (_m, base, sub1, sub2, sup) => {
+            .replace(/(?<!\{)(\\text\{[^{}]+\}(?:_\d+|_\{[^}]+\})?|[A-Z][a-z]?(?:_\d+|_\{[^}]+\})?)(?:_(\d+)|_\{([^}]+)\})\^([+0-9-]+|\{[^}]+\})/g, (_m, base, sub1, sub2, sup) => {
               const sub = sub1 || sub2;
               const cleanSup = sup.replace(/^\{|\}$/g, '');
               return `{${base}_{${sub}}}^{${cleanSup}}`;
@@ -174,10 +197,10 @@ export function registerMockTestParserRoutes(app: any, deps: MockTestParserDeps)
         out = out.replace(/\\q?quad\s*/gi, '   ');
 
         // Angle comparison and degree expressions (e.g. < 109°28', < 120°, > 120°, 112°, 120^\circ)
-        out = out.replace(/([<>]=?)\s*(\d+)(?:\^\\circ|\s*°)(?:\s*(\d+)')?/g, (_m, op, deg, min) => {
+        out = out.replace(/([<>]=?)\s*(\d+)(?:\^\\circ|\s*[º°])(?:\s*(\d+)')?/g, (_m, op, deg, min) => {
           return min ? `$${op} ${deg}^\\circ ${min}'$` : `$${op} ${deg}^\\circ$`;
         });
-        out = out.replace(/(?<![\$0-9a-zA-Z])(\d+)(?:\^\\circ|°)(?!\$)/g, '$$$1^\\circ$');
+        out = out.replace(/(?<![$0-9a-zA-Z])(\d+)(?:\^\\circ|[º°])(?!\$)/g, (_m, n) => `$${n}^\\circ$`);
 
         // Bare angle hat notation outside math: \widehat{HCH} or \widehat{\text{HCH}} or \widehat{CNC}
         out = out.replace(/\\widehat\s*\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g, (match) => '$' + match + '$');
@@ -186,14 +209,14 @@ export function registerMockTestParserRoutes(app: any, deps: MockTestParserDeps)
         out = out.replace(/\b([drR])_\{[^{}]+\}/g, (match) => '$' + match + '$');
 
         // Bare theta and angle comparisons outside math: \theta_1 > \theta_3, \theta_1, \theta_2, \theta_3, \theta
-        out = out.replace(/\\theta(?:_[0-9a-zA-Z]+|\_\{[^{}]*\})?\s*(?:[<>]=?|=)\s*\\theta(?:_[0-9a-zA-Z]+|\_\{[^{}]*\})?/g, (match) => '$' + match + '$');
-        out = out.replace(/\\theta(?:_[0-9a-zA-Z]+|\_\{[^{}]*\})/g, (match) => '$' + match + '$');
+        out = out.replace(/\\theta(?:_[0-9a-zA-Z]+|_\{[^{}]*\})?\s*(?:[<>]=?|=)\s*\\theta(?:_[0-9a-zA-Z]+|_\{[^{}]*\})?/g, (match) => '$' + match + '$');
+        out = out.replace(/\\theta(?:_[0-9a-zA-Z]+|_\{[^{}]*\})/g, (match) => '$' + match + '$');
 
         // Bare variable angle comparisons outside math: x > y, y > x, x = y
         out = out.replace(/\b([xy])\s*([<>=])\s*([xy])\b/g, '$$$1 $2 $3$');
 
         // Bare chemical formulas with subscripts outside math: \text{H}_2\text{CO}_3, \text{BF}_3, \text{PF}_3, \text{B(OMe)}_3, \text{SbCl}_5, \text{SO}_2\text{Cl}_2, \text{CH}_3\text{NCS}, \text{H}_2\text{CO}, \text{F}_2\text{CO}
-        out = out.replace(/(?<!\$)\\text\{[A-Za-z0-9\(\)]+\}(?:_[0-9a-zA-Z{}]+|\^[0-9a-zA-Z{}]+|\\text\{[A-Za-z0-9\(\)]+\}|(?:\([^)]*\)))*(?!\$)/g, (match) => '$' + match + '$');
+        out = out.replace(/(?<!\$)\\text\{[A-Za-z0-9()]+\}(?:_[0-9a-zA-Z{}]+|\^[0-9a-zA-Z{}]+|\\text\{[A-Za-z0-9()]+\}|(?:\([^)]*\)))*(?!\$)/g, (match) => '$' + match + '$');
 
         // Molecular orbital notation with optional asterisk (e.g. \sigma * 2p_z, \sigma 2p_z, \pi * 2p_x)
         out = out.replace(/\\(sigma|pi)\s*\*?\s*([1-4]?[spdf](?:_[xyz])?)(?=\s+orbital\b|\b)/gi, (_m, greek, orb) => {
@@ -215,13 +238,13 @@ export function registerMockTestParserRoutes(app: any, deps: MockTestParserDeps)
         });
 
         // 2. Orbital combinations (e.g. py - py, p_y - p_y, p_\pi - p_\pi, p_\pi - d_\pi, px - px, dxy - dxy, dxy + pz, dyz + dyz)
-        out = out.replace(/\b([pd])_?(?:\\pi|pi)\s*[-–\+]\s*([pd])_?(?:\\pi|pi)\b/gi, (_m, o1, o2) => {
+        out = out.replace(/\b([pd])_?(?:\\pi|pi)\s*[-–+]\s*([pd])_?(?:\\pi|pi)\b/gi, (_m, o1, o2) => {
           return `$${o1.toLowerCase()}_\\pi - ${o2.toLowerCase()}_\\pi$`;
         });
-        out = out.replace(/\b([pd])_?(?:\\pi|pi)\s*[-–\+]\s*([pd])_?(?:d_?\\pi|d\\pi)\b/gi, (_m, o1, o2) => {
+        out = out.replace(/\b([pd])_?(?:\\pi|pi)\s*[-–+]\s*([pd])_?(?:d_?\\pi|d\\pi)\b/gi, (_m, o1, o2) => {
           return `$${o1.toLowerCase()}_\\pi - ${o2.toLowerCase()}_\\pi$`;
         });
-        out = out.replace(/\b([1-4]?[spdf])(?:_\{[^{}]+\}|_[a-zA-Z0-9]+)?\s*[\+]\s*([1-4]?[spdf])(?:_\{[^{}]+\}|_[a-zA-Z0-9]+)?\b/gi, (match) => '$' + match + '$');
+        out = out.replace(/\b([1-4]?[spdf])(?:_\{[^{}]+\}|_[a-zA-Z0-9]+)?\s*[+]\s*([1-4]?[spdf])(?:_\{[^{}]+\}|_[a-zA-Z0-9]+)?\b/gi, (match) => '$' + match + '$');
         out = out.replace(/\\(pi|sigma|delta)\s+(?=bond)/gi, '$\\$1$ ');
 
         const formatSub = (sub: string) => {
@@ -242,8 +265,21 @@ export function registerMockTestParserRoutes(app: any, deps: MockTestParserDeps)
         // 3. Bare Greek symbols outside math: \pi, \sigma, \lambda, \nu, \theta, \alpha, \beta, \mu, \Delta (including powers e.g. \sigma^2)
         out = out.replace(/\\(pi|sigma|alpha|beta|theta|lambda|nu|mu|omega|gamma|delta|Delta|Sigma|Omega|phi|psi)(?:\^([a-zA-Z0-9]+|\{[^{}]+\})|_([a-zA-Z0-9]+|\{[^{}]+\}))?\b/g, (match) => '$' + match + '$');
 
+        // 3b. Physics vector components: 2 i ^ + b ^ j + k ^ -> 2\hat{i} + b\hat{j} + \hat{k}
+        out = out.replace(/\\upsilon\b/g, 'v');
+        out = out.replace(/(?<![a-zA-Z\\])([+-]?\s*\d*\s*)i\s*[\^ˆ]/g, '$1\\hat{i}');
+        out = out.replace(/(?<![a-zA-Z\\])([+-]?\s*\d*\s*)j\s*[\^ˆ]/g, '$1\\hat{j}');
+        out = out.replace(/(?<![a-zA-Z\\])([+-]?\s*\d*\s*)k\s*[\^ˆ]/g, '$1\\hat{k}');
+        out = out.replace(/(\d+)\s*[º°]/g, (_m, n) => `$${n}^\\circ$`);
+
+        // 3c. Physics units with powers: N/m 2, m/s 2, ms –1
+        out = out.replace(/\bN\/m\s*2\b/g, '$\\text{N/m}^2$');
+        out = out.replace(/\bm\/s\s*2\b/g, '$\\text{m/s}^2$');
+        out = out.replace(/\bms\s*[–-]\s*1\b/g, '$\\text{ms}^{-1}$');
+        out = out.replace(/\bms\s*[–-]\s*2\b/g, '$\\text{ms}^{-2}$');
+
         // 4. Bare LaTeX math constructs outside math: fractions, square roots, vectors, integrals, sums, limits, operators
-        out = out.replace(/(?:\\(?:dfrac|cfrac|frac)\s*\{[^{}]*\}\s*\{[^{}]*\}|\\sqrt(?:\s*\[[^\]]*\])?\s*\{[^{}]*\}|\\(?:vec|hat|bar|dot|ddot|tilde)\s*\{[^{}]*\}|\\(?:int|iint|iiint|oint|sum|prod|lim)(?:_[a-zA-Z0-9]+|\_\{[^{}]*\})?(?:\^[a-zA-Z0-9]+|\^\{[^{}]*\})?|\\(?:pm|mp|times|div|approx|neq|leq|geq|infty|partial|nabla)\b)/g, (match) => '$' + match + '$');
+        out = out.replace(/(?:\\(?:dfrac|cfrac|frac)\s*\{[^{}]*\}\s*\{[^{}]*\}|\\sqrt(?:\s*\[[^\]]*\])?\s*\{[^{}]*\}|\\(?:vec|hat|bar|dot|ddot|tilde)\s*\{[^{}]*\}|\\(?:int|iint|iiint|oint|sum|prod|lim)(?:_[a-zA-Z0-9]+|_\{[^{}]*\})?(?:\^[a-zA-Z0-9]+|\^\{[^{}]*\})?|\\(?:pm|mp|times|div|approx|neq|leq|geq|infty|partial|nabla)\b)/g, (match) => '$' + match + '$');
 
         // 5. Mathematical alphanumeric Unicode OCR symbols (e.g. 𝑑, 𝑧, 𝑥, 𝑦, 𝑝)
         out = out
@@ -257,10 +293,10 @@ export function registerMockTestParserRoutes(app: any, deps: MockTestParserDeps)
           .replace(/\u{1D45D}/gu, 'p');
 
         // 6. Algebraic expressions in question statements: (x + y + z), R + Q - P, a^2 + b^2 + 2cd, c^3 - b^2 - a
-        out = out.replace(/\(\s*([xyzabcXYZABC]\s*[\+\-]\s*[xyzabcXYZABC]\s*[\+\-]\s*[xyzabcXYZABC])\s*\)/g, '$$($1)$$');
-        out = out.replace(/\b([A-Z])\s*[\+]\s*([A-Z])\s*[-–]\s*([A-Z])\b/g, '$$$1 + $2 - $3$$');
+        out = out.replace(/\(\s*([xyzabcXYZABC]\s*[+-]\s*[xyzabcXYZABC]\s*[+-]\s*[xyzabcXYZABC])\s*\)/g, '$$($1)$$');
+        out = out.replace(/\b([A-Z])\s*[+]\s*([A-Z])\s*[-–]\s*([A-Z])\b/g, '$$$1 + $2 - $3$$');
         out = out.replace(/\b([a-z])\s*([234])\s*[-–]\s*([a-z])\s*([234])\s*[-–]\s*([a-z])\b/g, '$$$1^{$2} - $3^{$4} - $5$$');
-        out = out.replace(/\b([a-z])\s*([234])\s*[\+]\s*([a-z])\s*([234])\s*[\+]\s*(\d+[a-z]+)\b/g, '$$$1^{$2} + $3^{$4} + $5$$');
+        out = out.replace(/\b([a-z])\s*([234])\s*[+]\s*([a-z])\s*([234])\s*[+]\s*(\d+[a-z]+)\b/g, '$$$1^{$2} + $3^{$4} + $5$$');
 
         // 7. Common chemical ions with charges & formulas (using thin-space charge separation to prevent KaTeX vertical charge stacking collision)
         const ionMap: [RegExp, string][] = [
@@ -348,7 +384,7 @@ export function registerMockTestParserRoutes(app: any, deps: MockTestParserDeps)
         // Hydrazoic acid resonance structures: H - N = N+ = N- <---> H - N+ - N+ = N2- <---> H - N- - N+ = N with (I), (II), (III) underneath
         if (/hydrazoic|resonating structure/i.test(out) && /N\s*=\s*N/i.test(out)) {
           out = out.replace(
-            /(?:H\s*[-–]\s*(?:\r?\n\s*[•\-\*]\s*)?)?N\s*=\s*N(?:\^?\+|\+)?\s*=\s*N(?:\^?[-–]|-)?[\s\S]*?N(?:\^?\+|\+)?\s*[-–]\s*N(?:\^?\+|\+)?\s*=\s*N(?:\^?2[-–]|\^?[-–]2|2[-–]|[-–]2)?[\s\S]*?N(?:\^?[-–]|-)?\s*[-–]\s*N(?:\^?\+|\+)?\s*(?:=|\u2261|\\equiv)\s*N[\s\S]*?(?:\(?\s*III\s*\)?|$)/i,
+            /(?:H\s*[-–]\s*(?:\r?\n\s*[•\-*]\s*)?)?N\s*=\s*N(?:\^?\+|\+)?\s*=\s*N(?:\^?[-–]|-)?[\s\S]*?N(?:\^?\+|\+)?\s*[-–]\s*N(?:\^?\+|\+)?\s*=\s*N(?:\^?2[-–]|\^?[-–]2|2[-–]|[-–]2)?[\s\S]*?N(?:\^?[-–]|-)?\s*[-–]\s*N(?:\^?\+|\+)?\s*(?:=|\u2261|\\equiv)\s*N[\s\S]*?(?:\(?\s*III\s*\)?|$)/i,
             () => `$$\\underset{\\text{(I)}}{\\text{H}-\\text{N}=\\text{N}^+=\\text{N}^-} \\;\\longleftrightarrow\\; \\underset{\\text{(II)}}{\\text{H}-\\text{N}^+-\\text{N}^+=\\text{N}^{2-}} \\;\\longleftrightarrow\\; \\underset{\\text{(III)}}{\\text{H}-\\text{N}^--\\text{N}^+\\equiv\\text{N}}$$`
           );
         }
@@ -403,16 +439,16 @@ export function registerMockTestParserRoutes(app: any, deps: MockTestParserDeps)
           .replace(/\\r(?![a-zA-Z])/g, '');
         clean = normalizeMathDelimiters(clean.trim());
         clean = clean
-          .replace(/^\[?\s*Q(?:uestion)?\.?\s*\d+\s*[:.\-\]\)]*\s*/i, '')
+          .replace(/^\[?\s*Q(?:uestion)?\.?\s*\d+\s*[:.\-\])]*\s*/i, '')
           .replace(/^\]\s*/, '')
-          .replace(/^[•\-\*]\s*(?=Key Concept)/i, '')
-          .replace(/(?:^|\n|\r|\s{2,}|\.\s+)(?:\*\*|###\s*)?(Key Concept(?: & Formula)?|Concept & Formula|Governing Formula)(?:\*\*)?\s*[:.\-]?\s*/gi, '\n\n**Key Concept & Formula**\n')
-          .replace(/(?:^|\n|\r|\s{2,}|\.\s+)(?:\*\*\s*Step\s*(\d+)\s*[:.\-]\s*([^*]+?)\s*\*\*|###\s*Step\s*(\d+)\s*[:.\-]\s*([^\n]+)|(?:\*\*|###\s*)?Step\s*(\d+)(?:\*\*)?\s*[:.\-]?)\s*/gi, (_m, n1, t1, n2, t2, n3) => {
+          .replace(/^[•\-*]\s*(?=Key Concept)/i, '')
+          .replace(/(?:^|\n|\r|\s{2,}|\.\s+)(?:\*\*|###\s*)?(Key Concept(?: & Formula)?|Concept & Formula|Governing Formula)(?:\*\*)?\s*[:.-]?\s*/gi, '\n\n**Key Concept & Formula**\n')
+          .replace(/(?:^|\n|\r|\s{2,}|\.\s+)(?:\*\*\s*Step\s*(\d+)\s*[:.-]\s*([^*]+?)\s*\*\*|###\s*Step\s*(\d+)\s*[:.-]\s*([^\n]+)|(?:\*\*|###\s*)?Step\s*(\d+)(?:\*\*)?\s*[:.-]?)\s*/gi, (_m, n1, t1, n2, t2, n3) => {
             const num = n1 || n2 || n3;
             const title = t1 || t2;
             return title && title.trim() ? `\n\n**Step ${num}: ${title.trim()}**\n` : `\n\n**Step ${num}**\n`;
           })
-          .replace(/(?:^|\n|\r|\s{2,}|\.\s+)(?:\*\*|###\s*)?(Conclusion & Correct Option|Conclusion|Final Answer|Result)(?:\*\*)?\s*[:.\-]?\s*/gi, '\n\n**Conclusion & Correct Option**\n');
+          .replace(/(?:^|\n|\r|\s{2,}|\.\s+)(?:\*\*|###\s*)?(Conclusion & Correct Option|Conclusion|Final Answer|Result)(?:\*\*)?\s*[:.-]?\s*/gi, '\n\n**Conclusion & Correct Option**\n');
 
         clean = clean.trim();
         // If the explanation begins with concept content before Step 1 without an explicit Key Concept heading, prepend it
@@ -427,11 +463,11 @@ export function registerMockTestParserRoutes(app: any, deps: MockTestParserDeps)
 
         // 0. Check if the derivation explicitly concludes a single option
         // e.g. "**Conclusion & Correct Option**: Option (D) is correct" or "Correct Option: (D)"
-        const singleConclusionMatch = exp.match(/(?:(?:[Cc]orrect\s+[Oo]ption|[Cc]onclusion[^\n*]*|[Ff]inal\s+[Aa]nswer)[:\s*–—\-]*|\*\*)(?:\()?([A-D])(?:\))?(?!\s*[,A-D&/])(?:\s*(?:is\s+correct|is\s+the\s+correct\s+answer|is\s+true))?/i);
+        const singleConclusionMatch = exp.match(/(?:(?:[Cc]orrect\s+[Oo]ption|[Cc]onclusion[^\n*]*|[Ff]inal\s+[Aa]nswer)[:\s*–—-]*|\*\*)(?:\()?([A-D])(?:\))?(?!\s*[,A-D&/])(?:\s*(?:is\s+correct|is\s+the\s+correct\s+answer|is\s+true))?/i);
         const hasExplicitSingleConclusion = Boolean(singleConclusionMatch && !/(?:and|&|,)\s*\(?[A-D]\)?/i.test(singleConclusionMatch[0]));
 
         // 1. Look for explicit multi-letter combination e.g. **ACD** or **(ACD)** or "Correct Option: ACD"
-        const multiLetterMatch = exp.match(/(?:(?:[Cc]orrect\s+[Oo]ptions?|[Cc]onclusion[^\n*]*|[Ff]inal\s+[Aa]nswer)[:\s*–—\-]*|\*\*)(?:\()?([A-D]{2,4})(?:\))?\b/);
+        const multiLetterMatch = exp.match(/(?:(?:[Cc]orrect\s+[Oo]ptions?|[Cc]onclusion[^\n*]*|[Ff]inal\s+[Aa]nswer)[:\s*–—-]*|\*\*)(?:\()?([A-D]{2,4})(?:\))?\b/);
         if (multiLetterMatch) {
           const letters = multiLetterMatch[1].toUpperCase();
           const unique = Array.from(new Set(letters.split(''))).sort().join('');
@@ -470,7 +506,7 @@ export function registerMockTestParserRoutes(app: any, deps: MockTestParserDeps)
         }
 
         // 3. Look for comma-separated options in conclusion: e.g. "(A, C, D)" or "(A, C)"
-        const commaSeparatedMatch = exp.match(/(?:[Cc]orrect\s+[Oo]ptions?|[Cc]onclusion[^\n*]*|[Ff]inal\s+[Aa]nswer)[:\s*–—\-]*\([A-D](?:\s*,\s*[A-D])+\)/i);
+        const commaSeparatedMatch = exp.match(/(?:[Cc]orrect\s+[Oo]ptions?|[Cc]onclusion[^\n*]*|[Ff]inal\s+[Aa]nswer)[:\s*–—-]*\([A-D](?:\s*,\s*[A-D])+\)/i);
         if (commaSeparatedMatch) {
           const letters = commaSeparatedMatch[0].replace(/[^A-D]/g, '').toUpperCase();
           const unique = Array.from(new Set(letters.split(''))).sort().join('');
@@ -481,7 +517,7 @@ export function registerMockTestParserRoutes(app: any, deps: MockTestParserDeps)
       };
 
       const sanitizeQuestionsList = (questions: any[]): any[] => {
-        return questions.map((q: any) => {
+        const cleaned = questions.map((q: any) => {
           let content = typeof q.content === 'string' ? q.content.trim() : '';
           let explanation = typeof q.explanation === 'string' ? q.explanation : (q.solution?.text || '');
           let solution = q.solution;
@@ -493,9 +529,9 @@ export function registerMockTestParserRoutes(app: any, deps: MockTestParserDeps)
             .replace(/\\r(?![a-zA-Z])/g, '')
             .replace(/\\q?quad\s*(?=\([ivxlcdm\d]+\))/gi, '\n')
             .replace(/\\q?quad\s*/gi, '   ')
-            .replace(/^(?:PART\s*[-–]\s*[IVX\d]+(?:\s*[:.\-]?\s*[^\n]+)?\n*)/i, '')
-            .replace(/^(?:\[?\s*Q(?:uestion)?\.?\s*\d+\s*[:.\-\]\)]*|\[\s*\d{1,3}\s*\]|\b\d{1,3}\s*[:.\-\]\)])\s*/i, '')
-            .replace(/^[\]\)\:\-\.]\s*/, '')
+            .replace(/^(?:PART\s*[-–]\s*[IVX\d]+(?:\s*[:.-]?\s*[^\n]+)?\n*)/i, '')
+            .replace(/^(?:\[?\s*Q(?:uestion)?\.?\s*\d+\s*[:.\-\])]*|\[\s*\d{1,3}\s*\]|\b\d{1,3}\s*[:.\-\])])\s*/i, '')
+            .replace(/^[\]):\-.]\s*/, '')
             .trim();
 
           let options = q.options;
@@ -513,7 +549,7 @@ export function registerMockTestParserRoutes(app: any, deps: MockTestParserDeps)
             const isSurrogateOrMissing = !Array.isArray(options) || options.length < 4 ||
               options.every((o: any) => {
                 const txt = typeof o === 'string' ? o : (o?.text || '');
-                return txt.length <= 3;
+                return txt.length === 0 || /^\s*\(?[A-Da-d1-4]\)?\s*$/i.test(txt);
               }) ||
               options.some((o: any) => {
                 const txt = typeof o === 'string' ? o : (o?.text || '');
@@ -662,8 +698,8 @@ export function registerMockTestParserRoutes(app: any, deps: MockTestParserDeps)
             }
           }
 
-          content = content.replace(/([A-Za-z0-9\$\}]+)\s*\n\s*[•\-\*–]\s*(ions?|orbitals?|atoms?|molecules?|electrons?)\b/gi, (_m, p1, p2) => `${p1}^- ${p2}`);
-          content = content.replace(/([a-zA-Z0-9,\(\)]+)\s*\n\s*([a-z][a-zA-Z0-9]*\b(?!\s*[:.\-\]\)]))/g, (match, p1, p2) => {
+          content = content.replace(/([A-Za-z0-9$}]+)\s*\n\s*[•\-*–]\s*(ions?|orbitals?|atoms?|molecules?|electrons?)\b/gi, (_m, p1, p2) => `${p1}^- ${p2}`);
+          content = content.replace(/([a-zA-Z0-9,()]+)\s*\n\s*([a-z][a-zA-Z0-9]*\b(?!\s*[:.\-\])]))/g, (match, p1, p2) => {
             if (/^(?:and|or|in|of|to|for|with|by|from|the|a|an|is|are|which|orbitals?|atoms?|electrons?|molecules?|ions?|statements?|value|hybridization|structure|geometry|order)\b/i.test(p2) ||
                 /\b(the|of|in|to|for|with|by|from|a|an|is|are|which|one|two|three|following)\b$/i.test(p1)) {
               return `${p1} ${p2}`;
@@ -680,18 +716,19 @@ export function registerMockTestParserRoutes(app: any, deps: MockTestParserDeps)
           content = normalizeMathDelimiters(content);
           content = content
             .replace(/(?:\b|\s+)(Where|where)\s+(?=(?:\$[a-zA-Z]\$|[a-zA-Z])\s*=)/g, '\n\n$1:\n• ')
-            .replace(/(?<=[a-zA-Z0-9\)\+\-.,])\s+(?=(?:\$[a-zA-Z]\$|[a-zA-Z])\s*=\s*(?:[A-Z0-9$]|total|number|the|no\.?|sigma|pi|delta|non\b))/gi, '\n• ');
+            .replace(/(?<=[,;])\s+(?=(?:\$[a-zA-Z]\$|[a-zA-Z])\s*=\s*(?:[A-Z0-9$]|total\b|number\b|the\b|no\.?\b|sigma\b|pi\b|delta\b|non\b))/gi, '\n• ');
+
 
           if (Array.isArray(options)) {
             options = options.map((opt: any) => {
               if (typeof opt === 'string') {
-                let text = opt.replace(/^,\s*(?=\([A-Da-d1-4]\)|[A-Da-d1-4]\b)/, '(A), ');
-                const cleaned = text.replace(/^\s*(?:\([a-dA-D1-4]\)|\[[a-dA-D1-4]\]|[a-dA-D1-4]\s*[\)\]]|[a-dA-D]\s*[:.]|\b[1-4]\.\s+(?=[A-Za-z]))(?!\s*(?:[,\+&]|\band\b|\bor\b|\(|\/))\s*/, '').trim();
+                const text = opt.replace(/^,\s*(?=\([A-Da-d1-4]\)|[A-Da-d1-4]\b)/, '(A), ');
+                const cleaned = text.replace(/^\s*(?:\([a-dA-D1-4]\)|\[[a-dA-D1-4]\]|[a-dA-D1-4]\s*[)\]]|[a-dA-D]\s*[:.]|\b[1-4]\.\s+(?=[A-Za-z]))(?!\s*(?:[,+&]|\band\b|\bor\b|\(|\/))\s*/, '').trim();
                 return normalizeMathDelimiters(cleaned);
               }
               if (opt && typeof opt.text === 'string') {
-                let text = opt.text.replace(/^,\s*(?=\([A-Da-d1-4]\)|[A-Da-d1-4]\b)/, '(A), ');
-                const cleaned = text.replace(/^\s*(?:\([a-dA-D1-4]\)|\[[a-dA-D1-4]\]|[a-dA-D1-4]\s*[\)\]]|[a-dA-D]\s*[:.]|\b[1-4]\.\s+(?=[A-Za-z]))(?!\s*(?:[,\+&]|\band\b|\bor\b|\(|\/))\s*/, '').trim();
+                const text = opt.text.replace(/^,\s*(?=\([A-Da-d1-4]\)|[A-Da-d1-4]\b)/, '(A), ');
+                const cleaned = text.replace(/^\s*(?:\([a-dA-D1-4]\)|\[[a-dA-D1-4]\]|[a-dA-D1-4]\s*[)\]]|[a-dA-D]\s*[:.]|\b[1-4]\.\s+(?=[A-Za-z]))(?!\s*(?:[,+&]|\band\b|\bor\b|\(|\/))\s*/, '').trim();
                 return {
                   ...opt,
                   text: normalizeMathDelimiters(cleaned)
@@ -724,7 +761,7 @@ export function registerMockTestParserRoutes(app: any, deps: MockTestParserDeps)
           // Accommodates both (II) H - N+ - N \equiv N^{2-} and (II) H - N+ - N+ = N^{2-}
           if (typeof content === 'string' && /hydrazoic|resonating structure/i.test(content) && /N\s*=\s*N/i.test(content)) {
             content = content.replace(
-              /(?:H\s*[-–]\s*(?:\r?\n\s*[•\-\*]\s*)?)?N\s*=\s*N(?:\^?\+|\+)?\s*=\s*N(?:\^?[-–]|-)?[\s\S]*?N(?:\^?\+|\+)?\s*[-–]\s*(?:N(?:\^?\+|\+)?\s*[-–]\s*)?N(?:\^?\+|\+)?\s*(=|\u2261|\\equiv)\s*(?:\\text\{N\}|N)(?:\^?2[-–]|\^?[-–]2|2[-–]|[-–]2|\^\{2[-–]\}|\^\{-2\})?[\s\S]*?N(?:\^?[-–]|-)?\s*[-–]\s*N(?:\^?\+|\+)?\s*(?:=|\u2261|\\equiv)\s*N[\s\S]*?(?:\(?\s*III\s*\)?|$)/i,
+              /(?:H\s*[-–]\s*(?:\r?\n\s*[•\-*]\s*)?)?N\s*=\s*N(?:\^?\+|\+)?\s*=\s*N(?:\^?[-–]|-)?[\s\S]*?N(?:\^?\+|\+)?\s*[-–]\s*(?:N(?:\^?\+|\+)?\s*[-–]\s*)?N(?:\^?\+|\+)?\s*(=|\u2261|\\equiv)\s*(?:\\text\{N\}|N)(?:\^?2[-–]|\^?[-–]2|2[-–]|[-–]2|\^\{2[-–]\}|\^\{-2\})?[\s\S]*?N(?:\^?[-–]|-)?\s*[-–]\s*N(?:\^?\+|\+)?\s*(?:=|\u2261|\\equiv)\s*N[\s\S]*?(?:\(?\s*III\s*\)?|$)/i,
               (match) => {
                 const isTripleBondInII = /\\equiv|\u2261/.test(match.split(/\(?\s*II\s*\)?/)[0] || '');
                 const structII = isTripleBondInII
@@ -742,9 +779,9 @@ export function registerMockTestParserRoutes(app: any, deps: MockTestParserDeps)
           const isExplicitDiagram = Boolean(
             (Array.isArray(q.diagramBbox) && q.diagramBbox.length === 4) ||
             (typeof q.diagramDescription === 'string' && q.diagramDescription.trim().length > 0) ||
-            /\b(?:given\s+(?:figure|diagram)|shown\s+in\s+(?:the\s+)?figure|refer\s+to\s+(?:the\s+)?diagram|circuit\s+diagram|graph\s+shown|in\s+the\s+circuit)\b/i.test(combinedQuestionText) ||
+            /\b(?:given\s+(?:figures?|diagrams?|graphs?|illustration|sketch)|shown\s+in\s+(?:the\s+)?(?:figures?|diagrams?|graphs?|illustration|sketch)|as\s+shown\b|refer\s+to\s+(?:the\s+)?(?:figures?|diagrams?|graphs?)|in\s+(?:the\s+)?(?:figures?|diagrams?|graphs?|illustration)|following\s+(?:figures?|diagrams?|graphs?|illustration)|corresponding\s+to\s+figures?|figures?\s+[a-d]\b|four\s+graphs|graph\s+(?:shown|below|above|plotted)|P-V\s+curve|P-V\s+diagram|indicator\s+diagram|circuit(?:\s+diagram)?|in\s+the\s+circuit|Wheatstone|potentiometer|galvanometer|pulley|inclined\s+plane|ramp|wedge|spring(?:\s+balance)?|block\s+hits\s+the\s+spring|curve\s+of\s+vertical\s+circle|vertical\s+circle|swimming\s+pool|trajectory|projectile|ray\s+diagram|prism|mirror|lens|logic\s+gate|truth\s+table|force\s+field|along\s+the\s+line\s+segment|two\s+different\s+ways)\b/i.test(combinedQuestionText) ||
             /\\theta_[1-4]|\b\theta_1\b|\b\theta_2\b|\b\theta_3\b|\b\theta_4\b/i.test(combinedQuestionText) ||
-            /\b(?:bond\s+angles?|bond\s+lengths?)\s+(?:of\s+)?(?:[$]?[a-z\alpha-\omega\theta][$]?\s*(?:and|,|vs)\s*[$]?[a-z\alpha-\omega\theta][$]?)/i.test(combinedQuestionText) ||
+            /\b(?:bond\s+angles?|bond\s+lengths?)\s+(?:of\s+)?(?:[$]?[a-zalpha-omega\theta][$]?\s*(?:and|,|vs)\s*[$]?[a-zalpha-omega\theta][$]?)/i.test(combinedQuestionText) ||
             (/\b(?:bond\s+angle|bond\s+length|in\s+the\s+following\s+molecules?)\b/i.test(content) &&
              /[$]?\s*[xyzab]\s*[$]?\s*(?:[><=]|\\ge|\\le)\s*[$]?\s*[xyzab]\s*[$]?/i.test(optTexts))
           );
@@ -756,9 +793,7 @@ export function registerMockTestParserRoutes(app: any, deps: MockTestParserDeps)
             hasDiagram = q.hasDiagram;
           }
 
-          let diagramBbox = (Array.isArray(q.diagramBbox) && q.diagramBbox.length === 4)
-            ? q.diagramBbox
-            : undefined;
+          let diagramBbox = validateDiagramBbox(q.diagramBbox);
           let diagramDescription = (typeof q.diagramDescription === 'string' && q.diagramDescription.trim())
             ? q.diagramDescription.trim()
             : undefined;
@@ -812,6 +847,73 @@ export function registerMockTestParserRoutes(app: any, deps: MockTestParserDeps)
             sectionName
           };
         });
+
+        // Deduplicate questions across batches and repeated sections
+        const deduplicated: any[] = [];
+        for (const q of cleaned) {
+          if (!q) continue;
+          const qNum = typeof q.localQuestionNumber === 'number' && q.localQuestionNumber > 0 ? q.localQuestionNumber : undefined;
+          const cleanQ = (q.content || '')
+            .toLowerCase()
+            .replace(/\\[a-zA-Z]+/g, ' ')
+            .replace(/^(?:\[?\s*q(?:uestion)?\.?\s*\d+\s*[:.\-\])]*|\[\s*\d{1,3}\s*\]|\b\d{1,3}\s*[:.\-\])])\s*/i, '')
+            .replace(/[^a-z0-9]/g, '');
+
+          const existingIdx = deduplicated.findIndex(ex => {
+            const exNum = typeof ex.localQuestionNumber === 'number' && ex.localQuestionNumber > 0 ? ex.localQuestionNumber : undefined;
+            if (qNum !== undefined && exNum !== undefined && qNum === exNum) {
+              const qSec = (q.sectionName || '').trim().toLowerCase();
+              const exSec = (ex.sectionName || '').trim().toLowerCase();
+              if (qSec === exSec || !qSec || !exSec) return true;
+            }
+            // If explicit question numbers are different, NEVER merge
+            if (qNum !== undefined && exNum !== undefined && qNum !== exNum) {
+              return false;
+            }
+            const cleanEx = (ex.content || '')
+              .toLowerCase()
+              .replace(/\\[a-zA-Z]+/g, ' ')
+              .replace(/^(?:\[?\s*q(?:uestion)?\.?\s*\d+\s*[:.\-\])]*|\[\s*\d{1,3}\s*\]|\b\d{1,3}\s*[:.\-\])])\s*/i, '')
+              .replace(/[^a-z0-9]/g, '');
+            if (cleanQ.length >= 25 && cleanEx.length >= 25) {
+              const minLen = Math.min(cleanQ.length, cleanEx.length);
+              const maxLen = Math.max(cleanQ.length, cleanEx.length);
+              if (minLen >= 40 && minLen / maxLen >= 0.75 && (cleanQ.includes(cleanEx) || cleanEx.includes(cleanQ))) return true;
+              // Bigram Dice similarity
+              const bigrams = new Set<string>();
+              for (let i = 0; i < cleanQ.length - 1; i++) bigrams.add(cleanQ.slice(i, i + 2));
+              let common = 0;
+              for (let i = 0; i < cleanEx.length - 1; i++) {
+                if (bigrams.has(cleanEx.slice(i, i + 2))) common++;
+              }
+              const dice = (2 * common) / (cleanQ.length - 1 + cleanEx.length - 1);
+              if (dice >= 0.88) return true;
+            }
+            return false;
+          });
+
+          if (existingIdx === -1) {
+            deduplicated.push(q);
+          } else {
+            // Merge into existing question: prioritize diagram, verified answers, and detailed explanations
+            const ex = deduplicated[existingIdx];
+            if (!ex.hasDiagram && q.hasDiagram) {
+              ex.hasDiagram = true;
+              ex.diagramPage = q.diagramPage;
+              ex.diagramBbox = q.diagramBbox;
+              ex.diagramDescription = q.diagramDescription;
+            }
+            if ((!ex.correctAnswer || ex.correctAnswer === '0') && q.correctAnswer && q.correctAnswer !== '0') {
+              ex.correctAnswer = q.correctAnswer;
+            }
+            if ((!ex.solution?.text || ex.solution.text.length < 30) && q.solution?.text && q.solution.text.length >= 30) {
+              ex.solution = q.solution;
+              ex.explanation = q.explanation || q.solution.text;
+            }
+          }
+        }
+
+        return deduplicated;
       };
 
   const handlePyqPaperParse = async (req: any, res: any) => {
@@ -836,7 +938,7 @@ export function registerMockTestParserRoutes(app: any, deps: MockTestParserDeps)
 
       if (rawText) {
         // Count questions across document
-        const qMatches = [...rawText.matchAll(/(?:\bQ\d{1,3}\]|(?:^|\s+)Q\d{1,3}\b|\[Q\d{1,3}\]|(?:\n|\r)\s*\d{1,3}\s*[:.\-\)])/gi)];
+        const qMatches = [...rawText.matchAll(/(?:\bQ\d{1,3}\]|(?:^|\s+)Q\d{1,3}\b|\[Q\d{1,3}\]|(?:\n|\r)\s*\d{1,3}\s*[:.\-)])/gi)];
         const totalQEstimate = qMatches.length;
 
         // Parse per-section question count breakdown from Answer Key if present
@@ -894,24 +996,29 @@ ${sectionListStr ? `Document Section Structure:\n${sectionListStr}` : ''}
 
       const backfillAnswers = (questions: any[]) => {
         if (!rawText) return;
-        const keyHeaderRegex = /(?:^|\n|\r)[^\n]{0,80}?(?:ANSWER\s*KEYS?|KEY\s*SHEET|SOLUTIONS?\s+KEY|HINTS\s+(?:&|AND)\s+ANSWERS?|ANSWER\s*SHEET|ANSWERS\s*[:.\-]?\s*(?:\r?\n|$)|(?:\n|^)\s*PART\s*[-–]\s*[IVX\d]+[\s\S]{0,80}?\b1\.\s*\(?[A-D0-9]+\)?)/i;
+        const keyHeaderRegex = /(?:^|\n|\r)[^\n]{0,80}?(?:ANSWER\s*KEYS?|KEY\s*SHEET|SOLUTIONS?\s+KEY|HINTS\s+(?:&|AND)\s+ANSWERS?|ANSWER\s*SHEET|ANSWERS\s*[:.-]?\s*(?:\r?\n|$)|(?:\n|^)\s*PART\s*[-–]\s*[IVX\d]+[\s\S]{0,80}?\b1\.\s*\(?[A-D0-9]+\)?)/i;
         let keyMatch = rawText.match(keyHeaderRegex);
         if (!keyMatch || keyMatch.index === undefined) {
-          const headerlessKeyRegex = /(?:^|\n)\s*(?:Q\.?\s*)?1\.\s*\(?[A-D0-9]+\)?(?:\s+(?:Q\.?\s*)?2\.\s*\(?[A-D0-9]+\)?)/i;
+          const headerlessKeyRegex = /(?:^|\n|\r|\s{2,})(?:Q\.?\s*)?1\.\s*\(?[A-D0-9]+\)?(?:\s+(?:Q\.?\s*)?2\.\s*\(?[A-D0-9]+\)?)/i;
           keyMatch = rawText.match(headerlessKeyRegex);
         }
         if (keyMatch && keyMatch.index !== undefined) {
           const keyText = rawText.substring(keyMatch.index);
           // Clean non-option parentheticals before regex parsing
-          const cleanKeyText = keyText.replace(/\([^\n\(\)]*\)/g, (match) => {
+          const cleanKeyText = keyText.replace(/\([^\n()]*\)/g, (match) => {
             if (/^\([A-D0-9,\s\-.]+\)$/i.test(match)) return match;
             return ' ';
           });
-          const entryRegex = /(?:^|\s)(?:Q(?:uestion)?\.?\s*)?(\d{1,3})\s*[:.\-]\s*\(?(-?\d+(?:\.\d+)?|[a-dA-D]+)\)?/g;
+          const hasParensInSec = /\(\s*[1-4A-Da-d]\s*\)/.test(cleanKeyText);
+          const entryRegex = /(?:^|\s)(?:Q(?:uestion)?\.?\s*)?(\d{1,3})\s*(?:[:.\-\]]|\s{2,})\s*(\()?(-?\d+(?:\.\d+)?|[a-dA-D]+)(\))?/g;
           const keyEntries: { qNum: number; ans: string; hasParens?: boolean }[] = [];
           let em: RegExpExecArray | null;
           while ((em = entryRegex.exec(cleanKeyText)) !== null) {
-            keyEntries.push({ qNum: parseInt(em[1], 10), ans: em[2].trim(), hasParens: em[0].includes('(') });
+            keyEntries.push({
+              qNum: parseInt(em[1], 10),
+              ans: em[3].trim(),
+              hasParens: Boolean(em[2] === '(' && em[4] === ')')
+            });
           }
 
           // Also check for Grid/Table Answer Keys (e.g. Allen sheets with Que. 1 2 3... \n Ans. A D C...)
@@ -932,20 +1039,25 @@ ${sectionListStr ? `Document Section Structure:\n${sectionListStr}` : ''}
               if (!q.correctAnswer || q.correctAnswer === '0') {
                 const matchedEntry = keyEntries[idx] || keyEntries.find(e => e.qNum === (idx + 1));
                 if (matchedEntry) {
-                  let rawAns = String(matchedEntry.ans).toUpperCase().replace(/[^A-D0-9.\-]/g, '');
+                  const rawAns = String(matchedEntry.ans).toUpperCase().replace(/[^A-D0-9.-]/g, '');
                   const lOnly = rawAns.replace(/[^A-D]/g, '');
                   const uLetters = Array.from(new Set(lOnly.split(''))).sort().join('');
+                  const isNumericalQ = q.type === 'NUMERICAL' || (!q.options?.length) || idx >= 30 || matchedEntry.qNum > 30 || (hasParensInSec && !matchedEntry.hasParens);
+
                   if (lOnly.length > 4) {
                     // Concatenated key dump (like ABBADDAB)! Extract single letter for this specific question
                     q.correctAnswer = lOnly[idx % lOnly.length] || 'A';
                   } else if (lOnly.length >= 2 && uLetters.length === lOnly.length) {
                     q.correctAnswer = uLetters;
                     if (q.type !== 'NUMERICAL') q.type = 'MULTI';
-                  } else if (q.type !== 'NUMERICAL' && /^[1-4]$/.test(rawAns) && (matchedEntry.hasParens || (q.options && q.options.length > 0))) {
+                  } else if (!isNumericalQ && /^[1-4]$/.test(rawAns) && (matchedEntry.hasParens || (q.options && q.options.length > 0))) {
                     const numMap: Record<string, string> = { '1': 'A', '2': 'B', '3': 'C', '4': 'D' };
                     q.correctAnswer = numMap[rawAns] || rawAns;
                   } else {
                     q.correctAnswer = rawAns || 'A';
+                    if (isNumericalQ) {
+                      q.type = 'NUMERICAL';
+                    }
                   }
                   if (q.solution && !q.solution.text) {
                     q.solution.text = `Official answer key: ${q.correctAnswer}. Verified from examination key sheet.`;
@@ -963,23 +1075,43 @@ ${sectionListStr ? `Document Section Structure:\n${sectionListStr}` : ''}
         const keyMatch = rawText.match(/(?:ANSWER\s*KEY|KEY\s*SHEET|SOLUTIONS)[\s\S]*$/i);
         const keyIndex = keyMatch ? keyMatch.index : rawText.length;
         const mainText = rawText.substring(0, keyIndex).trim();
-        const markerRegex = /\b(LEVEL\s*[-–]\s*0?[1-5]|MTOC|INTEGER\s+TYPE|NUMERICAL\s+(?:VALUE|TYPE)|PART\s*[-–]\s*[IVX\d]+(?:\s*:[^\n]+)?|SECTION\s*[-–]\s*[A-Z\d]+(?:\s*:[^\n]+)?|EXERCISE\s*[-–]\s*0?[1-5](?:\s*[\[\(]?[A-Z][\]\)]?)?(?:\s*:[^\n]+)?|BRAIN\s+TEASERS|CHECK\s+YOUR\s+GRASP|CONCEPTUAL\s+SUBJECTIVE|PREVIOUS\s+YEAR\s+QUESTIONS|MISCELLANEOUS\s+TYPE)\b/gi;
+        const markerRegex = /\b(SINGLE\s+CORRECT(?:\s+QUESTIONS)?|MULTIPLE\s+CORRECT(?:\s+QUESTIONS)?|NUMERICAL\s+(?:VALUE|TYPE)(?:\s+QUESTIONS)?|INTEGER\s+TYPE(?:\s+QUESTIONS)?|MATCH\s+THE\s+COLUMN|LEVEL\s*[-–]\s*0?[1-5]|MTOC|PART\s*[-–]\s*[IVX\d]+(?:\s*:[^\n]+)?|SECTION\s*[-–]\s*[A-Z\d]+(?:\s*:[^\n]+)?|EXERCISE\s*[-–]\s*0?[1-5](?:\s*[[(]?[A-Z][\])]?)?(?:\s*:[^\n]+)?|BRAIN\s+TEASERS|CHECK\s+YOUR\s+GRASP|CONCEPTUAL\s+SUBJECTIVE|PREVIOUS\s+YEAR\s+QUESTIONS|MISCELLANEOUS\s+TYPE)\b/gi;
         const matches = [...mainText.matchAll(markerRegex)];
 
         if (matches.length >= 2) {
+          // Filter out repeated running page headers with identical section names
+          const filteredMatches: RegExpExecArray[] = [];
           for (let i = 0; i < matches.length; i++) {
             const cur = matches[i];
-            const nextIndex = (i + 1 < matches.length) ? matches[i + 1].index : mainText.length;
-            const textChunk = mainText.substring(cur.index, nextIndex).trim();
-            multiSections.push({
-              name: cur[0].replace(/\s+/g, ' ').toUpperCase().trim(),
-              text: textChunk
-            });
+            const curName = cur[0].replace(/\s+/g, ' ').toUpperCase().trim();
+            const prev = filteredMatches[filteredMatches.length - 1];
+            if (prev) {
+              const prevName = prev[0].replace(/\s+/g, ' ').toUpperCase().trim();
+              // If same section name within 4000 characters, it's a repeated page header, not a new section!
+              if (curName === prevName && (cur.index - prev.index) < 4000) {
+                continue;
+              }
+            }
+            filteredMatches.push(cur);
+          }
+
+          if (filteredMatches.length >= 2) {
+            for (let i = 0; i < filteredMatches.length; i++) {
+              const cur = filteredMatches[i];
+              const nextIndex = (i + 1 < filteredMatches.length) ? filteredMatches[i + 1].index : mainText.length;
+              const textChunk = mainText.substring(cur.index, nextIndex).trim();
+              if (textChunk.length > 50) {
+                multiSections.push({
+                  name: cur[0].replace(/\s+/g, ' ').toUpperCase().trim(),
+                  text: textChunk
+                });
+              }
+            }
           }
         } else {
           // If no explicit section headers found or only 1 section, but document has 20+ questions:
           // automatically partition into 15-question batches so Gemini never truncates or drops questions!
-          const qBlockRegex = /(?:^|\n|\r|\s{2,})(?=(?:\[?\s*Q(?:uestion)?\.?\s*\d+\s*[:.\-\]\)]*|\[\s*\d{1,3}\s*\]|(?:\n|\r)\s*\d{1,3}\s*[:.\-\]\)]))/i;
+          const qBlockRegex = /(?:^|\n|\r|\s{2,})(?=(?:\[?\s*Q(?:uestion)?\.?\s*\d+\s*[:.\-\])]*|\[\s*\d{1,3}\s*\]|(?:\n|\r)\s*\d{1,3}\s*[:.\-\])]))/i;
           const blocks = mainText.split(qBlockRegex).map(b => b.trim()).filter(b => b.length > 15);
           if (blocks.length >= 20) {
             console.log(`[Batch Parser] Detected ${blocks.length} questions in un-partitioned document. Partitioning into 15-question batches...`);
@@ -1005,7 +1137,7 @@ ${sectionListStr ? `Document Section Structure:\n${sectionListStr}` : ''}
           console.log(`[Multi-Section Parser] Processing section: ${sec.name} (${sec.text.length} chars)...`);
 
           // Split section text into question blocks to chunk oversized sections (preventing LLM truncation)
-          const qBlockRegex = /(?:^|\n|\r|\s{2,})(?=(?:\[?\s*Q(?:uestion)?\.?\s*\d+\s*[:.\-\]\)]*|\[\s*\d{1,3}\s*\]|(?:\n|\r)\s*\d{1,3}\s*[:.\-\]\)]))/i;
+          const qBlockRegex = /(?:\r?\n)+(?=(?:\[?\s*Q(?:uestion)?\.?\s*\d+\s*[:.\-\])]*|\[\s*\d{1,3}\s*\]|\d{1,3}\s*[:.\-\])]\s+))/i;
           const secBlocks = sec.text.split(qBlockRegex).map(b => b.trim()).filter(b => b.length > 5);
 
           const chunkSize = 15;
@@ -1045,7 +1177,7 @@ ${sectionListStr ? `Document Section Structure:\n${sectionListStr}` : ''}
               - subject: strictly one of "physics", "chemistry", or "mathematics" (all lowercase).
               - topic: chapter or topic name (e.g. "${chapterName || 'General'}").
               - type: "MCQ" if options exist, or "NUMERICAL" if integer or numerical value.
-              - content: question statement formatted with LaTeX ($inline$ or $$block$$). NEVER use \( or \).
+              - content: question statement formatted with LaTeX ($inline$ or $$block$$). NEVER use ( or ).
               - options: exactly 4 options for MCQ (ids: "A", "B", "C", "D"), empty array [] for NUMERICAL.
               - ANSWER DETERMINATION & FIRST-PRINCIPLES SOLVING PROTOCOL:
                 * FIRST: Check if an Answer Key is available at the end of the section or document. Note that coaching DPPs frequently present Answer Keys in tables or lists under headings like "PART - I", "PART - II", "PART - III", "LEVEL - 1", or "SECTION - A" without the explicit title "ANSWER KEY".
@@ -1059,23 +1191,25 @@ ${sectionListStr ? `Document Section Structure:\n${sectionListStr}` : ''}
                   - In the step-by-step derivation under "**Conclusion & Correct Option**", explicitly state which statements are correct and why.
                   - NEVER default to a single letter like "A" or "0" for multi-correct questions!
                   - NEVER drop the statements, and NEVER synthesize dummy combination options like "(A), (C), (D)", "(A), (C)"!
+                  - If a question is Single Correct with statements (A)-(E) followed by combination choices like "(1) B and E only", keep ALL statements in question content, and extract the 4 combination choices (1)-(4) as options (A)-(D)!
               - solution: { text: "Step-by-step derivation with distinct sections separated by double newlines:\n\n**Key Concept & Formula**: Governing formula in LaTeX ($...$ or $$...$$).\n\n**Step 1**: Step derivation and equations with all variables formatted in LaTeX ($...$).\n\n**Step 2**: Intermediate calculations and substitutions in LaTeX ($...$).\n\n**Conclusion & Correct Option**: Final answer and option letter or numerical value." }
-           3. Strip question prefixes like "Q1]" or "1." from the start of question content.
-           4. Preserve full mathematical values in options without stripping leading numbers. NEVER drop comparison operators like '<', '>', '\le', '\ge' (e.g. '> 120^\circ' or '$< 109^\circ 28\'$' or '$\theta_1 > \theta_3$').
+           3. Strip question prefixes like "Q1]" or "1." from the start of question content, BUT ALWAYS PRESERVE localQuestionNumber with the exact original printed question number (1, 2, 3...)!
+           4. Preserve full mathematical values in options without stripping leading numbers. NEVER drop comparison operators like '<', '>', 'le', 'ge' (e.g. '> 120^circ' or '$< 109^circ 28'$' or '$\theta_1 > \theta_3$').
            5. LATEX, CHEMISTRY, AND DIAGRAM FORMATTING:
               - CRITICAL: NEVER wrap natural language English sentences in \text{...}! Keep English prose in normal plain text, and wrap variables, formulas, chemical equations, bond angles, and symbols in $ ... $.
                 * CORRECT: "Bond angles are not affected in $\text{BF}_3$ due to back bonding."
                 * WRONG: "\text{Bond angles are not affected in } \text{BF}_3 \text{ due to back bonding.}"
                 * CORRECT: "All $d_{\text{C-O}}$ in $\text{H}_2\text{CO}_3$ are identical."
                 * WRONG: "\text{All } d_{\text{C-O}} \text{ in } \text{H}_2\text{CO}_3 \text{ are identical.}"
-              - Format ALL mathematical symbols, variables (e.g. $n, l, m$, $s$, $\Delta x$, $\lambda$, $\nu$, $h$, $c$), formulas, and equations in LaTeX ($...$ or $$...$$).
-              - Format orbital subshells with subscripts (e.g. $p_x - p_x$, $p_\pi - p_\pi$, $p_\pi - d_\pi$, $d_{xy} - d_{xy}$).
+              - Format ALL mathematical symbols, variables (e.g. $n, l, m$, $s$, $Delta x$, $lambda$, $\nu$, $h$, $c$), formulas, and equations in LaTeX ($...$ or $$...$$).
+              - Format orbital subshells with subscripts (e.g. $p_x - p_x$, $p_pi - p_pi$, $p_pi - d_pi$, $d_{xy} - d_{xy}$).
               - Format chemical ions and formulas in LaTeX (e.g. $\text{SO}_4^{2-}$, $\text{CO}_3^{2-}$, $\text{NO}_3^-$).
               - DIAGRAM DETECTION & METADATA:
-                * hasDiagram: strictly true ONLY if this question statement or options contain a graphical visual diagram, molecular 2D/3D structure drawing, circuit, graph, or curve in the PDF!
+                * hasDiagram: set true if this question contains or references a graphical visual diagram, apparatus (e.g. pulley, spring, inclined plane, ramp, wedge, vertical circle, swimming pool), circuit, graph, curve, or molecular 2D/3D structure drawing in the PDF!
+                * ALSO set hasDiagram: true if the problem text contains phrases like "shown in figure", "as shown", "given figure", "refer to diagram", or depicts physical apparatus setups.
                 * NEVER transcribe, substitute, or replace 2D/3D molecular drawings, Lewis structures, or diagrams with chemical formulas or parenthesized descriptions in question content (e.g. NEVER inject "($SO_2F_2$ vs $SOF_2$)" or similar text into content)! Keep original concise question statements.
-                * If a question in the PDF depicts molecular structure drawings (e.g. Lewis structures, VSEPR shapes, lone pair lobes, or bond angles/lengths labeled with variables $x, y, z, \theta, \alpha, \beta$), or if options compare variables like "$x > y$", "$y > x$", "$\theta_1 > \theta_3$", this is 100% a DIAGRAM question! You MUST set hasDiagram: true, specify diagramPage, and provide diagramDescription!
-                * IMPORTANT: Questions with only text, chemical formulas in the problem statement itself (e.g. SO2Cl2, BF3), bond lengths (e.g. d_{C-O}), or math angle notation (e.g. \widehat{CNC}, \widehat{HCH}) where options are numbers or complete chemical statements DO NOT have diagrams! For text-only questions, you MUST set hasDiagram: false.
+                * If a question in the PDF depicts molecular structure drawings (e.g. Lewis structures, VSEPR shapes, lone pair lobes, or bond angles/lengths labeled with variables $x, y, z, \theta, alpha, \beta$), or if options compare variables like "$x > y$", "$y > x$", "$\theta_1 > \theta_3$", this is 100% a DIAGRAM question! You MUST set hasDiagram: true, specify diagramPage, and provide diagramDescription!
+                * IMPORTANT: Questions with only text, chemical formulas in the problem statement itself (e.g. SO2Cl2, BF3), bond lengths (e.g. d_{C-O}), or math angle notation (e.g. widehat{CNC}, widehat{HCH}) where options are numbers or complete chemical statements DO NOT have diagrams! For text-only questions, you MUST set hasDiagram: false.
                 * diagramPage: the 1-indexed page number of the PDF where the visual diagram is located.
                 * diagramDescription: A concise description of what the visual illustration depicts (e.g. "4 Lewis structures labeled (A)-(D)", "Wheatstone bridge circuit", "P-V indicator curve").
                 * When options in the PDF depict chemical structures, Lewis drawings, or graphs labeled (A), (B), (C), (D):
@@ -1084,7 +1218,7 @@ ${sectionListStr ? `Document Section Structure:\n${sectionListStr}` : ''}
                 * sectionName: The section or part title header if present (e.g. "PART - I", "PART - III").
               - For Match The Column (MTOC) questions, format columns and mappings cleanly, e.g. $(A) \rightarrow (P, R)$, $(B) \rightarrow (Q)$.
               - For Integer / Numerical Type questions, format given values, formulas, and final values in LaTeX (e.g. $Z = 3$, $n = 4$).
-              - Never use ASCII arrows like '=>' or '->'; use $\implies$ or $\rightarrow$.
+              - Never use ASCII arrows like '=>' or '->'; use $implies$ or $\rightarrow$.
            6. EXPLANATION STRUCTURE:
               - Every explanation MUST begin with "**Key Concept & Formula**" followed by the core formula or theorem.
               - Follow with "**Step 1**", "**Step 2**", and conclude with "**Conclusion & Correct Option**".
@@ -1097,6 +1231,7 @@ ${sectionListStr ? `Document Section Structure:\n${sectionListStr}` : ''}
 
             try {
               const secResponse = await generateWithFallback(ai, secContents, {
+                req,
                 responseMimeType: "application/json",
                 temperature: 0.1,
                 maxOutputTokens: 65536,
@@ -1193,8 +1328,8 @@ ${sectionListStr ? `Document Section Structure:\n${sectionListStr}` : ''}
          - localQuestionNumber: printed number on the page (e.g. 1, 2... even if numbering restarts in new section)
          - sectionName: section/part header if present (e.g. "PART - I", "PART - II", "Single Correct", "Integer Type")
          - subject: strictly one of "physics", "chemistry", or "mathematics" (lowercase)
-         - type: "MCQ" if multiple-choice options exist, or "NUMERICAL" if integer/decimal value
-         - hasDiagram: strictly true ONLY if this question depicts a visual illustration, 2D/3D molecular structure drawing, circuit, graph, or curve in the PDF. Text-only questions MUST have hasDiagram: false.
+         - type: "MCQ" if multiple-choice options exist, or "NUMERICAL" if integer/decimal value (including fill-in-the-blank questions like "is ___", "nearest integer is ___", or questions without option choices)
+         - hasDiagram: set true if this question depicts or references a visual illustration, 2D/3D molecular structure drawing, circuit, graph, curve, or physical apparatus (e.g. pulley, spring, inclined plane, vertical circle, swimming pool, mirror, prism) in the PDF. Text-only questions MUST have hasDiagram: false.
          - diagramPage: 1-indexed page number of the diagram in the PDF
          - diagramDescription: short description of what the visual diagram depicts (e.g. "4 SO3 Lewis structures labeled A-D in a row", "2x2 grid of orbital overlaps", "Wheatstone bridge circuit")
          - rawSnippet: the first 50-80 characters of the question statement for exact identification.
@@ -1216,6 +1351,7 @@ ${sectionListStr ? `Document Section Structure:\n${sectionListStr}` : ''}
 
         try {
           const stage1Response = await generateWithFallback(ai, stage1Contents, {
+            req,
             responseMimeType: "application/json",
             temperature: 0.1,
             maxOutputTokens: 16384,
@@ -1290,21 +1426,21 @@ ${sectionListStr ? `Document Section Structure:\n${sectionListStr}` : ''}
       2. For each question:
          - Identify subject: strictly one of "physics", "chemistry", or "mathematics" (all lowercase).
          - Identify topic/chapter (e.g. "Chemical Bonding", "Atomic Structure", "Rotational Motion", "Thermodynamics", etc.).
-         - Identify type: "MCQ" for single-choice questions, "MULTI" for multiple-choice / one or more than one option correct, or "NUMERICAL" if it asks for an integer/decimal value.
-         - Format question content: clean mathematical and scientific notation into LaTeX ($inline$ or $block$). NEVER use \( or \).
+         - Identify type: "MCQ" for single-choice questions, "MULTI" for multiple-choice / one or more than one option correct, or "NUMERICAL" if it asks for an integer/decimal value (e.g. questions asking "The value of 'x' to the nearest integer is___", "Find the value of...", or fill-in-the-blank questions without options).
+         - Format question content: clean mathematical and scientific notation into LaTeX ($inline$ or $block$). NEVER use ( or ).
          - MULTIMODAL 2D MATH, CHEMICAL STRUCTURES & FORMULAS:
             * Read fractions visually: e.g. $\\sqrt{\\frac{h}{2\\pi}}$, $\\frac{1}{2m}\\sqrt{\\frac{h}{\\pi}}$, $\\frac{\\sqrt{\\lambda R - 1}}{\\lambda R}$. Never break numerators and denominators onto separate lines!
             * Format chemical ions and formulas in LaTeX: e.g. $\\text{NO}_3^-$, $\\text{IF}_7$, $\\text{SO}_3$, $\\text{SO}_4^{2-}$, $\\text{CO}_3^{2-}$, $\\text{BeCl}_2\\text{(g)}$, $\\text{ClO}^-$, $\\text{ClO}_2^-$, $\\text{ClO}_3^-$, $\\text{ClO}_4^-$, $\\text{CaC}_2$, $(\\text{CN})_2$, $\\text{OF}_2$, $\\text{CCl}_4$, $\\text{N}_2\\text{H}_4$.
             * Format orbital subshells with subscripts: e.g. $p_x$, $p_y$, $p_z$, $d_{xy}$, $d_{yz}$, $d_{xz}$, $d_{x^2-y^2}$, $d_{z^2}$, and combinations like $p_y - p_y$, $d_{xy} - d_{xy}$, $p_\\pi - p_\\pi$, $p_\\pi - d_\\pi$.
             * Read Greek symbols directly from the visual page (e.g. \\sigma, \\pi, \\nu, \\lambda, \\mu, \\theta). Never output tofu characters or boxes!
             * CRITICAL FOR DIAGRAMS & MOLECULAR STRUCTURES:
-              - hasDiagram: strictly true ONLY if this question statement or options contain a graphical visual diagram, molecular 2D/3D structure drawing, circuit, graph, or curve in the PDF!
+              - hasDiagram: set true if this question statement or options contain or reference a visual diagram, apparatus (e.g. pulley, spring, inclined plane, vertical circle, swimming pool), circuit, graph, curve, or molecular 2D/3D structure drawing in the PDF!
               - NEVER transcribe, substitute, or replace 2D/3D molecular drawings, Lewis structures, or diagrams with chemical formulas or parenthesized descriptions in question content (e.g. NEVER inject "($SO_2F_2$ vs $SOF_2$)" or similar text into content)! Keep original concise question statements.
               - If a question in the PDF depicts molecular structure drawings (e.g. Lewis structures, VSEPR shapes, lone pair lobes, or bond angles/lengths labeled with variables $x, y, z, \\theta, \\alpha, \\beta$), or if options compare variables like "$x > y$", "$y > x$", "$\\theta_1 > \\theta_3$", this is 100% a DIAGRAM question! You MUST set hasDiagram: true, specify diagramPage, and provide diagramDescription!
               - IMPORTANT: Questions with only text, chemical formulas in the problem statement itself (e.g. SO2Cl2, BF3), bond lengths (e.g. d_{C-O}), or math angle notation (e.g. \\widehat{CNC}, \\widehat{HCH}) where options are numbers or complete chemical statements DO NOT have diagrams! For text-only questions, you MUST set hasDiagram: false.
               - Linear chemical equations, resonance structures, and reaction schemes written with text and arrows (e.g. HN3 / hydrazoic acid resonating structures (I), (II), (III)) where options are textual references like "(A) I", "(B) II", "(C) III", "(D) Both (I) and (III)" DO NOT have diagrams! Format them in LaTeX and set hasDiagram: false!
               - diagramPage: the 1-indexed page number of the PDF where the visual diagram is located.
-              - diagramBbox: Normalized 0-1000 bounding box [ymin, xmin, ymax, xmax] of the graphical diagram / option drawings ONLY. Exclude the question text statement at the top, and exclude the next question at the bottom!
+              - diagramBbox: Normalized 0-1000 bounding box [ymin, xmin, ymax, xmax] of the graphical diagram / figure ONLY. STRICT RULE: Include ONLY the visual drawing/apparatus/setup/geometry. NEVER include question text at the top, and NEVER include text options like (1) 45m, (2) 90m or (Given...) at the bottom! The crop must be PURELY the visual figure itself.
               - diagramDescription: A concise description of what the visual illustration depicts (e.g. "4 Lewis structures labeled (A)-(D)", "Wheatstone bridge circuit", "P-V indicator curve").
               - When options in the PDF depict chemical structures, Lewis drawings, or graphs labeled (A), (B), (C), (D):
                 * Set hasDiagram: true.
@@ -1365,6 +1501,7 @@ ${sectionListStr ? `Document Section Structure:\n${sectionListStr}` : ''}
       contents.push({ text: prompt });
 
       const response = await generateWithFallback(ai, contents, {
+        req,
         responseMimeType: "application/json",
         temperature: 0.1,
         maxOutputTokens: 65536,
@@ -1427,7 +1564,7 @@ ${sectionListStr ? `Document Section Structure:\n${sectionListStr}` : ''}
         }
       });
 
-      let text = safeGetText(response, "{}").replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+      const text = safeGetText(response, "{}").replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
       let parsed;
       try {
         parsed = repairTruncatedJson(text);
@@ -1498,6 +1635,7 @@ CRITICAL VISUAL INTELLIGENCE INSTRUCTIONS:
    - Extract all options if present.
    - If options are presented in a 2x2 grid (e.g. (1) and (2) on line 1, (3) and (4) on line 2), extract ALL 4 options.
    - Map options to id: "A", "B", "C", "D".
+   - If the question contains or references an apparatus diagram, circuit, pulley, organic reaction structure, or graph, set hasDiagram: true and provide diagramBbox: [ymin, xmin, ymax, xmax] (normalized integers 0 to 1000 representing diagram bounds on this page; include ONLY the visual drawing itself, exclude question text and options).
 3. Formulas & Math:
    - Wrap all formulas and mathematical expressions in $inline$ or $$block$$ LaTeX.
    - Do NOT wrap plain English prose inside \\text{...}.`;
@@ -1513,6 +1651,7 @@ CRITICAL VISUAL INTELLIGENCE INSTRUCTIONS:
         ];
 
         const response = await generateWithFallback(ai, contents, {
+          req,
           responseMimeType: "application/json",
           temperature: 0.1,
           maxOutputTokens: 16384,
@@ -1539,6 +1678,11 @@ CRITICAL VISUAL INTELLIGENCE INSTRUCTIONS:
                     correctAnswer: { type: Type.STRING },
                     hasDiagram: { type: Type.BOOLEAN },
                     diagramDescription: { type: Type.STRING },
+                    diagramBbox: {
+                      type: Type.ARRAY,
+                      items: { type: Type.NUMBER },
+                      description: "Normalized 0-1000 bounding box [ymin, xmin, ymax, xmax] of diagram on this page"
+                    },
                     solution: {
                       type: Type.OBJECT,
                       properties: { text: { type: Type.STRING } },
@@ -1566,7 +1710,8 @@ CRITICAL VISUAL INTELLIGENCE INSTRUCTIONS:
             ...q,
             subject: targetSubject,
             pageNumber: page.pageNumber,
-            diagramPage: page.pageNumber
+            diagramPage: page.pageNumber,
+            diagramBbox: validateDiagramBbox(q.diagramBbox)
           }));
           allExtractedQuestions.push(...sanitized);
         }
@@ -1603,7 +1748,7 @@ CRITICAL VISUAL INTELLIGENCE INSTRUCTIONS:
       const ai = apiKey ? new GoogleGenAI({
         apiKey,
         httpOptions: {
-          timeout: 45000,
+          timeout: 90000,
           headers: {
             "User-Agent": "JEE-OS-Agent/1.0"
           }
@@ -1638,7 +1783,8 @@ Return valid JSON with keys:
 - detectedInstitute (string or null)`;
 
       const contents: any[] = [];
-      if (pdfBase64) {
+      const hasText = Boolean(rawText && rawText.trim().length >= 150);
+      if (pdfBase64 && !hasText) {
         contents.push({
           inlineData: {
             mimeType: "application/pdf",
@@ -1649,6 +1795,7 @@ Return valid JSON with keys:
       contents.push(prompt);
 
       const response = await generateWithFallback(ai, contents, {
+        req,
         preferredModel: "gemini-3.5-flash-lite",
         responseMimeType: "application/json",
         temperature: 0.1,
@@ -1814,6 +1961,7 @@ Return valid JSON matching this schema:
       contents.push(prompt);
 
       const response = await generateWithFallback(ai, contents, {
+        req,
         preferredModel: "gemini-3.8-flash",
         responseMimeType: "application/json",
         temperature: 0.1,

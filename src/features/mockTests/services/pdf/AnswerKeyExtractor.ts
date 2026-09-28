@@ -21,7 +21,7 @@ export class AnswerKeyExtractor {
    */
   static normalizeAnswerValue(
     raw: string,
-    context?: { sectionType?: string; hasParentheses?: boolean }
+    context?: { sectionType?: string; hasParentheses?: boolean; qNum?: number; hasMixedParenthesesInKey?: boolean }
   ): { normalized: string; isNumerical: boolean } {
     const trimmed = raw.trim();
     const lower = trimmed.toLowerCase();
@@ -30,7 +30,10 @@ export class AnswerKeyExtractor {
       context?.sectionType === 'numerical value' ||
       context?.sectionType?.includes('integer') ||
       context?.sectionType?.includes('numerical') ||
-      /part\s*[-–\s]\s*(?:ii\b|2\b)/i.test(context?.sectionType || '')
+      /part\s*[-–\s]\s*(?:ii\b|2\b)/i.test(context?.sectionType || '') ||
+      // Removed: (context?.qNum > 30) — this blindly treated all Q>30 as numerical,
+      // corrupting MCQ answers. hasMixedParenthesesInKey handles mixed papers correctly.
+      Boolean(context?.hasMixedParenthesesInKey)
     );
 
     // Pure letter answers (a-d) are always MCQ option indices
@@ -66,7 +69,7 @@ export class AnswerKeyExtractor {
 
     if (!match || match.index === undefined) {
       // Fallback for headerless answer keys (e.g. Competishun DPPs, where answer key table starts directly as "1. (2) 2. (4) 3. (1)...")
-      const headerlessKeyRegex = /(?:^|\n)\s*(?:Q\.?\s*)?1\.\s*\(?[A-D0-9]+\)?(?:\s+(?:Q\.?\s*)?2\.\s*\(?[A-D0-9]+\)?)/i;
+      const headerlessKeyRegex = /(?:^|\n|\r|\s{2,})(?:Q\.?\s*)?1\.\s*\(?[A-D0-9]+\)?(?:\s+(?:Q\.?\s*)?2\.\s*\(?[A-D0-9]+\)?)/i;
       match = rawText.match(headerlessKeyRegex);
     }
 
@@ -100,7 +103,7 @@ export class AnswerKeyExtractor {
         const aVals = ansLines[k].replace(/^(?:Ans\.|A\s*n\s*s\s*\.)/i, '').trim().split(/\s+/).map(a => a.trim()).filter(a => a.length > 0);
         for (let idx = 0; idx < Math.min(qNums.length, aVals.length); idx++) {
           const rawAns = aVals[idx];
-          const norm = this.normalizeAnswerValue(rawAns);
+          const norm = this.normalizeAnswerValue(rawAns, { qNum: qNums[idx] });
           entries.push({
             qNum: qNums[idx],
             rawAns,
@@ -130,6 +133,7 @@ export class AnswerKeyExtractor {
           return ' ';
         });
 
+        const hasParensInSec = /\(\s*[1-4A-Da-d]\s*\)/.test(cleanSec);
         const entryRegexWithParens = /(?:^|\s)(?:Q(?:uestion)?\.?\s*)?(\d{1,3})\s*(?:[:.\-\]]|\s{2,})\s*(\()?(-?\d+(?:\.\d+)?|[a-dA-D]+)(\))?/g;
         let m: RegExpExecArray | null;
         while ((m = entryRegexWithParens.exec(cleanSec)) !== null) {
@@ -138,14 +142,19 @@ export class AnswerKeyExtractor {
           seenInSec.add(qNum);
           const hasParens = Boolean(m[2] === '(' && m[4] === ')');
           const rawAns = m[3].trim();
-          const norm = this.normalizeAnswerValue(rawAns, { sectionType: secName, hasParens });
-          if (isIntegerSec && !norm.isNumerical) {
+          const norm = this.normalizeAnswerValue(rawAns, {
+            sectionType: secName,
+            hasParentheses: hasParens,
+            qNum,
+            hasMixedParenthesesInKey: hasParensInSec && !hasParens
+          });
+          if ((isIntegerSec || (hasParensInSec && !hasParens)) && !norm.isNumerical) {
             norm.isNumerical = true;
           }
           const item: ExtractedAnswerKeyEntry = {
             qNum,
             rawAns,
-            normalizedAns: norm.normalized,
+            normalizedAns: norm.isNumerical ? rawAns : norm.normalized,
             isNumerical: norm.isNumerical,
             sectionName: secName
           };

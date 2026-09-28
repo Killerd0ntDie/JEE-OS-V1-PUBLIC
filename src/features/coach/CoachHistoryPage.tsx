@@ -4,20 +4,18 @@ import { ChatSession } from './hooks/useChatSessions';
 import { PageId } from '@/types';
 import { ConfirmDeleteModal } from '@/components/ui/ConfirmDeleteModal';
 import { useNavigate } from 'react-router-dom';
-import { safelyParseJSON } from '@/utils/jsonParser';
+import { storageAdapter } from '@/services/StorageAdapter';
+import { loadSavedChats, getCachedChats, persistSavedChats, clearAllSavedChats } from './services/chatStorage';
 
 export function CoachHistoryPage() {
   const navigate = useNavigate();
   const [sessions, setSessions] = useState<ChatSession[]>([]);
 
   useEffect(() => {
-    const savedChatsStr = localStorage.getItem('jeeos_chats');
-    if (savedChatsStr) {
-      const savedChats: Record<string, ChatSession> = safelyParseJSON<Record<string, ChatSession>>(savedChatsStr, {});
-      // Sort by updatedAt descending
+    loadSavedChats().then((savedChats) => {
       const sortedSessions = Object.values(savedChats).sort((a, b) => b.updatedAt - a.updatedAt);
       setSessions(sortedSessions);
-    }
+    });
   }, []);
 
   const [isClearAllModalOpen, setIsClearAllModalOpen] = useState(false);
@@ -28,36 +26,33 @@ export function CoachHistoryPage() {
     setChatToDelete(id);
   };
   
-  const confirmDeleteSingle = () => {
+  const confirmDeleteSingle = async () => {
     if (!chatToDelete) return;
-    const savedChatsStr = localStorage.getItem('jeeos_chats');
-    if (savedChatsStr) {
-      const savedChats: Record<string, ChatSession> = safelyParseJSON<Record<string, ChatSession>>(savedChatsStr, {});
-      delete savedChats[chatToDelete];
-      localStorage.setItem('jeeos_chats', JSON.stringify(savedChats));
-      setSessions(prev => prev.filter(s => s.id !== chatToDelete));
-      
-      if (localStorage.getItem('jeeos_active_chat_session') === chatToDelete) {
-        localStorage.removeItem('jeeos_active_chat_session');
-      }
+    const savedChats = { ...getCachedChats() };
+    delete savedChats[chatToDelete];
+    await persistSavedChats(savedChats);
+    setSessions(prev => prev.filter(s => s.id !== chatToDelete));
+    
+    if (storageAdapter.getItem('jeeos_active_chat_session') === chatToDelete) {
+      storageAdapter.removeItem('jeeos_active_chat_session');
     }
     setChatToDelete(null);
   };
 
-  const handleClearAll = () => {
-    localStorage.removeItem('jeeos_chats');
-    localStorage.removeItem('jeeos_active_chat_session');
+  const handleClearAll = async () => {
+    await clearAllSavedChats();
+    storageAdapter.removeItem('jeeos_active_chat_session');
     setSessions([]);
     setIsClearAllModalOpen(false);
   };
 
   const handleResumeChat = (id: string) => {
-    localStorage.setItem('jeeos_active_chat_session', id);
+    storageAdapter.setItem('jeeos_active_chat_session', id);
     navigate('/ai-coach');
   };
 
   const handleNewChat = () => {
-    localStorage.removeItem('jeeos_active_chat_session');
+    storageAdapter.removeItem('jeeos_active_chat_session');
     navigate('/ai-coach');
   };
 

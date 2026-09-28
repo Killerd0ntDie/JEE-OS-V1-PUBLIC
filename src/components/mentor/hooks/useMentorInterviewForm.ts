@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { SubjectId, Chapter } from '@/types/index';
 import { getValidTargetYears } from '@/utils/dateUtils';
@@ -75,6 +75,13 @@ export const useMentorInterviewForm = (onClose?: () => void) => {
     return map;
   };
   const [chapterReality, setChapterReality] = useState<Record<string, 'Not Started' | 'In Progress' | 'Completed'>>(initialRealityState);
+
+  useEffect(() => {
+    if (chapters.length > 0 && Object.keys(chapterReality).length === 0) {
+      setChapterReality(initialRealityState());
+    }
+  }, [chapters]);
+
   const [activeAuditSubject, setActiveAuditSubject] = useState<SubjectId>('physics');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -96,7 +103,8 @@ export const useMentorInterviewForm = (onClose?: () => void) => {
   const handleFinishInterview = async () => {
     setIsSubmitting(true);
     try {
-      const chapterUpdates = Object.entries(chapterReality).map(([id, status]) => {
+      const resolvedReality = { ...initialRealityState(), ...chapterReality };
+      const chapterUpdates = Object.entries(resolvedReality).map(([id, status]) => {
         const existing = chapters.find(c => c.id === id);
         return {
           id,

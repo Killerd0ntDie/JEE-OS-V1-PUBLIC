@@ -5,7 +5,6 @@ import { Icon } from '@/components/ui/Icon';
 import { Badge } from '@/components/ui/Badge';
 import { calculateLevelFromXP, getTitleAndColor } from '@/utils/levelingCalculations';
 import { ChapterTelemetry } from '@jee-os/engines';
-import { calculateCurrentStreak } from '@/utils/streakCalculations';
 import { springs } from '@/constants/motion';
 import { 
   Activity, Target, PieChart, TrendingUp, AlertTriangle, 
@@ -21,6 +20,15 @@ import { PercentileShiftCalibrator } from './components/PercentileShiftCalibrato
 import { EbbinghausDecayCurve } from '@/features/revision/components/EbbinghausDecayCurve';
 import { RevisionCalendarHeatmap } from '@/features/revision/components/RevisionCalendarHeatmap';
 import { ChapterRoiWeightageMatrix } from '@/features/subjects/components/ChapterRoiWeightageMatrix';
+import { useNavigate } from 'react-router-dom';
+
+function useOptionalNavigate() {
+  try {
+    return useNavigate();
+  } catch {
+    return () => {};
+  }
+}
 
 type AnalyticsTab = 'velocity' | 'strategy' | 'retention' | 'macro';
 
@@ -32,6 +40,7 @@ const TABS = [
 ];
 
 export function AnalyticsPage() {
+  const navigate = useOptionalNavigate();
   const actions = useStudyBrainStore(state => state.actions);
   const chapterTelemetryMap = useStudyBrainStore(state => state.chapterTelemetryMap);
   const studySessions = useStudyBrainStore(state => state.studySessions) || [];
@@ -97,14 +106,8 @@ export function AnalyticsPage() {
   const totalQuestions = analytics.questionsSolved || 0;
   const studyHours = (analytics.studyTime / 60).toFixed(1);
 
-  const trueAccuracy = useMemo(() => {
-    const sessionsWithAccuracy = studySessions.filter(s => s.accuracy !== undefined);
-    if (sessionsWithAccuracy.length === 0) return analytics.accuracy || 85;
-    const sum = sessionsWithAccuracy.reduce((acc, s) => acc + (s.accuracy || 0), 0);
-    return Math.round(sum / sessionsWithAccuracy.length);
-  }, [studySessions, analytics.accuracy]);
-  
-  const accuracyPct = trueAccuracy;
+  // Single canonical authority: precomputed analytics.accuracy from AnalyticsEngine
+  const accuracyPct = analytics?.accuracy ?? 85;
 
   const averageMockScore = useMemo(() => {
     if (mocks.length === 0) return 0;
@@ -278,7 +281,7 @@ export function AnalyticsPage() {
               <div className="surface-1 !border-amber-500/30 p-4 rounded-2xl space-y-1 shadow-xl">
                 <span className="text-[10px] text-amber-300 uppercase font-bold block tracking-wider">Active Daily Streak</span>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-bold text-amber-400 font-display">{calculateCurrentStreak(studySessions || [], Math.round((settings?.minStreakHours ?? 0.5) * 60))} Days</span>
+                  <span className="text-2xl font-bold text-amber-400 font-display">{xp?.streak ?? 0} Days</span>
                   <span className="text-[10px] text-zinc-400">⚡ Streak</span>
                 </div>
               </div>
@@ -628,7 +631,7 @@ export function AnalyticsPage() {
               upcomingChapters={upcomingChapters}
               masteredChapters={masteredChapters}
               onInspectChapter={(id) => actions.openChapterEditModal(id)}
-              onLaunchArena={() => {}}
+              onLaunchArena={() => navigate('/revision', { state: { autoLaunchArena: true } })}
             />
             <RevisionCalendarHeatmap sessions={studySessions} />
           </motion.div>

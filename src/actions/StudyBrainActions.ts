@@ -55,6 +55,17 @@ export class StudyBrainActions {
 
     // Cross-domain callback: timeline block completions tied to missions complete via MissionActions
     this.timeline.onCompleteTask = (taskId: string) => this.missions.completeTask(taskId);
+
+    // Auto-bind all prototype methods to prevent 'this' context loss when extracted or passed as callbacks
+    let proto = Object.getPrototypeOf(this);
+    while (proto && proto !== Object.prototype) {
+      for (const key of Object.getOwnPropertyNames(proto)) {
+        if (key !== 'constructor' && typeof (this as any)[key] === 'function') {
+          (this as any)[key] = (this as any)[key].bind(this);
+        }
+      }
+      proto = Object.getPrototypeOf(proto);
+    }
   }
 
   public isGuestUser(): boolean {
@@ -137,6 +148,14 @@ export class StudyBrainActions {
 
   async updateSettings(newSettings: any) {
     return this.user.updateSettings(newSettings);
+  }
+
+  async toggleFormulaBookmark(formulaId: string) {
+    return this.user.toggleFormulaBookmark(formulaId);
+  }
+
+  async setFormulaBookmarks(formulaIds: string[]) {
+    return this.user.setFormulaBookmarks(formulaIds);
   }
 
   async resetHiddenMissions() {
@@ -300,8 +319,8 @@ export class StudyBrainActions {
     return this.chapters.updateChapterProgress(chapterId, updates, theoryComplete, dppComplete, pyqsComplete);
   }
 
-  async completeRevision(cardId: string, confidence: 'Low' | 'Medium' | 'High') {
-    return this.chapters.completeRevision(cardId, confidence);
+  async completeRevision(cardIdOrChapterId: string, confidence: 'Low' | 'Medium' | 'High') {
+    return this.chapters.completeRevision(cardIdOrChapterId, confidence);
   }
 
   async gradeFlashcard(cardId: string, chapterId: string, quality: number) {
@@ -347,6 +366,10 @@ export class StudyBrainActions {
 
   async deleteMistake(mistakeId: string) {
     return this.mistakes.deleteMistake(mistakeId);
+  }
+
+  async deleteMistakesBatch(mistakeIds: string[]) {
+    return this.mistakes.deleteMistakesBatch(mistakeIds);
   }
 
   async updateMistakeTestResult(mistakeId: string, isCorrect: boolean) {

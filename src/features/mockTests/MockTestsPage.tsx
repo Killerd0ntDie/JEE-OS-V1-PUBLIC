@@ -28,6 +28,7 @@ import { springs } from '@/constants/motion';
 import { evaluateMockAttempt } from '@/utils/mockScoring';
 import { INITIAL_CHAPTERS } from '@/constants/initialSeeds';
 import { mockTest1 } from '@/data/mockTests/jeeMain2024Shift1';
+import { storageAdapter } from '@/services/StorageAdapter';
 
 export type MockTestEngineState = 'LANDING' | 'ARENA' | 'EVALUATING';
 export type MockTabMode = 'available' | 'history';
@@ -172,23 +173,7 @@ export function MockTestsPage({ onNavigate, defaultView }: MockTestsPageProps) {
   const actions = useStudyBrainStore(state => state.actions);
   const customMockTests = useStudyBrainStore(state => state.customMockTests);
   const storeMocks = useStudyBrainStore(state => state.mocks) || [];
-  const mocks = useMemo(() => {
-    if (storeMocks.length > 0) return storeMocks;
-    if (typeof localStorage !== 'undefined') {
-      try {
-        const cached = localStorage.getItem('jeeos_mock_results_cache');
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            return parsed;
-          }
-        }
-      } catch {
-        // ignore
-      }
-    }
-    return storeMocks;
-  }, [storeMocks]);
+  const mocks = storeMocks;
 
   React.useEffect(() => {
     if (storeMocks.length === 0) {
@@ -331,10 +316,10 @@ export function MockTestsPage({ onNavigate, defaultView }: MockTestsPageProps) {
 
   const handleDiscardActiveSession = (testId: string) => {
     try {
-      localStorage.removeItem(`jeeos_mock_attempt_${userId}_${testId}`);
-      localStorage.removeItem(`jeeos_mock_end_${userId}_${testId}`);
-      localStorage.removeItem(`jeeos_mock_pos_${userId}_${testId}`);
-      localStorage.removeItem(`jeeos_mock_infractions_${userId}_${testId}`);
+      storageAdapter.removeItem(`jeeos_mock_attempt_${userId}_${testId}`);
+      storageAdapter.removeItem(`jeeos_mock_end_${userId}_${testId}`);
+      storageAdapter.removeItem(`jeeos_mock_pos_${userId}_${testId}`);
+      storageAdapter.removeItem(`jeeos_mock_infractions_${userId}_${testId}`);
     } catch (e) {
       console.warn("Failed to clear interrupted test state:", e);
     }
@@ -360,11 +345,11 @@ export function MockTestsPage({ onNavigate, defaultView }: MockTestsPageProps) {
       await actions.deleteMockResult(attemptId);
       try {
         const uid = userId || 'guest';
-        localStorage.removeItem(`jeeos_mock_attempt_${uid}_${attemptId}`);
-        localStorage.removeItem(`jeeos_mock_end_${uid}_${attemptId}`);
-        localStorage.removeItem(`jeeos_mock_pos_${uid}_${attemptId}`);
-        localStorage.removeItem(`jeeos_mock_infractions_${uid}_${attemptId}`);
-        localStorage.removeItem(`jeeos_mock_result_${attemptId}`);
+        storageAdapter.removeItem(`jeeos_mock_attempt_${uid}_${attemptId}`);
+        storageAdapter.removeItem(`jeeos_mock_end_${uid}_${attemptId}`);
+        storageAdapter.removeItem(`jeeos_mock_pos_${uid}_${attemptId}`);
+        storageAdapter.removeItem(`jeeos_mock_infractions_${uid}_${attemptId}`);
+        storageAdapter.removeItem(`jeeos_mock_result_${attemptId}`);
       } catch (e) {
         console.warn("Attempt cleanup storage notice:", e);
       }
@@ -381,10 +366,10 @@ export function MockTestsPage({ onNavigate, defaultView }: MockTestsPageProps) {
     try {
       const uid = userId || 'guest';
       if (currentTest) {
-        localStorage.removeItem(`jeeos_mock_attempt_${uid}_${currentTest.id}`);
-        localStorage.removeItem(`jeeos_mock_end_${uid}_${currentTest.id}`);
-        localStorage.removeItem(`jeeos_mock_pos_${uid}_${currentTest.id}`);
-        localStorage.removeItem(`jeeos_mock_infractions_${uid}_${currentTest.id}`);
+        storageAdapter.removeItem(`jeeos_mock_attempt_${uid}_${currentTest.id}`);
+        storageAdapter.removeItem(`jeeos_mock_end_${uid}_${currentTest.id}`);
+        storageAdapter.removeItem(`jeeos_mock_pos_${uid}_${currentTest.id}`);
+        storageAdapter.removeItem(`jeeos_mock_infractions_${uid}_${currentTest.id}`);
       }
     } catch (e) {
       console.warn("Failed to clear interrupted test state:", e);
@@ -524,11 +509,11 @@ export function MockTestsPage({ onNavigate, defaultView }: MockTestsPageProps) {
       if (typeof window === 'undefined') return null;
       const prefix = `jeeos_mock_end_${userId}_`;
       try {
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (key && key.startsWith(prefix)) {
+        const keys = storageAdapter.getAllKeys();
+        for (const key of keys) {
+          if (key.startsWith(prefix)) {
             const testId = key.substring(prefix.length);
-            const endTimeStr = localStorage.getItem(key);
+            const endTimeStr = storageAdapter.getItem<string>(key);
             const endTime = endTimeStr ? parseInt(endTimeStr, 10) : 0;
             const remainingSeconds = Math.floor((endTime - Date.now()) / 1000);
             if (remainingSeconds > 0) {
@@ -1840,7 +1825,8 @@ export function MockTestsPage({ onNavigate, defaultView }: MockTestsPageProps) {
                           {/* Subject Breakdown Badges */}
                           {mock.subjectBreakdown && (
                             <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-zinc-800/80">
-                              {Object.entries(mock.subjectBreakdown).map(([subj, data]) => {
+                              {Object.entries(mock.subjectBreakdown).map(([subj, rawData]) => {
+                                const data = rawData as { score?: number; attempted?: number; correct?: number; accuracy?: number };
                                 const isPhysics = subj.toLowerCase().includes('phys');
                                 const isChemistry = subj.toLowerCase().includes('chem');
                                 return (
@@ -1855,7 +1841,7 @@ export function MockTestsPage({ onNavigate, defaultView }: MockTestsPageProps) {
                                     }`}
                                   >
                                     <span className="font-bold capitalize">{subj}:</span>
-                                    <span>{data.score} M ({(data as any).accuracy !== undefined ? (data as any).accuracy : (data.attempted > 0 ? Math.round((data.correct / data.attempted) * 100) : 0)}%)</span>
+                                    <span>{data.score ?? 0} M ({data.accuracy !== undefined ? data.accuracy : ((data.attempted || 0) > 0 ? Math.round(((data.correct || 0) / (data.attempted || 1)) * 100) : 0)}%)</span>
                                   </div>
                                 );
                               })}

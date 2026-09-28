@@ -103,28 +103,11 @@ export class MockTestActions extends BaseActions {
       ...(levelUpData ? { levelUpData } : {})
     });
 
-    // Immediate local persistence guarantees the mock attempt is NEVER lost
+    // Immediate local persistence guarantees the mock attempt is NEVER lost in Tier 2 IndexedDB
     try {
       await idbSet('jeeos_mock_results', updatedMocks);
-      if (typeof localStorage !== 'undefined') {
-        // Strip large base64 diagrams and limit to 5 most recent tests for the localStorage cache to safely stay under 5MB quota
-        const leanMocks = updatedMocks.slice(-5).map(m => ({
-          ...m,
-          testSnapshot: m.testSnapshot ? {
-            ...m.testSnapshot,
-            sections: m.testSnapshot.sections.map(s => ({
-              ...s,
-              questions: s.questions.map(q => {
-                const { imageUrl, ...rest } = q;
-                return rest;
-              })
-            }))
-          } : undefined
-        }));
-        localStorage.setItem('jeeos_mock_results_cache', JSON.stringify(leanMocks));
-      }
     } catch (e) {
-      console.warn("Failed to persist mock result to storage:", e);
+      console.warn("Failed to persist mock result to IndexedDB:", e);
     }
 
     try {
@@ -200,7 +183,20 @@ export class MockTestActions extends BaseActions {
 
     if (!this.isGuestUser()) {
       try {
-        await MockTestRepository.saveCustomMockTest(this.userId, newTest);
+        const firestoreTest: MockTest = {
+          ...newTest,
+          sections: (newTest.sections || []).map(sec => ({
+            ...sec,
+            questions: (sec.questions || []).map(q => {
+              const { imageUrl, ...rest } = q;
+              return {
+                ...rest,
+                hasDiagram: Boolean(q.hasDiagram || imageUrl)
+              };
+            })
+          }))
+        };
+        await MockTestRepository.saveCustomMockTest(this.userId, firestoreTest);
       } catch (err) {
         console.warn("Firestore sync for customMockTest failed, test preserved locally:", err);
       }

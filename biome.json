@@ -1,0 +1,65 @@
+{
+	"$schema": "https://biomejs.dev/schemas/2.5.14/schema.json",
+	"vcs": {
+		"enabled": true,
+		"clientKind": "git",
+		"useIgnoreFile": true
+	},
+	"files": {
+		"includes": ["**", "!!**/dist", "!!**/node_modules", "!!**/coverage"]
+	},
+	"formatter": {
+		"enabled": false
+	},
+	"assist": {
+		"actions": {
+			"source": {
+				"organizeImports": "off"
+			}
+		}
+	},
+	"linter": {
+		"enabled": true,
+		"rules": {
+			"recommended": true,
+			"suspicious": {
+				"noExplicitAny": "off",
+				"noUndeclaredEnvVars": "off",
+				"noTsIgnore": "off",
+				"noControlCharactersInRegex": "off",
+				"noTemplateCurlyInString": "off",
+				"noAssignInExpressions": "off",
+				"noImplicitAnyLet": "warn"
+			},
+			"style": {
+				"noNonNullAssertion": "off",
+				"useImportType": "off",
+				"useTemplate": "off",
+				"useNodejsImportProtocol": "off"
+			},
+			"correctness": {
+				"noUnusedFunctionParameters": "warn"
+			}
+		}
+	},
+	"overrides": [
+		{
+			"includes": ["src/features/**", "src/components/**", "src/providers/**"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedGlobals": {
+							"level": "error",
+							"options": {
+								"deniedGlobals": {
+									"localStorage": "Raw localStorage is banned inside components and features. Use StorageAdapter instead.",
+									"sessionStorage": "Raw sessionStorage is banned inside components and features. Use StorageAdapter instead."
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	]
+}

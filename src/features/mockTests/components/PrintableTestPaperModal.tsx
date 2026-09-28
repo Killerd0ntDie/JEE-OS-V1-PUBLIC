@@ -3,20 +3,22 @@ import { createPortal } from 'react-dom';
 import { motion } from 'motion/react';
 import { Printer, X, ExternalLink, Loader2, FileText, Check } from 'lucide-react';
 import { MockTest } from '@/types/mockTest';
-import { generateTestPaperHtml } from '../utils/testPaperHtmlGenerator';
+import { generateTestPaperHtml, deduplicateSections, deduplicateQuestionList } from '../utils/testPaperHtmlGenerator';
 
 interface PrintableTestPaperModalProps {
   test: MockTest | null;
-  isOpen: boolean;
+  isOpen?: boolean;
   onClose: () => void;
   defaultMode?: 'QUESTION_PAPER' | 'SOLUTIONS' | 'COMPLETE';
+  detailedQuestions?: any[];
 }
 
 export function PrintableTestPaperModal({
   test,
-  isOpen,
+  isOpen = true,
   onClose,
-  defaultMode = 'COMPLETE'
+  defaultMode = 'COMPLETE',
+  detailedQuestions
 }: PrintableTestPaperModalProps) {
   const [printMode, setPrintMode] = useState<'QUESTION_PAPER' | 'SOLUTIONS' | 'COMPLETE'>(defaultMode);
   const [fontSize, setFontSize] = useState<'sm' | 'base'>('sm');
@@ -25,24 +27,107 @@ export function PrintableTestPaperModal({
   const [isPrinting, setIsPrinting] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
+  const isDppDefault = Boolean(
+    test?.source === 'dpp' ||
+    test?.type === 'DPP' ||
+    (test?.category && String(test.category).toUpperCase().includes('DPP')) ||
+    (test?.sections?.length === 1 && (test.sections[0].questions?.length || 0) >= 10) ||
+    Boolean(test?.chapterName && test.chapterName !== 'Full Syllabus')
+  );
+
+  const [layoutStyle, setLayoutStyle] = useState<'COACHING_SHEET' | 'NTA_CBT'>(
+    isDppDefault ? 'COACHING_SHEET' : 'NTA_CBT'
+  );
+
+  const effectiveTest = useMemo(() => {
+    if (!test) return null;
+    const dedupedSections = deduplicateSections(test.sections || []);
+    if (!detailedQuestions || detailedQuestions.length === 0) {
+      return { ...test, sections: dedupedSections };
+    }
+
+    const cleanedDetailedQuestions = deduplicateQuestionList(detailedQuestions);
+
+    // Build lookup maps by question ID, by globalIndex, and flat list
+    const idMap = new Map<string, any>();
+    const numMap = new Map<number, any>();
+    cleanedDetailedQuestions.forEach((item, idx) => {
+      const q = item.question || item;
+      if (q.id) idMap.set(q.id, q);
+      const gNum = item.globalIndex ?? (idx + 1);
+      numMap.set(gNum, q);
+    });
+
+    let currentIdx = 0;
+    const mergedSections = dedupedSections.map((sec) => ({
+      ...sec,
+      questions: (sec.questions || []).map((q) => {
+        currentIdx++;
+        const matched = idMap.get(q.id) || numMap.get(currentIdx) || cleanedDetailedQuestions[currentIdx - 1]?.question || cleanedDetailedQuestions[currentIdx - 1];
+        return {
+          ...q,
+          imageUrl: q.imageUrl || matched?.imageUrl,
+          hasDiagram: Boolean(q.hasDiagram || matched?.hasDiagram || q.imageUrl || matched?.imageUrl),
+          explanation: q.explanation || matched?.explanation || matched?.solution?.text
+        };
+      })
+    }));
+
+    return { ...test, sections: mergedSections };
+  }, [test, detailedQuestions]);
+
   const documentHtml = useMemo(() => {
-    if (!test) return '';
-    return generateTestPaperHtml(test, {
+    if (!effectiveTest) return '';
+    return generateTestPaperHtml(effectiveTest, {
       printMode,
       fontSize,
       showInstructions,
-      showRoughWorkMargin
+      showRoughWorkMargin,
+      layoutStyle
     });
-  }, [test, printMode, fontSize, showInstructions, showRoughWorkMargin]);
+  }, [effectiveTest, printMode, fontSize, showInstructions, showRoughWorkMargin, layoutStyle]);
 
   if (!isOpen || !test || typeof document === 'undefined') return null;
 
   const totalQuestions = (test.sections || []).reduce((acc, s) => acc + (s.questions?.length || 0), 0);
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     if (iframeRef.current?.contentWindow) {
       setIsPrinting(true);
       try {
+        const iframeDoc = iframeRef.current.contentDocument;
+        if (iframeDoc) {
+          if (iframeDoc.fonts?.ready) {
+            try {
+              await iframeDoc.fonts.ready;
+            } catch {
+              // Ignore font wait timeout/errors, proceed to print
+            }
+          }
+          // Ensure all images (including base64 diagrams) are fully loaded and decoded before print dialog
+          const images = Array.from(iframeDoc.images || []);
+          if (images.length > 0) {
+            await Promise.all(
+              images.map(img => {
+                if (img.complete) {
+                  return (img as any).decode ? (img as any).decode().catch(() => {}) : Promise.resolve();
+                }
+                return new Promise<void>((resolve) => {
+                  const timer = setTimeout(() => resolve(), 3000);
+                  img.onload = () => {
+                    clearTimeout(timer);
+                    if ((img as any).decode) (img as any).decode().then(resolve).catch(resolve);
+                    else resolve();
+                  };
+                  img.onerror = () => {
+                    clearTimeout(timer);
+                    resolve();
+                  };
+                });
+              })
+            );
+          }
+        }
         iframeRef.current.contentWindow.focus();
         iframeRef.current.contentWindow.print();
       } catch (err) {
@@ -96,6 +181,30 @@ export function PrintableTestPaperModal({
 
         {/* Action Controls */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          {/* Layout Style Selector: Coaching Sheet (2-Col) vs NTA CBT (1-Col) */}
+          <div className="flex bg-zinc-900 border border-zinc-800 rounded-xl p-0.5 font-mono text-xs">
+            <button
+              type="button"
+              onClick={() => setLayoutStyle('COACHING_SHEET')}
+              className={`px-2.5 py-1.5 rounded-lg font-semibold transition-colors cursor-pointer ${
+                layoutStyle === 'COACHING_SHEET' ? 'bg-emerald-600 text-white shadow-sm' : 'text-zinc-400 hover:text-white'
+              }`}
+              title="2-Column Compact Coaching Practice Sheet (Matches Competishun / Allen P-11)"
+            >
+              2-Col Sheet
+            </button>
+            <button
+              type="button"
+              onClick={() => setLayoutStyle('NTA_CBT')}
+              className={`px-2.5 py-1.5 rounded-lg font-semibold transition-colors cursor-pointer ${
+                layoutStyle === 'NTA_CBT' ? 'bg-indigo-600 text-white shadow-sm' : 'text-zinc-400 hover:text-white'
+              }`}
+              title="Standard NTA Computer-Based Test (CBT) Booklet"
+            >
+              NTA CBT
+            </button>
+          </div>
+
           {/* View Mode Selector */}
           <div className="hidden md:flex bg-zinc-900 border border-zinc-800 rounded-xl p-0.5 font-mono text-xs">
             <button

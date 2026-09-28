@@ -6,6 +6,9 @@ import {
   evaluateMockAttempt, 
   EvaluatedMockQuestion 
 } from '@/utils/mockScoring';
+import { idbGet, idbSet } from '@/utils/idb';
+import { storageAdapter } from '@/services/StorageAdapter';
+import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 
 export const isPlaceholderExplanation = (text?: string) => {
   if (!text || text.trim().length === 0) return true;
@@ -19,6 +22,7 @@ export interface UseResultAnalyticsProps {
 }
 
 export function useResultAnalytics({ test, attempt, chapters = [] }: UseResultAnalyticsProps) {
+  const actions = useStudyBrainStore(state => state.actions);
   // Navigation tabs: Questions Studio vs Performance Forensics
   const [activeTab, setActiveTab] = useState<'questions' | 'forensics'>('questions');
   const [tabDirection, setTabDirection] = useState(1);
@@ -97,28 +101,64 @@ $$(\\pi^* 2p_x^2 = \\pi^* 2p_y^1) \\quad\\text{or}\\quad (\\pi^* 2p_x^1 = \\pi^*
 The incoming electron adds into the **$\\pi^* 2p_x / \\pi^* 2p_y$ orbital**. Therefore, the correct choice is **Option C**.`;
     }
 
+    const persistExplanation = async (explanationText: string) => {
+      // 1. Persist to canonical custom mock tests in IndexedDB
+      try {
+        const storedTests = (await idbGet<MockTest[]>('jeeos_custom_mock_tests')) || [];
+        let testFound = false;
+        const updatedTests = storedTests.map(t => {
+          if (t.id !== test.id) return t;
+          testFound = true;
+          return {
+            ...t,
+            sections: (t.sections || []).map(sec => ({
+              ...sec,
+              questions: (sec.questions || []).map(q => 
+                q.id === qId ? { ...q, explanation: explanationText } : q
+              )
+            }))
+          };
+        });
+        if (testFound) {
+          await idbSet('jeeos_custom_mock_tests', updatedTests);
+        }
+      } catch (err) {
+        console.warn('Failed to update explanation in jeeos_custom_mock_tests:', err);
+      }
+
+      // 2. Persist to mock results attempt snapshot in IndexedDB
+      try {
+        const storedMocks = (await idbGet<any[]>('jeeos_mock_results')) || [];
+        let mockFound = false;
+        const updatedMocks = storedMocks.map(m => {
+          if (m.testId !== test.id && m.id !== attempt.testId) return m;
+          if (!m.testSnapshot?.sections) return m;
+          mockFound = true;
+          return {
+            ...m,
+            testSnapshot: {
+              ...m.testSnapshot,
+              sections: m.testSnapshot.sections.map((sec: any) => ({
+                ...sec,
+                questions: (sec.questions || []).map((q: any) => 
+                  q.id === qId ? { ...q, explanation: explanationText } : q
+                )
+              }))
+            }
+          };
+        });
+        if (mockFound) {
+          await idbSet('jeeos_mock_results', updatedMocks);
+        }
+      } catch (err) {
+        console.warn('Failed to update explanation in jeeos_mock_results:', err);
+      }
+    };
+
     if (instantDerivation) {
       setCustomExplanations(prev => ({ ...prev, [qId]: instantDerivation! }));
       qItem.question.explanation = instantDerivation;
-      try {
-        const storedTestsRaw = localStorage.getItem('user_mock_tests');
-        if (storedTestsRaw) {
-          const storedTests = JSON.parse(storedTestsRaw);
-          const foundTest = storedTests.find((t: any) => t.id === test.id);
-          if (foundTest) {
-            for (const sec of foundTest.sections || []) {
-              const foundQ = sec.questions?.find((q: any) => q.id === qId);
-              if (foundQ) {
-                foundQ.explanation = instantDerivation;
-                break;
-              }
-            }
-            localStorage.setItem('user_mock_tests', JSON.stringify(storedTests));
-          }
-        }
-      } catch {
-        // ignore
-      }
+      persistExplanation(instantDerivation);
       return;
     }
 
@@ -134,7 +174,7 @@ The incoming electron adds into the **$\\pi^* 2p_x / \\pi^* 2p_y$ orbital**. The
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      const storedKey = localStorage.getItem('gemini_api_key') || localStorage.getItem('GEMINI_API_KEY') || localStorage.getItem('jeeos_gemini_api_key');
+      const storedKey = storageAdapter.getGeminiApiKey();
       if (storedKey) headers['x-gemini-api-key'] = storedKey;
 
       const baseUrl = typeof window !== 'undefined' && window.location.origin && window.location.origin !== 'null'
@@ -166,25 +206,7 @@ The incoming electron adds into the **$\\pi^* 2p_x / \\pi^* 2p_y$ orbital**. The
           if (data.explanation) {
             setCustomExplanations(prev => ({ ...prev, [qId]: data.explanation }));
             qItem.question.explanation = data.explanation;
-            try {
-              const storedTestsRaw = localStorage.getItem('user_mock_tests');
-              if (storedTestsRaw) {
-                const storedTests = JSON.parse(storedTestsRaw);
-                const foundTest = storedTests.find((t: any) => t.id === test.id);
-                if (foundTest) {
-                  for (const sec of foundTest.sections || []) {
-                    const foundQ = sec.questions?.find((q: any) => q.id === qId);
-                    if (foundQ) {
-                      foundQ.explanation = data.explanation;
-                      break;
-                    }
-                  }
-                  localStorage.setItem('user_mock_tests', JSON.stringify(storedTests));
-                }
-              }
-            } catch {
-              // ignore localStorage write failure
-            }
+            persistExplanation(data.explanation);
           }
         }
       } catch (fetchErr: any) {
@@ -320,10 +342,55 @@ The incoming electron adds into the **$\\pi^* 2p_x / \\pi^* 2p_y$ orbital**. The
     : 0;
 
   const handleSetMistakeTag = (qId: string, tagId: string) => {
+    const isDeselecting = mistakeTags[qId] === tagId;
     setMistakeTags(prev => ({
       ...prev,
-      [qId]: prev[qId] === tagId ? '' : tagId
+      [qId]: isDeselecting ? '' : tagId
     }));
+
+    if (!isDeselecting) {
+      const qItem = analysis.detailedQuestions.find(eq => eq.question.id === qId);
+      if (qItem) {
+        const labelMap: Record<string, string> = {
+          calc_error: 'Calculation Error: Arithmetical or sign slip',
+          concept_gap: 'Concept Gap: Did not understand core formula',
+          formula_forgot: 'Formula Slip: Misremembered formula',
+          trap_caught: 'Caught in Trap: Fell for examiner distractor',
+          time_rush: 'Time Pressure: Rushed under the clock'
+        };
+
+        const dominantSubject: SubjectId = qItem.sectionSubject || (selectedSubject !== 'ALL' ? selectedSubject : 'physics');
+
+        actions.addMistake({
+          subject: dominantSubject,
+          chapter: qItem.question.chapter || test.name || 'Mock Test Review',
+          chapterId: test.chapterId || undefined,
+          topic: qItem.question.topic || qItem.question.chapter || 'Mock Exam Problem',
+          subtopic: '',
+          difficulty: (qItem.question.difficulty as any) || 'JEE Main',
+          source: test.name || 'Mock Examination',
+          timeTaken: qItem.attempt?.timeSpentSeconds || 120,
+          correctMethod: qItem.question.explanation || qItem.question.correctAnswer || '',
+          studentMethod: qItem.attempt?.selectedAnswer ? `Selected: ${qItem.attempt.selectedAnswer}` : 'Unattempted',
+          mistakeTypes: [labelMap[tagId] || tagId],
+          confidence: 30,
+          revisionSchedule: new Date(Date.now() + 86400000 * 2).toISOString(),
+          masteryImpact: 'High',
+          attemptNumber: 1,
+          revisionStatus: 'New',
+          recoveryScore: 0,
+          teacherNotes: '',
+          personalNotes: `Self-audit: ${labelMap[tagId] || tagId}`,
+          aiAdvice: '',
+          priority: 'High',
+          dateLogged: new Date().toISOString(),
+          questionText: qItem.question.content || `Question ${qItem.question.id} from ${test.name}`,
+          correctSolution: qItem.question.explanation || '',
+          errorType: tagId
+        });
+        actions.triggerToast('Mistake Saved', 'Added to your Mistake Vault for active remediation.', 'success');
+      }
+    }
   };
 
   return {

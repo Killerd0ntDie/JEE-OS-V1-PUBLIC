@@ -24,6 +24,16 @@ export const useToast = () => useContext(ToastContext);
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const settings = useStudyBrainStore(state => state.settings);
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const timerMapRef = React.useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+
+  const removeToast = useCallback((id: string) => {
+    const existingTimer = timerMapRef.current.get(id);
+    if (existingTimer) {
+      clearTimeout(existingTimer);
+      timerMapRef.current.delete(id);
+    }
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
 
   const toast = useCallback((options: Omit<Toast, 'id'>) => {
     const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -50,14 +60,19 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
     // 3. Auto dismiss
     const duration = options.duration || 5000;
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
+    const timer = setTimeout(() => {
+      removeToast(id);
     }, duration);
-  }, [settings]);
+    timerMapRef.current.set(id, timer);
+  }, [settings, removeToast]);
 
-  const removeToast = (id: string) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
-  };
+  // Clean up all active timers on unmount
+  React.useEffect(() => {
+    return () => {
+      timerMapRef.current.forEach((timer) => clearTimeout(timer));
+      timerMapRef.current.clear();
+    };
+  }, []);
 
   React.useEffect(() => {
     const handleGlobalToast = (e: CustomEvent<Omit<Toast, 'id'>>) => {

@@ -487,5 +487,78 @@ describe('mockScoring Engine Audit & Verification', () => {
       expect(isMockAnswerCorrect(smallQ, '1.41')).toBe(true); // diff 0.004 < 0.01
       expect(isMockAnswerCorrect(smallQ, '1.43')).toBe(false); // diff 0.016 > 0.01
     });
+
+    it('[P0-05] MULTI questions award full marks (+4) when selecting an option that satisfies declared answers even with semantic duplicate options', () => {
+      const optA = '$\\text{ClO}_4^- > \\text{ClO}_3^- > \\text{ClO}_2^- > \\text{ClO}^-$';
+      const optB = '$\\text{ClO}^- < \\text{ClO}_2^- < \\text{ClO}_3^- < \\text{ClO}_4^-$';
+      const optC = '$\\text{ClO}_3^- < \\text{ClO}_2^- > \\text{ClO}^- > \\text{ClO}_4^-$';
+      const optD = 'None of the above';
+
+      const testWithSemanticEquiv: MockTest = {
+        id: 'test-semantic-multi',
+        name: 'Semantic Multi Test',
+        durationMinutes: 180,
+        totalMarks: 4,
+        sections: [
+          {
+            subject: 'chemistry',
+            questions: [
+              {
+                id: 'q-sem-1',
+                subject: 'chemistry',
+                type: 'MULTI',
+                chapter: 'Chemical Bonding',
+                topic: 'Bond Order',
+                difficulty: 'Medium',
+                content: 'Select the correct order of bond strength:',
+                options: [optA, optB, optC, optD],
+                correctAnswer: 'A', // Only A was declared in key, but B is semantically identical
+                marks: { correct: 4, incorrect: -2 }
+              }
+            ]
+          }
+        ]
+      };
+
+      // Student selects Option A: should get FULL marks (+4), not partial (+1)
+      const attemptA: MockTestAttempt = {
+        testId: 'test-semantic-multi',
+        startTime: '2026-09-24T10:00:00Z',
+        questions: {
+          'q-sem-1': {
+            questionId: 'q-sem-1',
+            subject: 'chemistry',
+            status: 'Answered',
+            selectedAnswer: 'A',
+            timeSpentSeconds: 60
+          }
+        }
+      };
+
+      const resultA = evaluateMockAttempt(testWithSemanticEquiv, attemptA);
+      expect(resultA.totalScore).toBe(4);
+      expect(resultA.correct).toBe(1);
+      expect(resultA.incorrect).toBe(0);
+
+      // Student selects Option B: also satisfies declared A through equivalence, so FULL marks (+4)
+      const attemptB: MockTestAttempt = {
+        testId: 'test-semantic-multi',
+        startTime: '2026-09-24T10:00:00Z',
+        questions: {
+          'q-sem-1': {
+            questionId: 'q-sem-1',
+            subject: 'chemistry',
+            status: 'Answered',
+            selectedAnswer: 'B',
+            timeSpentSeconds: 60
+          }
+        }
+      };
+
+      const resultB = evaluateMockAttempt(testWithSemanticEquiv, attemptB);
+      expect(resultB.totalScore).toBe(4);
+      expect(resultB.correct).toBe(1);
+      expect(resultB.incorrect).toBe(0);
+    });
   });
 });

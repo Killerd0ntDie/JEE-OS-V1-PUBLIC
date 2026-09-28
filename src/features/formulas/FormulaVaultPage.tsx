@@ -13,6 +13,8 @@ import { audioEngine } from '@/utils/audioEngine';
 import { useToast } from '@/components/ui/ToastProvider';
 import { FormulaSpeedDrillModal } from './components/FormulaSpeedDrillModal';
 import { DimensionalAnalysisModal } from './components/DimensionalAnalysisModal';
+import { storageAdapter } from '@/services/StorageAdapter';
+import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 
 export function FormulaVaultPage() {
   const { toast } = useToast();
@@ -26,35 +28,44 @@ export function FormulaVaultPage() {
   const [isClozeMode, setIsClozeMode] = useState(false);
   const [revealedClozeKeys, setRevealedClozeKeys] = useState<Set<string>>(new Set());
 
-  // Persistent bookmarked formulas
-  const [bookmarkedFormulas, setBookmarkedFormulas] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem('jeeos_bookmarked_formulas');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
+  const actions = useStudyBrainStore(s => s.actions);
+  const runtimeBookmarks = useStudyBrainStore(s => s.bookmarkedFormulaIds);
+
+  // Persistent bookmarked formulas: runtime/Firestore is single source of truth,
+  // with storageAdapter as mirror/offline fallback cache
+  const [localBookmarks, setLocalBookmarks] = useState<string[]>(() => {
+    return storageAdapter.getItem<string[]>('jeeos_bookmarked_formulas') || [];
   });
 
-  useEffect(() => {
-    try {
-      localStorage.setItem('jeeos_bookmarked_formulas', JSON.stringify(bookmarkedFormulas));
-    } catch (e) {
-      console.warn("Failed to persist bookmarked formulas:", e);
+  // Effective bookmarks combines runtime state (authoritative) or local fallback
+  const bookmarkedFormulas = useMemo(() => {
+    if (runtimeBookmarks && runtimeBookmarks.length > 0) {
+      return runtimeBookmarks;
     }
-  }, [bookmarkedFormulas]);
+    return localBookmarks;
+  }, [runtimeBookmarks, localBookmarks]);
+
+  // Synchronize legacy local cache to runtime on initial mount if runtime is unseeded
+  useEffect(() => {
+    const cached = storageAdapter.getItem<string[]>('jeeos_bookmarked_formulas');
+    if (cached && cached.length > 0 && (!runtimeBookmarks || runtimeBookmarks.length === 0)) {
+      actions.setFormulaBookmarks?.(cached).catch(() => {});
+    }
+  }, []);
 
   const toggleBookmark = (formulaId: string, title: string) => {
     audioEngine.playMechanicalKey('click').catch(() => {});
-    setBookmarkedFormulas(prev => {
-      const exists = prev.includes(formulaId);
-      const next = exists ? prev.filter(id => id !== formulaId) : [...prev, formulaId];
-      toast({
-        title: exists ? 'Removed from Starred' : 'Saved to Starred Vault',
-        description: `Formula: ${title}`,
-        type: exists ? 'info' : 'success'
-      });
-      return next;
+    const exists = bookmarkedFormulas.includes(formulaId);
+    const next = exists ? bookmarkedFormulas.filter(id => id !== formulaId) : [...bookmarkedFormulas, formulaId];
+    
+    setLocalBookmarks(next);
+    storageAdapter.setItem('jeeos_bookmarked_formulas', next);
+    actions.toggleFormulaBookmark?.(formulaId).catch(() => {});
+
+    toast({
+      title: exists ? 'Removed from Starred' : 'Saved to Starred Vault',
+      description: `Formula: ${title}`,
+      type: exists ? 'info' : 'success'
     });
   };
 

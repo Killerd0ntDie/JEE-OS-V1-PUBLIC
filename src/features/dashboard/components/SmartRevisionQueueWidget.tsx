@@ -26,7 +26,7 @@ export function SmartRevisionQueueWidget({
   const vaultChapters = useMemo(() => {
     return chapters.filter(c => 
       !c.chapterOnHold &&
-      (c.status === 'Completed' || c.status === 'Revision' || c.theoryComplete || c.dppComplete || (c.completion && c.completion >= 50))
+      (c.status === 'Mastered' || c.status === 'Revision Due' || c.status === 'Theory Complete' || c.syllabusStage === 'Revision' || c.theoryComplete || c.dppComplete || (c.completion && c.completion >= 50))
     );
   }, [chapters]);
 

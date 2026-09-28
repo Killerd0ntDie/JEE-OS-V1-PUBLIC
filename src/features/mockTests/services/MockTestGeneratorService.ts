@@ -4,6 +4,7 @@ import { SubjectId } from '@/types/index';
 import { OfflineMockBank } from './OfflineMockBank';
 import { MockTestBuilder } from './pdf/MockTestBuilder';
 import { isMultiChoiceQuestion } from '@/utils/mockScoring';
+import { storageAdapter } from '@/services/StorageAdapter';
 
 export interface GenerationProgress {
   stage: string;
@@ -265,9 +266,7 @@ export async function reverifyQuestionWithAi(
 
     let storedKey: string | undefined;
     try {
-      if (typeof localStorage !== 'undefined') {
-        storedKey = localStorage.getItem('gemini_api_key') || localStorage.getItem('jeeos_gemini_api_key') || undefined;
-      }
+      storedKey = storageAdapter.getGeminiApiKey() || undefined;
     } catch {}
     if (storedKey && storedKey.trim().length > 10) {
       headers['x-gemini-api-key'] = storedKey.trim();
@@ -345,14 +344,12 @@ async function fetchBatchQuestions(
 
     // Forward Gemini API key if present in browser storage
     try {
-      if (typeof localStorage !== 'undefined') {
-        const localGeminiKey = localStorage.getItem('gemini_api_key') || localStorage.getItem('jeeos_gemini_api_key');
-        if (localGeminiKey) {
-          headers['x-gemini-api-key'] = localGeminiKey;
-        }
+      const localGeminiKey = storageAdapter.getGeminiApiKey();
+      if (localGeminiKey) {
+        headers['x-gemini-api-key'] = localGeminiKey;
       }
     } catch {
-      // Ignore localStorage access errors
+      // Ignore storage access errors
     }
 
     const payload: Record<string, any> = {

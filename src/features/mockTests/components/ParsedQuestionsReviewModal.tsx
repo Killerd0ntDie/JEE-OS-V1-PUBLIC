@@ -611,7 +611,7 @@ export function ParsedQuestionsReviewModal({
 
                   {/* Optional Diagram / Image */}
                   {q.imageUrl && (
-                    <div className="mt-2 max-w-md sm:max-w-xl rounded-lg overflow-hidden border border-zinc-800 bg-black/40">
+                    <div className="my-4 max-w-md sm:max-w-xl rounded-xl overflow-hidden border border-zinc-800/80 bg-zinc-950/60 p-3 shadow-inner flex items-center justify-center">
                       <img src={q.imageUrl} alt={`Diagram for Q${globalIndex + 1}`} className="w-full object-contain max-h-72" />
                     </div>
                   )}

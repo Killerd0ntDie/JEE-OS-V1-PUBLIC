@@ -21,6 +21,7 @@ import { useToast } from '@/components/ui/ToastProvider';
 import { EmptyOrbitStandby } from './EmptyOrbitStandby';
 import { TacticalMissionConsole } from './TacticalMissionConsole';
 import { TimelineMissionItem } from './TimelineMissionItem';
+import { storageAdapter } from '@/services/StorageAdapter';
 
 interface DailyMissionTimelineProps {
   sessionState: 'idle' | 'active' | 'paused';
@@ -107,7 +108,7 @@ export const DailyMissionTimeline = React.memo(function DailyMissionTimeline({
     const checkResumable = () => {
       const map: Record<string, boolean> = {};
       todayMissions.forEach(m => {
-        if (localStorage.getItem(`jeeos_mission_state_${m.id}`)) {
+        if (storageAdapter.getItem(`jeeos_mission_state_${m.id}`)) {
           map[m.id] = true;
         }
       });
@@ -587,6 +588,7 @@ export const DailyMissionTimeline = React.memo(function DailyMissionTimeline({
                     type: 'Watch Lecture',
                     taskName: taskTitle,
                     duration: 45,
+                    xp: 30,
                     completed: false,
                     unlocked: true,
                     priorityScore: 90,
@@ -609,6 +611,7 @@ export const DailyMissionTimeline = React.memo(function DailyMissionTimeline({
                     type: task.taskType,
                     taskName: task.activity,
                     duration: task.durationMinutes || 45,
+                    xp: Math.round((task.durationMinutes || 45) * 0.5),
                     completed: false,
                     unlocked: true,
                     priorityScore: task.priorityScore || 85,

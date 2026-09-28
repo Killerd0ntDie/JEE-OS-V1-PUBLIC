@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import React from 'react';
 import { MistakesPage } from './MistakesPage';
 import { Mistake } from '@/types/index';
@@ -58,6 +58,7 @@ const mockMistakes: Mistake[] = [
 const mockActions = {
   updateMistakeStatus: vi.fn().mockResolvedValue(undefined),
   deleteMistake: vi.fn().mockResolvedValue(undefined),
+  deleteMistakesBatch: vi.fn().mockResolvedValue(undefined),
   addMistake: vi.fn().mockResolvedValue(undefined),
   addMistakesBatch: vi.fn().mockResolvedValue(undefined)
 };
@@ -172,5 +173,66 @@ describe('MistakesPage Overhaul (Unified 3-Mode Cockpit)', () => {
 
     expect(screen.getByText('Socratic Error Autopsy')).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/Explain your thought process or ask for a hint/i)).toBeInTheDocument();
+  });
+
+  it('deletes a mistake when clicking the card delete button and confirming in modal', () => {
+    render(<MistakesPage />);
+
+    const deleteBtns = screen.getAllByTitle('Delete Mistake');
+    expect(deleteBtns.length).toBeGreaterThan(0);
+    fireEvent.click(deleteBtns[0]);
+
+    // Modal opens
+    const modal = screen.getByRole('dialog');
+    expect(within(modal).getByText('Delete Mistake from Vault?')).toBeInTheDocument();
+    
+    // Click confirm in modal
+    const confirmBtn = within(modal).getByRole('button', { name: /Delete Mistake/i });
+    fireEvent.click(confirmBtn);
+
+    expect(mockActions.deleteMistake).toHaveBeenCalledWith('m1');
+  });
+
+  it('deletes a mistake from within the inspection drawer and confirming in modal', () => {
+    render(<MistakesPage />);
+
+    // Click inspect on first mistake
+    const inspectBtns = screen.getAllByRole('button', { name: /Inspect/i });
+    fireEvent.click(inspectBtns[0]);
+
+    // Delete button inside drawer
+    const drawerDeleteBtn = screen.getByTitle('Delete this mistake from vault');
+    expect(drawerDeleteBtn).toBeInTheDocument();
+    fireEvent.click(drawerDeleteBtn);
+
+    // Modal opens (latest dialog)
+    const dialogs = screen.getAllByRole('dialog');
+    const confirmModal = dialogs[dialogs.length - 1];
+    expect(within(confirmModal).getByText('Delete Mistake from Vault?')).toBeInTheDocument();
+    const confirmBtn = within(confirmModal).getByRole('button', { name: /Delete Mistake/i });
+    fireEvent.click(confirmBtn);
+
+    expect(mockActions.deleteMistake).toHaveBeenCalledWith('m1');
+  });
+
+  it('deletes multiple mistakes when using bulk selection and confirming in modal', () => {
+    render(<MistakesPage />);
+
+    // Select all filtered mistakes
+    const selectAllBtn = screen.getByText('Select All');
+    fireEvent.click(selectAllBtn);
+
+    // Bulk action bar should show Delete button
+    const bulkDeleteBtn = screen.getByTitle('Delete Selected Mistakes');
+    expect(bulkDeleteBtn).toBeInTheDocument();
+    fireEvent.click(bulkDeleteBtn);
+
+    // Modal opens
+    const modal = screen.getByRole('dialog');
+    expect(within(modal).getByText('Delete 3 Selected Mistakes?')).toBeInTheDocument();
+    const confirmBtn = within(modal).getByRole('button', { name: /Delete 3 Mistakes/i });
+    fireEvent.click(confirmBtn);
+
+    expect(mockActions.deleteMistakesBatch).toHaveBeenCalledWith(['m1', 'm2', 'm3']);
   });
 });

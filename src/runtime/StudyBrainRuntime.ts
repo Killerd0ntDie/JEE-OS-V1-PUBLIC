@@ -47,6 +47,7 @@ export interface StudyBrainState {
   radarFocusedChapter?: string;
   isMissionModeActive: boolean;
   mentorProfile?: MentorProfile;
+  bookmarkedFormulaIds?: string[];
   settings: {
     targetYear: string;
     dreamIit: string;
@@ -210,7 +211,7 @@ export class StudyBrainRuntime {
         targetYear: '2027',
         dreamIit: 'IIT Bombay',
         targetBranch: 'Computer Science & Engineering',
-        dailyQuota: 30,
+        dailyQuota: 6,
         showStatusInBar: true,
         soundEffects: false,
         desktopNotifications: false,
@@ -229,6 +230,7 @@ export class StudyBrainRuntime {
       customMissions: [],
       weeklySchedule: [],
       scheduleOverrides: {},
+      bookmarkedFormulaIds: [],
       
       dashboardSummary: null,
       completionPrediction: null,
@@ -284,6 +286,11 @@ export class StudyBrainRuntime {
     this.state.writeBlocked = true;
     this.state.loading = false;
     this.prevMemoState = {};
+    this.totalEngineRuntimeMs = 0;
+    this.cacheHits = 0;
+    this.cacheMisses = 0;
+    this.plannerEngine = null;
+    this.optimizationEngine = null;
     this.knowledgeEngine?.invalidateCache();
     this.chapterInfoEngine.invalidateCache();
     this.notifySubscribers();
@@ -317,6 +324,32 @@ export class StudyBrainRuntime {
 
   public updateStateOptimistic(data: Partial<StudyBrainState>) {
     this.state = { ...this.state, ...data };
+    this.notifySubscribers();
+  }
+
+  /**
+   * Fine-grained rollback that restores only the specific chapter that failed,
+   * avoiding clobbering concurrent optimistic updates to other chapters.
+   */
+  public rollbackChapter(chapterId: string, fallbackChapter: Chapter | null) {
+    const currentChapters = this.state.chapters;
+    const newChapters = fallbackChapter
+      ? currentChapters.map(c => c.id === chapterId ? fallbackChapter : c)
+      : currentChapters.filter(c => c.id !== chapterId);
+    this.state = { ...this.state, chapters: newChapters };
+    this.notifySubscribers();
+  }
+
+  /**
+   * Fine-grained rollback that restores only the specific mission that failed,
+   * avoiding clobbering concurrent optimistic updates to other missions.
+   */
+  public rollbackMission(missionId: string, fallbackMission: TodayMission | null) {
+    const currentMissions = this.state.todayMissions;
+    const newMissions = fallbackMission
+      ? currentMissions.map(m => m.id === missionId ? fallbackMission : m)
+      : currentMissions.filter(m => m.id !== missionId);
+    this.state = { ...this.state, todayMissions: newMissions };
     this.notifySubscribers();
   }
 
@@ -402,6 +435,10 @@ export class StudyBrainRuntime {
       console.error('[StudyBrainRuntime] Refresh failed:', error);
       refreshError = error;
     } finally {
+      if (this.refreshTimer) {
+        clearTimeout(this.refreshTimer);
+        this.refreshTimer = null;
+      }
       this.isProcessingRefresh = false;
       // Propagate result to all waiters for this batch
       if (refreshError) {
@@ -555,7 +592,7 @@ export class StudyBrainRuntime {
       }
       
       // Realistic base daily study hours (typical JEE prep is 4h - 6h)
-      const rawQuota = this.state.mentorProfile?.dailyAvailableHours || this.state.settings.dailyQuota || 4.5;
+      const rawQuota = this.state.settings?.dailyQuota || this.state.mentorProfile?.dailyAvailableHours || 4.5;
       const baseDailyHours = (rawQuota > 14) ? 4.5 : Math.max(2.0, rawQuota);
 
       // Energy sets the intensity of the day based on baseDailyHours

@@ -8,6 +8,7 @@ import { MonthlyCampaignBanner } from '@/features/mission/components/MonthlyCamp
 import { Modal } from '@/components/ui/Modal';
 import { springs } from '@/constants/motion';
 import { audioEngine } from '@/utils/audioEngine';
+import { storageAdapter } from '@/services/StorageAdapter';
 
 interface CommandOverviewBannerProps {
   chapters: Chapter[];
@@ -34,7 +35,7 @@ export function CommandOverviewBanner({
   const settings = useStudyBrainStore(s => s.settings);
 
   const [internalExpanded, setInternalExpanded] = useState<boolean>(() => {
-    return sessionStorage.getItem('jee_command_center_override') === 'expanded';
+    return storageAdapter.getSession('jeeos_command_center_override') === 'expanded';
   });
   const isExpanded = externalExpanded !== undefined ? externalExpanded : internalExpanded;
   
@@ -88,8 +89,8 @@ export function CommandOverviewBanner({
   }, [chapterTelemetryMap]);
 
   const energyMultiplier = energyLevel === 'Low' ? 0.5 : energyLevel === 'High' ? 1.25 : 1.0;
-  const rawCap = mentorProfile?.dailyAvailableHours || (settings?.dailyQuota && settings.dailyQuota <= 14 ? settings.dailyQuota : 4.5);
-  const dailyCapHours = Math.round(rawCap * energyMultiplier * 10) / 10;
+  const rawCap = (settings?.dailyQuota && settings.dailyQuota <= 14 ? settings.dailyQuota : mentorProfile?.dailyAvailableHours) || 6;
+  const dailyCapHours = Math.round(Math.min(14, Math.max(1, rawCap)) * energyMultiplier * 10) / 10;
 
   return (
     <div ref={containerRef} className="w-full z-10 mb-2 font-sans text-left">

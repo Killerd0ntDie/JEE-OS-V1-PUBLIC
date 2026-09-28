@@ -4,6 +4,7 @@ import { audioEngine } from '@/utils/audioEngine';
 import { calculateFocusScore } from '@/utils/focusScore';
 import { getCurrentSessionTimeSlot, formatTimeSlotDisplay } from '@/utils/timeSlotUtils';
 import { LECTURE_SPEEDS, FORMULAS } from '../constants/formulas';
+import { storageAdapter } from '@/services/StorageAdapter';
 
 export interface MissionModeProps {
   mode?: 'learning' | 'mock' | 'revision' | 'mistake';
@@ -42,12 +43,12 @@ export function useMissionState(props: MissionModeProps) {
   const savedState = useMemo(() => {
     if (!storageKey) return null;
     try {
-      const str = localStorage.getItem(storageKey);
-      return str ? JSON.parse(str) : null;
+      const parsed = storageAdapter.getItem<any>(storageKey);
+      return parsed ?? null;
     } catch (e) {
-      console.warn('Corrupted mission state in localStorage, purging key:', storageKey, e);
+      console.warn('Corrupted mission state in storageAdapter, purging key:', storageKey, e);
       try {
-        localStorage.removeItem(storageKey);
+        storageAdapter.removeItem(storageKey);
       } catch {
         // ignore
       }
@@ -78,17 +79,17 @@ export function useMissionState(props: MissionModeProps) {
   const persistState = useCallback(() => {
     if (!storageKey || isSettingUp || isCompleted || missionFailed) return;
     try {
-      localStorage.setItem(storageKey, JSON.stringify({
+      storageAdapter.setItem(storageKey, {
         isPaused, 
         seconds, 
         focusScore, 
         idleTime, 
         focusInterruptions,
         timestamp: Date.now() // Add timestamp to detect stale sessions
-      }));
+      });
       lastPersistRef.current = Date.now();
     } catch (e) {
-      console.warn('Failed to save mission snapshot to localStorage', e);
+      console.warn('Failed to save mission snapshot to storageAdapter', e);
     }
   }, [storageKey, isSettingUp, isCompleted, missionFailed, isPaused, seconds, focusScore, idleTime, focusInterruptions]);
 
@@ -125,7 +126,7 @@ export function useMissionState(props: MissionModeProps) {
       const TWELVE_HOURS = 12 * 60 * 60 * 1000;
       if (Date.now() - savedState.timestamp > TWELVE_HOURS) {
         // Stale session — evict it
-        if (storageKey) localStorage.removeItem(storageKey);
+        if (storageKey) storageAdapter.removeItem(storageKey);
         setSeconds(initialSeconds);
         setFocusScore(100);
         setIdleTime(0);
@@ -515,11 +516,7 @@ export function useMissionState(props: MissionModeProps) {
     
     // Clear session storage so it doesn't accidentally resume with old values
     if (storageKey) {
-      try {
-        localStorage.removeItem(storageKey);
-      } catch (e) {
-        console.warn("Failed to clear session storage on reset:", e);
-      }
+      storageAdapter.removeItem(storageKey);
     }
   }, [storageKey]);
 
@@ -671,11 +668,7 @@ export function useMissionState(props: MissionModeProps) {
   const handleMissionComplete = async (data?: any) => {
     if (activeSubjectMission?.id) {
       if (storageKey) {
-        try {
-          localStorage.removeItem(storageKey);
-        } catch (e) {
-          console.warn("Failed to clear session storage on complete:", e);
-        }
+        storageAdapter.removeItem(storageKey);
       }
       await actions.completeTask(activeSubjectMission.id, data?.duration ?? Math.max(60, seconds), {
         questions: data?.questions,
@@ -697,7 +690,7 @@ export function useMissionState(props: MissionModeProps) {
         correct: data?.correct ?? 0,
         confidence: data?.confidence ?? 3,
         xp: data?.xp ?? Math.max(5, Math.floor(seconds / 60) * 5),
-        streak: 0,
+        streak: xp?.streak ?? 0,
         idleTime: data?.idleTime ?? idleTime,
         focusInterruptions: data?.focusInterruptions ?? focusInterruptions,
         focusScore: data?.focusScore ?? focusScore

@@ -468,6 +468,7 @@ export class UserActions extends BaseActions {
 
     // 1. Batch update chapters in repository if student updated reality
     let updatedChapters = [...this.state.chapters];
+    const chaptersToSave: Chapter[] = [];
     if (chapterUpdates && chapterUpdates.length > 0) {
       for (const update of chapterUpdates) {
         const chap = updatedChapters.find(c => c.id === update.id);
@@ -510,12 +511,22 @@ export class UserActions extends BaseActions {
             lectureProgress: cleanLectureProgress,
           });
           
-          try {
-            await ChapterRepository.saveChapter(this.userId, updatedChap);
-          } catch (chapterSaveErr) {
-            console.error(`[MentorInterview] Chapter save FAILED for ${update.id}:`, chapterSaveErr);
-          }
+          chaptersToSave.push(updatedChap);
           updatedChapters = updatedChapters.map(c => c.id === update.id ? updatedChap : c);
+        }
+      }
+
+      if (chaptersToSave.length > 0) {
+        try {
+          if (typeof ChapterRepository.saveChaptersBatch === 'function' && chaptersToSave.length > 1) {
+            await ChapterRepository.saveChaptersBatch(this.userId, chaptersToSave);
+          } else {
+            for (const chap of chaptersToSave) {
+              await ChapterRepository.saveChapter(this.userId, chap);
+            }
+          }
+        } catch (chapterSaveErr) {
+          console.error('[MentorInterview] Chapter save FAILED:', chapterSaveErr);
         }
       }
     }
@@ -845,6 +856,50 @@ export class UserActions extends BaseActions {
     } catch (err) {
       this.runtime.updateStateOptimistic(originalSnapshot);
       await this.handleWriteError(err, 'extendSession');
+    }
+  }
+
+  async toggleFormulaBookmark(formulaId: string) {
+    this.checkWriteBlock();
+    const currentBookmarks = this.state.bookmarkedFormulaIds || [];
+    const exists = currentBookmarks.includes(formulaId);
+    const updatedBookmarks = exists
+      ? currentBookmarks.filter(id => id !== formulaId)
+      : [...currentBookmarks, formulaId];
+
+    const originalBookmarks = [...currentBookmarks];
+    this.runtime.updateStateOptimistic({ bookmarkedFormulaIds: updatedBookmarks });
+
+    try {
+      await this.safeDbCall(
+        () => UserRepository.updateUserProfile(this.userId, {
+          bookmarkedFormulaIds: updatedBookmarks
+        }),
+        'toggleFormulaBookmark'
+      );
+      await this.runtime.refresh('SETTINGS_UPDATE', { bookmarkedFormulaIds: updatedBookmarks, lastSyncError: null });
+    } catch (err) {
+      this.runtime.updateStateOptimistic({ bookmarkedFormulaIds: originalBookmarks });
+      await this.handleWriteError(err, 'toggleFormulaBookmark');
+    }
+  }
+
+  async setFormulaBookmarks(formulaIds: string[]) {
+    this.checkWriteBlock();
+    const originalBookmarks = [...(this.state.bookmarkedFormulaIds || [])];
+    this.runtime.updateStateOptimistic({ bookmarkedFormulaIds: formulaIds });
+
+    try {
+      await this.safeDbCall(
+        () => UserRepository.updateUserProfile(this.userId, {
+          bookmarkedFormulaIds: formulaIds
+        }),
+        'setFormulaBookmarks'
+      );
+      await this.runtime.refresh('SETTINGS_UPDATE', { bookmarkedFormulaIds: formulaIds, lastSyncError: null });
+    } catch (err) {
+      this.runtime.updateStateOptimistic({ bookmarkedFormulaIds: originalBookmarks });
+      await this.handleWriteError(err, 'setFormulaBookmarks');
     }
   }
 }

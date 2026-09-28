@@ -8,7 +8,7 @@ import { Chapter } from '@/types';
 export function PlannerRoadmapTab({ state }: { state: any }) {
   const { setViewMode, setSelectedDayIndex } = state;
   const chapters = useStudyBrainStore(state => state.chapters) || [];
-  const weeklyMatrix = useStudyBrainStore(state => (state as any).weeklyMatrix) || [];
+  const weeklyMatrix = useStudyBrainStore(state => state.weeklySchedule) || [];
   const studySessions = useStudyBrainStore(state => state.studySessions) || [];
   const mentorProfile = useStudyBrainStore(state => state.mentorProfile);
   const settings = useStudyBrainStore(state => state.settings);

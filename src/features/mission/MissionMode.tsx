@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
-import { calculateCurrentStreak } from '@/utils/streakCalculations';
+import { storageAdapter } from '@/services/StorageAdapter';
 import { Shield, Zap, Sparkles, Coffee, Hourglass, Timer } from 'lucide-react';
 import { springs } from '@/constants/motion';
 
@@ -31,9 +31,9 @@ export function MissionMode(props: MissionModeProps) {
   const actions = useStudyBrainStore(state => state.actions);
   const studySessions = useStudyBrainStore(state => state.studySessions || []);
   const settings = useStudyBrainStore(state => state.settings);
+  const xp = useStudyBrainStore(state => state.xp);
   
-  const minStreakMins = Math.round((settings?.minStreakHours ?? 0.5) * 60);
-  const computedStreak = useMemo(() => calculateCurrentStreak(studySessions, minStreakMins), [studySessions, minStreakMins]);
+  const computedStreak = xp?.streak ?? 0;
   
   const parentOnExitRef = useRef(props.onExit);
   parentOnExitRef.current = props.onExit;
@@ -49,21 +49,12 @@ export function MissionMode(props: MissionModeProps) {
 
   // Synchro Animation Mode & Speed Persistence (Default: 'positronSparkle' & 0.5x speed)
   const [animMode, setAnimMode] = useState<CockpitAnimMode>(() => {
-    try {
-      const saved = localStorage.getItem('jeeos_cockpit_anim_pref');
-      if (saved) return saved as CockpitAnimMode;
-    } catch { /* ignore */ }
-    return 'positronSparkle';
+    return storageAdapter.getItem<CockpitAnimMode>('jeeos_cockpit_anim_pref') || 'positronSparkle';
   });
 
   const [speedMultiplier, setSpeedMultiplier] = useState<number>(() => {
-    try {
-      const saved = localStorage.getItem('jeeos_cockpit_speed_pref');
-      if (saved) {
-        const val = parseFloat(saved);
-        if (!isNaN(val) && val > 0) return val;
-      }
-    } catch { /* ignore */ }
+    const val = storageAdapter.getItem<number>('jeeos_cockpit_speed_pref');
+    if (typeof val === 'number' && val > 0) return val;
     return 1.0;
   });
 
@@ -212,12 +203,11 @@ export function MissionMode(props: MissionModeProps) {
       }
       
       if (e.code === 'Space') {
-        e.preventDefault();
         if (stage !== 'revealed') {
+          e.preventDefault();
           setStage('revealed');
         } else {
           audioEngine.playMechanicalKey('heavy').catch(() => {});
-          setters.setIsPaused(!state.isPaused);
         }
       }
       if (e.key === 'Escape') {

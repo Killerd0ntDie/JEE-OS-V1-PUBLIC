@@ -13,6 +13,8 @@
  * 5. Dedicated Cockpit Theme & Start Sound Volume Control (adjustable in Settings).
  */
 
+import { storageAdapter } from '@/services/StorageAdapter';
+
 export type SubjectThemeKey = 'maths' | 'physics' | 'chemistry' | string;
 
 class AudioEngine {
@@ -50,9 +52,9 @@ class AudioEngine {
       // Dedicated Cockpit Gain node for start sound and theme songs
       this.cockpitGain = this.ctx.createGain();
       try {
-        const saved = localStorage.getItem('jeeos_cockpit_volume');
-        if (saved !== null) {
-          const parsed = parseFloat(saved);
+        const saved = storageAdapter.getItem<string | number>('jeeos_cockpit_volume');
+        if (saved !== null && saved !== undefined) {
+          const parsed = typeof saved === 'number' ? saved : parseFloat(saved);
           if (!isNaN(parsed)) this.cockpitVolumeVal = Math.max(0, Math.min(1, parsed));
         }
       } catch {}
@@ -83,7 +85,7 @@ class AudioEngine {
       this.cockpitGain.gain.value = clamped;
     }
     try {
-      localStorage.setItem('jeeos_cockpit_volume', String(clamped));
+      storageAdapter.setItem('jeeos_cockpit_volume', clamped);
     } catch {}
   }
 
@@ -743,6 +745,10 @@ class AudioEngine {
     await this.playRadioRelayClick();
   }
 
+  public async playTap() {
+    await this.playClick();
+  }
+
   public async playSuccess() {
     await this.init();
     if (!this.ctx || !this.masterGain) return;
@@ -891,6 +897,7 @@ class AudioEngine {
   public async playSuccessChime() { await this.playSuccess(); }
   public async playVictoryFanfare() { await this.playStreakChime(10); }
   public async playAlertPop() { await this.playAlert(); }
+  public async playPowerUp() { await this.playStreakChime(7); }
   public stopCockpitTheme() { this.stopEntrancePlayback(); }
   public startCockpitTheme() { /* no-op */ }
 }

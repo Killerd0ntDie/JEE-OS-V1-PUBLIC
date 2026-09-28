@@ -12,6 +12,7 @@ interface ConfirmDeleteModalProps {
   message?: string;
   confirmLabel?: string;
   cancelLabel?: string;
+  zIndex?: number;
   onConfirm: () => void;
   onClose: () => void;
 }
@@ -22,14 +23,13 @@ export function ConfirmDeleteModal({
   message = "Are you sure you want to remove this mission? This action will remove it from your execution queue.",
   confirmLabel = "Delete Mission",
   cancelLabel = "Cancel",
+  zIndex = 100020,
   onConfirm,
   onClose
 }: ConfirmDeleteModalProps) {
 
-
   return (
-
-        <Modal isOpen={isOpen} onClose={onClose} zIndex={9999} backdropClassName="p-4 bg-black/10 backdrop-blur-sm" className="relative w-full max-w-md border border-zinc-800 rounded-2xl p-6 shadow-2xl space-y-5 overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 glass-panel">
+    <Modal isOpen={isOpen} onClose={onClose} zIndex={zIndex} backdropClassName="p-4 bg-black/60 backdrop-blur-sm" className="relative w-full max-w-md border border-zinc-800 rounded-2xl p-6 shadow-2xl space-y-5 overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 glass-panel">
             {/* Top Close Button */}
             <button
               type="button"

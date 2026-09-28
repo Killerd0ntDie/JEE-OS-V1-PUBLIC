@@ -34,10 +34,33 @@ export function MockTestResultPage() {
 
   const testSnapshot = useMemo(() => {
     if (!targetMock) return null;
-    if (targetMock.testSnapshot) return targetMock.testSnapshot;
+    const baseTest = targetMock.testSnapshot;
+    const foundCustom = customMockTests?.find(t => 
+      t.id === targetMock.attemptData?.testId || 
+      t.name === targetMock.title || 
+      (baseTest && t.id === baseTest.id)
+    );
 
-    // Fallback: search custom tests or default mockTest1
-    const foundCustom = customMockTests?.find(t => t.id === targetMock.attemptData?.testId || t.name === targetMock.title);
+    if (baseTest && foundCustom) {
+      // Merge baseTest with foundCustom to recover any imageUrl that might have been stripped
+      const mergedSections = (baseTest.sections || []).map((sec, sIdx) => {
+        const customSec = foundCustom.sections?.[sIdx];
+        return {
+          ...sec,
+          questions: (sec.questions || []).map((q, qIdx) => {
+            const customQ = customSec?.questions?.[qIdx] || (foundCustom.sections || []).flatMap(s => s.questions).find(item => item.id === q.id);
+            return {
+              ...q,
+              imageUrl: q.imageUrl || customQ?.imageUrl,
+              hasDiagram: Boolean(q.hasDiagram || customQ?.hasDiagram || customQ?.imageUrl)
+            };
+          })
+        };
+      });
+      return { ...baseTest, sections: mergedSections };
+    }
+
+    if (baseTest) return baseTest;
     if (foundCustom) return foundCustom;
     if (targetMock.title === mockTest1.name) return mockTest1;
     return null;

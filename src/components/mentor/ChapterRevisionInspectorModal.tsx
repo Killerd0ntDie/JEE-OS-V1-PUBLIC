@@ -57,7 +57,10 @@ export const ChapterRevisionInspectorModal: React.FC<ChapterRevisionInspectorMod
   const bankEntry = FORMULA_BANK.find(fb => fb.chapterId === chapterId || fb.chapterName.toLowerCase() === chapter.name.toLowerCase());
   const formulas = bankEntry?.formulas || [];
   const chapterMistakes = mistakes.filter(m => m.chapter === chapter.name);
-  const chapSessions = studySessions.filter(s => s.subjectId === chapter.subject && s.type === 'Revision');
+  const chapSessions = studySessions.filter(s => 
+    s.type === 'Revision' && 
+    (s.chapterId === chapter.id || (s as any).chapterName?.toLowerCase() === chapter.name.toLowerCase() || (s as any).chapter === chapter.name)
+  );
 
   const toggleFlip = (idx: number) => {
     setFlippedCards(prev => ({ ...prev, [idx]: !prev[idx] }));

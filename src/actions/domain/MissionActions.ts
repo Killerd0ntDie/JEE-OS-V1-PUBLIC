@@ -285,8 +285,6 @@ export class MissionActions extends BaseActions {
         userProfileUpdates.completedPlannerMissionIds = updatedCompletedPlannerMissionIds;
       }
 
-      savePromises.push(this.safeDbCall(() => UserRepository.updateUserProfile(this.userId, userProfileUpdates), 'updateUserProfile'));
-
       const levelUpData = oldLevel !== newLevel && isCompleting ? { oldLevel, newLevel, xp: newXp } : null;
 
       let updatedStudySessions = this.state.studySessions;
@@ -341,6 +339,8 @@ export class MissionActions extends BaseActions {
         updatedStudySessions = this.state.studySessions.filter(s => s.id !== mission.linkedSessionId);
         updatedMission.linkedSessionId = undefined;
       }
+
+      savePromises.push(this.safeDbCall(() => UserRepository.updateUserProfile(this.userId, userProfileUpdates), 'updateUserProfile'));
 
       this.runtime.updateStateOptimistic({
         todayMissions: updatedMissions,
@@ -458,7 +458,10 @@ export class MissionActions extends BaseActions {
         lastSyncError: null
       });
     } catch (err) {
-      this.runtime.updateStateOptimistic(originalSnapshot);
+      this.runtime.rollbackMission(newMission.id, null);
+      this.runtime.updateStateOptimistic({
+        customMissions: this.state.customMissions.filter(m => m.id !== newMission.id)
+      });
       await this.handleWriteError(err, 'addCustomMission');
     }
   }
@@ -478,11 +481,6 @@ export class MissionActions extends BaseActions {
     const updatedMissions = [...this.state.todayMissions, newMission];
     const updatedCustomMissions = [...this.state.customMissions, newMission];
 
-    const originalSnapshot = {
-      todayMissions: this.state.todayMissions,
-      customMissions: this.state.customMissions
-    };
-
     this.runtime.updateStateOptimistic({
       todayMissions: updatedMissions,
       customMissions: updatedCustomMissions
@@ -496,7 +494,10 @@ export class MissionActions extends BaseActions {
         lastSyncError: null
       });
     } catch (err) {
-      this.runtime.updateStateOptimistic(originalSnapshot);
+      this.runtime.rollbackMission(newMission.id, null);
+      this.runtime.updateStateOptimistic({
+        customMissions: this.state.customMissions.filter(m => m.id !== newMission.id)
+      });
       await this.handleWriteError(err, 'addAiMission');
     }
   }
@@ -695,7 +696,7 @@ export class MissionActions extends BaseActions {
     });
 
     const { generateWeeklyMatrix } = await import('@jee-os/engines');
-    const rawQuota = this.state.mentorProfile?.dailyAvailableHours || this.state.settings?.dailyQuota || 4.5;
+    const rawQuota = this.state.settings?.dailyQuota || this.state.mentorProfile?.dailyAvailableHours || 4.5;
     const baseDailyHours = (rawQuota > 14) ? 4.5 : Math.max(2.0, rawQuota);
     const energyMultiplier = this.state.energyLevel === 'Low' ? 0.5 : this.state.energyLevel === 'Medium' ? 1.0 : 1.25;
     const totalDailyQuotaHours = Math.round(baseDailyHours * energyMultiplier * 10) / 10;

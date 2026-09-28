@@ -1,3 +1,6 @@
+/**
+ * @deprecated Superseded by FloatingDynamicDock. Maintained for backward compatibility and test fixtures.
+ */
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';

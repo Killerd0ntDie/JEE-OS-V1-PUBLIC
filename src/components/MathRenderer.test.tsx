@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/react';
 import React from 'react';
-import { RichTextRenderer, ExplanationRenderer, normalizeChemistryAndOrbitals, MathErrorBoundary } from './MathRenderer';
+import { RichTextRenderer, ExplanationRenderer, normalizeChemistryAndOrbitals, MathErrorBoundary, unpackProseFromMath } from './MathRenderer';
 
 describe('RichTextRenderer', () => {
   it('renders bare numbers in options without stripping them to blank', () => {
@@ -730,6 +730,92 @@ H -
     // Raw LaTeX array commands should NOT be visible in text
     expect(container.textContent).not.toContain('\\begin{array}');
     expect(container.textContent).not.toContain('\\end{array}');
+  });
+
+  it('correctly parses multiline display math with newlines without breaking into raw text', () => {
+    const multilineMath = `The electric field is given by:
+$$
+E = \\frac{1}{4\\pi\\varepsilon_0} \\frac{q}{r^2}
+$$
+Find the flux through the surface.`;
+
+    const { container } = render(<RichTextRenderer content={multilineMath} />);
+    expect(container.textContent).not.toContain('$$');
+    expect(container.querySelector('.katex-display, .katex')).not.toBeNull();
+  });
+
+  it('correctly handles physics and chemistry KaTeX macros without errors', () => {
+    const macroContent = `At temperature $25\\degree\\text{C}$ and bond length $1.42\\angstrom$, the compound $\\ce{H2SO4}$ reacts.`;
+    const { container } = render(<RichTextRenderer content={macroContent} />);
+    expect(container.textContent).not.toContain('\\degree');
+    expect(container.textContent).not.toContain('\\angstrom');
+    expect(container.textContent).not.toContain('\\ce{');
+    expect(container.querySelector('.katex-html, .katex')).not.toBeNull();
+  });
+
+  it('converts \\begin{equation} and \\begin{align} environments to KaTeX-compatible format', () => {
+    const eqContent = `\\begin{equation}
+x^2 + y^2 = r^2
+\\end{equation}`;
+    const { container } = render(<RichTextRenderer content={eqContent} />);
+    expect(container.textContent).not.toContain('\\begin{equation}');
+    expect(container.querySelector('.katex-display, .katex')).not.toBeNull();
+  });
+
+  it('renders diagram image with high-DPI zoom styling and click-to-zoom support', () => {
+    const { container } = render(
+      <RichTextRenderer
+        content="In the circuit shown below, calculate current I."
+        imageUrl="data:image/webp;base64,TEST_CIRCUIT_IMAGE"
+      />
+    );
+    const img = container.querySelector('img[alt="Question Diagram"]') as HTMLImageElement;
+    expect(img).not.toBeNull();
+    expect(img.getAttribute('src')).toBe('data:image/webp;base64,TEST_CIRCUIT_IMAGE');
+    expect(img.classList.contains('cursor-zoom-in')).toBe(true);
+
+    // Click toggles zoom to full size
+    img.click();
+    expect(img.classList.contains('cursor-zoom-out')).toBe(true);
+    expect(img.classList.contains('max-h-none')).toBe(true);
+
+    // Click again toggles back
+    img.click();
+    expect(img.classList.contains('cursor-zoom-in')).toBe(true);
+  });
+});
+
+describe('unpackProseFromMath (P0-ENG-01)', () => {
+  it('safely handles non-string numeric inputs without throwing TypeError', () => {
+    expect(() => unpackProseFromMath(100 as unknown as string)).not.toThrow();
+    expect(unpackProseFromMath(100 as unknown as string)).toBe('100');
+    expect(unpackProseFromMath(0 as unknown as string)).toBe('0');
+    expect(unpackProseFromMath(-42.5 as unknown as string)).toBe('-42.5');
+  });
+
+  it('safely handles null and undefined inputs by returning empty string', () => {
+    expect(unpackProseFromMath(null as unknown as string)).toBe('');
+    expect(unpackProseFromMath(undefined as unknown as string)).toBe('');
+  });
+
+  it('safely handles booleans and object inputs without throwing', () => {
+    expect(() => unpackProseFromMath(true as unknown as string)).not.toThrow();
+    expect(unpackProseFromMath(true as unknown as string)).toBe('true');
+    expect(() => unpackProseFromMath({} as unknown as string)).not.toThrow();
+  });
+
+  it('unpacks prose in string objects and custom objects with toString', () => {
+    const stringObj = new String('$x = total number of singly occupied molecular orbital (SOMO) in O2$');
+    const customObj = {
+      toString: () => '$P = Number of oxy anions having three equivalent central atom$'
+    };
+    const out1 = unpackProseFromMath(stringObj);
+    expect(out1).toContain('$x$ =');
+    expect(out1).toContain('total number of singly occupied molecular orbital');
+
+    const out2 = unpackProseFromMath(customObj);
+    expect(out2).toContain('$P$ =');
+    expect(out2).toContain('Number of oxy anions');
   });
 });
 

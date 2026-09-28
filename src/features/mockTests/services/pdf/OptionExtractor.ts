@@ -73,12 +73,15 @@ export class OptionExtractor {
       const char = String.fromCharCode(65 + i);
       const defaultLabel = `(${char})`;
       if (typeof opts[i] === 'string') {
-        if (/!\[.*?\]\(.*?\)/.test(opts[i]) || !opts[i].trim() || /^\s*\(?[A-D1-4]\)?\s*$/i.test(opts[i]) || /structure\s*\([A-D]\)/i.test(opts[i])) {
+        const t = opts[i].trim();
+        // NEVER replace bare numeric values like "1", "2", "3", "4", "0", "-1"
+        if (/!\[.*?\]\(.*?\)/.test(t) || !t || /structure\s*\([A-D]\)/i.test(t) || /^\s*\([A-D]\)\s*$/i.test(t)) {
           opts[i] = defaultLabel;
         }
       } else if (opts[i] && typeof opts[i] === 'object') {
-        const t = opts[i].text || '';
-        if (/!\[.*?\]\(.*?\)/.test(t) || !t.trim() || /^\s*\(?[A-D1-4]\)?\s*$/i.test(t) || /structure\s*\([A-D]\)/i.test(t)) {
+        const t = (opts[i].text || '').trim();
+        // NEVER replace bare numeric values like "1", "2", "3", "4", "0", "-1"
+        if (/!\[.*?\]\(.*?\)/.test(t) || !t || /structure\s*\([A-D]\)/i.test(t) || /^\s*\([A-D]\)\s*$/i.test(t)) {
           opts[i].text = defaultLabel;
         }
       }
@@ -396,19 +399,23 @@ export class OptionExtractor {
 
     let validMatches: MarkerMatch[] | null = null;
 
-    // Priority 1: (A), (B), (C), (D)
-    validMatches = findValidOptionSequence(collectMatches(/(?:^|\s)\(([a-dA-D])\)/g, false));
-    // Priority 2: A], B], C], D]
-    if (!validMatches) {
-      validMatches = findValidOptionSequence(collectMatches(/(?:^|\s)([a-dA-D])\]/g, false));
-    }
-    // Priority 3: [A], [B], [C], [D]
-    if (!validMatches) {
-      validMatches = findValidOptionSequence(collectMatches(/(?:^|\s)\[([a-dA-D])\]/g, false));
-    }
-    // Priority 4: (1), (2), (3), (4) or 1], 2], 3], 4] or [1], [2], [3], [4]
-    if (!validMatches) {
-      validMatches = findValidOptionSequence(collectMatches(/(?:^|\s)(?:\(([1-4])\)|([1-4])\]|\[([1-4])\])/g, true));
+    // Candidate Alpha sequence: (A)-(D) or A]-D] or [A]-[D]
+    const candAlphaParen = findValidOptionSequence(collectMatches(/(?:^|\s)\(([a-dA-D])\)/g, false));
+    const candAlphaBracket = !candAlphaParen ? findValidOptionSequence(collectMatches(/(?:^|\s)([a-dA-D])\]/g, false)) : null;
+    const candAlphaSquare = (!candAlphaParen && !candAlphaBracket) ? findValidOptionSequence(collectMatches(/(?:^|\s)\[([a-dA-D])\]/g, false)) : null;
+    const candAlpha = candAlphaParen || candAlphaBracket || candAlphaSquare;
+
+    // Candidate Numeric sequence: (1)-(4) or 1]-4] or [1]-[4]
+    const candNum = findValidOptionSequence(collectMatches(/(?:^|\s)(?:\(([1-4])\)|([1-4])\]|\[([1-4])\])/g, true));
+
+    // If both exist (e.g. multi-statement question with statements A-E followed by options 1-4),
+    // pick whichever candidate appears closest to the end of the question block!
+    if (candAlpha && candNum) {
+      validMatches = candNum[0].index > candAlpha[0].index ? candNum : candAlpha;
+    } else if (candAlpha) {
+      validMatches = candAlpha;
+    } else if (candNum) {
+      validMatches = candNum;
     }
     // Priority 5: A. / A) / 1. / 1) at start of line
     if (!validMatches) {

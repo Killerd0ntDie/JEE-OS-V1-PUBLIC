@@ -66,7 +66,7 @@ describe('testDifficulty utility', () => {
             { id: '1', subject: 'maths', type: 'MULTI', chapter: 'C', topic: 'T', content: 'Select all correct statements', correctAnswer: 'AB', marks: { correct: 4, incorrect: -2 } },
             { id: '2', subject: 'maths', type: 'MCQ', chapter: 'C', topic: 'T', content: 'Statement-1: f is continuous. Statement-2: f is differentiable.', correctAnswer: '0', marks: { correct: 4, incorrect: -1 } },
             { id: '3', subject: 'maths', type: 'MCQ', chapter: 'C', topic: 'T', content: 'Calculate \\int_0^1 \\frac{x^4(1-x)^4}{1+x^2} dx', correctAnswer: '0', marks: { correct: 4, incorrect: -1 } },
-          ]
+          ] as any
         }
       ]
     };

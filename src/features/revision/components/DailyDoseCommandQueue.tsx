@@ -7,6 +7,7 @@ import {
 import { springs } from '@/constants/motion';
 import { RevisionCardItem } from '@jee-os/engines';
 import { Mistake } from '@/types';
+import { storageAdapter } from '@/services/StorageAdapter';
 
 interface DailyDoseCommandQueueProps {
   urgentCards: RevisionCardItem[];
@@ -24,13 +25,11 @@ export const DailyDoseCommandQueue: React.FC<DailyDoseCommandQueueProps> = ({
   onLaunchArena,
   onLaunchSpeedDrill,
 }) => {
-  // Read daily dose status from localStorage for persistent session tracking
+  // Read daily dose status from storageAdapter for persistent session tracking
   const todayKey = new Date().toISOString().split('T')[0];
   const storedProgress = (() => {
-    try {
-      const raw = localStorage.getItem(`jeeos_daily_dose_${todayKey}`);
-      if (raw) return JSON.parse(raw);
-    } catch {}
+    const raw = storageAdapter.getItem<any>(`jeeos_daily_dose_${todayKey}`);
+    if (raw) return raw;
     return { cardsCompleted: 0, mistakesCompleted: 0, speedDrillDone: false };
   })();
 

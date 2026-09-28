@@ -203,16 +203,12 @@ export const TacticalMissionConsole = React.memo(function TacticalMissionConsole
                   <span className="text-sm font-bold text-indigo-400 font-mono mt-0.5">
                     {activeMission.type === 'Watch Lecture'
                       ? 'Theory'
-                      : strategyRadar.recommendedPYQs !== undefined
-                      ? `${strategyRadar.recommendedPYQs} Qs`
-                      : targetPYQs
-                      ? `${targetPYQs} Qs`
-                      : '15 Qs'}
+                      : `${strategyRadar.recommendedPYQs || targetPYQs || 15} Qs`}
                   </span>
                 </div>
                 <div className="p-3 rounded-xl bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 transition-colors text-center flex flex-col justify-center">
                   <span className="text-xs text-zinc-400 font-medium">XP Reward</span>
-                  <span className="text-sm font-bold text-emerald-400 font-mono mt-0.5">+{displayXp || ((strategyRadar.estimatedMinutes || activeMission?.duration || 45) > 45 ? 83 : 45)}</span>
+                  <span className="text-sm font-bold text-emerald-400 font-mono mt-0.5">+{displayXp || (activeMission?.xp ?? Math.round((strategyRadar.estimatedMinutes || activeMission?.duration || 45) * 1.5))}</span>
                 </div>
               </div>
 

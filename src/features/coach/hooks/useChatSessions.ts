@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { safelyParseJSON } from '@/utils/jsonParser';
 import { CoachAction } from '@jee-os/engines';
+import { storageAdapter } from '@/services/StorageAdapter';
+import { loadSavedChats, getCachedChats, persistSavedChats } from '../services/chatStorage';
 
 export interface ChatMessage {
   role: 'user' | 'coach';
@@ -19,35 +20,20 @@ export interface ChatSession {
 
 export function useChatSessions(initialMessage: ChatMessage) {
   const [sessionId, setSessionId] = useState<string | null>(() => {
-    try {
-      return localStorage.getItem('jeeos_active_chat_session') || null;
-    } catch {
-      return null;
-    }
+    return storageAdapter.getItem<string>('jeeos_active_chat_session') || null;
   });
 
   const [allSessions, setAllSessions] = useState<ChatSession[]>(() => {
-    try {
-      const savedChatsStr = localStorage.getItem('jeeos_chats');
-      if (savedChatsStr) {
-        const savedChats = safelyParseJSON<Record<string, ChatSession>>(savedChatsStr, {});
-        return Object.values(savedChats).sort((a, b) => b.updatedAt - a.updatedAt);
-      }
-    } catch {}
-    return [];
+    const savedChats = getCachedChats();
+    return Object.values(savedChats).sort((a, b) => b.updatedAt - a.updatedAt);
   });
 
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>(() => {
-    try {
-      const savedChatsStr = localStorage.getItem('jeeos_chats');
-      const activeSession = localStorage.getItem('jeeos_active_chat_session');
-      if (savedChatsStr && activeSession) {
-        const savedChats = safelyParseJSON<Record<string, ChatSession>>(savedChatsStr, {});
-        if (savedChats[activeSession] && savedChats[activeSession].messages?.length > 0) {
-          return savedChats[activeSession].messages;
-        }
-      }
-    } catch {}
+    const savedChats = getCachedChats();
+    const activeSession = storageAdapter.getItem<string>('jeeos_active_chat_session');
+    if (activeSession && savedChats[activeSession]?.messages?.length > 0) {
+      return savedChats[activeSession].messages;
+    }
     return [initialMessage];
   });
   const sessionIdRef = useRef<string | null>(null);
@@ -56,19 +42,26 @@ export function useChatSessions(initialMessage: ChatMessage) {
     sessionIdRef.current = sessionId;
   }, [sessionId]);
 
-  const refreshSessions = () => {
-    const savedChatsStr = localStorage.getItem('jeeos_chats');
-    if (savedChatsStr) {
-      try {
-        const savedChats = safelyParseJSON<Record<string, ChatSession>>(savedChatsStr, {});
-        const sorted = Object.values(savedChats).sort((a, b) => b.updatedAt - a.updatedAt);
-        setAllSessions(sorted);
-        return savedChats;
-      } catch (e) {
-        console.error("Failed to parse chats", e);
+  // Asynchronously synchronize from Tier 2 IndexedDB on initial mount
+  useEffect(() => {
+    let isMounted = true;
+    loadSavedChats().then((savedChats) => {
+      if (!isMounted) return;
+      const sorted = Object.values(savedChats).sort((a, b) => b.updatedAt - a.updatedAt);
+      setAllSessions(sorted);
+      const activeSession = storageAdapter.getItem<string>('jeeos_active_chat_session');
+      if (activeSession && savedChats[activeSession]?.messages?.length > 0) {
+        setChatHistory(savedChats[activeSession].messages);
       }
-    }
-    return {};
+    });
+    return () => { isMounted = false; };
+  }, []);
+
+  const refreshSessions = (): Record<string, ChatSession> => {
+    const savedChats = getCachedChats();
+    const sorted = Object.values(savedChats).sort((a, b) => b.updatedAt - a.updatedAt);
+    setAllSessions(sorted);
+    return savedChats;
   };
 
   const saveSession = (messages: ChatMessage[]) => {
@@ -76,11 +69,10 @@ export function useChatSessions(initialMessage: ChatMessage) {
     if (!currentId) {
       currentId = `chat_${Date.now()}`;
       setSessionId(currentId);
-      localStorage.setItem('jeeos_active_chat_session', currentId);
+      storageAdapter.setItem('jeeos_active_chat_session', currentId);
     }
 
-    const savedChatsStr = localStorage.getItem('jeeos_chats');
-    const savedChats = safelyParseJSON<Record<string, ChatSession>>(savedChatsStr, {});
+    const savedChats = { ...getCachedChats() };
     
     let title = savedChats[currentId]?.title;
     if (!title) {
@@ -102,11 +94,7 @@ export function useChatSessions(initialMessage: ChatMessage) {
       capped.forEach(c => savedChats[c.id] = c);
     }
     
-    try {
-      localStorage.setItem('jeeos_chats', JSON.stringify(savedChats));
-    } catch (e) {
-      console.warn('Failed to save chats to local storage', e);
-    }
+    persistSavedChats(savedChats);
     refreshSessions();
   };
 
@@ -114,7 +102,7 @@ export function useChatSessions(initialMessage: ChatMessage) {
     const savedChats = refreshSessions();
     if (savedChats[id]) {
       setSessionId(id);
-      localStorage.setItem('jeeos_active_chat_session', id);
+      storageAdapter.setItem('jeeos_active_chat_session', id);
       setChatHistory(savedChats[id].messages);
       if (callback) callback();
     }
@@ -122,30 +110,26 @@ export function useChatSessions(initialMessage: ChatMessage) {
 
   const handleNewChat = (callback?: () => void) => {
     setSessionId(null);
-    localStorage.removeItem('jeeos_active_chat_session');
+    storageAdapter.removeItem('jeeos_active_chat_session');
     setChatHistory([initialMessage]);
     if (callback) callback();
   };
 
   const handleDeleteSession = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const savedChatsStr = localStorage.getItem('jeeos_chats');
-    if (savedChatsStr) {
-      const savedChats = safelyParseJSON<Record<string, ChatSession>>(savedChatsStr, {});
-      delete savedChats[id];
-      const chatArray = Object.values(savedChats).sort((a, b) => a.updatedAt - b.updatedAt);
-      if (chatArray.length > 30) {
-        const capped = chatArray.slice(-30);
-        for (const key in savedChats) delete savedChats[key];
-        capped.forEach(c => savedChats[c.id] = c);
-      }
-      try {
-        localStorage.setItem('jeeos_chats', JSON.stringify(savedChats));
-      } catch (e) {}
-      
-      if (sessionIdRef.current === id) {
-        handleNewChat();
-      }
+    const savedChats = { ...getCachedChats() };
+    delete savedChats[id];
+    const chatArray = Object.values(savedChats).sort((a, b) => a.updatedAt - b.updatedAt);
+    if (chatArray.length > 30) {
+      const capped = chatArray.slice(-30);
+      for (const key in savedChats) delete savedChats[key];
+      capped.forEach(c => savedChats[c.id] = c);
+    }
+    persistSavedChats(savedChats);
+    
+    if (sessionIdRef.current === id) {
+      handleNewChat();
+    } else {
       refreshSessions();
     }
   };

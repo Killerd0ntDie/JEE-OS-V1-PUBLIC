@@ -2,6 +2,7 @@ import { SubjectId } from '@/types';
 import { auth } from '@/firebase';
 import { decodeSecret } from '@/utils/crypto';
 import { PdfTextExtractor } from './PdfTextExtractor';
+import { storageAdapter } from '@/services/StorageAdapter';
 
 export interface DppMetadataAnalysis {
   title: string;
@@ -16,20 +17,18 @@ export interface DppMetadataAnalysis {
 
 export class DppMetadataAnalyzer {
   /**
-   * Reads stored Gemini API key from browser localStorage, auto-decoding if obfuscated.
+   * Reads stored Gemini API key from StorageAdapter, auto-decoding if obfuscated.
    */
   private static getStoredGeminiKey(): string | undefined {
     try {
-      if (typeof localStorage !== 'undefined') {
-        const raw = localStorage.getItem('gemini_api_key') || localStorage.getItem('jeeos_gemini_api_key');
-        if (raw) {
-          const decoded = decodeSecret(raw);
-          if (decoded && decoded.trim().length > 10) {
-            return decoded.trim();
-          }
-          if (raw.trim().length > 10) {
-            return raw.trim();
-          }
+      const raw = storageAdapter.getGeminiApiKey();
+      if (raw) {
+        const decoded = decodeSecret(raw);
+        if (decoded && decoded.trim().length > 10) {
+          return decoded.trim();
+        }
+        if (raw.trim().length > 10) {
+          return raw.trim();
         }
       }
     } catch {
@@ -296,28 +295,36 @@ export class DppMetadataAnalyzer {
   static async analyzeDppMetadata(
     file: File,
     availableChapters: { id?: string; name: string; subject?: string }[] = [],
-    onProgress?: (status: string) => void
+    onProgress?: (status: string) => void,
+    preExtractedText?: string
   ): Promise<DppMetadataAnalysis> {
-    onProgress?.('Extracting text for AI metadata detection...');
-    let rawText = '';
-    try {
-      rawText = await PdfTextExtractor.extractTextFromPDF(file, onProgress);
-    } catch (e) {
-      console.warn('Text extraction warning during DPP metadata analysis:', e);
+    let rawText = preExtractedText || '';
+    if (!rawText) {
+      onProgress?.('Extracting text for AI metadata detection...');
+      try {
+        rawText = await PdfTextExtractor.extractTextFromPDF(file, onProgress);
+      } catch (e) {
+        console.warn('Text extraction warning during DPP metadata analysis:', e);
+      }
     }
 
     const cleanFileName = this.cleanDppFileName(file.name);
 
+    const hasSufficientText = Boolean(rawText && rawText.trim().length >= 150);
     let pdfBase64: string | undefined;
-    try {
-      pdfBase64 = await PdfTextExtractor.fileToBase64(file);
-    } catch (e) {
-      console.warn('Could not convert PDF to base64 for metadata analysis:', e);
+    // Only encode and transmit multi-megabyte PDF if document lacks selectable text (scanned PDF)
+    if (!hasSufficientText) {
+      try {
+        pdfBase64 = await PdfTextExtractor.fileToBase64(file);
+      } catch (e) {
+        console.warn('Could not convert PDF to base64 for metadata analysis:', e);
+      }
     }
 
     const localResult = this.heuristicAnalyzeDppMetadata(cleanFileName, rawText, availableChapters);
 
     if (typeof navigator === 'undefined' || navigator.onLine) {
+      let timeoutId: any;
       try {
         let token: string | undefined;
         try {
@@ -332,7 +339,7 @@ export class DppMetadataAnalyzer {
         if (storedKey) headers['x-gemini-api-key'] = storedKey;
 
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 35000);
+        timeoutId = setTimeout(() => controller.abort(), 90000);
 
         onProgress?.('Running AI metadata analysis...');
         const response = await fetch('/api/mocktest/analyze-dpp-metadata', {
@@ -342,7 +349,7 @@ export class DppMetadataAnalyzer {
           body: JSON.stringify({
             rawText: (rawText || '').substring(0, 3500),
             fileName: file.name,
-            pdfBase64,
+            pdfBase64: hasSufficientText ? undefined : pdfBase64,
             chapterNames: availableChapters.map(c => c.name)
           })
         });
@@ -368,8 +375,14 @@ export class DppMetadataAnalyzer {
             };
           }
         }
-      } catch (err) {
-        console.warn('Server AI metadata extraction unavailable, using smart local heuristic:', err);
+      } catch (err: any) {
+        if (err?.name === 'AbortError') {
+          console.warn('[DppMetadataAnalyzer] AI metadata analysis timed out, using smart local heuristic.');
+        } else {
+          console.warn('Server AI metadata extraction unavailable, using smart local heuristic:', err);
+        }
+      } finally {
+        if (timeoutId) clearTimeout(timeoutId);
       }
     }
 

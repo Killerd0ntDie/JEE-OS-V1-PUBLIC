@@ -7,6 +7,7 @@ import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { springs } from '@/constants/motion';
 import { Modal } from '@/components/ui/Modal';
 import { RichTextRenderer } from '@/components/MathRenderer';
+import { useToast } from '@/components/ui/ToastProvider';
 
 export interface LogMistakeModalProps {
   isOpen: boolean;
@@ -19,6 +20,7 @@ export const LogMistakeModal: React.FC<LogMistakeModalProps> = ({
   onClose,
   categories,
 }) => {
+  const { toast } = useToast();
   const actions = useStudyBrainStore(state => state.actions);
   const chapters = useStudyBrainStore(state => state.chapters) || [];
 
@@ -57,8 +59,12 @@ export const LogMistakeModal: React.FC<LogMistakeModalProps> = ({
 
   const handleImageFileChange = (file: File | undefined, type: 'wrong' | 'correct') => {
     if (!file) return;
-    if (file.size > 3 * 1024 * 1024) {
-      alert("Image is larger than 3MB. Please select a smaller diagram.");
+    if (file.size > 500 * 1024) {
+      toast({
+        title: 'Diagram Too Large',
+        description: 'Diagram must be under 500KB to ensure smooth cloud synchronization.',
+        type: 'warning'
+      });
       return;
     }
     const reader = new FileReader();

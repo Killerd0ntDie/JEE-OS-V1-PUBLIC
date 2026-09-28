@@ -105,7 +105,7 @@ export const isMultiChoiceQuestion = (question: {
   correctAnswer?: string;
   content?: string;
   sectionName?: string;
-  solution?: { correctOptionIds?: string[] | string };
+  solution?: { text?: string; correctOptionIds?: string[] | string };
 }): boolean => {
   if (!question) return false;
   if (question.type?.toUpperCase() === 'MULTI') return true;
@@ -157,7 +157,7 @@ export const isOptionSelectedInAnswer = (
   if (letters.includes(optLetter)) return true;
 
   // Check comma-separated numbers: e.g. "0, 2, 3"
-  const digits = raw.match(/[0-3]/g) || [];
+  const digits: string[] = raw.match(/[0-3]/g) || [];
   if (digits.includes(optDigit)) return true;
 
   if (raw.toUpperCase() === `OPTION ${optLetter}`) return true;
@@ -166,12 +166,10 @@ export const isOptionSelectedInAnswer = (
 };
 
 /**
- * Returns all 0-based option indices that are correct for a question.
- * Intelligently recognizes semantically equivalent options:
- * If Option A is specified in correctAnswer and Option B expresses the exact same
- * physical/mathematical ordering in reversed form, Option B is also returned as correct!
+ * Returns declared 0-based option indices specified directly in the question answer key
+ * (without expanding semantically equivalent options).
  */
-export const getAllCorrectOptionIndices = (question: {
+export const getDeclaredCorrectOptionIndices = (question: {
   correctAnswer: string;
   options?: string[];
   type?: string;
@@ -192,11 +190,29 @@ export const getAllCorrectOptionIndices = (question: {
       }
     });
 
-    const digits = rawKey.match(/[0-3]/g) || [];
+    const digits: string[] = rawKey.match(/[0-3]/g) || [];
     if (correctIndices.size === 0 && digits.length > 0) {
       digits.forEach(d => correctIndices.add(parseInt(d, 10)));
     }
   }
+
+  return Array.from(correctIndices).sort((a, b) => a - b);
+};
+
+/**
+ * Returns all 0-based option indices that are correct for a question.
+ * Intelligently recognizes semantically equivalent options:
+ * If Option A is specified in correctAnswer and Option B expresses the exact same
+ * physical/mathematical ordering in reversed form, Option B is also returned as correct!
+ */
+export const getAllCorrectOptionIndices = (question: {
+  correctAnswer: string;
+  options?: string[];
+  type?: string;
+  content?: string;
+}): number[] => {
+  const baseCorrect = getDeclaredCorrectOptionIndices(question);
+  const correctIndices = new Set<number>(baseCorrect);
 
   // Scan options for semantically / mathematically equivalent counterparts
   if (Array.isArray(question.options) && question.options.length > 0 && correctIndices.size > 0) {
@@ -262,11 +278,21 @@ export const isMockAnswerCorrect = (
     const hasIncorrect = chosenIndices.some(idx => !correctIndices.includes(idx));
     if (hasIncorrect) return false;
 
+    const declaredIndices = getDeclaredCorrectOptionIndices(question);
+    const allDeclaredCovered = declaredIndices.length > 0 && declaredIndices.every(decIdx =>
+      chosenIndices.includes(decIdx) ||
+      chosenIndices.some(cIdx => {
+        const optA = question.options?.[cIdx];
+        const optB = question.options?.[decIdx];
+        return Boolean(optA && optB && areOptionsSemanticallyEquivalent(optA, optB));
+      })
+    );
+
     const allRequiredChosen = correctIndices.every(cIdx => chosenIndices.includes(cIdx));
-    if (allRequiredChosen) return true;
+    if (allRequiredChosen || allDeclaredCovered) return true;
 
     // For questions with equivalent options (e.g. A and B are equivalent), selecting either A or B is sufficient
-    if (chosenIndices.length > 0 && !hasIncorrect) {
+    if (chosenIndices.length > 0 && !hasIncorrect && allDeclaredCovered) {
       return true;
     }
   }
@@ -555,7 +581,19 @@ export function evaluateMockAttempt(
             });
           } else {
             // Student selected ONLY correct options! (Partial or Full match)
-            const isFullMatch = chosenIndices.length >= correctIndices.length;
+            // Check whether every declared original correct option is satisfied:
+            // either directly chosen OR represented by a semantically equivalent chosen option.
+            const declaredIndices = getDeclaredCorrectOptionIndices(q);
+            const allDeclaredCovered = declaredIndices.length > 0 && declaredIndices.every(decIdx =>
+              chosenIndices.includes(decIdx) ||
+              chosenIndices.some(cIdx => {
+                const optA = q.options?.[cIdx];
+                const optB = q.options?.[decIdx];
+                return Boolean(optA && optB && areOptionsSemanticallyEquivalent(optA, optB));
+              })
+            );
+
+            const isFullMatch = chosenIndices.length >= correctIndices.length || allDeclaredCovered;
             const marksEarned = isFullMatch
               ? (q.marks?.correct ?? 4)
               : Math.max(1, Math.min(q.marks?.correct ?? 4, chosenIndices.length));

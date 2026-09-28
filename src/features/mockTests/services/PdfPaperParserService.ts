@@ -3,6 +3,7 @@ import { SubjectId } from '@/types';
 import { auth } from '@/firebase';
 import { decodeSecret } from '@/utils/crypto';
 import { normalizeChemistryAndOrbitals } from '@/components/MathRenderer';
+import { storageAdapter } from '@/services/StorageAdapter';
 import { PdfLexicalParser } from './PdfLexicalParser';
 import { PageLayoutAnalyzer } from './pdf/PageLayoutAnalyzer';
 import { DiagramCropperEngine } from './pdf/DiagramCropperEngine';
@@ -133,9 +134,10 @@ export class PdfPaperParserService {
       sectionName?: string;
       options?: any[];
       targetQuestion?: any;
+      pageQIndex?: number;
     },
-    cachedLayout?: PageLayoutModel,
-    cachedInkProfile?: PageInkProfile
+    cachedLayout?: PageLayoutModel | Map<number, PageLayoutModel>,
+    cachedInkProfile?: PageInkProfile | Map<number, PageInkProfile>
   ): Promise<string> {
     try {
       if (typeof document === 'undefined') return '';
@@ -155,45 +157,67 @@ export class PdfPaperParserService {
       const scale = 2.0;
       const viewport = page.getViewport({ scale });
 
-      const fullCanvas = document.createElement('canvas');
-      fullCanvas.width = Math.floor(viewport.width);
-      fullCanvas.height = Math.floor(viewport.height);
-      const ctx = fullCanvas.getContext('2d', { willReadFrequently: true });
-      if (!ctx) return '';
+      let fullCanvas: any = typeof document !== 'undefined' ? document.createElement('canvas') : null;
+      if (fullCanvas) {
+        fullCanvas.width = Math.floor(viewport.width);
+        fullCanvas.height = Math.floor(viewport.height);
+      }
+      let ctx: any = fullCanvas ? fullCanvas.getContext?.('2d', { willReadFrequently: true }) : null;
+      if (!ctx) {
+        try {
+          const canvasPkg = '@napi-rs/canvas';
+          const { createCanvas } = await import(/* @vite-ignore */ canvasPkg);
+          fullCanvas = createCanvas(Math.floor(viewport.width), Math.floor(viewport.height));
+          ctx = fullCanvas.getContext('2d');
+        } catch (_canvasErr) {
+          // ignore
+        }
+      }
+      if (!ctx || !fullCanvas) return '';
 
       await page.render({ canvasContext: ctx, viewport }).promise;
 
       // 1. Two-Pass Spatial Layout Model (cached or freshly analyzed)
-      let layoutModel = cachedLayout;
+      let layoutModel = cachedLayout instanceof Map ? cachedLayout.get(safePageNum) : cachedLayout;
       if (!layoutModel) {
         try {
           layoutModel = await PageLayoutAnalyzer.analyzePage(page, viewport, scale);
         } catch (layoutErr) {
           console.warn('[renderAndCropDiagram] PageLayoutAnalyzer error:', layoutErr);
         }
-      }
 
-      // If text layout model has no questions (scanned / image-only PDF), use AdaptiveInkScanner visual block detection!
-      if (!layoutModel || layoutModel.questions.length === 0) {
-        const visualQuestions = AdaptiveInkScanner.detectVisualQuestionBlocks(fullCanvas);
-        if (visualQuestions.length > 0) {
-          layoutModel = {
-            pageNum: safePageNum,
-            viewportWidth: fullCanvas.width,
-            viewportHeight: fullCanvas.height,
-            scale,
-            headerHeight: 0,
-            footerHeight: fullCanvas.height,
-            columnCount: 1,
-            lines: [],
-            sections: [],
-            questions: visualQuestions
-          };
+        // If text layout model has no questions (scanned / image-only PDF), use AdaptiveInkScanner visual block detection!
+        if (!layoutModel || layoutModel.questions.length === 0) {
+          const visualQuestions = AdaptiveInkScanner.detectVisualQuestionBlocks(fullCanvas);
+          if (visualQuestions.length > 0) {
+            layoutModel = {
+              pageNum: safePageNum,
+              viewportWidth: fullCanvas.width,
+              viewportHeight: fullCanvas.height,
+              scale,
+              headerHeight: 0,
+              footerHeight: fullCanvas.height,
+              columnCount: 1,
+              lines: [],
+              sections: [],
+              questions: visualQuestions
+            };
+          }
+        }
+
+        if (cachedLayout instanceof Map && layoutModel) {
+          cachedLayout.set(safePageNum, layoutModel);
         }
       }
 
       // 2. Adaptive Ink Profiling (cached or freshly scanned)
-      const inkProfile = cachedInkProfile || AdaptiveInkScanner.computeInkProfile(ctx, fullCanvas.width, fullCanvas.height);
+      let inkProfile = cachedInkProfile instanceof Map ? cachedInkProfile.get(safePageNum) : cachedInkProfile;
+      if (!inkProfile) {
+        inkProfile = AdaptiveInkScanner.computeInkProfile(ctx, fullCanvas.width, fullCanvas.height);
+        if (cachedInkProfile instanceof Map && inkProfile) {
+          cachedInkProfile.set(safePageNum, inkProfile);
+        }
+      }
 
       // 3. Diagram Cropper Engine (Primary Execution)
       const engineCrop = DiagramCropperEngine.cropDiagram(
@@ -470,24 +494,22 @@ export class PdfPaperParserService {
   }
 
   /**
-   * Reads stored Gemini API key from browser localStorage, auto-decoding if obfuscated.
+   * Reads stored Gemini API key from StorageAdapter, auto-decoding if obfuscated.
    */
   private static getStoredGeminiKey(): string | undefined {
     try {
-      if (typeof localStorage !== 'undefined') {
-        const raw = localStorage.getItem('gemini_api_key') || localStorage.getItem('jeeos_gemini_api_key');
-        if (raw) {
-          const decoded = decodeSecret(raw);
-          if (decoded && decoded.trim().length > 10) {
-            return decoded.trim();
-          }
-          if (raw.trim().length > 10) {
-            return raw.trim();
-          }
+      const raw = storageAdapter.getGeminiApiKey();
+      if (raw) {
+        const decoded = decodeSecret(raw);
+        if (decoded && decoded.trim().length > 10) {
+          return decoded.trim();
+        }
+        if (raw.trim().length > 10) {
+          return raw.trim();
         }
       }
     } catch {
-      // Ignore localStorage access errors
+      // Ignore storage access errors
     }
     return undefined;
   }
@@ -609,7 +631,14 @@ export class PdfPaperParserService {
     if (!visionQuestions || visionQuestions.length === 0) return baseQuestions;
 
     const merged = [...baseQuestions];
-    const extractNum = (q: any) => q?.localQuestionNumber || q?.qNumber || q?.questionNumber;
+    const extractNum = (q: any) => {
+      const val = q?.localQuestionNumber || q?.qNumber || q?.questionNumber;
+      if (typeof val === 'number' && !isNaN(val) && val > 0) return val;
+      if (typeof val === 'string' && /^\d+$/.test(val.trim())) return parseInt(val.trim(), 10);
+      const match = String(q?.content || '').match(/^(?:\[?\s*Q(?:uestion)?\.?\s*(\d+)|\b(\d{1,3})\s*[\.:\-\]])/i);
+      if (match) return parseInt(match[1] || match[2], 10);
+      return undefined;
+    };
 
     // Map vision questions by local number
     const visionMap = new Map<number, any>();
@@ -651,6 +680,20 @@ export class PdfPaperParserService {
 
         merged[idx] = healedQ;
         visionMap.delete(num); // Consumed
+      }
+    }
+
+    // Deduplication gate: consume/remove from visionMap any vision questions that already exist in merged
+    for (const [vNum, vq] of Array.from(visionMap.entries())) {
+      const alreadyInMerged = merged.some(q => {
+        const qN = extractNum(q);
+        if (qN === vNum) return true;
+        const cleanQ = (q.content || '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 35);
+        const cleanV = (vq.content || '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 35);
+        return cleanQ.length > 15 && cleanV.length > 15 && (cleanQ.includes(cleanV) || cleanV.includes(cleanQ));
+      });
+      if (alreadyInMerged) {
+        visionMap.delete(vNum);
       }
     }
 
@@ -712,35 +755,48 @@ export class PdfPaperParserService {
         const pdfBase64 = await this.fileToBase64(file);
 
         if (pdfBase64 || hasText) {
-          const response = await fetch('/api/mocktest/parse-pyq-paper', {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({
-              rawText: hasText ? rawText : '',
-              paperTitle,
-              targetSubject: options?.targetSubject || 'all',
-              pdfBase64,
-              singleStage: true
-            })
-          });
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 75000);
+          let response: Response | undefined;
+          try {
+            response = await fetch('/api/mocktest/parse-pyq-paper', {
+              method: 'POST',
+              headers,
+              body: JSON.stringify({
+                rawText: hasText ? rawText : '',
+                paperTitle,
+                targetSubject: options?.targetSubject || 'all',
+                pdfBase64,
+                singleStage: true
+              }),
+              signal: controller.signal
+            });
+          } finally {
+            clearTimeout(timeoutId);
+          }
 
-          if (response.ok) {
+          if (response && response.ok) {
             const data = await response.json();
             if (Array.isArray(data.questions) && data.questions.length > 0) {
               parsedQuestions = data.questions;
               if (hasText) {
                 const heuristicQuestions = this.parsePaperTextHeuristic(rawText, options?.targetSubject);
                 if (heuristicQuestions.length > 0) {
-                  const merged = this.mergeParsedWithHeuristic(parsedQuestions, heuristicQuestions);
-                  if (merged.length > parsedQuestions.length || heuristicQuestions.length > parsedQuestions.length) {
-                    console.warn(`[Paper Parser] Merged missing questions from document: ${parsedQuestions.length} -> ${merged.length}`);
-                    parsedQuestions = merged;
+                  const keyData = rawText ? AnswerKeyExtractor.extractGlobalAnswerKey(rawText) : undefined;
+                  const maxHNum = Math.max(0, ...heuristicQuestions.map(q => PdfOfflineParser.extractQuestionNumber(q) || 0));
+                  const totalExpected = (keyData?.hasKeySection && keyData.entries.length > 0)
+                    ? keyData.entries.length
+                    : (maxHNum >= 10 ? maxHNum : undefined);
+                  const merged = this.mergeParsedWithHeuristic(parsedQuestions, heuristicQuestions, totalExpected);
+                  parsedQuestions = PdfOfflineParser.deduplicateQuestions(merged);
+                  if (parsedQuestions.length > data.questions.length) {
+                    console.log(`[Paper Parser] Backfilled missing questions: ${data.questions.length} -> ${parsedQuestions.length}`);
                   }
                 }
               }
             }
           } else {
-            console.warn(`Server PYQ parsing returned status ${response.status}. Falling back to heuristic parser.`);
+            console.warn(`Server PYQ parsing returned status ${response?.status ?? 'timeout'}. Falling back to heuristic parser.`);
           }
         }
       } catch (err) {
@@ -899,37 +955,50 @@ export class PdfPaperParserService {
         const pdfBase64 = await this.fileToBase64(file);
 
         if (pdfBase64 || hasText) {
-          const response = await fetch('/api/mocktest/parse-pyq-paper', {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({
-              rawText: hasText ? rawText : '',
-              paperTitle: dppTitle,
-              targetSubject,
-              isDpp: true,
-              chapterName: options?.chapterName,
-              pdfBase64,
-              singleStage: true
-            })
-          });
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 75000);
+          let response: Response | undefined;
+          try {
+            response = await fetch('/api/mocktest/parse-pyq-paper', {
+              method: 'POST',
+              headers,
+              body: JSON.stringify({
+                rawText: hasText ? rawText : '',
+                paperTitle: dppTitle,
+                targetSubject,
+                isDpp: true,
+                chapterName: options?.chapterName,
+                pdfBase64,
+                singleStage: true
+              }),
+              signal: controller.signal
+            });
+          } finally {
+            clearTimeout(timeoutId);
+          }
 
-          if (response.ok) {
+          if (response && response.ok) {
             const data = await response.json();
             if (Array.isArray(data.questions) && data.questions.length > 0) {
               parsedQuestions = data.questions;
               if (hasText) {
                 const heuristicQuestions = this.parsePaperTextHeuristic(rawText, targetSubject);
                 if (heuristicQuestions.length > 0) {
-                  const merged = this.mergeParsedWithHeuristic(parsedQuestions, heuristicQuestions);
-                  if (merged.length > parsedQuestions.length || heuristicQuestions.length > parsedQuestions.length) {
-                    console.warn(`[DPP Parser] Merged missing questions from document: ${parsedQuestions.length} -> ${merged.length}`);
-                    parsedQuestions = merged;
+                  const keyData = rawText ? AnswerKeyExtractor.extractGlobalAnswerKey(rawText) : undefined;
+                  const maxHNum = Math.max(0, ...heuristicQuestions.map(q => PdfOfflineParser.extractQuestionNumber(q) || 0));
+                  const totalExpected = (keyData?.hasKeySection && keyData.entries.length > 0)
+                    ? keyData.entries.length
+                    : (maxHNum >= 10 ? maxHNum : undefined);
+                  const merged = this.mergeParsedWithHeuristic(parsedQuestions, heuristicQuestions, totalExpected);
+                  parsedQuestions = PdfOfflineParser.deduplicateQuestions(merged);
+                  if (parsedQuestions.length > data.questions.length) {
+                    console.log(`[DPP Parser] Backfilled missing questions: ${data.questions.length} -> ${parsedQuestions.length}`);
                   }
                 }
               }
             }
           } else {
-            console.warn(`Server DPP parsing returned status ${response.status}. Falling back to heuristic parser.`);
+            console.warn(`Server DPP parsing returned status ${response?.status ?? 'timeout'}. Falling back to heuristic parser.`);
           }
         }
       } catch (err) {
@@ -1075,7 +1144,7 @@ export class PdfPaperParserService {
         q.hasDiagram ||
         q.imageUrl ||
         (Array.isArray(q.diagramBbox) && q.diagramBbox.length === 4) ||
-        /\b(?:given\s+(?:figure|diagram)|shown\s+in\s+(?:the\s+)?figure|refer\s+to\s+(?:the\s+)?diagram|circuit\s+diagram|graph\s+shown)\b/i.test(combinedText) ||
+        /\b(?:given\s+(?:figures?|diagrams?|graphs?|illustration|sketch)|shown\s+in\s+(?:the\s+)?(?:figures?|diagrams?|graphs?|illustration|sketch|above|below)|as\s+shown\b|see\s+(?:figures?|diagrams?|graphs?|illustration|fig\.?)|refer\s+to\s+(?:the\s+)?(?:figures?|diagrams?|graphs?)|in\s+(?:the\s+)?(?:figures?|diagrams?|graphs?|illustration)|following\s+(?:figures?|diagrams?|graphs?|illustration)|corresponding\s+to\s+figures?|figures?\s+[a-d]\b|four\s+graphs|graph\s+(?:shown|below|above|plotted)|force[\s\-]displacement|potential\s+energy\s+curve|energy\s+curve|P-V\s+curve|P-V\s+diagram|indicator\s+diagram|circuit(?:\s+diagram)?|in\s+the\s+circuit|Wheatstone|potentiometer|galvanometer|pulley|inclined\s+plane|ramp|wedge|spring(?:\s+balance)?|block\s+hits\s+the\s+spring|curve\s+of\s+vertical\s+circle|vertical\s+circle|swimming\s+pool|circular\s+tube|curved\s+track|smooth\s+horizontal\s+plane|trajectory|projectile|ray\s+diagram|prism|mirror|lens|logic\s+gate|truth\s+table|force\s+field|along\s+the\s+line\s+segment|two\s+different\s+ways|from\s+point\s+['"]?[A-D]['"]?\s+to\s+['"]?[A-D]['"]?|dropped\s+from\s+(?:the\s+)?point|released\s+from\s+(?:the\s+)?point|along\s+the\s+shown\s+path|shown\s+path|path\s+shown|concentric|semicircles?|labyrinth|shown\s+in\s+(?:the\s+)?(?:graph|plane))\b/i.test(combinedText) ||
         /\\theta_[1-4]|\b\theta_1\b|\b\theta_2\b|\b\theta_3\b|\b\theta_4\b/i.test(combinedText) ||
         /\b(?:bond\s+angles?|bond\s+lengths?)\s+(?:of\s+)?(?:[$]?[a-z\alpha-\omega\theta][$]?\s*(?:and|,|vs)\s*[$]?[a-z\alpha-\omega\theta][$]?)/i.test(combinedText) ||
         (/\b(?:bond\s+angle|bond\s+length|in\s+the\s+following\s+molecules?)\b/i.test(q.content || '') &&
@@ -1183,8 +1252,8 @@ export class PdfPaperParserService {
               targetQuestion: q,
               pageQIndex: pageQIndex >= 0 ? pageQIndex : undefined
             },
-            layoutCache.get(pageNum),
-            inkProfileCache.get(pageNum)
+            layoutCache,
+            inkProfileCache
           );
           if (croppedUrl) {
             q.imageUrl = croppedUrl;
@@ -1202,25 +1271,10 @@ export class PdfPaperParserService {
    */
   static isDiagramRedundant(q: any): boolean {
     if (!q) return false;
-    const opts = q.options || [];
-    if (!Array.isArray(opts) || opts.length === 0) return false;
-
-    // 1. If options are bare letter labels (A), (B), (C), (D) where the images themselves ARE the options
-    // (such as Q5 with 4 SO3 Lewis structures), the diagram is absolutely REQUIRED!
-    const bareLabels = opts.filter((o: any) => {
-      const text = (typeof o === 'string' ? o : o?.text || '').trim();
-      return /^\s*\(?[A-D]\)?\s*$/i.test(text) || text.length === 0;
-    });
-    if (bareLabels.length >= 3) {
-      return false; // Options are bare letters -> diagram required!
-    }
-
-    // 2. If question or options refer to an external apparatus diagram, circuit, graph, theta angles, or bond angle variable comparisons:
     const content = q.content || '';
-    const optTexts = (opts || []).map((o: any) => (typeof o === 'string' ? o : o?.text || '')).join(' ');
-    const combinedText = `${content} ${optTexts}`;
+    const opts = q.options || [];
 
-    // Hydrazoic acid & linear chemical resonance structures: complete LaTeX formulas in content + text options
+    // Hydrazoic acid & linear chemical resonance structures where LaTeX is completely inline
     if (/hydrazoic|resonating structure/i.test(content)) {
       const allSubstantive = opts.length === 4 && opts.every((o: any) => {
         const text = (typeof o === 'string' ? o : o?.text || '').trim();
@@ -1231,31 +1285,8 @@ export class PdfPaperParserService {
       }
     }
 
-    const hasExternalVisualMedia = /\b(?:given\s+(?:figure|diagram)|shown\s+in\s+(?:the\s+)?figure|refer\s+to\s+(?:the\s+)?diagram|circuit\s+diagram|graph\s+shown)\b/i.test(combinedText);
-    const hasAngleVariables = /\\theta_[1-4]|\btheta_[1-4]\b/i.test(combinedText);
-    const hasBondAngleComparison = (
-      /\b(?:bond\s+angles?|bond\s+lengths?)\s+(?:of\s+)?(?:[$]?[a-z\alpha-\omega\theta][$]?\s*(?:and|,|vs)\s*[$]?[a-z\alpha-\omega\theta][$]?)/i.test(combinedText) ||
-      (/\b(?:bond\s+angle|bond\s+length|in\s+the\s+following\s+molecules?)\b/i.test(content) &&
-       /[$]?\s*[xyzab\theta]\s*[$]?\s*(?:[><=]|\\ge|\\le)\s*[$]?\s*[xyzab\theta]\s*[$]?/i.test(optTexts))
-    );
-
-    if (hasExternalVisualMedia || hasAngleVariables || hasBondAngleComparison) {
-      return false; // Real visual apparatus diagram or graph required
-    }
-
-    // 3. Check if all options are substantive text (Roman numerals I, II, III, IV, formulas, words):
-    const allOptionsSubstantive = opts.length === 4 && opts.every((o: any) => {
-      const text = (typeof o === 'string' ? o : o?.text || '').trim();
-      const isBareOption = /^\s*\(?[A-D]\)?\s*$/i.test(text);
-      return !isBareOption && text.length >= 1;
-    });
-
-    // 4. If options are substantive, and the question statement has complete text (> 25 chars):
-    // e.g. Hydrazoic acid (H-N=N=N) resonating structures or reactions already in text/LaTeX:
-    if (content.length > 25 && allOptionsSubstantive) {
-      return true; // Diagram is redundant!
-    }
-
+    // Real physics diagrams (loops, ramps, swimming pool, blocks, springs, graphs)
+    // and apparatus figures must NEVER be suppressed.
     return false;
   }
 
@@ -1310,7 +1341,12 @@ export class PdfPaperParserService {
         'the', 'and', 'for', 'which', 'following', 'with', 'from', 'that', 'this',
         'are', 'was', 'were', 'will', 'select', 'correct', 'incorrect', 'given',
         'statement', 'statements', 'value', 'calculate', 'find', 'among',
-        'bond', 'order', 'not', 'most', 'least', 'between', 'two'
+        'bond', 'order', 'not', 'most', 'least', 'between', 'two',
+        // Physics & Chemistry domain stop words to prevent false page-scoring inflation across common JEE terms
+        'mass', 'particle', 'energy', 'force', 'velocity', 'acceleration', 'displacement',
+        'speed', 'ratio', 'total', 'reaction', 'product', 'compound', 'solution',
+        'temperature', 'pressure', 'current', 'resistance', 'potential', 'figure',
+        'figures', 'diagram', 'shown'
       ]);
 
       const rawClean = (q.content || '')
@@ -1326,9 +1362,14 @@ export class PdfPaperParserService {
         .replace(/^(?:which\s+of\s+the\s+following|what\s+is\s+the|find\s+the|calculate\s+the|consider\s+the|in\s+the\s+given|select\s+the|choose\s+the|identify\s+the|for\s+the\s+given|among\s+the\s+following)\s+/i, '')
         .trim();
 
-      const cleanSnippet = (strippedContent.length >= 4 ? strippedContent : rawClean)
+      let cleanSnippet = (strippedContent.length >= 4 ? strippedContent : rawClean)
         .split(/\s+/)
         .filter(w => w.length >= 3 && !stopWords.has(w));
+
+      // Fallback: if all words were filtered by stopWords, retain 3+ char words so short questions can still locate
+      if (cleanSnippet.length === 0) {
+        cleanSnippet = rawClean.split(/\s+/).filter(w => w.length >= 3);
+      }
 
       // Must have SOME content words to match — otherwise we can't reliably locate the question
       if (cleanSnippet.length < 1) return null;
@@ -1423,6 +1464,7 @@ export class PdfPaperParserService {
   static parseBlocksHeuristic = PdfOfflineParser.parseBlocksHeuristic;
   static parseLineByLineHeuristic = PdfOfflineParser.parseLineByLineHeuristic;
   static mergeParsedWithHeuristic = PdfOfflineParser.mergeParsedWithHeuristic;
+  static deduplicateQuestions = PdfOfflineParser.deduplicateQuestions;
   /**
    * Multi-stage self-healing parse loop (Phase 6):
    * Pass 1: Primary Two-Stage AI + Layout Analysis parser
@@ -1484,17 +1526,65 @@ export class PdfPaperParserService {
     // Pass 3: Diagram Crop Refinement for broken diagrams
     if (report.brokenDiagramIndices.length > 0) {
       options?.onProgress?.(`Refining crops for ${report.brokenDiagramIndices.length} diagram(s)...`);
+      const healingLayoutCache = new Map<number, PageLayoutModel>();
+      const healingInkCache = new Map<number, PageInkProfile>();
       for (const idx of report.brokenDiagramIndices) {
         const targetQ = allQuestions[idx];
-        if (!targetQ || targetQ.imageUrl) continue;
+        if (!targetQ) continue;
+        if (targetQ.imageUrl && targetQ.imageUrl.length < 200) {
+          targetQ.imageUrl = undefined;
+        }
         try {
-          const cropped = await this.renderAndCropDiagram(file, (targetQ as any).diagramPage || 1, undefined, {
-            qContent: targetQ.content,
-            qNum: (targetQ as any).qNumber || idx + 1,
-            localQNum: (targetQ as any).localQuestionNumber || idx + 1,
-            options: targetQ.options,
-            targetQuestion: targetQ
-          });
+          const primaryPage = (targetQ as any).diagramPage || 1;
+          const bbox = Array.isArray((targetQ as any).diagramBbox) && (targetQ as any).diagramBbox.length === 4
+            ? (targetQ as any).diagramBbox
+            : undefined;
+
+          let cropped = await this.renderAndCropDiagram(
+            file,
+            primaryPage,
+            bbox,
+            {
+              qContent: targetQ.content,
+              qNum: (targetQ as any).qNumber || idx + 1,
+              localQNum: (targetQ as any).localQuestionNumber || idx + 1,
+              options: targetQ.options,
+              targetQuestion: targetQ
+            },
+            healingLayoutCache,
+            healingInkCache
+          );
+
+          // Multi-page healing: If primary page crop failed, check adjacent pages (+1, -1)
+          if (!cropped) {
+            const adjacentPages = [primaryPage + 1, primaryPage - 1].filter(p => p >= 1);
+            for (const adjPage of adjacentPages) {
+              try {
+                const adjCrop = await this.renderAndCropDiagram(
+                  file,
+                  adjPage,
+                  bbox,
+                  {
+                    qContent: targetQ.content,
+                    qNum: (targetQ as any).qNumber || idx + 1,
+                    localQNum: (targetQ as any).localQuestionNumber || idx + 1,
+                    options: targetQ.options,
+                    targetQuestion: targetQ
+                  },
+                  healingLayoutCache,
+                  healingInkCache
+                );
+                if (adjCrop) {
+                  cropped = adjCrop;
+                  (targetQ as any).diagramPage = adjPage;
+                  break;
+                }
+              } catch {
+                // Ignore page out of bounds
+              }
+            }
+          }
+
           if (cropped) {
             targetQ.imageUrl = cropped;
             targetQ.hasDiagram = true;

@@ -138,6 +138,21 @@ describe('ConfidenceScorer — Phase 6 Active Runtime Self-Healing Loop', () => 
       expect(score.overallScore).toBeLessThan(0.95);
     });
 
+    it('penalizes questions with implied diagram phrases that lack hasDiagram flag (R8)', () => {
+      const q = {
+        content: 'As shown in the figure, a particle of mass 10 kg is placed at a point A. When displaced, it reaches the point B.',
+        type: 'MCQ',
+        options: ['10 m/s', '20 m/s', '30 m/s', '40 m/s'],
+        correctAnswer: 'A',
+        hasDiagram: false
+      };
+
+      const score = ConfidenceScorer.scoreQuestion(q);
+      expect(score.diagramQuality).toBe(0.3);
+      expect(score.issues.some(i => i.includes('Statement mentions figure/diagram, but question is not marked hasDiagram'))).toBe(true);
+      expect(score.overallScore).toBeLessThanOrEqual(0.90);
+    });
+
     it('detects unclosed LaTeX math delimiters and prose wrapped in \\text', () => {
       const q = {
         content: 'Evaluate the integral $ \\int x^2 dx where x is positive and \\text{this is a really long piece of English explanation wrapped directly inside LaTeX which should have been outside}.',
@@ -189,11 +204,26 @@ describe('ConfidenceScorer — Phase 6 Active Runtime Self-Healing Loop', () => 
       expect(report.brokenDiagramIndices).toContain(2); // Missing diagram crop
       expect(report.missingAnswerIndices).toContain(3); // Missing answer
     });
+
+    it('includes implied missing diagram questions in brokenDiagramIndices for self-healing (R8)', () => {
+      const questions = [
+        {
+          content: 'As shown in the figures, a body of mass 50 kg is lifted to 20 m.',
+          type: 'MCQ',
+          options: ['1:1', '2:1', 'sqrt(3):2', '1:2'],
+          correctAnswer: 'A',
+          hasDiagram: false
+        }
+      ];
+
+      const report = ConfidenceScorer.scorePaper(questions);
+      expect(report.brokenDiagramIndices).toContain(0);
+    });
   });
 
   describe('3. Self-Healing Mechanisms', () => {
     it('heals surrogate options from a matching heuristic question', () => {
-      const targetQ = {
+      const targetQ: any = {
         content: 'Which of the following is an aromatic compound?',
         type: 'MCQ',
         options: ['(A), (B)', '(C), (D)', 'Option (3)', 'Option (4)'],

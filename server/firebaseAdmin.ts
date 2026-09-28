@@ -45,38 +45,38 @@ export const adminDb = getApps().length > 0 ? getFirestore() : null;
 export const verifyAuth = async (req: any, res: any, next: any) => {
   const authHeader = req.headers.authorization;
 
-  // In non-production or when Firebase Admin Auth is not configured locally, allow guest / dev bypass
-  if (!adminAuth || process.env.NODE_ENV !== 'production') {
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      req.user = { uid: 'guest_user', email: 'guest@jee-os.local' };
-      return next();
-    }
-    const idToken = authHeader.split('Bearer ')[1];
-    if (idToken === 'guest_or_dev_token' || !adminAuth) {
-      req.user = { uid: 'dev_user', email: 'dev@jee-os.local' };
-      return next();
-    }
-    try {
-      const decodedToken = await adminAuth.verifyIdToken(idToken);
-      req.user = decodedToken;
-      return next();
-    } catch {
-      req.user = { uid: 'dev_user_fallback', email: 'dev@jee-os.local' };
-      return next();
-    }
-  }
-
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  if (!authHeader?.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Unauthorized: Missing or invalid Authorization header' });
   }
 
   const idToken = authHeader.split('Bearer ')[1];
+
+  // In local development or testing only, allow DEV_AUTH_TOKEN escape hatch ONLY if explicitly enabled
+  const isDevOrTest = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
+  const allowDevBypass = process.env.ALLOW_DEV_AUTH_BYPASS === 'true';
+
+  if (
+    isDevOrTest &&
+    allowDevBypass &&
+    typeof process.env.DEV_AUTH_TOKEN === 'string' &&
+    process.env.DEV_AUTH_TOKEN.length >= 16 &&
+    idToken === process.env.DEV_AUTH_TOKEN
+  ) {
+    req.user = { uid: 'dev_user', email: 'dev@jee-os.local' };
+    return next();
+  }
+
+  if (!adminAuth) {
+    console.error('[Auth] Firebase Admin not initialized. Cannot verify token.');
+    return res.status(503).json({ error: 'Authentication service unavailable' });
+  }
+
   try {
     const decodedToken = await adminAuth.verifyIdToken(idToken);
     req.user = decodedToken;
     next();
   } catch (error) {
-    console.error('Error verifying auth token', error);
+    console.error('[Auth] Token verification failed:', error);
     return res.status(401).json({ error: 'Unauthorized: Invalid token' });
   }
 };

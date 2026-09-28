@@ -191,6 +191,7 @@ describe('MockTestResult (Revamped UI & Smart Focus)', () => {
             {
               id: 'q-placeholder',
               subject: 'chemistry',
+              chapter: 'Chemical Bonding',
               topic: 'Chemical Bonding',
               difficulty: 'Hard',
               type: 'MCQ',
@@ -265,6 +266,8 @@ describe('MockTestResult (Revamped UI & Smart Focus)', () => {
             {
               id: 'q-bond-7',
               subject: 'chemistry',
+              topic: 'Chemical Bonding',
+              difficulty: 'Medium',
               type: 'MCQ',
               content: 'The correct order of Cl - O bond order is:',
               options: [
@@ -310,6 +313,29 @@ describe('MockTestResult (Revamped UI & Smart Focus)', () => {
 
     // Option A should show "CORRECT ANSWER"
     expect(screen.getByText('CORRECT ANSWER')).toBeInTheDocument();
+  });
+
+  it('opens PrintableTestPaperModal when clicking the PDF button in the result header or question review', async () => {
+    render(<MockTestResult test={dummyTest} attempt={dummyAttempt} onClose={vi.fn()} />);
+
+    // Click the PDF button
+    const pdfButtons = screen.getAllByTitle(/Print Authentic NTA Exam Booklet/i);
+    expect(pdfButtons.length).toBeGreaterThan(0);
+    fireEvent.click(pdfButtons[0]);
+
+    // Printable modal must open and display exporter header & iframe preview
+    await waitFor(() => {
+      expect(screen.getByText('NTA Exam Paper & Solutions Exporter')).toBeInTheDocument();
+      expect(screen.getByTitle('Authentic A4 Question Paper Booklet Preview')).toBeInTheDocument();
+    });
+
+    // Close button in Printable modal should work
+    const closeBtn = screen.getByTitle('Close Exporter (Esc)');
+    fireEvent.click(closeBtn);
+
+    await waitFor(() => {
+      expect(screen.queryByText('NTA Exam Paper & Solutions Exporter')).not.toBeInTheDocument();
+    });
   });
 });
 

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { useDashboardState } from './hooks/useDashboardState';
-import { calculateCurrentStreak, getTodayStudyMinutes } from '@/utils/streakCalculations';
+import { getTodayStudyMinutes } from '@/utils/streakCalculations';
 import { springs } from '@/constants/motion';
 import { audioEngine } from '@/utils/audioEngine';
 import { 
@@ -37,28 +37,18 @@ export function DevDashboardPage() {
   const chapters = useStudyBrainStore(s => s.chapters);
   const mistakes = useStudyBrainStore(s => (s as any).mistakes || []);
 
-  const minStreakMins = Math.round((settings?.minStreakHours ?? 0.5) * 60);
-  const computedStreak = useMemo(() => calculateCurrentStreak(studySessions, minStreakMins), [studySessions, minStreakMins]);
+  const computedStreak = xp?.streak ?? 0;
   const todayStudyMins = useMemo(() => getTodayStudyMinutes(studySessions), [studySessions]);
 
   // Plasma reactor rotation pulse
   const [reactorPower, setReactorPower] = useState(1);
   const [activeMagiCore, setActiveMagiCore] = useState<'melchior' | 'balthasar' | 'casper'>('melchior');
 
-  // Math, Physics, Chem Chapters Breakdown
-  const mathChaps = useMemo(() => chapters.filter(c => c.subject === 'maths'), [chapters]);
-  const physChaps = useMemo(() => chapters.filter(c => c.subject === 'physics'), [chapters]);
-  const chemChaps = useMemo(() => chapters.filter(c => c.subject === 'chemistry'), [chapters]);
-
-  const calcMastery = (chaps: any[]) => {
-    if (!chaps.length) return 0;
-    const sum = chaps.reduce((acc, c) => acc + (c.completion || 0), 0);
-    return Math.round(sum / chaps.length);
-  };
-
-  const mathMastery = calcMastery(mathChaps);
-  const physMastery = calcMastery(physChaps);
-  const chemMastery = calcMastery(chemChaps);
+  // Canonical subject syllabus completion from KnowledgeEngine / StudyBrainRuntime
+  const syllabusProgress = useStudyBrainStore(s => s.syllabusProgress);
+  const mathMastery = syllabusProgress?.maths?.percentage ?? 0;
+  const physMastery = syllabusProgress?.physics?.percentage ?? 0;
+  const chemMastery = syllabusProgress?.chemistry?.percentage ?? 0;
 
   // Active missions per subject
   const mathMission = todayMissions.find(m => m.subject === 'maths' && !m.completed);
@@ -324,7 +314,7 @@ export function DevDashboardPage() {
                 <span>{physMastery}%</span>
               </div>
               <div className="text-xl font-black font-mono text-white">
-                {physChaps.length} Chapters
+                {syllabusProgress?.physics?.total ?? 0} Chapters
               </div>
               <div className="w-full h-1.5 rounded-full bg-zinc-900 overflow-hidden">
                 <div className="h-full bg-sky-400 rounded-full" style={{ width: `${physMastery}%` }} />
@@ -339,7 +329,7 @@ export function DevDashboardPage() {
                 <span>{mathMastery}%</span>
               </div>
               <div className="text-xl font-black font-mono text-white">
-                {mathChaps.length} Chapters
+                {syllabusProgress?.maths?.total ?? 0} Chapters
               </div>
               <div className="w-full h-1.5 rounded-full bg-zinc-900 overflow-hidden">
                 <div className="h-full bg-purple-400 rounded-full" style={{ width: `${mathMastery}%` }} />
@@ -354,7 +344,7 @@ export function DevDashboardPage() {
                 <span>{chemMastery}%</span>
               </div>
               <div className="text-xl font-black font-mono text-white">
-                {chemChaps.length} Chapters
+                {syllabusProgress?.chemistry?.total ?? 0} Chapters
               </div>
               <div className="w-full h-1.5 rounded-full bg-zinc-900 overflow-hidden">
                 <div className="h-full bg-emerald-400 rounded-full" style={{ width: `${chemMastery}%` }} />

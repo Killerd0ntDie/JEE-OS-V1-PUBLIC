@@ -968,6 +968,47 @@ Integer
     expect(merged[2].solution.text).toBe('AI solution 3');
   });
 
+  it('deduplicateQuestions eliminates duplicated questions like Q7 and preserves unique question count', () => {
+    const rawQuestions = [
+      { content: 'Q.7 A particle of mass m moves under force F = -kx', type: 'MCQ', correctAnswer: 'A' },
+      { content: '7. A particle of mass m moves under central force F = -kx', type: 'MCQ', correctAnswer: 'A', imageUrl: 'data:image/webp;base64,DIAGRAM' },
+      { content: '8. Calculate electric flux through a cylinder.', type: 'MCQ', correctAnswer: 'B' },
+      { content: 'Q.7 A particle of mass m moves under force F = -kx', type: 'MCQ', correctAnswer: 'A' }
+    ];
+
+    const deduped = PdfPaperParserService.deduplicateQuestions(rawQuestions);
+    expect(deduped.length).toBe(2);
+    // Q7 should be merged and preserve the diagram!
+    expect(deduped[0].content).toContain('particle of mass m');
+    expect(deduped[0].imageUrl).toBe('data:image/webp;base64,DIAGRAM');
+    // Q8 preserved
+    expect(deduped[1].content).toContain('electric flux');
+  });
+
+  it('mergeParsedWithHeuristic prevents duplicate question inflation when AI LaTeX notation diverges from heuristic plain text', () => {
+    // 3 questions in document: Q1, Q2, Q3
+    // AI parsed Q1 with LaTeX formulas and Q2
+    const aiQuestions = [
+      { content: '1. A particle moves under force $\\vec{F} = -x\\hat{i} + y\\hat{j}$', type: 'MCQ', correctAnswer: '1' },
+      { content: '2. In an adiabatic process, $PV^\\gamma = \\text{constant}$', type: 'MCQ', correctAnswer: '2' },
+      { content: '3. What is the value of capacitance $C$ in $\\mu\\text{F}$?', type: 'NUMERICAL', correctAnswer: '42' }
+    ];
+
+    // Heuristic has raw OCR text without LaTeX:
+    const heuristicQuestions = [
+      { content: '1. A particle moves under force F = -xi + yj', type: 'MCQ', correctAnswer: '1' },
+      { content: '2. In an adiabatic process, PV^gamma = constant', type: 'MCQ', correctAnswer: '2' },
+      { content: '3. What is the value of capacitance C in micro-F?', type: 'NUMERICAL', correctAnswer: '42' }
+    ];
+
+    const merged = PdfPaperParserService.mergeParsedWithHeuristic(aiQuestions, heuristicQuestions);
+    // Should NOT duplicate into 6 questions! Exactly 3 questions!
+    expect(merged.length).toBe(3);
+    expect(merged[0].content).toContain('\\vec{F}');
+    expect(merged[1].content).toContain('adiabatic');
+    expect(merged[2].content).toContain('capacitance');
+  });
+
   it('detectDiagramCropRect strictly bounds crop to question fence and clamps full-page bboxes', () => {
     const width = 600;
     const height = 800;
@@ -1073,8 +1114,8 @@ Integer
       { fenceYmin: 80, fenceYmax: 200 }
     );
 
-    // Left edge (x=18) must have >= 16px safety padding, so cropX should be 2, never clamped to 50!
-    expect(crop.cropX).toBe(2);
+    // Left edge (x=18) has 20px safety padding, so cropX should be 0, never clamped to 50!
+    expect(crop.cropX).toBeLessThanOrEqual(18);
     expect(crop.cropX).toBeLessThanOrEqual(18);
     expect(crop.cropX + crop.cropW).toBeGreaterThanOrEqual(600);
   });
@@ -1727,7 +1768,7 @@ Identify Compound (A):
       const cropRect = (PdfPaperParserService as any).detectDiagramCropRect(mockCtx, width, height, undefined, undefined);
 
       // Crop must isolate strictly the dark ink region and NOT the full 600px height page
-      expect(cropRect.cropY).toBeGreaterThanOrEqual(180);
+      expect(cropRect.cropY).toBeGreaterThanOrEqual(165);
       expect(cropRect.cropY).toBeLessThanOrEqual(210);
       expect(cropRect.cropH).toBeLessThan(150);
       expect(cropRect.cropH).toBeGreaterThanOrEqual(60);

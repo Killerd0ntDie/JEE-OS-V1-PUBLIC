@@ -403,7 +403,7 @@ export class StructuralIntegrityValidator {
 
       // Check for broken tiny placeholder image
       if (q.imageUrl && typeof q.imageUrl === 'string') {
-        if (q.imageUrl.length < 150) {
+        if (q.imageUrl.length < 200) {
           suspiciousQuestions.push(i + 1);
           failedIndices.add(i);
           issues.push(`Q${i + 1}: Attached diagram data URL is suspiciously short (${q.imageUrl.length} chars). Possible blank crop.`);

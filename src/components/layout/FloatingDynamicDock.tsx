@@ -9,7 +9,8 @@ import { useShallow } from 'zustand/react/shallow';
 import { JeeOsLogo } from '@/components/shared/JeeOsLogo';
 import { ChapterTelemetry } from '@jee-os/engines';
 import { useToast } from '@/components/ui/ToastProvider';
-import { calculateCurrentStreak, getTodayStudyMinutes } from '@/utils/streakCalculations';
+import { storageAdapter } from '@/services/StorageAdapter';
+import { getTodayStudyMinutes } from '@/utils/streakCalculations';
 import { calculateLevelFromXP, getTitleAndColor } from '@/utils/levelingCalculations';
 
 function DockTooltip({
@@ -593,10 +594,9 @@ export function FloatingDynamicDock({
     actions: s.actions
   })));
 
-  // Telemetry Calculations
+  // Telemetry Calculations - Canonical Single Source of Truth
+  const effectiveStreak = xp?.streak ?? 0;
   const minStreakMins = Math.round((settings?.minStreakHours ?? 0.5) * 60);
-  const computedStreak = useMemo(() => calculateCurrentStreak(studySessions, minStreakMins), [studySessions, minStreakMins]);
-  const effectiveStreak = computedStreak;
   const todayStudyMins = useMemo(() => getTodayStudyMinutes(studySessions), [studySessions]);
   
   const formatStudyTime = (hours: number): string => {
@@ -613,12 +613,7 @@ export function FloatingDynamicDock({
   // Active popover menu state (telemetry & system)
   const [activeMenu, setActiveMenu] = useState<'streak' | 'time' | 'notifications' | 'profile' | null>(null);
   const [isDockPinned, setIsDockPinned] = useState(() => {
-    try {
-      const saved = localStorage.getItem('jeeos_dock_pinned');
-      return saved !== null ? saved === 'true' : true;
-    } catch {
-      return true;
-    }
+    return storageAdapter.getDockPinned();
   });
 
   const [isDockHidden, setIsDockHidden] = useState(false);
@@ -628,20 +623,11 @@ export function FloatingDynamicDock({
 
   // Notifications logic
   const [readNotificationIds, setReadNotificationIds] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem('jeeos_read_notifications');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
+    return storageAdapter.getReadNotifications();
   });
 
   useEffect(() => {
-    try {
-      localStorage.setItem('jeeos_read_notifications', JSON.stringify(readNotificationIds));
-    } catch (e) {
-      console.warn("Failed to persist notification read IDs:", e);
-    }
+    storageAdapter.setReadNotifications(readNotificationIds);
   }, [readNotificationIds]);
 
   // Compute System Notifications
@@ -683,13 +669,13 @@ export function FloatingDynamicDock({
         id: 'notif-streak-current',
         type: 'success' as const,
         tag: 'SYSTEM STREAK',
-        title: `${computedStreak}-Day Consistency Streak`,
+        title: `${effectiveStreak}-Day Consistency Streak`,
         desc: `XP Level ${xp?.level || 1} • Total XP: ${xp?.total || 0}. Keep momentum going!`,
         targetPath: '/analytics',
         time: 'Active'
       }
     ];
-  }, [chapterTelemetryMap, todayMissions, computedStreak, xp]);
+  }, [chapterTelemetryMap, todayMissions, effectiveStreak, xp]);
 
   const unreadNotifications = notifications.filter(n => !readNotificationIds.includes(n.id));
 

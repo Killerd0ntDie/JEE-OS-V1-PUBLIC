@@ -5,7 +5,7 @@ export class MathErrorBoundary extends React.Component<
   { children: React.ReactNode; fallbackText?: string },
   { hasError: boolean; error?: Error }
 > {
-  public state = { hasError: false };
+  public state: { hasError: boolean; error?: Error } = { hasError: false };
 
   public static getDerivedStateFromError(error: Error) {
     return { hasError: true, error };
@@ -30,10 +30,23 @@ export class MathErrorBoundary extends React.Component<
   }
 }
 
+export const KATEX_MACROS = {
+  '\\degree': '^\\circ',
+  '\\textdegree': '^\\circ',
+  '\\angstrom': '\\text{\\AA}',
+  '\\AA': '\\text{\\AA}',
+  '\\celsius': '^\\circ\\text{C}',
+  '\\ce': '\\text',
+  '\\pu': '\\text',
+  '\\unit': '\\text'
+};
+
 export const BlockMath = (props: any) => {
+  const settings = { macros: KATEX_MACROS, throwOnError: false, ...props.settings };
   return (
     <KatexBlock
       {...props}
+      settings={settings}
       renderError={(_error: Error) => (
         <span className="font-sans text-inherit">{props.math || ''}</span>
       )}
@@ -42,9 +55,11 @@ export const BlockMath = (props: any) => {
 };
 
 export const InlineMath = (props: any) => {
+  const settings = { macros: KATEX_MACROS, throwOnError: false, ...props.settings };
   return (
     <KatexInline
       {...props}
+      settings={settings}
       renderError={(_error: Error) => (
         <span className="font-sans text-inherit">{props.math || ''}</span>
       )}
@@ -86,9 +101,11 @@ const renderSafeMath = (mathStr: string) => {
  * This helper detects prose blocks inside math delimiters and unpacks them into normal text with proper
  * spacing, keeping only variables ($x$ =, $P$ =) and chemical formulas ($\text{O}_2$) formatted in math.
  */
-export function unpackProseFromMath(text: string): string {
-  if (!text) return '';
-  return text.replace(/(\$\$[\s\S]*?\$\$|\$[^\$\n]+?\$)/g, (fullMatch, block) => {
+export function unpackProseFromMath(text: unknown): string {
+  if (text === null || text === undefined) return '';
+  const str = typeof text === 'string' ? text : String(text);
+  if (!str.trim()) return '';
+  return str.replace(/(\$\$[\s\S]*?\$\$|\$[^\$\n]+?\$)/g, (fullMatch, block) => {
     const isDouble = block.startsWith('$$');
     const inner = isDouble ? block.slice(2, -2) : block.slice(1, -1);
 
@@ -187,7 +204,19 @@ export const sanitizeCorruptedLatex = (str: string): string => {
     .replace(/\right/g, '\\right')
     // Repair stripped "ext{...}" or "ext ChemicalSpecies"
     .replace(/(?<![a-zA-Z\\])ext\{([^{}]+)\}/g, '\\text{$1}')
-    .replace(/(?<![a-zA-Z\\])ext\s+([A-Z][a-z0-9_]*)/g, '\\text{$1}');
+    .replace(/(?<![a-zA-Z\\])ext\s+([A-Z][a-z0-9_]*)/g, '\\text{$1}')
+    // Normalize unsupported physics & chemistry macros for KaTeX
+    .replace(/\\degree\b/g, '^\\circ')
+    .replace(/\\textdegree\b/g, '^\\circ')
+    .replace(/\\angstrom\b/g, '\\text{\\AA}')
+    .replace(/\\celsius\b/g, '^\\circ\\text{C}')
+    .replace(/\\ce\{([^{}]+)\}/g, (_m, inner) => {
+      const formatted = inner.replace(/([A-Z][a-z]?)(_?\d+)?/g, (_x: string, elem: string, num: string) => {
+        const cleanNum = num ? num.replace(/^_/, '') : '';
+        return cleanNum ? `\\text{${elem}}_${cleanNum}` : `\\text{${elem}}`;
+      });
+      return formatted;
+    });
 };
 
 export const normalizeChemistryAndOrbitals = (str: string): string => {
@@ -201,6 +230,19 @@ export const normalizeChemistryAndOrbitals = (str: string): string => {
     .replace(/(?<![a-zA-Z\\])ightarrow\b/g, '\\rightarrow')
     .replace(/\\n(?![a-zA-Z])/g, '\n')
     .replace(/\\r(?![a-zA-Z])/g, '');
+
+  // Unit vector glyphs & cap notation normalization
+  out = out
+    .replace(/î/g, '\\hat{i}')
+    .replace(/ĵ/g, '\\hat{j}')
+    .replace(/k̂|k\u0302/gu, '\\hat{k}')
+    .replace(/\b([ijk])\s*[-–]?\s*caps?\b/gi, (_m, c) => `\\hat{${c.toLowerCase()}}`)
+    .replace(/(?<![A-Za-z0-9\\])[ˆ\^]\s*([ijk])\b/gi, (_m, c) => `\\hat{${c.toLowerCase()}}`)
+    .replace(/(?<![A-Za-z0-9\\])([ijk])\s*[ˆ\^]/gi, (_m, c) => `\\hat{${c.toLowerCase()}}`)
+    .replace(/(?<![A-Za-z0-9\\])\b([0-9.]+|[a-zA-Z]{1,2})?\s*([ijk])\^/gi, (_m, prefix, comp) => {
+      return (prefix ? prefix : '') + `\\hat{${comp.toLowerCase()}}`;
+    })
+    .replace(/\b([0-9.]+|[a-zA-Z]{1,2}|\d+[a-zA-Z])\s+\\hat\{([ijk])\}/g, '$1\\hat{$2}');
 
   // Re-join Greek symbols or short math tokens isolated on their own line due to PDF baseline shifts
   // e.g. "The number of and \sigma and\n\pi\nbonds in dicyanogen..." -> "The number of \sigma and \pi bonds in dicyanogen..."
@@ -346,10 +388,10 @@ export const normalizeChemistryAndOrbitals = (str: string): string => {
   });
 
   // Angle comparison and degree expressions (e.g. < 109°28', < 120°, > 120°, 112°, 120^\circ)
-  out = out.replace(/([<>]=?)\s*(\d+)(?:\^\\circ|\s*°)(?:\s*(\d+)')?/g, (_m, op, deg, min) => {
+  out = out.replace(/([<>]=?)\s*(\d+)(?:\^\\circ|\s*[º°])(?:\s*(\d+)')?/g, (_m, op, deg, min) => {
     return min ? `$${op} ${deg}^\\circ ${min}'$` : `$${op} ${deg}^\\circ$`;
   });
-  out = out.replace(/(?<![\$0-9a-zA-Z])(\d+)(?:\^\\circ|°)(?!\$)/g, '$$$1^\\circ$');
+  out = out.replace(/(?<![\$0-9a-zA-Z])(\d+)(?:\^\\circ|[º°])(?!\$)/g, (_m, n) => `$${n}^\\circ$`);
 
   // Bare angle hat notation outside math: \widehat{HCH} or \widehat{\text{HCH}} or \widehat{CNC}
   out = out.replace(/\\widehat\s*\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g, (match) => '$' + match + '$');
@@ -413,6 +455,34 @@ export const normalizeChemistryAndOrbitals = (str: string): string => {
 
   // 3. Bare Greek symbols outside math: \pi, \sigma, \lambda, \nu, \theta, \alpha, \beta, \mu, \Delta (including powers e.g. \sigma^2)
   out = out.replace(/(?<![\$\\])\\(pi|sigma|alpha|beta|theta|lambda|nu|mu|omega|gamma|delta|Delta|Sigma|Omega|phi|psi)(?:\^([a-zA-Z0-9]+|\{[^{}]+\})|_([a-zA-Z0-9]+|\{[^{}]+\}))?\b(?!\$)/g, (match) => '$' + match + '$');
+
+  // 3b. Physics vector components: 2 i ^ + b ^ j + k ^ -> 2\hat{i} + b\hat{j} + \hat{k}
+  out = out.replace(/\\upsilon\b/g, 'v');
+  out = out.replace(/(?<![a-zA-Z\\])([+-]?\s*\d*\s*)i\s*[\^ˆ]/g, '$1\\hat{i}');
+  out = out.replace(/(?<![a-zA-Z\\])([+-]?\s*\d*\s*)j\s*[\^ˆ]/g, '$1\\hat{j}');
+  out = out.replace(/(?<![a-zA-Z\\])([+-]?\s*\d*\s*)k\s*[\^ˆ]/g, '$1\\hat{k}');
+  out = out.replace(/(\d+)\s*[º°]/g, (_m, n) => `$${n}^\\circ$`);
+
+  // 3c. Physics units with powers: N/m 2, m/s 2, ms –1
+  out = out.replace(/\bN\/m\s*2\b/g, '$\\text{N/m}^2$');
+  out = out.replace(/\bm\/s\s*2\b/g, '$\\text{m/s}^2$');
+  out = out.replace(/\bms\s*[–-]\s*1\b/g, '$\\text{ms}^{-1}$');
+  out = out.replace(/\bms\s*[–-]\s*2\b/g, '$\\text{ms}^{-2}$');
+
+  // 3d. Vector equations and expressions outside math: F = 2\hat{i} + b\hat{j} + \hat{k}, \hat{i} - 2\hat{j} - \hat{k}, 2\hat{i}, \hat{i}
+  out = out.replace(
+    /(?<![a-zA-Z0-9\\$])(?:([a-zA-Z]|\\[a-zA-Z]+)\s*=\s*)?([-+]?\s*(?:[0-9.]+|[a-zA-Z]{1,2}|\d+[a-zA-Z])?\\hat\{[ijk]\}(?:\s*[-+]\s*(?:[0-9.]+|[a-zA-Z]{1,2}|\d+[a-zA-Z])?\\hat\{[ijk]\})*)(?![a-zA-Z0-9\\$])/g,
+    (_match, eqVar, vecBody) => {
+      let cleanBody = vecBody.replace(/\s*([+-])\s*/g, ' $1 ').trim();
+      if (cleanBody.startsWith('+ ')) cleanBody = cleanBody.slice(2);
+      if (cleanBody.startsWith('- ')) cleanBody = '-' + cleanBody.slice(2);
+      if (eqVar) {
+        const varSymbol = eqVar.startsWith('\\') ? eqVar : `\\vec{${eqVar}}`;
+        return `$${varSymbol} = ${cleanBody}$`;
+      }
+      return `$${cleanBody}$`;
+    }
+  );
 
   // 4. Bare LaTeX math constructs outside math: fractions, square roots, vectors, integrals, sums, limits, operators
   out = out.replace(/(?:\\(?:dfrac|cfrac|frac)\s*\{[^{}]*\}\s*\{[^{}]*\}|\\sqrt(?:\s*\[[^\]]*\])?\s*\{[^{}]*\}|\\(?:vec|hat|bar|dot|ddot|tilde)\s*\{[^{}]*\}|\\(?:int|iint|iiint|oint|sum|prod|lim)(?:_[a-zA-Z0-9]+|\_\{[^{}]*\})?(?:\^[a-zA-Z0-9]+|\^\{[^{}]*\})?|\\(?:pm|mp|times|div|approx|neq|leq|geq|infty|partial|nabla|equiv|longleftrightarrow|leftrightarrow|longrightarrow|rightleftharpoons)\b)/g, (match) => '$' + match + '$');
@@ -580,11 +650,15 @@ export const normalizeMathDelimiters = (str: string): string => {
     .replace(/\\\\\(([\s\S]*?)\\\\\)/g, (_m, eq) => `$${eq}$`);
 
   // Auto-wrap bare LaTeX block environments like \begin{array} ... \end{array} in display math $$...$$
-  // and map tabular to array for KaTeX compatibility
-  clean = clean.replace(/(?<!\$)\s*(\\begin\{(?:array|matrix|pmatrix|bmatrix|vmatrix|Vmatrix|cases|aligned|gathered|tabular)\*?\}[\s\S]*?\\end\{(?:array|matrix|pmatrix|bmatrix|vmatrix|Vmatrix|cases|aligned|gathered|tabular)\*?\})\s*(?!\$)/g, (_m, env) => {
+  // and map tabular/align/equation to array/aligned for KaTeX compatibility
+  clean = clean.replace(/(?<!\$)\s*(\\begin\{(?:equation|align|aligned|gathered|array|matrix|pmatrix|bmatrix|vmatrix|Vmatrix|cases|tabular)\*?\}[\s\S]*?\\end\{(?:equation|align|aligned|gathered|array|matrix|pmatrix|bmatrix|vmatrix|Vmatrix|cases|tabular)\*?\})\s*(?!\$)/g, (_m, env) => {
     const katexEnv = env
       .replace(/\\begin\{tabular\}/g, '\\begin{array}')
       .replace(/\\end\{tabular\}/g, '\\end{array}')
+      .replace(/\\begin\{align\*?\}/g, '\\begin{aligned}')
+      .replace(/\\end\{align\*?\}/g, '\\end{aligned}')
+      .replace(/\\begin\{equation\*?\}/g, '\\begin{aligned}')
+      .replace(/\\end\{equation\*?\}/g, '\\end{aligned}')
       .replace(/\n\s*\n+/g, '\n')
       .trim();
     return `$$${katexEnv}$$`;
@@ -844,7 +918,7 @@ function renderInlineContent(rawLine: string): React.ReactNode {
   // Strip stray heading hashes like "### The Core Formula" when passed into inline renderers
   const line = (rawLine || '').replace(/(?:^|\s)#{1,6}\s+/g, ' ').trim();
   if (line.includes('$')) {
-    const parts = line.split(/(\$\$.*?\$\$|\$.*?\$)/g);
+    const parts = line.split(/(\$\$[\s\S]*?\$\$|\$[^\$\n]+?\$)/g);
     return parts.map((part, i) => {
       if (part.startsWith('$$') && part.endsWith('$$')) {
         const math = part.slice(2, -2).trim();
@@ -1232,6 +1306,7 @@ export const RichTextRenderer = React.memo(({
       // Split between subsequent variable definitions e.g. "x = ... y = ... z = ..." or "$P$ = ... $Q$ = ... $R$ = ..."
       // Guard: NEVER match after a chemical bond (- or + or =) or inside chemical formulas (like N = N)
       .replace(/(?<=[a-zA-Z0-9\).,])(?<![-–+=])\s+(?=(?:\$[a-zA-Z]\$|[a-zA-Z])\s*=\s*(?:[0-9$]|total\b|number\b|the\b|no\.?\b|sigma\b|pi\b|delta\b|non\b))/gi, '\n• ')
+
       // Split after colon before first item e.g. "changes: i] NO ->" -> "changes:\ni] NO ->"
       .replace(/(?<=:)\s+(?=[ivxlcdm\d]+\]|\([ivxlcdm\d]+\)|S\d+\s*:|\b[A-F]\)\s+[A-Z0-9$])/gi, '\n')
       // Split between subsequent items e.g. "NO+ ii] O2-" -> "NO+\nii] O2-"
@@ -1256,6 +1331,11 @@ export const RichTextRenderer = React.memo(({
   // 6. Normalize math delimiters (handling multi-line \[...\], \(...\), $$...$$) before line splitting
   cleanContent = normalizeMathDelimiters(cleanContent);
 
+  // For options: flatten internal line breaks so option text stays cohesive on a single line (fixes Q13)
+  if (optIndex !== undefined) {
+    cleanContent = cleanContent.replace(/\r?\n\s*/g, ' ');
+  }
+
   const lines = cleanContent.split('\n');
 
   return (
@@ -1272,14 +1352,26 @@ export const RichTextRenderer = React.memo(({
           );
         })}
         {imageUrl && (
-          <div className="my-3 flex flex-col items-center justify-center">
-            <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white p-2 shadow-md">
+          <div className="my-6 flex flex-col items-center justify-center">
+            <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white p-3.5 shadow-md max-w-full overflow-hidden transition-all duration-200 hover:shadow-lg">
               <img
                 src={imageUrl}
                 alt="Question Diagram"
-                className="max-h-72 max-w-full object-contain"
+                className="max-h-[500px] sm:max-h-[600px] w-auto max-w-full object-contain cursor-zoom-in transition-all duration-200"
+                onClick={(e) => {
+                  const img = e.currentTarget;
+                  if (img.classList.contains('cursor-zoom-in')) {
+                    img.classList.remove('cursor-zoom-in', 'max-h-[500px]', 'sm:max-h-[600px]');
+                    img.classList.add('cursor-zoom-out', 'max-h-none');
+                  } else {
+                    img.classList.remove('cursor-zoom-out', 'max-h-none');
+                    img.classList.add('cursor-zoom-in', 'max-h-[500px]', 'sm:max-h-[600px]');
+                  }
+                }}
+                title="Click diagram to toggle full size zoom"
               />
             </div>
+            <span className="text-[10px] text-zinc-500 mt-1 select-none">Click diagram to toggle full zoom</span>
           </div>
         )}
       </div>
@@ -1349,7 +1441,7 @@ const renderExplanationLine = (rawLine: string) => {
 
   // 2. Math display card for block math in explanations
   if (line.includes('$')) {
-    const parts = line.split(/(\$\$.*?\$\$|\$.*?\$)/g);
+    const parts = line.split(/(\$\$[\s\S]*?\$\$|\$[^\$\n]+?\$)/g);
     return parts.map((part, i) => {
       if (part.startsWith('$$') && part.endsWith('$$')) {
         const math = part.slice(2, -2).trim();

@@ -1,4 +1,5 @@
 import React, { createContext, useEffect, useState } from 'react';
+import { storageAdapter } from '@/services/StorageAdapter';
 
 export type Theme = 'dark' | 'light' | 'system';
 
@@ -19,11 +20,11 @@ export const ThemeProviderContext = createContext<ThemeProviderState | undefined
 export function ThemeProvider({
   children,
   defaultTheme = 'system',
-  storageKey = 'jeeos-theme',
+  storageKey = 'jeeos_theme',
   ...props
 }: ThemeProviderProps) {
   const [theme, setTheme] = useState<Theme>(
-    () => (localStorage.getItem(storageKey) as Theme) || defaultTheme
+    () => (storageAdapter.getItem<Theme>(storageKey) as Theme) || defaultTheme
   );
   
   const [resolvedTheme, setResolvedTheme] = useState<'dark' | 'light'>('dark');
@@ -69,7 +70,7 @@ export function ThemeProvider({
     theme,
     resolvedTheme,
     setTheme: (theme: Theme) => {
-      localStorage.setItem(storageKey, theme);
+      storageAdapter.setItem(storageKey, theme);
       setTheme(theme);
     },
   };

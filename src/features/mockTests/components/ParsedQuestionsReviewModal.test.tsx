@@ -25,6 +25,9 @@ const mockTest: MockTest = {
           correctAnswer: '1', // B
           type: 'MCQ',
           subject: 'physics',
+          chapter: 'Kinematics',
+          topic: 'Projectiles',
+          difficulty: 'Medium',
           marks: { correct: 4, incorrect: -1 },
           explanation: 'Using $H = u^2 / (2g)$, we get $400 / 20 = 20\\text{ m}$. Hence, Option (B) is correct.'
         },
@@ -34,6 +37,9 @@ const mockTest: MockTest = {
           correctAnswer: '50',
           type: 'NUMERICAL',
           subject: 'physics',
+          chapter: 'Laws of Motion',
+          topic: 'Forces',
+          difficulty: 'Medium',
           marks: { correct: 4, incorrect: 0 },
           explanation: 'Using $F = ma$, $F = 5 \\times 10 = 50\\text{ N}$.'
         }
@@ -49,6 +55,9 @@ const mockTest: MockTest = {
           correctAnswer: '0', // A
           type: 'MCQ',
           subject: 'chemistry',
+          chapter: 'Chemical Bonding',
+          topic: 'Hybridization',
+          difficulty: 'Medium',
           marks: { correct: 4, incorrect: -1 }
         }
       ]

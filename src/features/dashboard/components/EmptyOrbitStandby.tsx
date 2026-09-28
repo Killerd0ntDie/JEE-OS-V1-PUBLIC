@@ -149,8 +149,7 @@ export const EmptyOrbitStandby = React.memo(function EmptyOrbitStandby({
         b.dayIndex === dayIdx &&
         !b.completed &&
         b.taskType !== 'Break' &&
-        b.subject !== 'break' &&
-        b.subject !== 'Break'
+        (b.subject as string).toLowerCase() !== 'break'
       );
 
       for (const block of dayBlocks) {
@@ -170,8 +169,7 @@ export const EmptyOrbitStandby = React.memo(function EmptyOrbitStandby({
         b.dayIndex === currentDayOfWeek &&
         !b.completed &&
         b.taskType !== 'Break' &&
-        b.subject !== 'break' &&
-        b.subject !== 'Break'
+        (b.subject as string).toLowerCase() !== 'break'
       );
       for (const block of todayBlocks) {
         const key = (block.chapterName || block.activity || '').toLowerCase().trim();

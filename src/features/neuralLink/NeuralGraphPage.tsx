@@ -23,6 +23,7 @@ import { AnimatedEnergyEdge } from './components/AnimatedEnergyEdge';
 import { springs } from '@/constants/motion';
 import { getSubjectTheme } from '@/constants/subjectTheme';
 import { FORMULA_BANK } from '@/constants/formulaBank';
+import { storageAdapter } from '@/services/StorageAdapter';
 
 const nodeTypes = {
   topicNode: TopicNode,
@@ -91,7 +92,8 @@ export const NeuralGraphPage = ({ onNavigate }: { onNavigate?: (pageId: import('
 
     subjectChaps.forEach(c => {
       const tel = chapterTelemetryMap?.[c.id];
-      const stage = tel?.syllabusStage || (c.completion >= 90 ? 'Mastered' : c.completion > 0 ? 'In Progress' : 'Not Started');
+      const isMastered = c.status === 'Mastered' || (typeof c.completion === 'number' && c.completion >= 100);
+      const stage = tel?.syllabusStage || (isMastered ? 'Mastered' : c.completion > 0 ? 'In Progress' : 'Not Started');
       const score = tel?.masteryScore || c.completion || 0;
       totalMastery += score;
 
@@ -164,7 +166,7 @@ export const NeuralGraphPage = ({ onNavigate }: { onNavigate?: (pageId: import('
       taskName: `Neural Target: Revise ${chapter.name}`,
       subject: chapter.subject,
       chapter: chapter.name,
-      type: (telemetry?.isMastered || chapter.completion >= 90) ? 'Revise Formulas' : 'Review Mistakes',
+      type: (telemetry?.isMastered || chapter.status === 'Mastered' || chapter.completion >= 100) ? 'Revise Formulas' : 'Review Mistakes',
       duration: 35,
       xp: 50
     });
@@ -380,7 +382,7 @@ export const NeuralGraphPage = ({ onNavigate }: { onNavigate?: (pageId: import('
           <button
             onClick={() => {
               const prompt = `Can you analyze my ${activeSubject} syllabus graph? I have ${subjectStats.mastered} mastered chapters, ${subjectStats.inProgress} in progress, and ${subjectStats.decaying} decaying chapters. What prerequisite pathways should I prioritize today?`;
-              sessionStorage.setItem('pendingCoachPrompt', prompt);
+              storageAdapter.setSession('jeeos_pending_coach_prompt', prompt);
               onNavigate?.('ai-coach');
             }}
             className="flex items-center gap-1 px-3 py-1 bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 rounded-xl border border-indigo-500/40 font-mono font-bold uppercase transition-all cursor-pointer text-[11px] shadow-sm active:scale-95"
@@ -483,7 +485,7 @@ export const NeuralGraphPage = ({ onNavigate }: { onNavigate?: (pageId: import('
                   <div className="p-2.5 rounded-xl bg-black/40 border border-white/5 space-y-0.5">
                     <span className="text-zinc-500 uppercase text-[9px] block">SYLLABUS STAGE</span>
                     <span className="font-bold text-indigo-400 truncate block uppercase">
-                      {selectedChapter.telemetry?.syllabusStage || (selectedChapter.chapter.completion >= 90 ? 'Mastered' : 'In Progress')}
+                      {selectedChapter.telemetry?.syllabusStage || ((selectedChapter.chapter.status === 'Mastered' || selectedChapter.chapter.completion >= 100) ? 'Mastered' : 'In Progress')}
                     </span>
                   </div>
 
@@ -599,7 +601,7 @@ export const NeuralGraphPage = ({ onNavigate }: { onNavigate?: (pageId: import('
                   <span>Synaptic Recommendation</span>
                 </div>
                 <p className="text-xs text-zinc-300 leading-relaxed font-sans">
-                  {selectedChapter.telemetry?.isMastered || selectedChapter.chapter.completion >= 90
+                  {selectedChapter.telemetry?.isMastered || selectedChapter.chapter.status === 'Mastered' || selectedChapter.chapter.completion >= 100
                     ? 'Chapter is solidly mastered. Conduct spaced repetition drills every 14 days to prevent synaptic forgetting.'
                     : (selectedChapter.chapter.lastRevisionDaysAgo ?? 0) > 14
                     ? 'High memory decay detected! Solve 15 PYQs or review formula cards to restore neural retention.'
@@ -621,7 +623,7 @@ export const NeuralGraphPage = ({ onNavigate }: { onNavigate?: (pageId: import('
               <button
                 onClick={() => {
                   const prompt = `Let's deep dive into "${selectedChapter.chapter.name}" for ${selectedChapter.chapter.subject}. My current mastery is ${selectedChapter.telemetry?.masteryScore || selectedChapter.chapter.completion || 0}%. Can you give me a rapid concept breakdown and top 3 tricky PYQ traps?`;
-                  sessionStorage.setItem('pendingCoachPrompt', prompt);
+                  storageAdapter.setSession('jeeos_pending_coach_prompt', prompt);
                   onNavigate?.('ai-coach');
                 }}
                 className="w-full py-2.5 px-3 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-white/10 text-zinc-200 hover:text-white font-mono font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"

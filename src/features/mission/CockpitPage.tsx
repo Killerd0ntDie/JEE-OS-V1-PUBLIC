@@ -3,6 +3,7 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { MissionMode } from './MissionMode';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { SubjectId } from '@/types';
+import { storageAdapter } from '@/services/StorageAdapter';
 
 export function CockpitPage() {
   const navigate = useNavigate();
@@ -27,12 +28,11 @@ export function CockpitPage() {
   const handleExit = useCallback(async (currentSecs = 0) => {
     try {
       if (effectiveMissionId && currentSecs >= 60) {
-        // Read focus metrics from localStorage for partial XP calculation
+        // Read focus metrics from storageAdapter for partial XP calculation
         let exitFocusScore = 100;
         try {
-          const savedState = localStorage.getItem(`jeeos_mission_state_${effectiveMissionId}`);
-          if (savedState) {
-            const parsed = JSON.parse(savedState);
+          const parsed = storageAdapter.getItem<any>(`jeeos_mission_state_${effectiveMissionId}`);
+          if (parsed) {
             exitFocusScore = parsed.focusScore ?? 100;
           }
         } catch { /* ignore parse errors */ }
@@ -49,7 +49,7 @@ export function CockpitPage() {
 
   const handleComplete = useCallback(() => {
     if (effectiveMissionId) {
-      localStorage.removeItem(`jeeos_mission_state_${effectiveMissionId}`);
+      storageAdapter.removeItem(`jeeos_mission_state_${effectiveMissionId}`);
     }
     // The mission completion logic in useMissionState (actions.completeTask)
     // already creates a StudySession and updates XP. We just need to navigate back.

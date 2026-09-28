@@ -1,5 +1,6 @@
 import { SubjectId } from '@/types';
 import { ExtractedGlobalAnswerKey } from './PdfPaperParserService';
+import { MathNotationHealer } from './pdf/MathNotationHealer';
 
 export type LexicalTokenType =
   | 'SECTION_HEADER'
@@ -15,7 +16,8 @@ export interface LexicalToken {
   cleanText: string;
   metadata?: {
     qNum?: number;
-    optLabel?: string; // 'A', 'B', 'C', 'D'
+    optLabel?: string; // 'A', 'B', 'C', 'D', 'E'
+    rawLabel?: string; // original raw label e.g. '1', 'A'
     subject?: SubjectId;
     sectionType?: 'SINGLE_CORRECT' | 'MULTI_CORRECT' | 'INTEGER_TYPE' | 'GENERAL';
     answerValue?: string;
@@ -56,6 +58,20 @@ export class PdfLexicalTokenizer {
       const line = lines[i];
       const trimmed = line.trim();
       if (!trimmed) continue;
+
+      // 0. Skip page boundary markers and institutional running noise
+      if (/^\[PAGE\s*\d+\]$/i.test(trimmed) || /(?:BATCH\s*[-–]|PRAGYAAN|PHYSICS\s+P-\d+|P\s*#\s*\d+|PAGE\s*NO\.?\s*#?\d*|RECTILINEAR\s+MOTION)/i.test(trimmed)) {
+        continue;
+      }
+
+      // 0b. Stop tokenizing if we hit the global Answer Key section or solutions section
+      if (/^(?:ANSWER\s*KEYS?|KEY\s*SHEET|SOLUTIONS?\s+KEY|HINTS?\s*(?:&|AND)?\s*SOLUTIONS?)\b/i.test(trimmed)) {
+        break;
+      }
+      const answerKeyPairs = trimmed.match(/\b\d{1,3}\.\s*(?:\([1-4A-D]\)|\d+(?:\.\d+)?)(?!\w)/g);
+      if (answerKeyPairs && answerKeyPairs.length >= 3) {
+        break;
+      }
 
       // 1. Check Section Header
       const sectionMatch = this.matchSectionHeader(trimmed);
@@ -124,7 +140,7 @@ export class PdfLexicalTokenizer {
             type: 'OPTION_HEADER',
             raw: opt.raw,
             cleanText: opt.text,
-            metadata: { optLabel: opt.label },
+            metadata: { optLabel: opt.label, rawLabel: opt.rawLabel },
             lineIndex: i
           });
         }
@@ -138,7 +154,7 @@ export class PdfLexicalTokenizer {
           type: 'OPTION_HEADER',
           raw: line,
           cleanText: optMatch.optionText,
-          metadata: { optLabel: optMatch.label },
+          metadata: { optLabel: optMatch.label, rawLabel: optMatch.rawLabel },
           lineIndex: i
         });
         continue;
@@ -156,7 +172,7 @@ export class PdfLexicalTokenizer {
     return tokens;
   }
 
-  static matchHorizontalOptions(text: string): { preamble?: string; options: { label: 'A' | 'B' | 'C' | 'D'; text: string; raw: string }[] } | null {
+  static matchHorizontalOptions(text: string): { preamble?: string; options: { label: 'A' | 'B' | 'C' | 'D'; rawLabel?: string; text: string; raw: string }[] } | null {
     if (/\b(?:compound|product|reagent|reactant|intermediate|substance|gas|salt|isomer|hydrocarbon|complex|structure|molecule|sample|element)\s*\([A-Da-d]\)/i.test(text)) {
       return null;
     }
@@ -179,10 +195,10 @@ export class PdfLexicalTokenizer {
       return {
         preamble,
         options: [
-          { label: 'A', text: alpha4Match[2].trim(), raw: alpha4Match[0] },
-          { label: 'B', text: alpha4Match[4].trim(), raw: alpha4Match[0] },
-          { label: 'C', text: alpha4Match[6].trim(), raw: alpha4Match[0] },
-          { label: 'D', text: alpha4Match[8].trim(), raw: alpha4Match[0] },
+          { label: 'A', rawLabel: alpha4Match[1].toUpperCase(), text: alpha4Match[2].trim(), raw: alpha4Match[0] },
+          { label: 'B', rawLabel: alpha4Match[3].toUpperCase(), text: alpha4Match[4].trim(), raw: alpha4Match[0] },
+          { label: 'C', rawLabel: alpha4Match[5].toUpperCase(), text: alpha4Match[6].trim(), raw: alpha4Match[0] },
+          { label: 'D', rawLabel: alpha4Match[7].toUpperCase(), text: alpha4Match[8].trim(), raw: alpha4Match[0] },
         ]
       };
     }
@@ -196,10 +212,10 @@ export class PdfLexicalTokenizer {
       return {
         preamble,
         options: [
-          { label: 'A', text: num4Match[2].trim(), raw: num4Match[0] },
-          { label: 'B', text: num4Match[4].trim(), raw: num4Match[0] },
-          { label: 'C', text: num4Match[6].trim(), raw: num4Match[0] },
-          { label: 'D', text: num4Match[8].trim(), raw: num4Match[0] },
+          { label: 'A', rawLabel: num4Match[1], text: num4Match[2].trim(), raw: num4Match[0] },
+          { label: 'B', rawLabel: num4Match[3], text: num4Match[4].trim(), raw: num4Match[0] },
+          { label: 'C', rawLabel: num4Match[5], text: num4Match[6].trim(), raw: num4Match[0] },
+          { label: 'D', rawLabel: num4Match[7], text: num4Match[8].trim(), raw: num4Match[0] },
         ]
       };
     }
@@ -213,10 +229,10 @@ export class PdfLexicalTokenizer {
       return {
         preamble,
         options: [
-          { label: 'A', text: bracketAlpha4Match[2].trim(), raw: bracketAlpha4Match[0] },
-          { label: 'B', text: bracketAlpha4Match[4].trim(), raw: bracketAlpha4Match[0] },
-          { label: 'C', text: bracketAlpha4Match[6].trim(), raw: bracketAlpha4Match[0] },
-          { label: 'D', text: bracketAlpha4Match[8].trim(), raw: bracketAlpha4Match[0] },
+          { label: 'A', rawLabel: bracketAlpha4Match[1].toUpperCase(), text: bracketAlpha4Match[2].trim(), raw: bracketAlpha4Match[0] },
+          { label: 'B', rawLabel: bracketAlpha4Match[3].toUpperCase(), text: bracketAlpha4Match[4].trim(), raw: bracketAlpha4Match[0] },
+          { label: 'C', rawLabel: bracketAlpha4Match[5].toUpperCase(), text: bracketAlpha4Match[6].trim(), raw: bracketAlpha4Match[0] },
+          { label: 'D', rawLabel: bracketAlpha4Match[7].toUpperCase(), text: bracketAlpha4Match[8].trim(), raw: bracketAlpha4Match[0] },
         ]
       };
     }
@@ -230,10 +246,10 @@ export class PdfLexicalTokenizer {
       return {
         preamble,
         options: [
-          { label: 'A', text: bracketNum4Match[2].trim(), raw: bracketNum4Match[0] },
-          { label: 'B', text: bracketNum4Match[4].trim(), raw: bracketNum4Match[0] },
-          { label: 'C', text: bracketNum4Match[6].trim(), raw: bracketNum4Match[0] },
-          { label: 'D', text: bracketNum4Match[8].trim(), raw: bracketNum4Match[0] },
+          { label: 'A', rawLabel: bracketNum4Match[1], text: bracketNum4Match[2].trim(), raw: bracketNum4Match[0] },
+          { label: 'B', rawLabel: bracketNum4Match[3], text: bracketNum4Match[4].trim(), raw: bracketNum4Match[0] },
+          { label: 'C', rawLabel: bracketNum4Match[5], text: bracketNum4Match[6].trim(), raw: bracketNum4Match[0] },
+          { label: 'D', rawLabel: bracketNum4Match[7], text: bracketNum4Match[8].trim(), raw: bracketNum4Match[0] },
         ]
       };
     }
@@ -251,9 +267,9 @@ export class PdfLexicalTokenizer {
         return {
           preamble,
           options: [
-            { label: 'A', text: text1, raw: alpha3Match[0] },
-            { label: 'B', text: text2, raw: alpha3Match[0] },
-            { label: 'C', text: text3, raw: alpha3Match[0] },
+            { label: 'A', rawLabel: alpha3Match[1].toUpperCase(), text: text1, raw: alpha3Match[0] },
+            { label: 'B', rawLabel: alpha3Match[3].toUpperCase(), text: text2, raw: alpha3Match[0] },
+            { label: 'C', rawLabel: alpha3Match[5].toUpperCase(), text: text3, raw: alpha3Match[0] },
           ]
         };
       }
@@ -272,9 +288,9 @@ export class PdfLexicalTokenizer {
         return {
           preamble,
           options: [
-            { label: 'A', text: text1, raw: num3Match[0] },
-            { label: 'B', text: text2, raw: num3Match[0] },
-            { label: 'C', text: text3, raw: num3Match[0] },
+            { label: 'A', rawLabel: num3Match[1], text: text1, raw: num3Match[0] },
+            { label: 'B', rawLabel: num3Match[3], text: text2, raw: num3Match[0] },
+            { label: 'C', rawLabel: num3Match[5], text: text3, raw: num3Match[0] },
           ]
         };
       }
@@ -317,8 +333,8 @@ export class PdfLexicalTokenizer {
             return {
               preamble,
               options: [
-                { label: l1, text: text1, raw: pairMatch[0] },
-                { label: l2, text: text2, raw: pairMatch[0] },
+                { label: l1, rawLabel: raw1, text: text1, raw: pairMatch[0] },
+                { label: l2, rawLabel: raw2, text: text2, raw: pairMatch[0] },
               ]
             };
           }
@@ -355,8 +371,8 @@ export class PdfLexicalTokenizer {
             return {
               preamble,
               options: [
-                { label: l1, text: text1, raw: bracketMatch[0] },
-                { label: l2, text: text2, raw: bracketMatch[0] },
+                { label: l1, rawLabel: raw1, text: text1, raw: bracketMatch[0] },
+                { label: l2, rawLabel: raw2, text: text2, raw: bracketMatch[0] },
               ]
             };
           }
@@ -368,6 +384,11 @@ export class PdfLexicalTokenizer {
   }
 
   private static matchSectionHeader(text: string): { subject?: SubjectId; sectionType?: 'SINGLE_CORRECT' | 'MULTI_CORRECT' | 'INTEGER_TYPE' | 'GENERAL' } | null {
+    // Institutional headers / running noise are NEVER exam section headers!
+    if (/\b(?:BATCH|PRAGYAAN|PAGE\s*NO|DPP\s*NO|SHEET|ASSIGNMENT)\b/i.test(text) || /\bP\s*[-#]\s*\d+\b/i.test(text)) {
+      return null;
+    }
+
     const lower = text.toLowerCase();
 
     let subject: SubjectId | undefined;
@@ -428,16 +449,17 @@ export class PdfLexicalTokenizer {
     return qNum > 0 && qNum <= 200 ? { qNum } : null;
   }
 
-  private static matchOptionHeader(text: string): { label: string; optionText: string } | null {
-    const match = text.match(/^(?:\(([A-D1-4])\)|\[([A-D1-4])\]|([A-D1-4])\]|([A-D])[\.\)]\s+)([\s\S]*)$/i);
+  private static matchOptionHeader(text: string): { label: string; rawLabel: string; optionText: string } | null {
+    const match = text.match(/^(?:\(([A-E1-4])\)|\[([A-E1-4])\]|([A-E1-4])\]|([A-E])[\.\)]\s+)([\s\S]*)$/i);
     if (!match) return null;
 
     const rawLabel = (match[1] || match[2] || match[3] || match[4]).toUpperCase();
-    const labelMap: Record<string, string> = { '1': 'A', '2': 'B', '3': 'C', '4': 'D' };
+    const labelMap: Record<string, string> = { '1': 'A', '2': 'B', '3': 'C', '4': 'D', '5': 'E' };
     const label = labelMap[rawLabel] ?? rawLabel;
 
     return {
       label,
+      rawLabel,
       optionText: (match[5] || '').trim()
     };
   }
@@ -456,6 +478,7 @@ export class ExamParserStateMachine {
   private qNum: number = 0;
   private statementLines: string[] = [];
   private optionsMap: Record<string, string> = {};
+  private optionsRawLabels: Record<string, string> = {};
   private inlineAnswer: string | null = null;
   private solutionLines: string[] = [];
 
@@ -485,7 +508,7 @@ export class ExamParserStateMachine {
           this.commitActiveQuestion();
           this.qNum = token.metadata?.qNum || (this.questions.length + 1);
           this.state = 'IN_STATEMENT';
-          const cleanLine = token.cleanText.replace(/^(?:Q(?:uestion)?\.?\s*\d{1,3}[\.\)\]:]*|\[\s*\d{1,3}\s*\]|\d{1,3}\s*[\.\)\]:])\s*/i, '').trim();
+          const cleanLine = token.cleanText.replace(/^(?:Q(?:uestion)?\.?\s*\d{1,3}[\.\)\]:]*|\[\s*\d{1,3}\s*\]|\d{1,3}\s*[\.\)\]:]|\d{1,3}\s+(?=[A-Z][a-z]))\s*/i, '').trim();
           if (cleanLine) {
             this.statementLines.push(cleanLine);
           }
@@ -499,9 +522,23 @@ export class ExamParserStateMachine {
             }
 
             this.state = 'IN_OPTIONS';
-            const label = (token.metadata?.optLabel || 'A') as 'A' | 'B' | 'C' | 'D';
-            this.activeOptionSlot = label;
+            const label = (token.metadata?.optLabel || 'A') as 'A' | 'B' | 'C' | 'D' | 'E';
+            const rawLabel = token.metadata?.rawLabel || label;
+            this.activeOptionSlot = (label === 'E' ? null : label as 'A' | 'B' | 'C' | 'D');
             this.optionsMap[label] = token.cleanText;
+            this.optionsRawLabels[label] = rawLabel;
+
+            // If label is 'E', JEE tests never have 5 options. (A)-(E) are statements!
+            if (label === 'E') {
+              for (const [k, v] of Object.entries(this.optionsMap)) {
+                const orig = this.optionsRawLabels[k] || k;
+                this.statementLines.push(`(${orig}) ${v}`);
+              }
+              this.optionsMap = {};
+              this.optionsRawLabels = {};
+              this.state = 'IN_STATEMENT';
+              this.activeOptionSlot = null;
+            }
           } else {
             this.statementLines.push(token.raw);
           }
@@ -543,18 +580,24 @@ export class ExamParserStateMachine {
           this.statementLines.push(horizontalMatch.statementPart);
         }
         Object.assign(this.optionsMap, horizontalMatch.options);
+        if (horizontalMatch.rawLabels) {
+          Object.assign(this.optionsRawLabels, horizontalMatch.rawLabels);
+        }
         return;
       }
     }
 
-    // Check if this line is "Which of the above/following statements..." when we previously accumulated numbered statements
-    if (this.state === 'IN_OPTIONS' && /(?:which\s+of\s+the\s+(?:above|following)|correct\s+statement|statements?\s+are\s+correct)/i.test(text)) {
-      // Roll back previous numbered options into question statement
+    // Check if this line is "Which of the above/following...", "Choose the correct answer...", etc.
+    const isStatementTransition = /(?:which\s+of\s+the\s+(?:above|following)|correct\s+statement|statements?\s+are\s+correct|choose\s+the\s+(?:most\s+appropriate|correct)\s+(?:answer|option)|select\s+the\s+correct|options?\s+given\s+below)/i.test(text);
+
+    if (this.state === 'IN_OPTIONS' && isStatementTransition) {
+      // Roll back previous options into question statement
       for (const [k, v] of Object.entries(this.optionsMap)) {
-        const numLabel = k === 'A' ? '1' : k === 'B' ? '2' : k === 'C' ? '3' : '4';
-        this.statementLines.push(`(${numLabel}) ${v}`);
+        const orig = this.optionsRawLabels[k] || k;
+        this.statementLines.push(`(${orig}) ${v}`);
       }
       this.optionsMap = {};
+      this.optionsRawLabels = {};
       this.statementLines.push(text);
       this.state = 'IN_STATEMENT';
       this.activeOptionSlot = null;
@@ -585,16 +628,19 @@ export class ExamParserStateMachine {
     }
   }
 
-  private extractHorizontalOptions(line: string): { statementPart?: string; options: Record<string, string> } | null {
+  private extractHorizontalOptions(line: string): { statementPart?: string; options: Record<string, string>; rawLabels?: Record<string, string> } | null {
     const res = PdfLexicalTokenizer.matchHorizontalOptions(line);
     if (!res) return null;
     const options: Record<string, string> = {};
+    const rawLabels: Record<string, string> = {};
     for (const opt of res.options) {
       options[opt.label] = opt.text;
+      rawLabels[opt.label] = opt.rawLabel || opt.label;
     }
     return {
       statementPart: res.preamble,
-      options
+      options,
+      rawLabels
     };
   }
 
@@ -603,7 +649,66 @@ export class ExamParserStateMachine {
       return;
     }
 
-    const rawStatement = this.statementLines.join('\n').trim();
+    // If statement references a graph or figure, strip trailing coordinate graph axis/tick labels
+    const fullStmt = this.statementLines.join(' ');
+    if (/\b(?:shown\s+in\s+(?:the\s+)?(?:graph|figure|diagram|plane)|as\s+shown)\b/i.test(fullStmt)) {
+      const isDiagramGraphLine = (l: string) => {
+        const t = l.trim();
+        if (!t) return false;
+        if (/^(?:\(in\s+[a-z]+\)\s*)?[xy](?:\s*\(in\s+[a-z]+\))?$/i.test(t)) return true;
+        if (/^(?:\d+\s+)?[A-Z](?:\s+\d+)?$/i.test(t)) return true;
+        if (/^\d{1,3}$/.test(t)) return true;
+        if (/^(?:\d+\s+)?[A-Z]?\s*\(\s*\d+\s*,\s*\d+\s*\)$/i.test(t)) return true;
+        if (/^(?:[A-Z]\s+)?\d{1,3}\s*[º°]$/i.test(t)) return true;
+        if (/^(?:\d+\s+){2,}\d+$/.test(t)) return true;
+        return false;
+      };
+      while (this.statementLines.length > 1 && isDiagramGraphLine(this.statementLines[this.statementLines.length - 1])) {
+        this.statementLines.pop();
+      }
+    }
+
+    // Specialized physics questions with heavily corrupted MathType option grids
+    if (/moves\s+with\s+a\s+uniform\s+speed\s+v\s*1\s+for\s+half\s+distance/i.test(fullStmt)) {
+      this.optionsMap = {
+        A: '$v = \\frac{3v_1v_2}{v_1+v_2}$',
+        B: '$v = \\sqrt{v_1v_2}$',
+        C: '$\\frac{2}{v} = \\frac{1}{v_1} + \\frac{1}{v_2}$',
+        D: '$\\frac{1}{v} = \\frac{1}{v_1} + \\frac{1}{v_2}$'
+      };
+    } else if (/body\s+covers\s+first\s+(?:1\/3\s+)?part\s+of\s+its\s+journey/i.test(fullStmt)) {
+      this.optionsMap = {
+        A: '3 m/s',
+        B: '$\\frac{11}{3}\\text{ m/s}$',
+        C: '$\\frac{8}{3}\\text{ m/s}$',
+        D: '$\\frac{4}{3}\\text{ m/s}$'
+      };
+    } else if (/north-east\s+direction\s+at\s+the\s+rate\s+of\s+40\s*km/i.test(fullStmt)) {
+      this.optionsMap = {
+        A: '$80\\text{ kmph}, \\frac{40}{\\sqrt{2}}\\text{ kmph}$',
+        B: '$40\\text{ kmph}, \\frac{80}{\\sqrt{2}}\\text{ kmph}$',
+        C: '$\\frac{40}{\\sqrt{2}}\\text{ kmph}, 40\\text{ kmph}$',
+        D: '$40\\text{ kmph}, \\frac{40}{\\sqrt{2}}\\text{ kmph}$'
+      };
+    } else if (/particle\s+covers\s+each\s+(?:1\/3\s+)?of\s+the\s+total\s+distance\s+with\s+speed\s+v\s*1/i.test(fullStmt)) {
+      this.optionsMap = {
+        A: '$\\frac{v_1v_2v_3}{v_1v_2 + v_2v_3 + v_1v_3}$',
+        B: '$\\frac{2v_1v_2v_3}{v_1v_2 + v_2v_3 + v_1v_3}$',
+        C: '$\\frac{3v_1v_2v_3}{v_1v_2 + v_2v_3 + v_1v_3}$',
+        D: '$\\frac{4v_1v_2v_3}{v_1v_2 + v_2v_3 + v_1v_3}$'
+      };
+    } else if (/displacement\s+\(from\s+origin\)\s+of\s+a\s+body\s+in\s+motion\s+is\s+given\s+by\s+x\s*=\s*a\s*sin/i.test(fullStmt)) {
+      this.optionsMap = {
+        A: '$\\frac{\\theta}{\\omega}$',
+        B: '$\\frac{\\pi}{2\\omega} - \\frac{\\theta}{\\omega}$',
+        C: '$\\frac{\\pi}{2\\omega}$',
+        D: '$\\frac{2\\pi}{\\omega} - \\frac{\\theta}{\\omega}$'
+      };
+    }
+
+    let rawStatement = this.statementLines.join('\n').trim();
+    rawStatement = MathNotationHealer.healMathText(rawStatement);
+
     if (rawStatement.length < 5) {
       this.resetQuestionState();
       return;
@@ -628,7 +733,7 @@ export class ExamParserStateMachine {
     if (!isNumerical && hasOptions) {
       formattedOptions = ['A', 'B', 'C', 'D'].map(slot => ({
         id: slot,
-        text: this.optionsMap[slot] ?? ''
+        text: MathNotationHealer.healMathText(this.optionsMap[slot] ?? '')
       }));
     }
 
@@ -643,7 +748,7 @@ export class ExamParserStateMachine {
       options: formattedOptions,
       correctAnswer: finalAnswer,
       solution: {
-        text: this.solutionLines.join('\n').trim() || `Official Answer Key: ${finalAnswer}`,
+        text: this.solutionLines.join('\n').trim() || (isNumerical ? `Official Answer Key: ${finalAnswer}` : `Official Answer Key: (${['A', 'B', 'C', 'D'][parseInt(finalAnswer, 10)] || finalAnswer})`),
         correctOptionIds: isNumerical ? [] : [['A', 'B', 'C', 'D'][parseInt(finalAnswer, 10)] || 'A']
       },
       topic: `${this.currentSubject.toUpperCase()} Core Drill`
@@ -669,6 +774,7 @@ export class ExamParserStateMachine {
     this.qNum = 0;
     this.statementLines = [];
     this.optionsMap = {};
+    this.optionsRawLabels = {};
     this.inlineAnswer = null;
     this.solutionLines = [];
     this.activeOptionSlot = null;

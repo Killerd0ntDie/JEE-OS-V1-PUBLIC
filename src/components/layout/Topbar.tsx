@@ -1,3 +1,6 @@
+/**
+ * @deprecated Superseded by FloatingDynamicDock. Maintained for backward compatibility and test fixtures.
+ */
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
@@ -10,7 +13,8 @@ import { useShallow } from 'zustand/react/shallow';
 import { JeeOsLogo } from '@/components/shared/JeeOsLogo';
 import { ChapterTelemetry } from '@jee-os/engines';
 import { useToast } from '@/components/ui/ToastProvider';
-import { calculateCurrentStreak, getTodayStudyMinutes } from '@/utils/streakCalculations';
+import { storageAdapter } from '@/services/StorageAdapter';
+import { getTodayStudyMinutes } from '@/utils/streakCalculations';
 
 interface TopbarProps {
   onOpenCommandPalette: () => void;
@@ -50,10 +54,9 @@ export function Topbar({
     actions: s.actions
   })));
 
-  const minStreakMins = Math.round((settings?.minStreakHours ?? 0.5) * 60);
-  const computedStreak = useMemo(() => calculateCurrentStreak(studySessions, minStreakMins), [studySessions, minStreakMins]);
-  const effectiveStreak = computedStreak;
+  const effectiveStreak = xp?.streak ?? 0;
   const todayStudyMins = useMemo(() => getTodayStudyMinutes(studySessions), [studySessions]);
+  const minStreakMins = Math.round((settings?.minStreakHours ?? 0.5) * 60);
   
   const formatStudyTime = (hours: number): string => {
     if (!hours) return '0m';
@@ -76,20 +79,11 @@ export function Topbar({
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [activeQuickStat, setActiveQuickStat] = useState<'streak' | 'time' | null>(null);
   const [readNotificationIds, setReadNotificationIds] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem('jeeos_read_notifications');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
+    return storageAdapter.getReadNotifications();
   });
 
   useEffect(() => {
-    try {
-      localStorage.setItem('jeeos_read_notifications', JSON.stringify(readNotificationIds));
-    } catch (e) {
-      console.warn("Failed to persist notification read IDs:", e);
-    }
+    storageAdapter.setReadNotifications(readNotificationIds);
   }, [readNotificationIds]);
 
   const notifRef = useRef<HTMLDivElement>(null);
@@ -165,13 +159,13 @@ export function Topbar({
         id: 'notif-streak-current',
         type: 'success' as const,
         tag: 'SYSTEM STREAK',
-        title: `${computedStreak}-Day Consistency Streak`,
+        title: `${effectiveStreak}-Day Consistency Streak`,
         desc: `XP Level ${xp?.level || 1} • Total XP: ${xp?.total || 0}. Keep momentum going!`,
         targetPage: 'analytics' as PageId,
         time: 'Active'
       }
     ];
-  }, [chapterTelemetryMap, todayMissions, computedStreak, xp]);
+  }, [chapterTelemetryMap, todayMissions, effectiveStreak, xp]);
 
   const unreadNotifications = notifications.filter(n => !readNotificationIds.includes(n.id));
 

@@ -29,6 +29,21 @@ export const MistakeRepository = {
     await deleteDoc(mistakeDoc);
   },
 
+  // Delete multiple mistakes in chunked batches
+  async deleteMistakesBatch(userId: string, mistakeIds: string[]): Promise<void> {
+    if (!mistakeIds || mistakeIds.length === 0) return;
+    const CHUNK_SIZE = 450;
+    for (let i = 0; i < mistakeIds.length; i += CHUNK_SIZE) {
+      const chunk = mistakeIds.slice(i, i + CHUNK_SIZE);
+      const batch = writeBatch(db);
+      chunk.forEach(id => {
+        const mistakeDoc = doc(db, 'users', userId, 'mistakes', id);
+        batch.delete(mistakeDoc);
+      });
+      await batch.commit();
+    }
+  },
+
   // Save multiple mistakes atomically in chunked batches (up to 450 per batch)
   async saveMistakesBatch(userId: string, mistakes: Mistake[]): Promise<void> {
     if (!mistakes || mistakes.length === 0) return;

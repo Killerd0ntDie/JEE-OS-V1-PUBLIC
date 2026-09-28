@@ -11,6 +11,16 @@ export class BaseActions {
   constructor(runtime: StudyBrainRuntime, userId: string) {
     this.runtime = runtime;
     this.userId = userId;
+
+    let proto = Object.getPrototypeOf(this);
+    while (proto && proto !== Object.prototype) {
+      for (const key of Object.getOwnPropertyNames(proto)) {
+        if (key !== 'constructor' && typeof (this as any)[key] === 'function') {
+          (this as any)[key] = (this as any)[key].bind(this);
+        }
+      }
+      proto = Object.getPrototypeOf(proto);
+    }
   }
 
   public isGuestUser(): boolean {
@@ -36,7 +46,9 @@ export class BaseActions {
   }
 
   public async handleWriteError(err: any, actionName: string): Promise<never> {
-    const errorMsg = `Sync Error (${actionName}): ${err?.message || 'Database write failed'}`;
+    const rawMsg = err?.message || 'Database write failed';
+    const prefix = `Sync Error (${actionName}): `;
+    const errorMsg = rawMsg.startsWith(prefix) ? rawMsg : `${prefix}${rawMsg}`;
     console.error(errorMsg, err);
     this.triggerToast('Sync Error', errorMsg, 'error');
     await this.runtime.refresh('SETTINGS_UPDATE', { lastSyncError: errorMsg });

@@ -100,8 +100,9 @@ export function MistakesPage() {
               onStartCbtRetest={handleStartCbtRetest}
               onStartRemediation={handleStartRemediation}
               onStartInterrogation={(m) => handlers.setInterrogationMistake(m)}
-              onUpdateStatus={actions.updateMistakeStatus}
-              onDeleteMistake={actions.deleteMistake}
+              onUpdateStatus={(id, status) => actions.updateMistakeStatus(id, status)}
+              onDeleteMistake={(id) => actions.deleteMistake(id)}
+              onDeleteMistakesBatch={(ids) => actions.deleteMistakesBatch(ids)}
               getSubjectColor={handlers.getSubjectColor}
               getStatusBadge={handlers.getStatusBadge}
             />

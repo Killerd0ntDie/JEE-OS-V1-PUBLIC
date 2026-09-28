@@ -343,5 +343,43 @@ Identify Compound (A):
       expect(val.isValid).toBe(false);
       expect(val.issues.some(i => i.includes('surrogate letters'))).toBe(true);
     });
+
+    it('correctly extracts trailing combination options (1)-(4) when statements (A)-(E) exist in question body', () => {
+      const rawBlock = `6. Identify the correct statements from the following:
+[JEE MAIN 290123_S2]
+(A) Work done by a man in lifting a bucket out of a well is negative.
+(B) Work done by gravitational force is negative.
+(C) Work done by friction is positive.
+(D) Work done by an applied force is zero.
+(E) Work done by air resistance is negative.
+Choose the correct answer from the options given below:
+(1) B and E only (2) A and C only
+(3) B, D and E only (4) B and D only`;
+
+      const result = OptionExtractor.extractOptionsFromBlock(rawBlock);
+      expect(result.hasOptions).toBe(true);
+      expect(result.options).toHaveLength(4);
+      expect(result.options?.[0].text).toBe('B and E only');
+      expect(result.options?.[1].text).toBe('A and C only');
+      expect(result.options?.[2].text).toBe('B, D and E only');
+      expect(result.options?.[3].text).toBe('B and D only');
+      expect(result.questionBody).toContain('(A) Work done by a man');
+      expect(result.questionBody).toContain('(E) Work done by air resistance');
+      expect(result.questionBody).toContain('Choose the correct answer from the options given below:');
+    });
+
+    it('never wipes numeric option values like 2, 1, -1, -2 in cleanOptions', () => {
+      const opts = [
+        { id: 'A', text: '2' },
+        { id: 'B', text: '1' },
+        { id: 'C', text: '-1' },
+        { id: 'D', text: '-2' }
+      ];
+      OptionExtractor.cleanOptions(opts);
+      expect(opts[0].text).toBe('2');
+      expect(opts[1].text).toBe('1');
+      expect(opts[2].text).toBe('-1');
+      expect(opts[3].text).toBe('-2');
+    });
   });
 });

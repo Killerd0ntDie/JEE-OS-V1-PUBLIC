@@ -5,6 +5,7 @@ import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { DailyCheckin } from '@/types';
 import { toLocalDateString } from '@/utils/dateUtils';
 import { audioEngine } from '@/utils/audioEngine';
+import { storageAdapter } from '@/services/StorageAdapter';
 
 export function DailyCheckinCard() {
   const actions = useStudyBrainStore(state => state.actions);
@@ -25,8 +26,8 @@ export function DailyCheckinCard() {
 
   useEffect(() => {
     const hasProfileCheckinToday = mentorProfile?.dailyCheckins?.some(c => c.date === todayStr);
-    const lastCheckin = localStorage.getItem('jeeos_last_daily_checkin_date');
-    const dismissedToday = localStorage.getItem('jeeos_last_daily_checkin_dismissed');
+    const lastCheckin = storageAdapter.getItem('jeeos_last_daily_checkin_date');
+    const dismissedToday = storageAdapter.getItem('jeeos_last_daily_checkin_dismissed');
     const alreadyDone = lastCheckin === todayStr || dismissedToday === todayStr || Boolean(hasProfileCheckinToday);
     setIsDismissed(alreadyDone);
   }, [todayStr, mentorProfile?.dailyCheckins]);
@@ -36,7 +37,7 @@ export function DailyCheckinCard() {
   }
 
   const handleDismiss = () => {
-    localStorage.setItem('jeeos_last_daily_checkin_dismissed', todayStr);
+    storageAdapter.setItem('jeeos_last_daily_checkin_dismissed', todayStr);
     setIsDismissed(true);
   };
 
@@ -59,7 +60,7 @@ export function DailyCheckinCard() {
     setIsSaving(true);
     try {
       await actions.submitDailyCheckin(checkin);
-      localStorage.setItem('jeeos_last_daily_checkin_date', todayStr);
+      storageAdapter.setItem('jeeos_last_daily_checkin_date', todayStr);
       setIsDismissed(true);
     } catch {
       // Gracefully dismiss on failure to not block user

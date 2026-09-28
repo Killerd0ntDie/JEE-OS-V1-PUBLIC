@@ -21,7 +21,7 @@ vi.mock('@/components/ui/ToastProvider', () => ({
 }));
 
 describe('EmptyOrbitStandby Component', () => {
-  const mockChapters: Chapter[] = [
+  const mockChapters = [
     {
       id: 'phy-1',
       name: 'Rotational Motion',
@@ -58,7 +58,7 @@ describe('EmptyOrbitStandby Component', () => {
       priorityScore: 95,
       unit: 'Calculus',
     }
-  ];
+  ] as unknown as Chapter[];
 
   const mockWeeklySchedule: WeeklyBlock[] = [
     {

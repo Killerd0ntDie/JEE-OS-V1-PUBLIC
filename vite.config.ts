@@ -38,6 +38,7 @@ export default defineConfig(() => {
     },
     build: {
       rollupOptions: {
+        external: ['@napi-rs/canvas'],
         output: {
           manualChunks: {
             'vendor-react': ['react', 'react-dom', 'react-router-dom'],

@@ -53,7 +53,9 @@ export class MistakeActions extends BaseActions {
     const updatedMistakes = [...this.state.mistakes, newMistake];
     this.runtime.updateStateOptimistic({ mistakes: updatedMistakes });
     try {
-      await MistakeRepository.saveMistake(this.userId, newMistake);
+      if (!this.isGuestUser()) {
+        await MistakeRepository.saveMistake(this.userId, newMistake);
+      }
       await this.runtime.refresh('MISTAKE_UPDATE', { mistakes: updatedMistakes, lastSyncError: null });
     } catch (err) {
       this.runtime.updateStateOptimistic(originalSnapshot);
@@ -106,7 +108,9 @@ export class MistakeActions extends BaseActions {
     this.runtime.updateStateOptimistic({ mistakes: updatedMistakes });
 
     try {
-      await MistakeRepository.saveMistakesBatch(this.userId, validatedNewMistakes);
+      if (!this.isGuestUser()) {
+        await MistakeRepository.saveMistakesBatch(this.userId, validatedNewMistakes);
+      }
       await this.runtime.refresh('MISTAKE_UPDATE', { mistakes: updatedMistakes, lastSyncError: null });
       this.triggerToast('Mistakes Logged', `Saved ${validatedNewMistakes.length} mistakes to Mistakes Vault`, 'success');
     } catch (err) {
@@ -153,7 +157,7 @@ export class MistakeActions extends BaseActions {
 
     const originalSnapshot = {
       mistakes: this.state.mistakes,
-      xp: this.state.xp
+      xp: { ...this.state.xp }
     };
 
     const updatedMistakes = this.state.mistakes.map(m => m.id === mistakeId ? updatedMistake : m);
@@ -163,10 +167,15 @@ export class MistakeActions extends BaseActions {
     });
 
     try {
-      await MistakeRepository.saveMistake(this.userId, updatedMistake);
-      if (deltaXp > 0) {
-        await UserRepository.updateUserProfile(this.userId, { xp: newXp });
-      }
+      await this.runAtomicBatch((batch) => {
+        const mistakeDoc = doc(db, 'users', this.userId, 'mistakes', updatedMistake.id);
+        batch.set(mistakeDoc, sanitizeForFirestore(updatedMistake), { merge: true });
+        if (deltaXp !== 0) {
+          const userDoc = doc(db, 'users', this.userId);
+          batch.set(userDoc, sanitizeForFirestore({ xp: newXp }), { merge: true });
+        }
+      }, 'updateMistakeStatus');
+
       await this.runtime.refresh('MISTAKE_UPDATE', { 
         mistakes: updatedMistakes, 
         xp: newXp, 
@@ -180,17 +189,42 @@ export class MistakeActions extends BaseActions {
 
   async deleteMistake(mistakeId: string) {
     this.checkWriteBlock();
+    if (!mistakeId) return;
     const originalSnapshot = {
       mistakes: this.state.mistakes
     };
     const updatedMistakes = this.state.mistakes.filter(m => m.id !== mistakeId);
     this.runtime.updateStateOptimistic({ mistakes: updatedMistakes });
     try {
-      await MistakeRepository.deleteMistake(this.userId, mistakeId);
+      if (!this.isGuestUser()) {
+        await MistakeRepository.deleteMistake(this.userId, mistakeId);
+      }
       await this.runtime.refresh('MISTAKE_UPDATE', { mistakes: updatedMistakes, lastSyncError: null });
+      this.triggerToast('Mistake Deleted', 'Removed from Mistakes Vault', 'info');
     } catch (err) {
       this.runtime.updateStateOptimistic(originalSnapshot);
       await this.handleWriteError(err, 'deleteMistake');
+    }
+  }
+
+  async deleteMistakesBatch(mistakeIds: string[]) {
+    this.checkWriteBlock();
+    if (!mistakeIds || mistakeIds.length === 0) return;
+    const idsSet = new Set(mistakeIds);
+    const originalSnapshot = {
+      mistakes: this.state.mistakes
+    };
+    const updatedMistakes = this.state.mistakes.filter(m => !idsSet.has(m.id));
+    this.runtime.updateStateOptimistic({ mistakes: updatedMistakes });
+    try {
+      if (!this.isGuestUser()) {
+        await MistakeRepository.deleteMistakesBatch(this.userId, mistakeIds);
+      }
+      await this.runtime.refresh('MISTAKE_UPDATE', { mistakes: updatedMistakes, lastSyncError: null });
+      this.triggerToast('Mistakes Deleted', `Removed ${mistakeIds.length} mistakes from Mistakes Vault`, 'info');
+    } catch (err) {
+      this.runtime.updateStateOptimistic(originalSnapshot);
+      await this.handleWriteError(err, 'deleteMistakesBatch');
     }
   }
 
@@ -253,7 +287,7 @@ export class MistakeActions extends BaseActions {
 
     const originalSnapshot = {
       mistakes: this.state.mistakes,
-      xp: this.state.xp
+      xp: { ...this.state.xp }
     };
 
     const updatedMistakes = this.state.mistakes.map(m => m.id === mistakeId ? updatedMistake : m);
@@ -267,7 +301,7 @@ export class MistakeActions extends BaseActions {
       await this.runAtomicBatch((batch) => {
         const mistakeDoc = doc(db, 'users', this.userId, 'mistakes', updatedMistake.id);
         batch.set(mistakeDoc, sanitizeForFirestore(updatedMistake), { merge: true });
-        if (deltaXp > 0) {
+        if (deltaXp !== 0) {
           const userDoc = doc(db, 'users', this.userId);
           batch.set(userDoc, sanitizeForFirestore({ xp: newXp }), { merge: true });
         }

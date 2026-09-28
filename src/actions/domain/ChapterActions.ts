@@ -11,6 +11,8 @@ import { doc } from 'firebase/firestore';
 import { db } from '@/firebase';
 
 export class ChapterActions extends BaseActions {
+  private sm2Engine = new SpacedRepetitionEngine();
+
   async updateChapter(chapterIdOrObject: string | Chapter, updates?: Partial<Chapter>): Promise<void> {
     this.checkWriteBlock();
     let chapterId: string;
@@ -40,10 +42,6 @@ export class ChapterActions extends BaseActions {
     const updatedChapter = normalizeChapter(merged);
     const updatedChapters = this.state.chapters.map(c => (c.id === chapter.id ? updatedChapter : c));
 
-    const originalSnapshot = {
-      chapters: this.state.chapters
-    };
-
     this.runtime.updateStateOptimistic({
       chapters: updatedChapters
     });
@@ -52,7 +50,7 @@ export class ChapterActions extends BaseActions {
       await ChapterRepository.saveChapter(this.userId, updatedChapter);
       await this.runtime.refresh('CHAPTER_UPDATE', { chapters: updatedChapters, lastSyncError: null });
     } catch (err) {
-      this.runtime.updateStateOptimistic(originalSnapshot);
+      this.runtime.rollbackChapter(chapter.id, chapter);
       await this.handleWriteError(err, 'updateChapter');
     }
   }
@@ -123,10 +121,6 @@ export class ChapterActions extends BaseActions {
 
     const updatedChapters = [...this.state.chapters, newChapter];
 
-    const originalSnapshot = {
-      chapters: this.state.chapters
-    };
-
     this.runtime.updateStateOptimistic({
       chapters: updatedChapters
     });
@@ -135,7 +129,7 @@ export class ChapterActions extends BaseActions {
       await ChapterRepository.saveChapter(this.userId, newChapter);
       await this.runtime.refresh('CHAPTER_UPDATE', { chapters: updatedChapters, lastSyncError: null });
     } catch (err) {
-      this.runtime.updateStateOptimistic(originalSnapshot);
+      this.runtime.rollbackChapter(newChapter.id, null);
       await this.handleWriteError(err, 'addCustomChapter');
     }
   }
@@ -176,10 +170,6 @@ export class ChapterActions extends BaseActions {
 
     const updatedChapters = this.state.chapters.map(c => (c.id === chapter.id ? updatedChapter : c));
 
-    const originalSnapshot = {
-      chapters: this.state.chapters
-    };
-
     this.runtime.updateStateOptimistic({
       chapters: updatedChapters
     });
@@ -188,14 +178,21 @@ export class ChapterActions extends BaseActions {
       await ChapterRepository.saveChapter(this.userId, updatedChapter);
       await this.runtime.refresh('CHAPTER_UPDATE', { chapters: updatedChapters, lastSyncError: null });
     } catch (err) {
-      this.runtime.updateStateOptimistic(originalSnapshot);
+      this.runtime.rollbackChapter(chapter.id, chapter);
       await this.handleWriteError(err, 'updateChapterProgress');
     }
   }
 
-  async completeRevision(cardId: string, confidence: 'Low' | 'Medium' | 'High') {
+  async completeRevision(cardIdOrChapterId: string, confidence: 'Low' | 'Medium' | 'High') {
     this.checkWriteBlock();
-    const chapter = this.state.chapters.find(c => c.id === cardId);
+    let chapter = this.state.chapters.find(c => c.id === cardIdOrChapterId);
+    if (!chapter) {
+      chapter = this.state.chapters.find(c =>
+        Boolean((c as { flashcards?: Array<{ id: string }> }).flashcards?.some(f => f.id === cardIdOrChapterId)) ||
+        cardIdOrChapterId.startsWith(`${c.id}_`) ||
+        cardIdOrChapterId.includes(c.id)
+      );
+    }
     if (chapter) {
       const confScore = confidence === 'High' ? 100 : confidence === 'Medium' ? 70 : 40;
 
@@ -217,37 +214,19 @@ export class ChapterActions extends BaseActions {
 
       const levelUpData = oldLevel !== newLevel ? { oldLevel, newLevel, xp: newXp } : null;
       
-      let easeFactor = chapter.sm2EaseFactor ?? 2.5;
-      let interval = chapter.sm2Interval ?? 0;
-      let revisionCount = chapter.revisionCount || 0;
-      
-      let quality = 0;
+      let quality = 1;
       if (confidence === 'High') quality = 5;
       else if (confidence === 'Medium') quality = 3;
-      else quality = 1;
-      
-      if (quality >= 3) {
-        revisionCount += 1;
-        if (revisionCount === 1) {
-          interval = 1;
-        } else if (revisionCount === 2) {
-          interval = 6;
-        } else {
-          interval = Math.round(interval * easeFactor);
-        }
-      } else {
-        revisionCount = 0;
-        interval = 1;
-      }
-      
-      easeFactor = easeFactor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02));
-      if (easeFactor < 1.3) easeFactor = 1.3;
-      
-      const nextRevisionDueAt = new Date(Date.now() + interval * 24 * 60 * 60 * 1000).toISOString();
+
+      const sm2Result = this.sm2Engine.calculateNextReview(quality, {
+        repetitions: chapter.revisionCount || 0,
+        easeFactor: chapter.sm2EaseFactor ?? 2.5,
+        interval: chapter.sm2Interval ?? 0,
+      });
 
       const updatedChapter: Chapter = { 
         ...chapter, 
-        revisionCount,
+        revisionCount: sm2Result.repetitions,
         confidence: confScore,
         lastRevisionDaysAgo: 0,
         revisionProgress: {
@@ -260,9 +239,9 @@ export class ChapterActions extends BaseActions {
           retentionConfidence: confidence,
           lastRevisedAt: new Date().toISOString()
         },
-        sm2EaseFactor: easeFactor,
-        sm2Interval: interval,
-        nextRevisionDueAt,
+        sm2EaseFactor: sm2Result.easeFactor,
+        sm2Interval: sm2Result.interval,
+        nextRevisionDueAt: sm2Result.nextReviewDate,
         lastRevisedAt: new Date().toISOString()
       };
 
@@ -272,7 +251,7 @@ export class ChapterActions extends BaseActions {
       };
 
       try {
-        const updatedChapters = this.state.chapters.map(c => c.id === cardId ? updatedChapter : c);
+        const updatedChapters = this.state.chapters.map(c => c.id === chapter.id ? updatedChapter : c);
         
         this.runtime.updateStateOptimistic({
           chapters: updatedChapters,
@@ -463,10 +442,6 @@ export class ChapterActions extends BaseActions {
       currentLecture: isMastering ? chapter.totalLectures : 0
     };
 
-    const originalSnapshot = {
-      chapters: this.state.chapters
-    };
-
     const updatedChapters = this.state.chapters.map(c => c.id === chapterId ? updatedChapter : c);
 
     this.runtime.updateStateOptimistic({
@@ -477,7 +452,7 @@ export class ChapterActions extends BaseActions {
       await ChapterRepository.saveChapter(this.userId, updatedChapter);
       await this.runtime.refresh('CHAPTER_UPDATE', { chapters: updatedChapters, lastSyncError: null });
     } catch (err) {
-      this.runtime.updateStateOptimistic(originalSnapshot);
+      this.runtime.rollbackChapter(chapterId, chapter);
       await this.handleWriteError(err, 'toggleChapterStatus');
     }
   }
@@ -488,10 +463,6 @@ export class ChapterActions extends BaseActions {
     if (!chapter) return;
     const updatedChapter = { ...chapter, status };
 
-    const originalSnapshot = {
-      chapters: this.state.chapters
-    };
-
     const updatedChapters = this.state.chapters.map(c => c.id === chapterId ? updatedChapter : c);
 
     this.runtime.updateStateOptimistic({
@@ -502,7 +473,7 @@ export class ChapterActions extends BaseActions {
       await ChapterRepository.saveChapter(this.userId, updatedChapter);
       await this.runtime.refresh('CHAPTER_UPDATE', { chapters: updatedChapters, lastSyncError: null });
     } catch (err) {
-      this.runtime.updateStateOptimistic(originalSnapshot);
+      this.runtime.rollbackChapter(chapterId, chapter);
       await this.handleWriteError(err, 'updateChapterStatus');
     }
   }
@@ -513,10 +484,6 @@ export class ChapterActions extends BaseActions {
     if (!chapter) return;
     const updatedChapter = normalizeChapter({ ...chapter, ...updates });
 
-    const originalSnapshot = {
-      chapters: this.state.chapters
-    };
-
     const updatedChapters = this.state.chapters.map(c => c.id === chapterId ? updatedChapter : c);
     this.runtime.updateStateOptimistic({ chapters: updatedChapters });
 
@@ -524,7 +491,7 @@ export class ChapterActions extends BaseActions {
       await ChapterRepository.saveChapter(this.userId, updatedChapter);
       await this.runtime.refresh('CHAPTER_UPDATE', { chapters: updatedChapters, lastSyncError: null });
     } catch (err) {
-      this.runtime.updateStateOptimistic(originalSnapshot);
+      this.runtime.rollbackChapter(chapterId, chapter);
       await this.handleWriteError(err, 'updateChapterData');
     }
   }
@@ -645,10 +612,6 @@ export class ChapterActions extends BaseActions {
     const updatedChapter = normalizeChapter(mergedChapter);
     const updatedChapters = this.state.chapters.map(c => c.id === chapterId ? updatedChapter : c);
 
-    const originalSnapshot = {
-      chapters: this.state.chapters
-    };
-
     this.runtime.updateStateOptimistic({
       chapters: updatedChapters
     });
@@ -657,7 +620,7 @@ export class ChapterActions extends BaseActions {
       await ChapterRepository.saveChapter(this.userId, updatedChapter);
       await this.runtime.refresh('CHAPTER_UPDATE', { chapters: updatedChapters, lastSyncError: null });
     } catch (err) {
-      this.runtime.updateStateOptimistic(originalSnapshot);
+      this.runtime.rollbackChapter(chapterId, chap);
       await this.handleWriteError(err, 'updateChapterDetailedDiagnosis');
     }
   }

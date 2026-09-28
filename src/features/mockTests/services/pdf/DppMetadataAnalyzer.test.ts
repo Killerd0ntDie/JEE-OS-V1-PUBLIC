@@ -18,4 +18,48 @@ describe('DppMetadataAnalyzer', () => {
     expect(res.subject).toBe('physics');
     expect(res.chapterName).toBe('Centre of Mass');
   });
+
+  it('analyzeDppMetadata omits pdfBase64 when rawText has >= 150 characters to prevent payload bloat and timeouts', async () => {
+    let capturedBody: any = null;
+    const originalFetch = global.fetch;
+    global.fetch = async (url: any, init: any) => {
+      if (String(url).includes('/api/mocktest/analyze-dpp-metadata')) {
+        capturedBody = JSON.parse(init.body);
+        return {
+          ok: true,
+          json: async () => ({
+            title: 'Allen Chemistry DPP - Chemical Bonding',
+            sheetName: 'DPP #01',
+            subject: 'chemistry',
+            chapterName: 'Chemical Bonding',
+            recommendedDurationMinutes: 45,
+            questionCountEstimate: 15,
+            detectedInstitute: 'Allen'
+          })
+        } as any;
+      }
+      return originalFetch(url, init);
+    };
+
+    try {
+      const mockFile = new File(['dummy pdf content'], 'Chemical_Bonding_DPP_01.pdf', { type: 'application/pdf' });
+      const longText = 'ALLEN CAREER INSTITUTE KOTA RAJASTHAN\nDPP #01 CHEMICAL BONDING AND MOLECULAR STRUCTURE\n' +
+        '1. Which of the following species has maximum number of lone pairs?\n' +
+        '2. The bond order of CO molecule is\n' +
+        '3. Hybridization of central atom in SF6 is\n';
+
+      const result = await DppMetadataAnalyzer.analyzeDppMetadata(mockFile, [
+        { name: 'Chemical Bonding', subject: 'chemistry' }
+      ], undefined, longText);
+
+      expect(capturedBody).not.toBeNull();
+      // Must omit pdfBase64 to save network latency & tokens!
+      expect(capturedBody.pdfBase64).toBeUndefined();
+      expect(capturedBody.rawText).toContain('ALLEN CAREER INSTITUTE');
+      expect(result.detectedInstitute).toBe('Allen');
+      expect(result.subject).toBe('chemistry');
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
 });

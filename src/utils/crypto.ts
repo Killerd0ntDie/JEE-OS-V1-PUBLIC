@@ -1,23 +1,29 @@
 /**
- * Simple obfuscation utilities for client-side storage.
- * Note: This is NOT true encryption, as the client holds the decoding logic.
- * It is solely meant to prevent plaintext leakage in browser extensions or DevTools.
+ * Utility for encoding and decoding stored secrets (e.g. user-provided API keys in localStorage).
+ * Handles Base64 encoding/decoding and graceful fallback if raw strings are stored.
  */
 
-export const encodeSecret = (text: string): string => {
+export function encodeSecret(secret: string): string {
+  if (!secret) return '';
   try {
-    // Basic base64 obfuscation with URI encoding for unicode safety
-    return btoa(encodeURIComponent(text));
-  } catch (e) {
-    return text;
+    if (typeof btoa !== 'undefined') {
+      return btoa(unescape(encodeURIComponent(secret)));
+    }
+    return Buffer.from(secret, 'utf-8').toString('base64');
+  } catch {
+    return secret;
   }
-};
+}
 
-export const decodeSecret = (encoded: string): string => {
+export function decodeSecret(encoded: string): string {
+  if (!encoded) return '';
   try {
-    return decodeURIComponent(atob(encoded));
-  } catch (e) {
-    // Fallback if not encoded or corrupted
+    if (typeof atob !== 'undefined') {
+      return decodeURIComponent(escape(atob(encoded)));
+    }
+    return Buffer.from(encoded, 'base64').toString('utf-8');
+  } catch {
+    // If not base64 encoded or decode fails, return raw string
     return encoded;
   }
-};
+}

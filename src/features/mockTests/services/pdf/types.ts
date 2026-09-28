@@ -64,6 +64,8 @@ export interface PageLayoutModel {
   headerHeight: number;
   footerHeight: number;
   columnCount: 1 | 2;
+  columnGutterX?: number;
+  answerKeyYstart?: number;
   
   // Structural content
   lines: VisualLine[];

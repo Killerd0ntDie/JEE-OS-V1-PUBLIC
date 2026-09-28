@@ -15,6 +15,7 @@ import {
   GenerationProgress, 
   MockGeneratorMode 
 } from '../services/MockTestGeneratorService';
+import { storageAdapter } from '@/services/StorageAdapter';
 
 interface MockTestGeneratorStudioProps {
   isOpen: boolean;
@@ -76,11 +77,7 @@ export function MockTestGeneratorStudio({
   // Gemini API Key State & Health Detection
   const [hasServerKey, setHasServerKey] = useState<boolean | null>(null);
   const [localKey, setLocalKey] = useState<string>(() => {
-    try {
-      return localStorage.getItem('gemini_api_key') || localStorage.getItem('jeeos_gemini_api_key') || '';
-    } catch {
-      return '';
-    }
+    return storageAdapter.getGeminiApiKey() || '';
   });
   const [isKeyInputOpen, setIsKeyInputOpen] = useState(false);
   const [keyDraft, setKeyDraft] = useState('');
@@ -101,7 +98,7 @@ export function MockTestGeneratorStudio({
   const handleSaveKey = () => {
     const trimmed = keyDraft.trim();
     if (trimmed) {
-      localStorage.setItem('gemini_api_key', trimmed);
+      storageAdapter.setGeminiApiKey(trimmed);
       setLocalKey(trimmed);
       setIsKeyInputOpen(false);
       setKeyDraft('');
@@ -109,8 +106,7 @@ export function MockTestGeneratorStudio({
   };
 
   const handleClearKey = () => {
-    localStorage.removeItem('gemini_api_key');
-    localStorage.removeItem('jeeos_gemini_api_key');
+    storageAdapter.removeGeminiApiKey();
     setLocalKey('');
     setIsKeyInputOpen(false);
   };

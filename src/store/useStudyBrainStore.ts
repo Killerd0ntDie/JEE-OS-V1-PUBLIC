@@ -1,12 +1,16 @@
 import { create } from 'zustand';
+import { useShallow } from 'zustand/react/shallow';
 import { StudyBrainRuntime, StudyBrainState } from '@/runtime/StudyBrainRuntime';
 import { StudyBrainActions } from '@/actions/StudyBrainActions';
+
+export { useShallow };
 
 export type StudyBrainStoreState = StudyBrainState & {
   actions: StudyBrainActions;
   setState: (newState: Partial<StudyBrainState>) => void;
   syncFromRuntime: (newState: StudyBrainState) => void;
   setActions: (actions: StudyBrainActions) => void;
+  unsubscribeRuntime: () => void;
 };
 
 export const useStudyBrainStore = create<StudyBrainStoreState>((set) => {
@@ -14,7 +18,7 @@ export const useStudyBrainStore = create<StudyBrainStoreState>((set) => {
   const actions = new StudyBrainActions(runtime, 'guest');
   
   // Directly subscribe to runtime so Zustand store is always synchronized
-  runtime.subscribe((newState) => {
+  const unsubscribe = runtime.subscribe((newState) => {
     set(newState);
   });
 
@@ -26,5 +30,6 @@ export const useStudyBrainStore = create<StudyBrainStoreState>((set) => {
     },
     syncFromRuntime: (newState) => set(newState),
     setActions: (actions) => set({ actions }),
+    unsubscribeRuntime: unsubscribe,
   };
 });

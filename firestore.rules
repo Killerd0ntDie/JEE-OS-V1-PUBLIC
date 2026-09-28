@@ -1,23 +1,210 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Helper to check if user is authenticated and owns the data
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // This security rules file assumes the following data structures:
+    //
+    // Collection: users
+    // Document ID: {userId} (Must match request.auth.uid)
+    // Fields:
+    //   - uid: string (optional, immutable, must equal userId if present)
+    //   - id: string (optional, immutable, must equal userId if present)
+    //   - xp: map (optional, key count <= 100) - XP state, level, streak
+    //   - analytics: map (optional, key count <= 100) - Aggregated study analytics
+    //   - settings: map (optional, key count <= 100) - User preferences and system configuration
+    //   - energyLevel: string (optional, enum: 'High' | 'Medium' | 'Low' or length <= 20)
+    //   - activeSubject: string (optional, enum: 'physics' | 'chemistry' | 'maths' | 'all' or length <= 20)
+    //   - isMissionModeActive: bool (optional)
+    //   - coachMessage: string (optional, length <= 5000)
+    //   - mentorProfile: map (optional, key count <= 100) - Academic roadmap and constraints
+    //   - weeklyGoals: list (optional, size <= 100)
+    //   - scheduleOverrides: map (optional, key count <= 100)
+    //   - deletedMissionIds: list (optional, size <= 1000)
+    //   - completedPlannerMissionIds: list (optional, size <= 1000)
+    //   - dismissedPlannerMissionIds: list (optional, size <= 1000)
+    //
+    // Subcollections under users/{userId}/{collectionId}/{documentId}:
+    // Allowed collectionId values:
+    //   - chapters: syllabus progression, lectures, DPPs, mastery stats
+    //   - notes: user revision notes and formulas
+    //   - mistakes: error logs, solution images/links, recovery stats
+    //   - studySessions: Pomodoro and stopwatch study session records
+    //   - mockResults: scores and metrics from completed mock exams
+    //   - customMockTests: user-created or AI-generated practice tests
+    //   - timelineBlocks: timeline schedule blocks
+    //   - customTimelineBlocks: user-customized timeline schedule blocks
+    //   - customMissions: daily planner actionable missions
+    //   - customQuestions: user-generated or custom practice questions
+    // Subcollection Document Fields:
+    //   - id: string (optional, immutable, must equal documentId if present)
+    //   - userId: string (optional, immutable, must equal userId if present)
+    //
+    // Collection: pyq_bank
+    // Document ID: {document=**}
+    // Fields:
+    //   - Previous Year Questions bank repository
+    //   - Client access: Read-only for authenticated, non-anonymous users
+    //   - Write access: Denied (Only Firebase Admin SDK can write)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    // Check if the request is from an authenticated user
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Check if the user is authenticated and not anonymous
+    function isNotAnonymous() {
+      return isAuthenticated() &&
+        request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+
+    // Check if the authenticated user owns the resource path
     function isOwner(userId) {
-      return request.auth != null && request.auth.uid == userId;
+      return isAuthenticated() && request.auth.uid == userId;
     }
 
-    // Match users collection and any subcollections under it
-    match /users/{userId} {
-      allow read, write: if isOwner(userId);
-      
-      match /{collectionId}/{documentId} {
-        allow read, write: if isOwner(userId) && collectionId in ['chapters', 'notes', 'mistakes', 'studySessions', 'mockResults', 'customMockTests', 'timelineBlocks', 'customTimelineBlocks', 'customMissions', 'customQuestions'];
-      }
+    // Validate that document key count does not exceed limit (DoS defense)
+    // Note: In CEL, Map.keys().size() returns the key count, protecting against payload bloat.
+    function hasReasonableKeyCount() {
+      return request.resource.data.keys().size() <= 100;
     }
 
+    // Validate optional string field length if present
+    function isValidOptionalString(field, maxLen) {
+      return !(field in request.resource.data) ||
+        (request.resource.data[field] is string && request.resource.data[field].size() <= maxLen);
+    }
+
+    // Verify UID aligns with owner if present
+    function uidUnchanged(userId) {
+      return !('uid' in request.resource.data) || request.resource.data.uid == userId;
+    }
+
+    // Verify document ID aligns with document path if present
+    function docIdUnchanged(docId) {
+      return !('id' in request.resource.data) || request.resource.data.id == docId;
+    }
+
+    // Verify userId field in subcollection document aligns with owner if present
+    function subcolUserIdUnchanged(userId) {
+      return !('userId' in request.resource.data) || request.resource.data.userId == userId;
+    }
+
+    // Enforce immutable UID on update
+    function uidNotModified() {
+      return !('uid' in resource.data) ||
+        (('uid' in request.resource.data) && request.resource.data.uid == resource.data.uid);
+    }
+
+    // Enforce immutable document ID on update
+    function idNotModified() {
+      return !('id' in resource.data) ||
+        (('id' in request.resource.data) && request.resource.data.id == resource.data.id);
+    }
+
+    // Enforce immutable userId field on subcollection update
+    function subcolUserIdNotModified() {
+      return !('userId' in resource.data) ||
+        (('userId' in request.resource.data) && request.resource.data.userId == resource.data.userId);
+    }
+
+    // Domain validator for User documents (used on both create and update)
+    function isValidUserDoc(userId) {
+      return hasReasonableKeyCount() &&
+        uidUnchanged(userId) &&
+        docIdUnchanged(userId) &&
+        isValidOptionalString('coachMessage', 5000) &&
+        isValidOptionalString('energyLevel', 20) &&
+        isValidOptionalString('activeSubject', 20);
+    }
+
+    // Validate allowed subcollection names
+    function isValidSubcollection(collectionId) {
+      return collectionId in [
+        'chapters',
+        'notes',
+        'mistakes',
+        'studySessions',
+        'mockResults',
+        'customMockTests',
+        'timelineBlocks',
+        'customTimelineBlocks',
+        'customMissions',
+        'customQuestions'
+      ];
+    }
+
+    // Domain validator for subcollection documents (used on both create and update)
+    function isValidSubcolDoc(userId, documentId) {
+      return hasReasonableKeyCount() &&
+        subcolUserIdUnchanged(userId) &&
+        docIdUnchanged(documentId) &&
+        isValidOptionalString('title', 500) &&
+        isValidOptionalString('name', 500) &&
+        isValidOptionalString('topic', 500) &&
+        isValidOptionalString('subject', 100);
+    }
+
+    // ===============================================================
+    // Root Default Deny
+    // ===============================================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // ===============================================================
+    // PYQ Bank (Previous Year Questions)
+    // Read-only for authenticated non-anonymous users.
+    // Client writes are strictly forbidden (Admin SDK only).
+    // ===============================================================
     match /pyq_bank/{document=**} {
-      allow read: if request.auth != null && request.auth.token.firebase.sign_in_provider != 'anonymous';
-      allow write: if false; // Only Admin SDK can write PYQs
+      allow read: if isNotAnonymous();
+      allow write: if false;
+    }
+
+    // ===============================================================
+    // Users Collection & User-Scoped Subcollections
+    // Strict ownership isolation, DoS bounds, and immutable fields.
+    // ===============================================================
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+
+      allow create: if isOwner(userId) &&
+                    isValidUserDoc(userId);
+
+      allow update: if isOwner(userId) &&
+                    isValidUserDoc(userId) &&
+                    uidNotModified() &&
+                    idNotModified();
+
+      allow delete: if isOwner(userId);
+
+      // User Subcollections
+      match /{collectionId}/{documentId} {
+        allow read: if isOwner(userId) &&
+                    isValidSubcollection(collectionId);
+
+        allow create: if isOwner(userId) &&
+                      isValidSubcollection(collectionId) &&
+                      isValidSubcolDoc(userId, documentId);
+
+        allow update: if isOwner(userId) &&
+                      isValidSubcollection(collectionId) &&
+                      isValidSubcolDoc(userId, documentId) &&
+                      subcolUserIdNotModified() &&
+                      idNotModified();
+
+        allow delete: if isOwner(userId) &&
+                      isValidSubcollection(collectionId);
+      }
     }
   }
 }

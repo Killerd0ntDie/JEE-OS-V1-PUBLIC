@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { RichTextRenderer } from '@/components/MathRenderer';
 import { auth } from '@/firebase';
+import { storageAdapter } from '@/services/StorageAdapter';
 
 export interface MentorContext {
   testName?: string;
@@ -181,11 +182,9 @@ export function MockTestAiMentorModal({
       }
 
       try {
-        if (typeof localStorage !== 'undefined') {
-          const localKey = localStorage.getItem('gemini_api_key') || localStorage.getItem('jeeos_gemini_api_key');
-          if (localKey) {
-            headers['x-gemini-api-key'] = localKey;
-          }
+        const localKey = storageAdapter.getGeminiApiKey();
+        if (localKey) {
+          headers['x-gemini-api-key'] = localKey;
         }
       } catch {}
 

@@ -8,6 +8,7 @@ import { CoachChatStream } from './components/CoachChatStream';
 import { CoachPromptBar } from './components/CoachPromptBar';
 import { CoachSessionHistoryDrawer } from './components/CoachSessionHistoryDrawer';
 import { Bot, Activity } from 'lucide-react';
+import { storageAdapter } from '@/services/StorageAdapter';
 
 export function AiCoachPage({ isActive }: { isActive?: boolean }) {
   const actions = useStudyBrainStore(state => state.actions);
@@ -54,9 +55,9 @@ export function AiCoachPage({ isActive }: { isActive?: boolean }) {
   // Read pending coach prompts when navigated with intent
   useEffect(() => {
     if (isActive) {
-      const pendingPrompt = sessionStorage.getItem('pendingCoachPrompt');
+      const pendingPrompt = storageAdapter.getSession<string>('jeeos_pending_coach_prompt');
       if (pendingPrompt) {
-        sessionStorage.removeItem('pendingCoachPrompt');
+        storageAdapter.removeSession('jeeos_pending_coach_prompt');
         setTimeout(() => {
           handleSendMessage(pendingPrompt);
         }, 300);

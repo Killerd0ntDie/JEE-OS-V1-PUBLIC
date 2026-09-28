@@ -11,6 +11,7 @@ import { RichTextRenderer } from '@/components/MathRenderer';
 import { springs } from '@/constants/motion';
 import { MISTAKE_CATEGORIES } from '../MistakesPage';
 import { Modal } from '@/components/ui/Modal';
+import { ConfirmDeleteModal } from '@/components/ui/ConfirmDeleteModal';
 
 export interface MistakeStudioViewProps {
   mistakes: Mistake[];
@@ -41,6 +42,7 @@ export interface MistakeStudioViewProps {
   onStartInterrogation: (mistake: Mistake) => void;
   onUpdateStatus: (id: string, status: Mistake['revisionStatus']) => void;
   onDeleteMistake: (id: string) => void;
+  onDeleteMistakesBatch?: (ids: string[]) => void;
   getSubjectColor: (sub: SubjectId) => { text: string; bg: string; border: string; badge: string };
   getStatusBadge: (status: Mistake['revisionStatus']) => { label: string; style: 'destructive' | 'accent' | 'default' | 'success' };
 }
@@ -74,10 +76,37 @@ export const MistakeStudioView: React.FC<MistakeStudioViewProps> = ({
   onStartInterrogation,
   onUpdateStatus,
   onDeleteMistake,
+  onDeleteMistakesBatch,
   getSubjectColor,
   getStatusBadge
 }) => {
   const [inspectedMistake, setInspectedMistake] = useState<Mistake | null>(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{
+    type: 'single' | 'batch';
+    id?: string;
+    ids?: string[];
+    title: string;
+    message: string;
+    fromDrawer?: boolean;
+  } | null>(null);
+
+  const handleConfirmDelete = () => {
+    if (!deleteConfirmation) return;
+    if (deleteConfirmation.type === 'single' && deleteConfirmation.id) {
+      if (deleteConfirmation.fromDrawer || inspectedMistake?.id === deleteConfirmation.id) {
+        setInspectedMistake(null);
+      }
+      onDeleteMistake(deleteConfirmation.id);
+    } else if (deleteConfirmation.type === 'batch' && deleteConfirmation.ids) {
+      if (onDeleteMistakesBatch) {
+        onDeleteMistakesBatch(deleteConfirmation.ids);
+      } else {
+        deleteConfirmation.ids.forEach(id => onDeleteMistake(id));
+      }
+      clearSelection();
+    }
+    setDeleteConfirmation(null);
+  };
 
   const selectedSubset = mistakes.filter(m => selectedIds.has(m.id));
 
@@ -291,12 +320,14 @@ export const MistakeStudioView: React.FC<MistakeStudioViewProps> = ({
 
             <div className="flex items-center gap-2">
               <button
+                type="button"
                 onClick={() => onStartCbtRetest(selectedSubset)}
                 className="px-3 py-1 rounded-lg bg-red-600 hover:bg-red-500 text-white font-bold cursor-pointer"
               >
                 Retest Selected ({selectedIds.size})
               </button>
               <button
+                type="button"
                 onClick={() => {
                   selectedIds.forEach(id => onUpdateStatus(id, 'Mastered'));
                   clearSelection();
@@ -304,6 +335,22 @@ export const MistakeStudioView: React.FC<MistakeStudioViewProps> = ({
                 className="px-3 py-1 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 font-bold cursor-pointer"
               >
                 Mark Mastered
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setDeleteConfirmation({
+                    type: 'batch',
+                    ids: Array.from(selectedIds),
+                    title: `Delete ${selectedIds.size} Selected Mistakes?`,
+                    message: `Are you sure you want to permanently remove these ${selectedIds.size} mistakes from your Mistakes Vault? This cannot be undone.`
+                  });
+                }}
+                className="px-3 py-1 rounded-lg bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 border border-rose-800/40 font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                title="Delete Selected Mistakes"
+              >
+                <Trash2 className="w-3 h-3 text-rose-400" />
+                <span>Delete ({selectedIds.size})</span>
               </button>
             </div>
           </motion.div>
@@ -473,8 +520,17 @@ export const MistakeStudioView: React.FC<MistakeStudioViewProps> = ({
                       </button>
 
                       <button
-                        onClick={() => onDeleteMistake(mistake.id)}
-                        className="p-1 rounded-lg bg-zinc-900 hover:bg-rose-950/50 hover:text-rose-400 text-zinc-600 border border-zinc-800 transition-all cursor-pointer"
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteConfirmation({
+                            type: 'single',
+                            id: mistake.id,
+                            title: "Delete Mistake from Vault?",
+                            message: `Are you sure you want to delete this mistake (${mistake.chapter}${mistake.topic ? ` - ${mistake.topic}` : ''})? This will remove it from your revision queue.`
+                          });
+                        }}
+                        className="p-1 rounded-lg bg-zinc-900 hover:bg-rose-950/50 hover:text-rose-400 text-zinc-500 hover:border-rose-800/50 border border-zinc-800 transition-all cursor-pointer"
                         title="Delete Mistake"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -622,11 +678,41 @@ export const MistakeStudioView: React.FC<MistakeStudioViewProps> = ({
                   <Sparkles className="w-3.5 h-3.5" />
                   <span>Remediation Lab</span>
                 </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const m = inspectedMistake;
+                    setDeleteConfirmation({
+                      type: 'single',
+                      id: m.id,
+                      fromDrawer: true,
+                      title: "Delete Mistake from Vault?",
+                      message: `Are you sure you want to delete this mistake (${m.chapter}${m.topic ? ` - ${m.topic}` : ''}) from your vault?`
+                    });
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-rose-950/30 hover:bg-rose-950/60 border border-rose-800/40 text-rose-300 text-xs font-mono font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
+                  title="Delete this mistake from vault"
+                >
+                  <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                  <span>Delete</span>
+                </button>
               </div>
             </div>
           </div>
         )}
       </Modal>
+
+      {/* 5. CONFIRM DELETE MODAL */}
+      <ConfirmDeleteModal
+        isOpen={!!deleteConfirmation}
+        onClose={() => setDeleteConfirmation(null)}
+        title={deleteConfirmation?.title || "Delete Mistake?"}
+        message={deleteConfirmation?.message || "Are you sure you want to remove this mistake?"}
+        confirmLabel={deleteConfirmation?.type === 'batch' ? `Delete ${deleteConfirmation.ids?.length} Mistakes` : "Delete Mistake"}
+        zIndex={100030}
+        onConfirm={handleConfirmDelete}
+      />
 
     </div>
   );

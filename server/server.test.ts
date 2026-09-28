@@ -7,7 +7,7 @@ import { AddressInfo } from 'node:net';
 vi.mock('./firebaseAdmin.js', () => ({
   verifyAuth: vi.fn((req: any, res: any, next: any) => {
     const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (!authHeader?.startsWith('Bearer ')) {
       return res.status(401).json({ error: 'Unauthorized: Missing or invalid Authorization header' });
     }
     const token = authHeader.split('Bearer ')[1];

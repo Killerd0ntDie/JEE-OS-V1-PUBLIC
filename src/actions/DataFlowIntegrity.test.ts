@@ -311,16 +311,52 @@ describe('Section 2.3: Data Flow Integrity Tests (RISK-01 to RISK-05)', () => {
       const initialTotalXp = runtime.getState().xp.total;
 
       // 1. Mark as solved correctly -> awards +60 XP
+      mockBatch.set.mockClear();
+      mockBatch.commit.mockClear();
       await actions.updateMistakeTestResult('mistake-1', true);
       expect(runtime.getState().xp.total).toBe(initialTotalXp + 60);
+      expect(mockBatch.set).toHaveBeenCalledTimes(2);
 
-      // 2. Unmark / mark as wrong -> deducts 60 XP
+      // 2. Unmark / mark as wrong -> deducts 60 XP, and persists negative XP change to Firestore (P0-SYNC-01)
+      mockBatch.set.mockClear();
+      mockBatch.commit.mockClear();
       await actions.updateMistakeTestResult('mistake-1', false);
       expect(runtime.getState().xp.total).toBe(initialTotalXp);
+      expect(mockBatch.set).toHaveBeenCalledTimes(2);
+      expect(mockBatch.commit).toHaveBeenCalledTimes(1);
+      const deductCalls = mockBatch.set.mock.calls;
+      expect(deductCalls[0][1]).toHaveProperty('revisionStatus', 'Reviewed');
+      expect(deductCalls[1][1].xp.total).toBe(initialTotalXp);
 
       // 3. Mark as solved correctly again -> returns to +60 XP, NOT +120 XP
       await actions.updateMistakeTestResult('mistake-1', true);
       expect(runtime.getState().xp.total).toBe(initialTotalXp + 60);
+    });
+
+    it('commits updateMistakeStatus atomically across mistake and user profile via runAtomicBatch (P0-SYNC-01)', async () => {
+      mockBatch.set.mockClear();
+      mockBatch.commit.mockClear();
+      await actions.updateMistakeStatus('mistake-1', 'Solved Again');
+
+      expect(mockBatch.set).toHaveBeenCalledTimes(2);
+      expect(mockBatch.commit).toHaveBeenCalledTimes(1);
+
+      const setCalls = mockBatch.set.mock.calls;
+      expect(setCalls[0][1]).toHaveProperty('revisionStatus', 'Solved Again');
+      expect(setCalls[1][1]).toHaveProperty('xp');
+    });
+
+    it('rolls back optimistic state if updateMistakeStatus batch fails (P0-SYNC-01)', async () => {
+      mockBatch.commit.mockRejectedValueOnce(new Error('Network failure'));
+      const originalMistake = runtime.getState().mistakes.find(m => m.id === 'mistake-1');
+      const originalRevisionStatus = originalMistake?.revisionStatus;
+      const originalXpTotal = runtime.getState().xp.total;
+
+      await expect(actions.updateMistakeStatus('mistake-1', 'Solved Again')).rejects.toThrow();
+
+      const restoredMistake = runtime.getState().mistakes.find(m => m.id === 'mistake-1');
+      expect(restoredMistake?.revisionStatus).toBe(originalRevisionStatus);
+      expect(runtime.getState().xp.total).toBe(originalXpTotal);
     });
 
     it('deduplicates daily check-in entries for the same calendar date', async () => {

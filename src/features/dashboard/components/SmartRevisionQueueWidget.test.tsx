@@ -21,12 +21,12 @@ vi.mock('@/store/useStudyBrainStore', () => ({
 }));
 
 describe('SmartRevisionQueueWidget - Vault Telemetry & Doomsday Synergy', () => {
-  const mockChapters: Chapter[] = [
+  const mockChapters = [
     {
       id: 'phy-1',
       name: 'Rotational Motion',
       subject: 'physics',
-      status: 'Completed',
+      status: 'Mastered',
       completion: 100,
       confidence: 85,
       theoryComplete: true,
@@ -36,7 +36,7 @@ describe('SmartRevisionQueueWidget - Vault Telemetry & Doomsday Synergy', () => 
       id: 'chem-1',
       name: 'Thermodynamics',
       subject: 'chemistry',
-      status: 'Completed',
+      status: 'Mastered',
       completion: 100,
       confidence: 90,
       theoryComplete: true,
@@ -46,13 +46,13 @@ describe('SmartRevisionQueueWidget - Vault Telemetry & Doomsday Synergy', () => 
       id: 'math-1',
       name: 'Differential Equations',
       subject: 'maths',
-      status: 'Revision',
+      status: 'Revision Due',
       completion: 80,
       confidence: 70,
       theoryComplete: true,
       dppComplete: false,
     }
-  ];
+  ] as unknown as Chapter[];
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -105,7 +105,7 @@ describe('SmartRevisionQueueWidget - Vault Telemetry & Doomsday Synergy', () => 
         reason: 'Interval Overdue by 4 days',
         retentionStatus: 'Fading',
         isCritical: true,
-      }
+      } as any
     ];
 
     const onLaunch = vi.fn();

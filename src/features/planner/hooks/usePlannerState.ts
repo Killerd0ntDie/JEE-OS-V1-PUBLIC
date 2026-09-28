@@ -17,7 +17,8 @@ export function usePlannerState() {
   const [isSandboxMode, setIsSandboxMode] = useState(false);
   const [isEditGoalsOpen, setIsEditGoalsOpen] = useState(false);
 
-  const dailyCapHours = mentorProfile?.dailyAvailableHours || settings.dailyQuota || 4;
+  const rawDailyQuota = (settings?.dailyQuota && settings.dailyQuota <= 14 ? settings.dailyQuota : mentorProfile?.dailyAvailableHours) || 6;
+  const dailyCapHours = Math.min(14, Math.max(1, rawDailyQuota));
 
   const [viewMode, setViewMode] = useState<'daily' | 'weekly' | 'monthly'>('daily');
 

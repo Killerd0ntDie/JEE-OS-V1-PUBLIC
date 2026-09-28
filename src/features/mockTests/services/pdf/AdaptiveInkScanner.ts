@@ -12,8 +12,8 @@ export class AdaptiveInkScanner {
     height: number
   ): PageInkProfile {
     try {
-      // Sample 15 evenly spaced rows across the page to construct luminance histogram
-      const sampleStep = Math.max(1, Math.floor(height / 15));
+      // Sample 50 evenly spaced rows across the page to construct robust luminance histogram (Phase 2 - R6)
+      const sampleStep = Math.max(1, Math.floor(height / 50));
       const histogram = new Int32Array(256);
       let coloredPixelCount = 0;
       let totalSampled = 0;
@@ -62,12 +62,12 @@ export class AdaptiveInkScanner {
         }
       }
 
-      // Threshold: if a watermark peak exists, set cutoff safely below it
+      // Threshold: if a watermark peak exists, set cutoff safely below it with a safe floor of 178
       let inkThreshold = 185;
       if (watermarkLum !== null && watermarkLum >= 195) {
-        inkThreshold = Math.min(185, watermarkLum - 12);
+        inkThreshold = Math.max(178, Math.min(185, watermarkLum - 12));
       } else {
-        inkThreshold = Math.min(195, Math.floor(backgroundLum * 0.78));
+        inkThreshold = Math.min(195, Math.max(182, Math.floor(backgroundLum * 0.78)));
       }
 
       const hasColoredInk = coloredPixelCount >= totalSampled * 0.002;
@@ -144,7 +144,7 @@ export class AdaptiveInkScanner {
    * Groups rows with ink into contiguous visual bands.
    */
   static groupInkIntoBands(
-    rowInk: Int32Array,
+    rowInk: Int32Array | number[],
     scanYmin: number,
     scanYmax: number,
     minInkPixels: number,

@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { springs } from '@/constants/motion';
 import { PageId } from '../../../../types';
+import { storageAdapter } from '@/services/StorageAdapter';
 
 export interface ResultHeaderProps {
   testName: string;
@@ -113,7 +114,7 @@ export function ResultHeader({
           <button
             onClick={() => {
               const prompt = `I just completed the Mock Test "${testName}". I scored ${totalScore} out of ${totalMarks}. I attempted ${correctCount + incorrectCount} questions, got ${correctCount} correct and ${incorrectCount} incorrect. Can you analyze my performance and suggest a revision strategy?`;
-              sessionStorage.setItem('pendingCoachPrompt', prompt);
+              storageAdapter.setSession('jeeos_pending_coach_prompt', prompt);
               onNavigate?.('ai-coach');
             }}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-300 rounded-xl border border-indigo-500/30 text-xs font-bold transition-colors cursor-pointer"

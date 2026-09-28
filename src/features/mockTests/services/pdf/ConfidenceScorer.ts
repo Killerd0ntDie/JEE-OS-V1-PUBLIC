@@ -19,9 +19,9 @@ export class ConfidenceScorer {
   /**
    * Scores an individual question across 5 dimensions:
    * 1. statementQuality (25%)
-   * 2. optionQuality (30%)
+   * 2. optionQuality (25%)
    * 3. answerQuality (25%)
-   * 4. diagramQuality (10%)
+   * 4. diagramQuality (15%)
    * 5. latexQuality (10%)
    */
   static scoreQuestion(q: any): QuestionConfidence {
@@ -40,9 +40,9 @@ export class ConfidenceScorer {
         0.0,
         Math.round(
           (statementQuality * 0.25 +
-            optionQuality * 0.30 +
+            optionQuality * 0.25 +
             answerQuality * 0.25 +
-            diagramQuality * 0.10 +
+            diagramQuality * 0.15 +
             latexQuality * 0.10) *
             100
         ) / 100
@@ -204,12 +204,12 @@ export class ConfidenceScorer {
    */
   private static scoreDiagram(q: any, issues: string[]): number {
     const content = q?.content || '';
-    const impliedDiagram = /\b(?:given\s+(?:figure|diagram)|shown\s+in\s+(?:the\s+)?figure|refer\s+to\s+(?:the\s+)?diagram|circuit\s+diagram|graph\s+shown)\b/i.test(content);
+    const impliedDiagram = /\b(?:given\s+(?:figures?|diagrams?|graphs?|illustration)|shown\s+in\s+(?:the\s+)?(?:figures?|diagrams?|graphs?|illustration)|refer\s+to\s+(?:the\s+)?(?:figures?|diagrams?|graphs?)|circuit(?:\s+diagram)?|graph\s+shown|four\s+graphs|indicator\s+diagram|P-V\s+curve|pulley|wedge|inclined\s+plane|tube|spring|placed\s+at\s+a\s+point\s+[A-D]|reaches\s+the\s+point\s+[A-D])\b/i.test(content);
 
     if (!q.hasDiagram) {
       if (impliedDiagram) {
         issues.push('Statement mentions figure/diagram, but question is not marked hasDiagram');
-        return 0.5;
+        return 0.3;
       }
       return 1.0;
     }
@@ -308,7 +308,7 @@ export class ConfidenceScorer {
         high++;
       }
 
-      if (score.diagramQuality < 0.5 && questions[i]?.hasDiagram) {
+      if ((score.diagramQuality < 0.5 && questions[i]?.hasDiagram) || score.diagramQuality <= 0.3) {
         brokenDiagramIndices.push(i);
       }
 

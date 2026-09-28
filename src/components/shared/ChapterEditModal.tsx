@@ -17,6 +17,7 @@ import { CustomSelect } from '@/components/ui/CustomSelect';
 import { ConfirmDeleteModal } from '@/components/ui/ConfirmDeleteModal';
 import { springs } from '@/constants/motion';
 import { PrerequisiteFoundationAlert } from '@/features/subjects/components/PrerequisiteFoundationAlert';
+import { useToast } from '@/components/ui/ToastProvider';
 
 const PracticeModule = ({
   title,
@@ -159,6 +160,7 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
   const chapterMistakes = chapter ? mistakes.filter(m => m.chapter === chapter.name && m.revisionStatus !== 'Mastered') : [];
 
   const navigate = useNavigate();
+  const { toast } = useToast();
   const customMockTests = useStudyBrainStore(state => state.customMockTests) || [];
   const chapterTests = React.useMemo(() => {
     if (!chapter) return [];
@@ -210,14 +212,14 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
       setTeacher(chapter.lectureProgress?.teacher || '');
       setAvgLectureDuration(chapter.lectureProgress?.avgLectureDurationMinutes || 0);
 
-      const initialDppTotal = 10;
-      const initialPyqTotal = 30;
+      const initialDppTotal = (chapter.practiceProgress as any)?.totalDpp || 10;
+      const initialPyqTotal = (chapter.practiceProgress as any)?.totalPyq || (chapter as any).totalPyqs || 30;
 
       setTotalDpp(initialDppTotal);
-      setCompletedDpp(chapter.practiceProgress?.dppPercent ? Math.round((chapter.practiceProgress.dppPercent / 100) * initialDppTotal) : (chapter.dppComplete ? initialDppTotal : 0));
+      setCompletedDpp((chapter.practiceProgress as any)?.completedDpp ?? (chapter.practiceProgress?.dppPercent ? Math.round((chapter.practiceProgress.dppPercent / 100) * initialDppTotal) : (chapter.dppComplete ? initialDppTotal : 0)));
       
       setTotalPyq(initialPyqTotal);
-      setCompletedPyq(chapter.practiceProgress?.pyqPercent ? Math.round((chapter.practiceProgress.pyqPercent / 100) * initialPyqTotal) : (chapter.pyqsComplete ? initialPyqTotal : 0));
+      setCompletedPyq((chapter.practiceProgress as any)?.completedPyq ?? (chapter.practiceProgress?.pyqPercent ? Math.round((chapter.practiceProgress.pyqPercent / 100) * initialPyqTotal) : (chapter.pyqsComplete ? initialPyqTotal : 0)));
       
       setConfidence(chapter.confidence || 70);
       setDifficulty(chapter.difficulty || 'Medium');
@@ -265,7 +267,11 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
         c => c.serialNumber === newSerialNumber && c.id !== chapter.id && c.subject === chapter.subject
       );
       if (duplicateChapter) {
-        alert(`Serial number ${newSerialNumber} is already used by "${duplicateChapter.name}". Please use a different number.`);
+        toast({
+          title: 'Duplicate Serial Number',
+          description: `Serial number ${newSerialNumber} is already used by "${duplicateChapter.name}". Please use a different number.`,
+          type: 'warning'
+        });
         setIsSaving(false);
         return;
       }
@@ -284,7 +290,11 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
       });
       const inputNum = parseInt(serialNumber, 10);
       if (!isNaN(inputNum) && inputNum > maxNum + 1) {
-        alert(`Serial number cannot exceed ${maxNum + 1} (highest current serial number + 1). Please use a smaller number.`);
+        toast({
+          title: 'Invalid Serial Number',
+          description: `Serial number cannot exceed ${maxNum + 1} (highest current serial number + 1). Please use a smaller number.`,
+          type: 'warning'
+        });
         setIsSaving(false);
         return;
       }
@@ -319,10 +329,14 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
         moduleCompleted: dppComplete && pyqsComplete,
         dppPercent: dppComplete ? 100 : Math.round((completedDpp / (totalDpp || 1)) * 100),
         pyqPercent: pyqsComplete ? 100 : Math.round((completedPyq / (totalPyq || 1)) * 100),
+        totalDpp,
+        completedDpp,
+        totalPyq,
+        completedPyq,
         accuracyPercent: confidence,
         confidencePercent: confidence,
         weakTopics: notes ? notes.split(',').map(s => s.trim()).filter(Boolean) : []
-      }
+      } as any
     };
 
     try {
@@ -336,7 +350,11 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
     } catch (err) {
       console.error('Failed to save chapter:', err);
       setIsSaving(false);
-      alert('Failed to save chapter data. Please check your connection and try again.');
+      toast({
+        title: 'Save Failed',
+        description: 'Failed to save chapter data. Please check your connection and try again.',
+        type: 'error'
+      });
     }
   };
 
@@ -1005,6 +1023,18 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
                   >
                     <Trash2 className="w-3.5 h-3.5 text-rose-400" />
                     Delete Chapter
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleClose();
+                      navigate('/focus-vault');
+                    }}
+                    className="px-3.5 py-2.5 rounded-xl bg-indigo-950/60 hover:bg-indigo-900/80 border border-indigo-700/50 text-indigo-300 font-mono text-xs font-bold cursor-pointer transition-all active:scale-95 select-none flex items-center gap-1.5"
+                    title="Launch deep study session for this chapter in Focus Vault"
+                  >
+                    <Play className="w-3.5 h-3.5 text-indigo-400" />
+                    Focus Session
                   </button>
                   <button
                     type="button"

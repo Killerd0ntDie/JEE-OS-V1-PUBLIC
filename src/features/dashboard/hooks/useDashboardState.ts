@@ -5,6 +5,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useAuth } from '@/features/auth';
 import { RevisionCard } from '@/services/revisionEngineService';
 import { audioEngine } from '@/utils/audioEngine';
+import { storageAdapter } from '@/services/StorageAdapter';
 
 export function useDashboardState() {
   const navigate = useNavigate();
@@ -63,16 +64,16 @@ export function useDashboardState() {
   const [activeTab, setActiveTab] = useState<'focus' | 'analytics'>('focus');
   const [isMonthlyObjectiveModalOpen, setIsMonthlyObjectiveModalOpen] = useState(false);
   const [selectedMissionId, setSelectedMissionIdState] = useState<string | null>(
-    () => sessionStorage.getItem('jee_selected_mission_id')
+    () => storageAdapter.getSession<string>('jeeos_selected_mission_id')
   );
   const [activeBreakMissionId, setActiveBreakMissionId] = useState<string | null>(null);
 
   const setSelectedMissionId = (id: string | null) => {
     setSelectedMissionIdState(id);
     if (id) {
-      sessionStorage.setItem('jee_selected_mission_id', id);
+      storageAdapter.setSession('jeeos_selected_mission_id', id);
     } else {
-      sessionStorage.removeItem('jee_selected_mission_id');
+      storageAdapter.removeSession('jeeos_selected_mission_id');
     }
   };
 
@@ -97,15 +98,14 @@ export function useDashboardState() {
     for (const mission of todayMissions) {
       if (mission.completed) continue;
       const key = `jeeos_mission_state_${mission.id}`;
-      const raw = localStorage.getItem(key);
-      if (!raw) continue;
+      const saved = storageAdapter.getItem<any>(key);
+      if (!saved) continue;
 
       try {
-        const saved = JSON.parse(raw);
         if (!saved.seconds || saved.seconds < 60) continue;
         
         if (saved.timestamp && (now - saved.timestamp) > STALE_THRESHOLD_MS) {
-          localStorage.removeItem(key);
+          storageAdapter.removeItem(key);
           continue;
         }
 
@@ -132,13 +132,13 @@ export function useDashboardState() {
 
   const handleDiscardSession = useCallback(() => {
     if (!recoverableSession) return;
-    localStorage.removeItem(`jeeos_mission_state_${recoverableSession.missionId}`);
+    storageAdapter.removeItem(`jeeos_mission_state_${recoverableSession.missionId}`);
     setRecoverableSession(null);
   }, [recoverableSession]);
 
   useEffect(() => {
     // 1. Check if user already manually toggled the panel in this session
-    const sessionOverride = sessionStorage.getItem('jee_command_center_override');
+    const sessionOverride = storageAdapter.getSession<string>('jeeos_command_center_override');
     if (sessionOverride) {
       setIsHeaderExpanded(sessionOverride === 'expanded');
       return;
@@ -146,13 +146,13 @@ export function useDashboardState() {
 
     // 2. Check if this is the first visit of the day or has bottleneck alert
     const todayStr = new Date().toLocaleDateString('en-CA');
-    const lastVisitDate = localStorage.getItem('jee_last_dashboard_expand_date');
+    const lastVisitDate = storageAdapter.getItem<string>('jeeos_last_dashboard_expand_date');
     const isFirstVisitOfDay = lastVisitDate !== todayStr;
 
     if (isFirstVisitOfDay || hasBottleneckAlert) {
       setIsHeaderExpanded(true);
       if (isFirstVisitOfDay) {
-        localStorage.setItem('jee_last_dashboard_expand_date', todayStr);
+        storageAdapter.setItem('jeeos_last_dashboard_expand_date', todayStr);
       }
     } else {
       setIsHeaderExpanded(false);
@@ -162,7 +162,7 @@ export function useDashboardState() {
   const handleManualToggleHeader = useCallback(() => {
     setIsHeaderExpanded(prev => {
       const next = !prev;
-      sessionStorage.setItem('jee_command_center_override', next ? 'expanded' : 'collapsed');
+      storageAdapter.setSession('jeeos_command_center_override', next ? 'expanded' : 'collapsed');
       return next;
     });
   }, []);
@@ -260,7 +260,7 @@ export function useDashboardState() {
     setActiveBreakMissionId(null);
   }, []);
 
-  const handleQuickRevisionAction = useCallback((chapterId: string, outcome: 'complete' | 'needs_another' | 'skip') => {
+  const handleQuickRevisionAction = useCallback((chapterId: string, outcome: 'complete' | 'difficult' | 'needs_another' | 'skip', _notes?: string) => {
     if (outcome === 'skip') return;
     const confidence = outcome === 'complete' ? 'High' : outcome === 'needs_another' ? 'Medium' : 'Low';
     actions.completeRevision(chapterId, confidence);

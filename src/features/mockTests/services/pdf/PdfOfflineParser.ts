@@ -3,6 +3,7 @@ import { normalizeChemistryAndOrbitals, sanitizeCorruptedLatex, replaceAdobeSymb
 import { PdfLexicalParser } from '../PdfLexicalParser';
 import { AnswerKeyExtractor, ExtractedGlobalAnswerKey } from './AnswerKeyExtractor';
 import { OptionExtractor } from './OptionExtractor';
+import { MathNotationHealer } from './MathNotationHealer';
 import { SubjectId } from '@/types/mockTest';
 
 export class PdfOfflineParser {
@@ -53,6 +54,7 @@ export class PdfOfflineParser {
 
     let out = sanitizeCorruptedLatex(text);
     out = replaceAdobeSymbolFont(out);
+    out = MathNotationHealer.healMathText(out);
     out = out.replace(/\\nu\s*([0-9])\b/g, '$\\nu_$1$');
     out = out.replace(/\(\s*\\nu\s*\)/g, '($\\nu$)');
 
@@ -155,8 +157,8 @@ export class PdfOfflineParser {
     out = out.replace(/\\lambda\s*\/\s*(\d+)/g, '$\\frac{\\lambda}{$1}$');
 
     // 8. Ions
-    out = out.replace(/\bLi\s*2\+?\s*(?:ion)?\b/gi, '$\\text{Li}^{2+}\\text{ ion}$');
-    out = out.replace(/\bHe\s*\+?\s+ion\b/gi, '$\\text{He}^+\\text{ ion}$');
+    out = out.replace(/\bLi(?:\^|\s*)\s*2\+?\s*(?:ion)?\b/gi, '$\\text{Li}^{2+}\\text{ ion}$');
+    out = out.replace(/\bHe(?:\^|\s*)\s*\+?\s+ion\b/gi, '$\\text{He}^+\\text{ ion}$');
 
     // 9. Quantum numbers and constants
     out = out.replace(/\bm\s*l\s*=/g, 'm_l = ');
@@ -173,6 +175,7 @@ export class PdfOfflineParser {
 
     // 11. Normalize chemistry ions & orbitals
     out = normalizeChemistryAndOrbitals(out);
+    out = MathNotationHealer.healMathText(out);
 
     return out.trim();
   }
@@ -225,7 +228,8 @@ export class PdfOfflineParser {
 
     // 1. Primary Engine: Lexical Stream Tokenizer & State Machine Parser
     try {
-      const lexicalQuestions = PdfLexicalParser.parse(mainText, { targetSubject, keyData });
+      const foldedMainText = PdfOfflineParser.foldStackedFractions(mainText);
+      const lexicalQuestions = PdfLexicalParser.parse(foldedMainText, { targetSubject, keyData });
       if (lexicalQuestions && lexicalQuestions.length >= 3) {
         return lexicalQuestions.map(q => {
           const foldedContent = PdfOfflineParser.foldStackedFractions(q.content);
@@ -366,6 +370,8 @@ export class PdfOfflineParser {
           isNumerical = false;
         } else if (currentSectionTitle.includes('integer') || currentSectionTitle.includes('numerical')) {
           isNumerical = true;
+        } else if (qNum > 30) {
+          isNumerical = true;
         } else if (targetSubject && targetSubject !== 'all') {
           isNumerical = (qNum % 25 > 20 || qNum % 25 === 0);
         } else if (blocks.length >= 60) {
@@ -387,9 +393,15 @@ export class PdfOfflineParser {
         } else if (keyData && keyData.hasKeySection) {
           const keyLookup = keyData.lookup(questions.length, qNum, currentSectionTitle);
           if (keyLookup) {
-            answer = keyLookup.normalizedAns;
-            if (keyLookup.isNumerical && !hasOptions) {
+            if (isNumerical || qNum > 30 || keyLookup.isNumerical) {
               isNumerical = true;
+              answer = keyLookup.rawAns;
+            } else {
+              answer = keyLookup.normalizedAns;
+              if (keyLookup.isNumerical && !hasOptions) {
+                isNumerical = true;
+                answer = keyLookup.rawAns;
+              }
             }
           }
         }
@@ -419,6 +431,9 @@ export class PdfOfflineParser {
         }
 
         questions.push({
+          qNumber: qNum,
+          questionNumber: qNum,
+          localQuestionNumber: qNum,
           topic: `${subject.toUpperCase()} Core Question ${qNum}`,
           subject,
           type: isNumerical ? 'NUMERICAL' : 'MCQ',
@@ -479,7 +494,11 @@ export class PdfOfflineParser {
             }
           }
 
+          const lineQNum = questions.length + 1;
           questions.push({
+            qNumber: lineQNum,
+            questionNumber: lineQNum,
+            localQuestionNumber: lineQNum,
             topic: `${currentSubject.toUpperCase()} PYQ Question`,
             subject: currentSubject,
             type: isNumerical ? 'NUMERICAL' : 'MCQ',
@@ -564,33 +583,188 @@ export class PdfOfflineParser {
   }
 
   /**
-   * Merges AI-parsed questions with offline/heuristic questions.
+   * Extracts printed or assigned question number from a question object.
    */
-  static mergeParsedWithHeuristic(aiQuestions: any[], heuristicQuestions: any[]): any[] {
-    if (!heuristicQuestions || heuristicQuestions.length === 0) return aiQuestions;
-    if (!aiQuestions || aiQuestions.length === 0) return heuristicQuestions;
+  static extractQuestionNumber(q: any, fallbackIndex?: number): number | undefined {
+    if (!q) return fallbackIndex !== undefined ? fallbackIndex + 1 : undefined;
+    const candidates = [q.localQuestionNumber, q.qNumber, q.questionNumber, q.qNum];
+    for (const c of candidates) {
+      if (typeof c === 'number' && !isNaN(c) && c > 0) return c;
+      if (typeof c === 'string' && /^\d+$/.test(c.trim())) {
+        const parsed = parseInt(c.trim(), 10);
+        if (parsed > 0) return parsed;
+      }
+    }
+    const content = String(q.content || q.questionBody || q.statementText || '');
+    const m = content.match(/^(?:\[?\s*Q(?:uestion)?\.?\s*(\d+)|\b(\d{1,3})\s*[:.\-\]\)])/i);
+    if (m) {
+      const val = parseInt(m[1] || m[2], 10);
+      if (!isNaN(val) && val > 0) return val;
+    }
+    return undefined;
+  }
 
-    const normalizeSnippet = (s: string) => {
-      return (s || '')
-        .toLowerCase()
-        .replace(/[^a-z0-9]/g, '')
-        .substring(0, 40);
-    };
+  /**
+   * Cleans question content for fuzzy textual matching.
+   */
+  static cleanQuestionForMatching(text: string): string {
+    if (!text) return '';
+    return text
+      .toLowerCase()
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\\[a-zA-Z]+/g, ' ') // Strip LaTeX command prefixes while preserving arguments and numbers
+      .replace(/^(?:\[?\s*q(?:uestion)?\.?\s*\d+\s*[:.\-\]\)]*|\[\s*\d{1,3}\s*\]|\b\d{1,3}\s*[:.\-\]\)])\s*/i, '') // Strip leading question numbering
+      .replace(/^[\]\)\:\-\.]+\s*/, '')
+      .replace(/[^a-z0-9]/g, '');
+  }
 
-    const merged: any[] = [];
+  /**
+   * Computes bigram Dice similarity between two normalized strings.
+   */
+  static computeTextSimilarity(a: string, b: string): number {
+    if (!a || !b) return 0;
+    if (a === b) return 1;
+    if (a.includes(b) || b.includes(a)) {
+      const minLen = Math.min(a.length, b.length);
+      const maxLen = Math.max(a.length, b.length);
+      if (minLen >= 12 && minLen / maxLen >= 0.5) return 0.9;
+    }
+    if (a.length < 2 || b.length < 2) return 0;
+    const bigramsA = new Set<string>();
+    for (let i = 0; i < a.length - 1; i++) bigramsA.add(a.slice(i, i + 2));
+    let intersection = 0;
+    for (let i = 0; i < b.length - 1; i++) {
+      if (bigramsA.has(b.slice(i, i + 2))) intersection++;
+    }
+    return (2 * intersection) / ((a.length - 1) + (b.length - 1));
+  }
+
+  /**
+   * Strict deduplication pass that collapses identical or near-identical questions.
+   * Keeps whichever question has verified answers, diagrams, or richer options/solutions.
+   */
+  static deduplicateQuestions(questions: any[]): any[] {
+    if (!Array.isArray(questions) || questions.length <= 1) return questions || [];
+
+    const result: any[] = [];
+    for (const q of questions) {
+      if (!q) continue;
+      const qNum = PdfOfflineParser.extractQuestionNumber(q);
+      const cleanQ = PdfOfflineParser.cleanQuestionForMatching(q.content);
+
+      const existingIdx = result.findIndex(existing => {
+        const existNum = PdfOfflineParser.extractQuestionNumber(existing);
+        const cleanExist = PdfOfflineParser.cleanQuestionForMatching(existing.content);
+
+        // Match criterion 1: Same explicit question number and compatible section
+        if (qNum !== undefined && existNum !== undefined && qNum === existNum) {
+          const qSec = (q.sectionName || '').trim().toLowerCase();
+          const exSec = (existing.sectionName || '').trim().toLowerCase();
+          if (qSec === exSec || !qSec || !exSec) {
+            return true;
+          }
+        }
+
+        // If explicit question numbers are different, NEVER merge
+        if (qNum !== undefined && existNum !== undefined && qNum !== existNum) {
+          return false;
+        }
+
+        // Match criterion 2: High text similarity (same statement content)
+        if (cleanQ.length >= 25 && cleanExist.length >= 25) {
+          const sim = PdfOfflineParser.computeTextSimilarity(cleanQ, cleanExist);
+          const cleanQStripped = cleanQ.replace(/[\\${}^_]/g, '');
+          const cleanExistStripped = cleanExist.replace(/[\\${}^_]/g, '');
+          const simStripped = PdfOfflineParser.computeTextSimilarity(cleanQStripped, cleanExistStripped);
+          if (sim >= 0.85 || simStripped >= 0.85) return true;
+        }
+
+        return false;
+      });
+
+      if (existingIdx === -1) {
+        result.push(q);
+      } else {
+        // Merge attributes into the existing question, prioritizing high-value content
+        const existing = result[existingIdx];
+        const mergedQ = { ...existing };
+
+        if (!mergedQ.imageUrl && q.imageUrl) {
+          mergedQ.imageUrl = q.imageUrl;
+          mergedQ.hasDiagram = true;
+          mergedQ.diagramDescription = q.diagramDescription;
+        }
+        if ((!mergedQ.correctAnswer || mergedQ.correctAnswer === '0') && q.correctAnswer && q.correctAnswer !== '0') {
+          mergedQ.correctAnswer = q.correctAnswer;
+        }
+        if (OptionExtractor.isSurrogateOpt(mergedQ.options) && OptionExtractor.hasRealOpts(q.options)) {
+          mergedQ.options = q.options;
+        }
+        if ((!mergedQ.solution?.text || mergedQ.solution.text.length < 30) && q.solution?.text && q.solution.text.length >= 30) {
+          mergedQ.solution = q.solution;
+        }
+
+        result[existingIdx] = mergedQ;
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Merges AI-parsed questions with offline/heuristic questions.
+   * AI questions are authoritative; heuristic questions are used to heal missing options or answers.
+   * Prevents question duplication and preserves exact document question counts.
+   */
+  static mergeParsedWithHeuristic(
+    aiQuestions: any[],
+    heuristicQuestions: any[],
+    maxTotalQuestions?: number
+  ): any[] {
+    if (!heuristicQuestions || heuristicQuestions.length === 0) return PdfOfflineParser.deduplicateQuestions(aiQuestions);
+    if (!aiQuestions || aiQuestions.length === 0) return PdfOfflineParser.deduplicateQuestions(heuristicQuestions);
+
+    const shouldBackfill = maxTotalQuestions !== undefined
+      ? aiQuestions.length < maxTotalQuestions
+      : true;
+
     const usedAiIndices = new Set<number>();
+    const merged: any[] = [];
 
-    for (const hq of heuristicQuestions) {
-      const hSnippet = normalizeSnippet(hq.content);
+    // Map each heuristic question to an AI question if one matches
+    for (let j = 0; j < heuristicQuestions.length; j++) {
+      const hq = heuristicQuestions[j];
+      const hNum = PdfOfflineParser.extractQuestionNumber(hq, j);
+      const hClean = PdfOfflineParser.cleanQuestionForMatching(hq.content);
+
       let matchIdx = -1;
+      let bestSimilarity = 0;
 
       for (let i = 0; i < aiQuestions.length; i++) {
         if (usedAiIndices.has(i)) continue;
         const aiQ = aiQuestions[i];
-        const aiSnippet = normalizeSnippet(aiQ.content);
-        if (aiSnippet && hSnippet && (aiSnippet.startsWith(hSnippet) || hSnippet.startsWith(aiSnippet) || aiSnippet.includes(hSnippet.substring(0, 25)) || hSnippet.includes(aiSnippet.substring(0, 25)))) {
-          matchIdx = i;
-          break;
+        const aiNum = PdfOfflineParser.extractQuestionNumber(aiQ);
+        const aiClean = PdfOfflineParser.cleanQuestionForMatching(aiQ.content);
+
+        // 1. Direct Question Number match with sanity check
+        if (hNum !== undefined && aiNum !== undefined && hNum === aiNum) {
+          const sim = PdfOfflineParser.computeTextSimilarity(hClean, aiClean);
+          if (sim >= 0.10 || !hClean || !aiClean) {
+            matchIdx = i;
+            break;
+          }
+        }
+
+        // 2. Text similarity match (for unnumbered AI questions or re-ordered items)
+        if (hClean && aiClean) {
+          if (hNum !== undefined && aiNum !== undefined && hNum !== aiNum) {
+            continue;
+          }
+          const sim = PdfOfflineParser.computeTextSimilarity(hClean, aiClean);
+          if (sim >= 0.70 && sim > bestSimilarity) {
+            bestSimilarity = sim;
+            matchIdx = i;
+          }
         }
       }
 
@@ -612,18 +786,68 @@ export class PdfOfflineParser {
           }
         }
 
+        // Heal missing answer if heuristic has valid answer key
+        if ((!aiQ.correctAnswer || aiQ.correctAnswer === '0') && hq.correctAnswer && hq.correctAnswer !== '0') {
+          aiQ.correctAnswer = hq.correctAnswer;
+        }
+
         merged.push(aiQ);
-      } else {
-        merged.push(hq);
+      } else if (shouldBackfill) {
+        if (maxTotalQuestions !== undefined && merged.length >= maxTotalQuestions) {
+          continue;
+        }
+        // Check if an AI question already covers this question number or content
+        const alreadyCoveredInAi = aiQuestions.some((aiQ) => {
+          const aiNum = PdfOfflineParser.extractQuestionNumber(aiQ);
+          if (hNum !== undefined && aiNum !== undefined && aiNum === hNum) return true;
+          const aiClean = PdfOfflineParser.cleanQuestionForMatching(aiQ.content);
+          if (hClean.length >= 15 && aiClean.length >= 15) {
+            return PdfOfflineParser.computeTextSimilarity(hClean, aiClean) >= 0.55;
+          }
+          return false;
+        });
+
+        // Only backfill truly missing questions that don't exist in AI extraction!
+        if (!alreadyCoveredInAi) {
+          merged.push(hq);
+        }
       }
     }
 
+    // Append any extra AI questions that weren't consumed (AI questions are primary authority)
     for (let i = 0; i < aiQuestions.length; i++) {
       if (!usedAiIndices.has(i)) {
-        merged.push(aiQuestions[i]);
+        if (maxTotalQuestions !== undefined && merged.length >= maxTotalQuestions) {
+          break;
+        }
+        const aiQ = aiQuestions[i];
+        const aiNum = PdfOfflineParser.extractQuestionNumber(aiQ);
+        const aiClean = PdfOfflineParser.cleanQuestionForMatching(aiQ?.content);
+        const isDupe = merged.some(m => {
+          const mNum = PdfOfflineParser.extractQuestionNumber(m);
+          if (aiNum !== undefined && mNum !== undefined && aiNum === mNum) return true;
+          const mClean = PdfOfflineParser.cleanQuestionForMatching(m?.content);
+          if (aiClean.length >= 15 && mClean.length >= 15) {
+            const sim = PdfOfflineParser.computeTextSimilarity(aiClean, mClean);
+            const simStripped = PdfOfflineParser.computeTextSimilarity(
+              aiClean.replace(/[\\${}^_]/g, ''),
+              mClean.replace(/[\\${}^_]/g, '')
+            );
+            return sim >= 0.55 || simStripped >= 0.55;
+          }
+          return false;
+        });
+
+        if (!isDupe) {
+          merged.push(aiQ);
+        } else {
+          console.warn(`[dedup] Dropped duplicate unconsumed AI question at index ${i}`);
+        }
       }
     }
 
-    return merged;
+    const deduped = PdfOfflineParser.deduplicateQuestions(merged);
+    const cap = maxTotalQuestions ?? (heuristicQuestions.length > 0 ? Math.max(heuristicQuestions.length, 50) : 50);
+    return deduped.length > cap ? deduped.slice(0, cap) : deduped;
   }
 }

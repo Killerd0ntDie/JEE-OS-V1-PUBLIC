@@ -10,7 +10,6 @@ import { useStudyBrainStore } from './store/useStudyBrainStore';
 
 // Lazy-loaded Pages for Code-Splitting
 const CockpitPage = lazy(() => import('./features/mission/CockpitPage').then(m => ({ default: m.CockpitPage })));
-const DevCockpitRipplePage = lazy(() => import('./features/mission/DevCockpitRipplePage').then(m => ({ default: m.DevCockpitRipplePage })));
 const AuthPage = lazy(() => import('./features/auth/AuthPage').then(m => ({ default: m.AuthPage })));
 const DashboardPage = lazy(() => import('./features/dashboard/DashboardPage').then(m => ({ default: m.DashboardPage })));
 const PhysicsPage = lazy(() => import('./features/subjects/PhysicsPage').then(m => ({ default: m.PhysicsPage })));
@@ -29,7 +28,6 @@ const MockTestsPage = lazy(() => import('./features/mockTests/MockTestsPage').th
 const MockTestResultPage = lazy(() => import('./features/mockTests/MockTestResultPage').then(m => ({ default: m.MockTestResultPage })));
 const NeuralGraphPage = lazy(() => import('./features/neuralLink/NeuralGraphPage').then(m => ({ default: m.NeuralGraphPage })));
 const DiagnosticPage = lazy(() => import('./features/onboarding/DiagnosticPage').then(m => ({ default: m.DiagnosticPage })));
-const DevDashboardPage = lazy(() => import('./features/dashboard/DevDashboardPage').then(m => ({ default: m.DevDashboardPage })));
 import { ChapterEditModal } from './components/shared/ChapterEditModal';
 import { ShortcutGuideModal } from './components/ui/ShortcutGuideModal';
 import { LevelUpCelebration } from './components/ui/LevelUpCelebration';
@@ -43,6 +41,7 @@ import { ProtectedRoute } from '@/features/auth/components/ProtectedRoute';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { Icon } from '@/components/ui/Icon';
 import { clearAppStorage } from './utils/storageUtils';
+import { storageAdapter } from './services/StorageAdapter';
 
 function AppLayout() {
   const { user, loading: authLoading } = useAuth();
@@ -52,8 +51,9 @@ function AppLayout() {
   const levelUpData = useStudyBrainStore(s => s.levelUpData);
   const actions = useStudyBrainStore(s => s.actions);
   const lastSyncError = useStudyBrainStore(s => s.lastSyncError);
-  const xp = useStudyBrainStore(s => s.xp);
-  const settings = useStudyBrainStore(s => s.settings);
+  const streak = useStudyBrainStore(s => s.xp?.streak || 0);
+  const enableGodMode = useStudyBrainStore(s => s.settings?.enableGodMode);
+  const themeMode = useStudyBrainStore(s => s.settings?.themeMode || 'evangelion');
   const { isOnline } = useNetworkStatus();
   
   const location = useLocation();
@@ -66,7 +66,7 @@ function AppLayout() {
 
   // Auto launch interview on first visit if profile is incomplete
   useEffect(() => {
-    const hasDismissed = sessionStorage.getItem('onboarding_dismissed');
+    const hasDismissed = storageAdapter.getSession('jeeos_onboarding_dismissed');
     if (!loading && !mentorProfile?.interviewCompleted && !hasDismissed) {
       if (location.pathname !== '/diagnostic') {
         navigate('/diagnostic', { replace: true });
@@ -183,9 +183,8 @@ function AppLayout() {
   const isAiCoach = location.pathname.startsWith('/ai-coach');
 
   // God Mode & Rot Mode Logic (Based on Streak)
-  const isGodMode = (xp?.streak || 0) >= 7 && (settings?.enableGodMode !== false);
-  const isRotMode = (xp?.streak || 0) > 0 && (xp?.streak || 0) < 3 && settings?.enableGodMode === true;
-  const themeMode = settings?.themeMode || 'evangelion';
+  const isGodMode = streak >= 7 && (enableGodMode !== false);
+  const isRotMode = streak > 0 && streak < 3 && enableGodMode === true;
   const themeClass = `${isGodMode ? 'theme-god-mode' : isRotMode ? 'theme-rot-mode' : ''} ${themeMode === 'modern' ? 'theme-modern' : 'theme-evangelion'}`;
 
   const isCockpit = location.pathname.startsWith('/cockpit') || location.pathname.startsWith('/dev-cockpit') || location.pathname.startsWith('/mission');
@@ -249,10 +248,10 @@ function AppLayout() {
                 <Suspense fallback={<PageSkeleton />}>
                   <Routes location={location} key={location.pathname}>
                     <Route path="/dashboard" element={<ErrorBoundary><DashboardPage /></ErrorBoundary>} />
-                    <Route path="/dev-dashboard" element={<ErrorBoundary><DevDashboardPage /></ErrorBoundary>} />
+                    <Route path="/dev-dashboard" element={<Navigate to="/dashboard" replace />} />
                     <Route path="/cockpit/:missionId?" element={<ErrorBoundary><CockpitPage /></ErrorBoundary>} />
                     <Route path="/mission/:missionId?" element={<ErrorBoundary><CockpitPage /></ErrorBoundary>} />
-                    <Route path="/dev-cockpit" element={<ErrorBoundary><DevCockpitRipplePage /></ErrorBoundary>} />
+                    <Route path="/dev-cockpit" element={<Navigate to="/cockpit" replace />} />
                     <Route path="/physics" element={<ErrorBoundary><PhysicsPage /></ErrorBoundary>} />
                     <Route path="/chemistry" element={<ErrorBoundary><ChemistryPage /></ErrorBoundary>} />
                     <Route path="/maths" element={<ErrorBoundary><MathsPage /></ErrorBoundary>} />

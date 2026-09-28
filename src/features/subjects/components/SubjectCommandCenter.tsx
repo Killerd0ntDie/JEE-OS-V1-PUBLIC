@@ -13,6 +13,7 @@ import { RpgKnowledgeTreeWidget } from './RpgKnowledgeTreeWidget';
 import { ChapterRoiWeightageMatrix } from './ChapterRoiWeightageMatrix';
 import { AiPracticeModal } from '@/components/mentor/AiPracticeModal';
 import { springs } from '@/constants/motion';
+import { storageAdapter } from '@/services/StorageAdapter';
 
 interface SubjectCommandCenterProps {
   subjectId: SubjectId;
@@ -43,7 +44,7 @@ export function SubjectCommandCenter({
   const [isAddChapterOpen, setIsAddChapterOpen] = useState(false);
   const [aiPracticeConfig, setAiPracticeConfig] = useState<{ chapterId: string; subject: string } | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'matrix' | 'rpg'>(() => {
-    return (localStorage.getItem('syllabusViewMode') as 'list' | 'matrix' | 'rpg') || 'list';
+    return storageAdapter.getSyllabusViewMode();
   });
 
   const searchInputRef = React.useRef<HTMLInputElement>(null);
@@ -63,7 +64,7 @@ export function SubjectCommandCenter({
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('syllabusViewMode', viewMode);
+    storageAdapter.setSyllabusViewMode(viewMode);
   }, [viewMode]);
 
   // Subject specific chapters

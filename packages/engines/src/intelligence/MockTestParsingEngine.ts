@@ -29,6 +29,7 @@ export class MockTestParsingEngine {
    * @param rawText Extracted text from a mock test PDF or answer key
    */
   public async parseMockTestResults(rawText: string): Promise<ParsedMockTestResult> {
+    const truncatedText = rawText.substring(0, 30000);
     const prompt = `
       You are an expert AI tutor parsing a student's JEE Mock Test results from a raw PDF extraction.
       Analyze the following text and extract the overall score, correct/incorrect counts, and a detailed list of every mistake the student made.
@@ -37,7 +38,7 @@ export class MockTestParsingEngine {
 
       Raw Text:
       """
-      ${rawText.substring(0, 30000)} // truncate to prevent massive token overload just in case
+      ${truncatedText}
       """
 
       Return the data strictly as a JSON object matching this schema (do not include markdown wrapping or extra text):

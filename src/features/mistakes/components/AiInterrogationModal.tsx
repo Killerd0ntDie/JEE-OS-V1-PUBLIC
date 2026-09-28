@@ -11,6 +11,7 @@ import { RichTextRenderer } from '@/components/MathRenderer';
 import { audioEngine } from '@/utils/audioEngine';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { auth } from '@/firebase';
+import { storageAdapter } from '@/services/StorageAdapter';
 
 interface Message {
   id: string;
@@ -94,11 +95,9 @@ export const AiInterrogationModal: React.FC<AiInterrogationModalProps> = ({
       }
 
       try {
-        if (typeof localStorage !== 'undefined') {
-          const localKey = localStorage.getItem('gemini_api_key') || localStorage.getItem('jeeos_gemini_api_key');
-          if (localKey) {
-            headers['x-gemini-api-key'] = localKey;
-          }
+        const localKey = storageAdapter.getGeminiApiKey();
+        if (localKey) {
+          headers['x-gemini-api-key'] = localKey;
         }
       } catch {}
 

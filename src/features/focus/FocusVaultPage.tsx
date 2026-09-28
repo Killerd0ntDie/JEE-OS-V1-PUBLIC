@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Play, Pause, Square, Headphones, RefreshCw, Volume2, VolumeX, CheckCircle2 } from 'lucide-react';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
+import { useShallow } from 'zustand/react/shallow';
 import { useAuth } from '@/features/auth';
 import { SubjectId } from '@/types/index';
+import { storageAdapter } from '@/services/StorageAdapter';
 
 const DEFAULT_MINUTES = 50;
 
@@ -14,10 +16,18 @@ const LOFI_STATIONS = [
 ];
 
 export function FocusVaultPage() {
-  const actions = useStudyBrainStore(state => state.actions);
+  const { actions, chapters, todayMissions } = useStudyBrainStore(
+    useShallow(state => ({
+      actions: state.actions,
+      chapters: state.chapters,
+      todayMissions: state.todayMissions
+    }))
+  );
   const { user } = useAuth();
   
   const [selectedSubject, setSelectedSubject] = useState<SubjectId>('physics');
+  const [selectedChapterId, setSelectedChapterId] = useState<string>('');
+  const [selectedMissionId, setSelectedMissionId] = useState<string>('');
   const [inputMinutes, setInputMinutes] = useState<number | ''>(DEFAULT_MINUTES);
   const [timeLeft, setTimeLeft] = useState(DEFAULT_MINUTES * 60);
   const [isActive, setIsActive] = useState(false);
@@ -25,6 +35,14 @@ export function FocusVaultPage() {
   const [isMuted, setIsMuted] = useState(false);
   const [sessionDuration, setSessionDuration] = useState(0); // tracks total time spent this session
   const [stationIndex, setStationIndex] = useState(0);
+
+  const subjectChapters = useMemo(() => {
+    return (chapters || []).filter(c => c.subject === selectedSubject);
+  }, [chapters, selectedSubject]);
+
+  const subjectMissions = useMemo(() => {
+    return (todayMissions || []).filter(m => !m.completed && (m.subject === selectedSubject || (m as any).subjectId === selectedSubject));
+  }, [todayMissions, selectedSubject]);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const lastTickTime = useRef<number>(Date.now());
@@ -42,40 +60,35 @@ export function FocusVaultPage() {
   // Periodically persist session state to sessionStorage for refresh recovery
   useEffect(() => {
     if (isActive && sessionDuration > 0) {
-      try {
-        sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({
-          timeLeft, sessionDuration, selectedSubject, isActive, timestamp: Date.now()
-        }));
-      } catch { /* ignore */ }
+      storageAdapter.setSession(SESSION_STORAGE_KEY, {
+        timeLeft, sessionDuration, selectedSubject, isActive, timestamp: Date.now()
+      });
     }
   }, [isActive, timeLeft, sessionDuration, selectedSubject]);
 
   // Recover state from sessionStorage on mount
   useEffect(() => {
-    try {
-      const saved = sessionStorage.getItem(SESSION_STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        const FIVE_HOURS = 5 * 60 * 60 * 1000;
-        if (parsed.timestamp && (Date.now() - parsed.timestamp) < FIVE_HOURS && parsed.sessionDuration > 0) {
-          setTimeLeft(parsed.timeLeft ?? 0);
-          setSessionDuration(parsed.sessionDuration ?? 0);
-          setSelectedSubject(parsed.selectedSubject ?? 'physics');
-          // Don't auto-resume; let user click play
-        } else {
-          sessionStorage.removeItem(SESSION_STORAGE_KEY);
-        }
+    const parsed = storageAdapter.getSession<any>(SESSION_STORAGE_KEY);
+    if (parsed) {
+      const FIVE_HOURS = 5 * 60 * 60 * 1000;
+      if (parsed.timestamp && (Date.now() - parsed.timestamp) < FIVE_HOURS && parsed.sessionDuration > 0) {
+        setTimeLeft(parsed.timeLeft ?? 0);
+        setSessionDuration(parsed.sessionDuration ?? 0);
+        setSelectedSubject(parsed.selectedSubject ?? 'physics');
+        // Don't auto-resume; let user click play
+      } else {
+        storageAdapter.removeSession(SESSION_STORAGE_KEY);
       }
-    } catch { /* ignore */ }
+    }
   }, []);
 
   // Sync active state to session storage to block navigation in App.tsx
   useEffect(() => {
     const isVaultActive = isActive || (timeLeft > 0 && sessionDuration > 0 && !isCompleted);
     if (isVaultActive) {
-      sessionStorage.setItem('vault-active', 'true');
+      storageAdapter.setSession('jeeos_vault_active', 'true');
     } else {
-      sessionStorage.removeItem('vault-active');
+      storageAdapter.removeSession('jeeos_vault_active');
     }
   }, [isActive, timeLeft, sessionDuration, isCompleted]);
 
@@ -148,13 +161,13 @@ export function FocusVaultPage() {
     setTimeLeft(finalMins * 60);
     setSessionDuration(0);
     setIsCompleted(false);
-    sessionStorage.removeItem(SESSION_STORAGE_KEY);
+    storageAdapter.removeSession(SESSION_STORAGE_KEY);
   };
 
   const handleComplete = () => {
     setIsActive(false);
     setIsCompleted(true);
-    sessionStorage.removeItem(SESSION_STORAGE_KEY);
+    storageAdapter.removeSession(SESSION_STORAGE_KEY);
     
     // Log the session via the actions dispatcher
     const minutesFocused = Math.max(1, Math.floor(sessionDuration / 60));
@@ -163,12 +176,25 @@ export function FocusVaultPage() {
       focusTime: minutesFocused,
       questions: 0,
       correct: 0,
-      type: 'Practice', // or treat as generic focus
-      subjectId: selectedSubject, // fallback since focus vault is subject-agnostic
+      type: 'Practice',
+      subjectId: selectedSubject,
+      chapterId: selectedChapterId || undefined,
       idleTime: 0,
       focusInterruptions: 0,
       focusScore: 100
     });
+
+    // If linked to a chapter, advance study progress
+    if (selectedChapterId) {
+      actions.updateChapterProgress(selectedChapterId, {
+        currentLecture: 1
+      });
+    }
+
+    // If linked to a daily mission, mark it completed
+    if (selectedMissionId) {
+      actions.completeTask(selectedMissionId);
+    }
   };
 
   const formatTime = (seconds: number) => {
@@ -228,6 +254,37 @@ export function FocusVaultPage() {
                   {subj}
                 </button>
               ))}
+            </div>
+          )}
+
+          {/* Chapter & Mission Linking */}
+          {!isActive && sessionDuration === 0 && (
+            <div className="flex flex-wrap items-center justify-center gap-2 pt-3 max-w-lg mx-auto">
+              <select
+                value={selectedChapterId}
+                onChange={(e) => setSelectedChapterId(e.target.value)}
+                className="bg-zinc-900/80 border border-zinc-800 text-zinc-300 text-xs rounded-xl px-3 py-1.5 font-mono outline-none focus:border-indigo-500 max-w-[220px] truncate"
+                aria-label="Select target chapter"
+              >
+                <option value="">General Focus (No Chapter)</option>
+                {subjectChapters.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+
+              {subjectMissions.length > 0 && (
+                <select
+                  value={selectedMissionId}
+                  onChange={(e) => setSelectedMissionId(e.target.value)}
+                  className="bg-zinc-900/80 border border-indigo-900/60 text-indigo-300 text-xs rounded-xl px-3 py-1.5 font-mono outline-none focus:border-indigo-400 max-w-[220px] truncate"
+                  aria-label="Link to daily mission"
+                >
+                  <option value="">Link Mission (Optional)</option>
+                  {subjectMissions.map(m => (
+                    <option key={m.id} value={m.id}>{m.taskName || m.chapterName || m.chapter || 'Daily Mission'}</option>
+                  ))}
+                </select>
+              )}
             </div>
           )}
         </div>

@@ -11,6 +11,7 @@ import {
   Check, X, Clock, BookOpen, AlertCircle
 } from 'lucide-react';
 import { audioEngine } from '@/utils/audioEngine';
+import { storageAdapter } from '@/services/StorageAdapter';
 
 interface DailyDoseSessionStageProps {
   cards: RevisionCardItem[];
@@ -134,13 +135,11 @@ export const DailyDoseSessionStage: React.FC<DailyDoseSessionStageProps> = ({
     if (!xpAwarded) {
       setXpAwarded(true);
       const todayKey = new Date().toISOString().split('T')[0];
-      try {
-        localStorage.setItem(`jeeos_daily_dose_${todayKey}`, JSON.stringify({
-          cardsCompleted: Math.max(gradedCardsCount, 10),
-          mistakesCompleted: Math.max(resolvedMistakesCount, unresolvedMistakes.length),
-          speedDrillDone: true
-        }));
-      } catch {}
+      storageAdapter.setItem(`jeeos_daily_dose_${todayKey}`, {
+        cardsCompleted: Math.max(gradedCardsCount, 10),
+        mistakesCompleted: Math.max(resolvedMistakesCount, unresolvedMistakes.length),
+        speedDrillDone: true
+      });
 
       try {
         await actions.completeStudySession({

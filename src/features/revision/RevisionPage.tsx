@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { ChapterRevisionInspectorModal } from '@/components/mentor/ChapterRevisionInspectorModal';
@@ -15,13 +16,24 @@ import {
   Zap, ArrowRight
 } from 'lucide-react';
 
+function useOptionalLocation() {
+  try {
+    return useLocation();
+  } catch {
+    return null;
+  }
+}
+
 export function RevisionPage() {
+  const location = useOptionalLocation();
   const studySessions = useStudyBrainStore(s => s.studySessions) || [];
   const revisionTelemetry = useStudyBrainStore(s => s.revisionTelemetry);
   const mistakes = useStudyBrainStore(s => s.mistakes) || [];
 
   // Sub-page navigation: 'hub' | 'vault' | 'arena' | 'speed_drill' | 'feynman' | 'daily_dose'
-  const [activeView, setActiveView] = useState<'hub' | 'vault' | 'arena' | 'speed_drill' | 'feynman' | 'daily_dose'>('hub');
+  const [activeView, setActiveView] = useState<'hub' | 'vault' | 'arena' | 'speed_drill' | 'feynman' | 'daily_dose'>(
+    (location?.state as any)?.autoLaunchArena ? 'arena' : 'hub'
+  );
 
   // Filter states for Flashcard Vault
   const [activeSubject, setActiveSubject] = useState<'all' | 'physics' | 'chemistry' | 'maths'>('all');

@@ -5,6 +5,8 @@ import { idbGet, idbSet, idbRemove } from '@/utils/idb';
 import { TriageCategory } from '../components/LiveStrategyTriageOverlay';
 import { isMultiChoiceQuestion } from '@/utils/mockScoring';
 import { examReducer } from '../utils/examStateMachine';
+import { storageAdapter } from '@/services/StorageAdapter';
+import { safelyParseJSON } from '@/utils/jsonParser';
 
 export interface UseExamEngineProps {
   test: MockTest;
@@ -29,7 +31,7 @@ export function useExamEngine({
 
   const [isAuthenticTheme, setIsAuthenticTheme] = useState(() => {
     try {
-      return typeof localStorage !== 'undefined' && localStorage.getItem('jeeos_mock_theme') === 'nta-classic';
+      return storageAdapter.getItem<string>('jeeos_mock_theme') === 'nta-classic';
     } catch {
       return false;
     }
@@ -39,7 +41,7 @@ export function useExamEngine({
     setIsAuthenticTheme(prev => {
       const next = !prev;
       try {
-        localStorage.setItem('jeeos_mock_theme', next ? 'nta-classic' : 'dark');
+        storageAdapter.setItem('jeeos_mock_theme', next ? 'nta-classic' : 'dark');
       } catch {}
       return next;
     });
@@ -60,10 +62,8 @@ export function useExamEngine({
 
   const [proctorWarnings, setProctorWarnings] = useState(() => {
     try {
-      if (typeof localStorage !== 'undefined') {
-        const saved = localStorage.getItem(`jeeos_mock_infractions_${userId}_${test.id}`);
-        return saved ? Math.max(0, parseInt(saved, 10)) : 0;
-      }
+      const saved = storageAdapter.getItem<string>(`jeeos_mock_infractions_${userId}_${test.id}`);
+      return saved ? Math.max(0, parseInt(saved, 10)) : 0;
     } catch {}
     return 0;
   });
@@ -107,27 +107,29 @@ export function useExamEngine({
       try {
         await new Promise(r => setTimeout(r, 0));
 
-        const savedPos = localStorage.getItem(`jeeos_mock_pos_${userId}_${test.id}`);
+        const savedPos = storageAdapter.getItem<string>(`jeeos_mock_pos_${userId}_${test.id}`);
         if (savedPos) {
-          const parsed = JSON.parse(savedPos);
+          const parsed = typeof savedPos === 'string' ? JSON.parse(savedPos) : savedPos;
           if (parsed.subject) loadedSubject = parsed.subject;
           if (typeof parsed.idx === 'number') loadedIdx = parsed.idx;
         }
 
-        const savedEnd = localStorage.getItem(`jeeos_mock_end_${userId}_${test.id}`);
+        const savedEnd = storageAdapter.getItem<string>(`jeeos_mock_end_${userId}_${test.id}`);
         if (savedEnd) {
-          loadedEndTime = parseInt(savedEnd, 10);
+          loadedEndTime = parseInt(String(savedEnd), 10);
         } else {
-          localStorage.setItem(`jeeos_mock_end_${userId}_${test.id}`, loadedEndTime.toString());
+          storageAdapter.setItem(`jeeos_mock_end_${userId}_${test.id}`, loadedEndTime.toString());
         }
 
         const savedIdb = await idbGet<MockTestAttempt>(`jeeos_mock_attempt_${userId}_${test.id}`);
         if (savedIdb && savedIdb.questions && Object.keys(savedIdb.questions).length > 0) {
           loadedAttempt = savedIdb;
         } else {
-          const savedLocal = localStorage.getItem(`jeeos_mock_attempt_${userId}_${test.id}`);
+          const savedLocal = storageAdapter.getItem<MockTestAttempt | string>(`jeeos_mock_attempt_${userId}_${test.id}`);
           if (savedLocal) {
-            loadedAttempt = JSON.parse(savedLocal);
+            loadedAttempt = typeof savedLocal === 'string'
+              ? safelyParseJSON<MockTestAttempt | null>(savedLocal, null)
+              : savedLocal;
           }
         }
       } catch(e) {
@@ -150,7 +152,7 @@ export function useExamEngine({
   useEffect(() => {
     if (isInitializing) return;
     try {
-      localStorage.setItem(`jeeos_mock_pos_${userId}_${test.id}`, JSON.stringify({ subject: currentSubject, idx: currentQIdx }));
+      storageAdapter.setItem(`jeeos_mock_pos_${userId}_${test.id}`, JSON.stringify({ subject: currentSubject, idx: currentQIdx }));
     } catch(e) {
       console.warn('Failed to save mock position metadata:', e);
     }
@@ -176,20 +178,6 @@ export function useExamEngine({
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
-  }, [attempt, test.id, userId, isSubmitting]);
-
-  // Synchronous backup on sudden tab close/refresh to eliminate the 400ms debounce data loss window
-  useEffect(() => {
-    if (isSubmitting) return;
-    const handleBeforeUnload = () => {
-      try {
-        localStorage.setItem(`jeeos_mock_attempt_${userId}_${test.id}`, JSON.stringify(attempt));
-      } catch (e) {
-        console.warn('Failed to save synchronous attempt dump on unload:', e);
-      }
-    };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [attempt, test.id, userId, isSubmitting]);
 
   const activeSection = useMemo(() => (test.sections || []).find(s => s.subject === currentSubject), [test, currentSubject]);
@@ -230,7 +218,7 @@ export function useExamEngine({
     const count = infractionsRef.current;
     setProctorWarnings(count);
     try {
-      localStorage.setItem(`jeeos_mock_infractions_${userId}_${test.id}`, count.toString());
+      storageAdapter.setItem(`jeeos_mock_infractions_${userId}_${test.id}`, count.toString());
     } catch {}
 
     if (count >= 3) {
@@ -271,9 +259,9 @@ export function useExamEngine({
   const handleBeginExam = () => {
     let newEndTime = targetEndTime;
     try {
-      const savedEnd = localStorage.getItem(`jeeos_mock_end_${userId}_${test.id}`);
+      const savedEnd = storageAdapter.getItem<string>(`jeeos_mock_end_${userId}_${test.id}`);
       if (savedEnd) {
-        const parsed = parseInt(savedEnd, 10);
+        const parsed = parseInt(String(savedEnd), 10);
         if (Number.isFinite(parsed) && parsed > Date.now()) {
           newEndTime = parsed;
         } else if (Number.isFinite(parsed) && parsed <= Date.now()) {
@@ -282,7 +270,7 @@ export function useExamEngine({
         }
       } else {
         newEndTime = Date.now() + (test.durationMinutes || 180) * 60000;
-        localStorage.setItem(`jeeos_mock_end_${userId}_${test.id}`, newEndTime.toString());
+        storageAdapter.setItem(`jeeos_mock_end_${userId}_${test.id}`, newEndTime.toString());
       }
     } catch (e) {
       console.warn("Failed to persist end time:", e);
@@ -556,7 +544,7 @@ export function useExamEngine({
     };
     window.addEventListener('storage', handleStorageChange);
     try {
-      localStorage.setItem(lockStorageKey, myTabId);
+      storageAdapter.setItem(lockStorageKey, myTabId);
     } catch {}
 
     return () => {
@@ -579,7 +567,7 @@ export function useExamEngine({
         ch.postMessage({ type: 'FORCE_TAKE_LOCK', tabId: myTabId });
         ch.close();
       }
-      localStorage.setItem(lockStorageKey, myTabId);
+      storageAdapter.setItem(lockStorageKey, myTabId);
     } catch {}
 
     setIsDuplicateTab(false);
@@ -660,8 +648,10 @@ export function useExamEngine({
 
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       try {
-        localStorage.setItem(`jeeos_mock_attempt_${userId}_${test.id}`, JSON.stringify(attempt));
-      } catch {}
+        storageAdapter.setItem(`jeeos_mock_attempt_${userId}_${test.id}`, attempt);
+      } catch (err) {
+        console.warn('Failed to save synchronous attempt dump on unload:', err);
+      }
       e.preventDefault();
       e.returnValue = 'You have an active examination in progress. Are you sure you want to leave?';
       return e.returnValue;
@@ -802,11 +792,11 @@ export function useExamEngine({
     }
 
     try {
-      localStorage.removeItem(`jeeos_mock_attempt_${userId}_${test.id}`);
-      localStorage.removeItem(`jeeos_mock_end_${userId}_${test.id}`);
-      localStorage.removeItem(`jeeos_mock_pos_${userId}_${test.id}`);
-      localStorage.removeItem(`jeeos_mock_infractions_${userId}_${test.id}`);
-      localStorage.removeItem(`jeeos_active_tab_${userId}_${test.id}`);
+      storageAdapter.removeItem(`jeeos_mock_attempt_${userId}_${test.id}`);
+      storageAdapter.removeItem(`jeeos_mock_end_${userId}_${test.id}`);
+      storageAdapter.removeItem(`jeeos_mock_pos_${userId}_${test.id}`);
+      storageAdapter.removeItem(`jeeos_mock_infractions_${userId}_${test.id}`);
+      storageAdapter.removeItem(`jeeos_active_tab_${userId}_${test.id}`);
     } catch(e) {
       console.warn("Storage removal warning:", e);
     }
@@ -822,10 +812,10 @@ export function useExamEngine({
     setIsConfirmExitOpen(false);
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     try {
-      localStorage.removeItem(`jeeos_mock_attempt_${userId}_${test.id}`);
-      localStorage.removeItem(`jeeos_mock_end_${userId}_${test.id}`);
-      localStorage.removeItem(`jeeos_mock_pos_${userId}_${test.id}`);
-      localStorage.removeItem(`jeeos_mock_infractions_${userId}_${test.id}`);
+      storageAdapter.removeItem(`jeeos_mock_attempt_${userId}_${test.id}`);
+      storageAdapter.removeItem(`jeeos_mock_end_${userId}_${test.id}`);
+      storageAdapter.removeItem(`jeeos_mock_pos_${userId}_${test.id}`);
+      storageAdapter.removeItem(`jeeos_mock_infractions_${userId}_${test.id}`);
     } catch(e) {
       console.warn("Storage removal warning:", e);
     }

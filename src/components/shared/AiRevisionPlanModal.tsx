@@ -30,7 +30,7 @@ export function AiRevisionPlanModal({ isOpen, onClose }: AiRevisionPlanModalProp
   const telemetryList = (Object.values(chapterTelemetryMap || {}) as ChapterTelemetry[]);
   const bottlenecks = telemetryList.filter(t => t.isBottleneck).map(t => t.chapterName);
   const lowRetention = telemetryList.filter(t => t.retentionConfidence === 'Low').map(t => t.chapterName);
-  const dailyHours = mentorProfile?.dailyAvailableHours || 6.5;
+  const dailyHours = (settings?.dailyQuota && settings.dailyQuota <= 14 ? settings.dailyQuota : mentorProfile?.dailyAvailableHours) || 6.5;
 
   useEffect(() => {
     return () => {

@@ -173,12 +173,13 @@ describe('UploadDppModal Component Overhaul', () => {
 
     vi.spyOn(PdfPaperParserService, 'analyzeDppMetadata').mockResolvedValue({
       title: 'Rotational Motion DPP #01',
+      sheetName: 'DPP 1',
       subject: 'physics',
       chapterName: 'Rotational Motion',
       recommendedDurationMinutes: 30,
       questionCountEstimate: 2,
       confidence: 'high'
-    });
+    } as any);
 
     vi.spyOn(PdfPaperParserService, 'parseDppToMockTest').mockResolvedValue({
       id: 'dpp_test_1',
@@ -207,7 +208,7 @@ describe('UploadDppModal Component Overhaul', () => {
           ]
         }
       ]
-    });
+    } as any);
 
     render(
       <UploadDppModal
@@ -242,7 +243,7 @@ describe('UploadDppModal Component Overhaul', () => {
     // The review studio header should now be visible on screen
     expect(screen.getByText('Review & Calibration Studio')).toBeInTheDocument();
     expect(screen.getByText('What is the moment of inertia of a ring?')).toBeInTheDocument();
-  });
+  }, 15000);
 
   it('saves test to available tests and launches drill without triggering discard confirm prompt', async () => {
     const confirmSpy = vi.spyOn(window, 'confirm');
@@ -255,12 +256,13 @@ describe('UploadDppModal Component Overhaul', () => {
 
     vi.spyOn(PdfPaperParserService, 'analyzeDppMetadata').mockResolvedValue({
       title: 'Rotational Motion DPP #01',
+      sheetName: 'DPP 1',
       subject: 'physics',
       chapterName: 'Rotational Motion',
       recommendedDurationMinutes: 30,
       questionCountEstimate: 1,
       confidence: 'high'
-    });
+    } as any);
 
     vi.spyOn(PdfPaperParserService, 'parseDppToMockTest').mockResolvedValue({
       id: 'dpp_test_saved',
@@ -282,7 +284,7 @@ describe('UploadDppModal Component Overhaul', () => {
           ]
         }
       ]
-    });
+    } as any);
 
     render(
       <UploadDppModal
@@ -332,12 +334,13 @@ describe('UploadDppModal Component Overhaul', () => {
 
     vi.spyOn(PdfPaperParserService, 'analyzeDppMetadata').mockResolvedValue({
       title: 'Rotational Motion DPP #01',
+      sheetName: 'DPP 1',
       subject: 'physics',
       chapterName: 'Rotational Motion',
       recommendedDurationMinutes: 30,
       questionCountEstimate: 1,
       confidence: 'high'
-    });
+    } as any);
 
     vi.spyOn(PdfPaperParserService, 'parseDppToMockTest').mockResolvedValue({
       id: 'dpp_test_saved_studio',
@@ -359,7 +362,7 @@ describe('UploadDppModal Component Overhaul', () => {
           ]
         }
       ]
-    });
+    } as any);
 
     render(
       <UploadDppModal

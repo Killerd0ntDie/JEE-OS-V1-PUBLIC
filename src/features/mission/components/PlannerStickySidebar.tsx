@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { OnHoldReminderBanner } from '@/features/dashboard/components/OnHoldReminderBanner';
 import { motion, AnimatePresence } from 'motion/react';
+import { storageAdapter } from '@/services/StorageAdapter';
 
 export interface PlannerStickySidebarProps {
   state: any;
@@ -16,13 +17,13 @@ export interface PlannerStickySidebarProps {
 export function PlannerStickySidebar({ state }: PlannerStickySidebarProps) {
   const navigate = useNavigate();
   const [isCollapsed, setIsCollapsed] = useState(() => {
-    return localStorage.getItem('jeeos_planner_sidebar_collapsed') === 'true';
+    return storageAdapter.getPlannerSidebarCollapsed();
   });
 
   const toggleCollapse = () => {
     setIsCollapsed(prev => {
       const next = !prev;
-      localStorage.setItem('jeeos_planner_sidebar_collapsed', String(next));
+      storageAdapter.setPlannerSidebarCollapsed(next);
       return next;
     });
   };

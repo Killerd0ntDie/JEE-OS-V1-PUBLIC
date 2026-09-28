@@ -104,6 +104,44 @@ describe('AnswerKeyExtractor', () => {
     expect(key.lookup(24, 25)?.normalizedAns).toBe('10');
     expect(key.lookup(24, 25)?.isNumerical).toBe(true);
   });
+
+  it('correctly parses 50-question P-11 answer key preserving single digit integers for Q41=2, Q47=3, Q49=2', () => {
+    const p11AnswerKey = `
+      Some physics questions 1 to 50...
+
+      1. (1) 2. (2) 3. (1) 4. (4) 5. (1)
+      6. (1) 7. (2) 8. (2) 9. (1) 10. (2)
+      11. (2) 12. (3) 13. (1) 14. (1) 15. (3)
+      16. (2) 17. (3) 18. (3) 19. (4) 20. (2)
+      21. (1) 22. (1) 23. (1) 24. (3) 25. (3)
+      26. (2) 27. (1) 28. (2) 29. (3) 30. (2)
+      31. 40 32. 2 33. 152 34. 5 35. 16
+      36. 10 37. 25 38. 5 39. 2 40. 3
+      41. 2 42. 4 43. 2 44. 10 45. 4
+      46. 1 47. 3 48. 24 49. 2 50. 10
+    `;
+
+    const key = AnswerKeyExtractor.extractGlobalAnswerKey(p11AnswerKey);
+    expect(key.hasKeySection).toBe(true);
+    expect(key.entries.length).toBe(50);
+
+    // MCQs mapped from 1-based (1)-(4) to 0-based indices
+    expect(key.lookup(0, 1)?.normalizedAns).toBe('0'); // (1) -> 0 (Option A)
+    expect(key.lookup(29, 30)?.normalizedAns).toBe('1'); // (2) -> 1 (Option B)
+
+    // Numerical questions preserve exact numerical values (crucial: Q41=2, Q47=3, Q49=2)
+    expect(key.lookup(40, 41)?.normalizedAns).toBe('2');
+    expect(key.lookup(40, 41)?.isNumerical).toBe(true);
+
+    expect(key.lookup(46, 47)?.normalizedAns).toBe('3');
+    expect(key.lookup(46, 47)?.isNumerical).toBe(true);
+
+    expect(key.lookup(48, 49)?.normalizedAns).toBe('2');
+    expect(key.lookup(48, 49)?.isNumerical).toBe(true);
+
+    expect(key.lookup(49, 50)?.normalizedAns).toBe('10');
+    expect(key.lookup(49, 50)?.isNumerical).toBe(true);
+  });
 });
 
 

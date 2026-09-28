@@ -1,4 +1,5 @@
 import { SubjectId } from './index';
+export type { SubjectId };
 
 export type QuestionType = 'MCQ' | 'NUMERICAL' | 'MULTI';
 
@@ -6,9 +7,9 @@ export interface MockQuestion {
   id: string;
   subject: SubjectId;
   type: QuestionType;
-  chapter: string;
-  topic: string;
-  difficulty: 'Easy' | 'Medium' | 'Hard';
+  chapter?: string;
+  topic?: string;
+  difficulty?: 'Easy' | 'Medium' | 'Hard';
   content: string; // Markdown or plain text for the question body
   options?: string[]; // Only for MCQ
   correctAnswer: string; // The correct option index (0-3) as string, or the numerical answer as string
@@ -18,6 +19,7 @@ export interface MockQuestion {
   };
   explanation?: string;
   imageUrl?: string;
+  diagramUrl?: string;
   hasDiagram?: boolean;
   isVerified?: boolean;
   confidence?: 'high' | 'medium' | 'low';
@@ -38,6 +40,7 @@ export interface MockTest {
   sections: MockTestSection[];
   source?: 'builtin' | 'pyq' | 'dpp' | 'generated' | 'custom';
   category?: 'grand' | 'pyq' | 'dpp' | 'sprint' | 'chapter';
+  type?: string;
   chapterId?: string;
   chapterName?: string;
   createdAt?: number;

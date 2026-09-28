@@ -7,6 +7,7 @@ import { Compass, ArrowRight, Activity, Target, Zap, Clock, ShieldCheck } from '
 import { motion } from 'motion/react';
 import { springs } from '@/constants/motion';
 import { audioEngine } from '@/utils/audioEngine';
+import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 
 interface WeeklyStrategyWidgetProps {
   chapters: Chapter[];
@@ -16,6 +17,7 @@ interface WeeklyStrategyWidgetProps {
 
 export function WeeklyStrategyWidget({ chapters, mentorProfile, projectedReadiness }: WeeklyStrategyWidgetProps) {
   const navigate = useNavigate();
+  const settings = useStudyBrainStore(s => s.settings);
 
   // Calculate real subject distribution and mastery from chapters
   const subjectDistribution = useMemo(() => {
@@ -23,15 +25,16 @@ export function WeeklyStrategyWidget({ chapters, mentorProfile, projectedReadine
     let pMastered = 0, cMastered = 0, mMastered = 0;
 
     (chapters || []).forEach(ch => {
+      const isMastered = ch.status === 'Mastered' || (typeof ch.completion === 'number' && ch.completion >= 100);
       if (ch.subject === 'physics') {
         pCount++;
-        if (ch.completion >= 80) pMastered++;
+        if (isMastered) pMastered++;
       } else if (ch.subject === 'chemistry') {
         cCount++;
-        if (ch.completion >= 80) cMastered++;
+        if (isMastered) cMastered++;
       } else if (ch.subject === 'maths') {
         mCount++;
-        if (ch.completion >= 80) mMastered++;
+        if (isMastered) mMastered++;
       }
     });
 
@@ -53,7 +56,7 @@ export function WeeklyStrategyWidget({ chapters, mentorProfile, projectedReadine
 
   // Derived milestones for the sprint
   const activeFocus = mentorProfile?.monthlyObjective?.category || 'Finish Mechanics & GOC';
-  const dailyHours = mentorProfile?.dailyAvailableHours || 6.5;
+  const dailyHours = (settings?.dailyQuota && settings.dailyQuota <= 14 ? settings.dailyQuota : mentorProfile?.dailyAvailableHours) || 6.5;
 
   return (
     <div className="flex flex-col gap-4 h-full justify-between text-left">

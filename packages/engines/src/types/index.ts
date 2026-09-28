@@ -93,6 +93,7 @@ export interface Chapter {
   priority: 1 | 2 | 3;      // 1 = High, 2 = Med, 3 = Low
   dependencies: string[];
   weightage?: number;
+  priorityScore?: number;
   weaknessScore: number;    // 0 - 100
   status: ChapterStatus;
   solvedQuestions: number;
@@ -261,6 +262,11 @@ export interface Mistake {
   correctSolution: string;
   correctSolutionImage?: string;
   wrongSolutionImage?: string;
+  errorType?: string;
+  description?: string;
+  note?: string;
+  correction?: string;
+  explanation?: string;
 }
 
 export interface RevisionSettings {
@@ -453,6 +459,7 @@ export interface UserProfile {
     scheduledDate?: string; 
     scheduledTime?: string 
   }>;
+  bookmarkedFormulaIds?: string[];
   settings: {
     targetYear: string;
     dreamIit: string;

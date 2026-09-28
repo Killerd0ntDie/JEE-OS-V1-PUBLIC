@@ -240,7 +240,7 @@ export function MockTestResult({ test, attempt, onClose, onNavigate }: MockTestR
                   Exam Time Allocation
                 </span>
                 <span className="text-xs font-mono text-zinc-400">
-                  Total: {Math.round((analysis.totalTimeSpent || analysis.totalDurationSeconds || 0) / 60)}m
+                  Total: {Math.round((analysis.totalTimeSpent || (analysis as any).totalDurationSeconds || 0) / 60)}m
                 </span>
               </div>
 
@@ -375,8 +375,10 @@ export function MockTestResult({ test, attempt, onClose, onNavigate }: MockTestR
       {showPrintModal && (
         <PrintableTestPaperModal
           test={test}
+          isOpen={showPrintModal}
           detailedQuestions={analysis.detailedQuestions}
           onClose={() => setShowPrintModal(false)}
+          defaultMode="COMPLETE"
         />
       )}
 

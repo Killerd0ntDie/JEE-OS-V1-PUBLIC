@@ -5,6 +5,7 @@ import { audioEngine } from '@/utils/audioEngine';
 import { springs } from '@/constants/motion';
 import { CockpitAnimMode, ANIM_MODES_META } from '../CockpitTransitionEngine';
 import { AudioWaveVisualizer } from './AudioWaveVisualizer';
+import { storageAdapter } from '@/services/StorageAdapter';
 
 export type FocusPresetMode = 'deep60' | 'pomodoro' | 'speedDrill';
 
@@ -228,7 +229,7 @@ export function MissionHeader({
                         onClick={() => {
                           onAnimModeChange?.(key as CockpitAnimMode);
                           try {
-                            localStorage.setItem('jeeos_cockpit_anim_pref', key);
+                            storageAdapter.setItem('jeeos_cockpit_anim_pref', key);
                           } catch { /* ignore */ }
                         }}
                         className={`w-full text-left p-2 rounded-xl border text-xs font-mono transition-all flex items-center justify-between cursor-pointer ${
@@ -269,7 +270,7 @@ export function MissionHeader({
                         onClick={() => {
                           onSpeedChange?.(spd.val);
                           try {
-                            localStorage.setItem('jeeos_cockpit_speed_pref', String(spd.val));
+                            storageAdapter.setItem('jeeos_cockpit_speed_pref', String(spd.val));
                           } catch { /* ignore */ }
                         }}
                         className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono transition-all cursor-pointer ${

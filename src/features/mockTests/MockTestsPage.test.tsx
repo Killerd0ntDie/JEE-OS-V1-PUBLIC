@@ -68,7 +68,9 @@ const dummyPastAttempt: MockResult = {
   totalQuestions: 1,
   duration: 1,
   subjectBreakdown: {
-    physics: { score: 4, correct: 1, attempted: 1 }
+    physics: { score: 4, correct: 1, attempted: 1 },
+    chemistry: { score: 0, correct: 0, attempted: 0 },
+    maths: { score: 0, correct: 0, attempted: 0 }
   },
   testSnapshot: dummyTest,
   attemptData: dummyAttempt
