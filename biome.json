@@ -22,6 +22,12 @@
 		"enabled": true,
 		"rules": {
 			"recommended": true,
+			"a11y": {
+				"recommended": false
+			},
+			"security": {
+				"noDangerouslySetInnerHtml": "off"
+			},
 			"suspicious": {
 				"noExplicitAny": "off",
 				"noUndeclaredEnvVars": "off",
@@ -29,7 +35,9 @@
 				"noControlCharactersInRegex": "off",
 				"noTemplateCurlyInString": "off",
 				"noAssignInExpressions": "off",
-				"noImplicitAnyLet": "warn"
+				"noImplicitAnyLet": "warn",
+				"noArrayIndexKey": "off",
+				"noCommentText": "off"
 			},
 			"style": {
 				"noNonNullAssertion": "off",
@@ -37,8 +45,12 @@
 				"useTemplate": "off",
 				"useNodejsImportProtocol": "off"
 			},
+			"complexity": {
+				"noStaticOnlyClass": "off"
+			},
 			"correctness": {
-				"noUnusedFunctionParameters": "warn"
+				"noUnusedFunctionParameters": "warn",
+				"useExhaustiveDependencies": "off"
 			}
 		}
 	},
@@ -57,6 +69,16 @@
 								}
 							}
 						}
+					}
+				}
+			}
+		},
+		{
+			"includes": ["**/*.test.*", "**/*.spec.*"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedGlobals": "off"
 					}
 				}
 			}

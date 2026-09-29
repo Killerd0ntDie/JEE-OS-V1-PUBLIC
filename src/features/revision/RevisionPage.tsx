@@ -18,6 +18,7 @@ import {
 
 function useOptionalLocation() {
   try {
+    // biome-ignore lint/correctness/useHookAtTopLevel: router context fallback for test environments
     return useLocation();
   } catch {
     return null;
@@ -26,22 +27,29 @@ function useOptionalLocation() {
 
 export function RevisionPage() {
   const location = useOptionalLocation();
-  const studySessions = useStudyBrainStore(s => s.studySessions) || [];
+  const _studySessions = useStudyBrainStore(s => s.studySessions) || [];
   const revisionTelemetry = useStudyBrainStore(s => s.revisionTelemetry);
   const mistakes = useStudyBrainStore(s => s.mistakes) || [];
 
   // Sub-page navigation: 'hub' | 'vault' | 'arena' | 'speed_drill' | 'feynman' | 'daily_dose'
-  const [activeView, setActiveView] = useState<'hub' | 'vault' | 'arena' | 'speed_drill' | 'feynman' | 'daily_dose'>(
-    (location?.state as any)?.autoLaunchArena ? 'arena' : 'hub'
-  );
+  const [activeView, setActiveView] = useState<'hub' | 'vault' | 'arena' | 'speed_drill' | 'feynman' | 'daily_dose'>(() => {
+    if ((location?.state as any)?.autoLaunchArena) return 'arena';
+    if ((location?.state as any)?.chapterId) return 'vault';
+    return 'hub';
+  });
 
   // Filter states for Flashcard Vault
   const [activeSubject, setActiveSubject] = useState<'all' | 'physics' | 'chemistry' | 'maths'>('all');
-  const [filterScope, setFilterScope] = useState<'urgent' | 'overdue' | 'all'>('urgent');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [filterScope, setFilterScope] = useState<'urgent' | 'overdue' | 'all'>(() => {
+    if ((location?.state as any)?.chapterId) return 'all';
+    return 'urgent';
+  });
+  const [searchQuery, setSearchQuery] = useState(() => (location?.state as any)?.chapterName || '');
   
   // Inspector modal state
-  const [inspectorChapterId, setInspectorChapterId] = useState<string | null>(null);
+  const [inspectorChapterId, setInspectorChapterId] = useState<string | null>(
+    () => (location?.state as any)?.chapterId || null
+  );
   const [aiPracticeConfig, setAiPracticeConfig] = useState<{ chapterId: string; subject: string } | null>(null);
 
   // Consume central RevisionEngine output

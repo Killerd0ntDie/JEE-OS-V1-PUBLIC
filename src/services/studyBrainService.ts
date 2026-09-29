@@ -1,4 +1,4 @@
-import { TimelineBlock, StudySession, UserProfile, Chapter, SubjectId, Mistake, TodayMission } from '@/types/index';
+import { StudySession, Chapter, SubjectId, Mistake, TodayMission } from '@/types/index';
 import { calculateLevelFromXP, getTitleAndColor } from '@/utils/levelingCalculations';
 import { KnowledgeEngine, SyllabusNode, calculateMastery } from '@jee-os/engines';
 import { PlannerEngine, PlannerInput } from '@jee-os/engines';
@@ -8,11 +8,13 @@ import { MockResult } from '@/types/index';
 import { AnalyticsEngine, AnalyticsInput } from '@jee-os/engines';
 import { CoachEngine, CoachInput } from '@jee-os/engines';
 import { calculateMistakeScore } from '@/utils/mistakeIntelligence';
-import { getAcademicState } from '@/utils/academicState';
+import { getAcademicState } from '@jee-os/engines';
 
 export function createSyllabusGraph(chapters: Chapter[]): SyllabusNode[] {
   const nameToId = new Map<string, string>();
-  chapters.forEach(c => nameToId.set(c.name, c.id));
+  chapters.forEach(c => {
+    nameToId.set(c.name, c.id);
+  });
   
   return chapters.map(c => ({
     id: c.id,
@@ -82,7 +84,9 @@ export const StudyBrainService = {
     
     if (chapter.dependencies && chapter.dependencies.length > 0) {
       const nameToId = new Map<string, string>();
-      allChapters.forEach(c => nameToId.set(c.name, c.id));
+      allChapters.forEach(c => {
+        nameToId.set(c.name, c.id);
+      });
       
       const reqIds = chapter.dependencies.map(d => nameToId.get(d) || '').filter(Boolean);
       lockedBy = reqIds.filter(reqId => !masteredIds.has(reqId)).map(reqId => {
@@ -428,20 +432,20 @@ export const StudyBrainService = {
     const subjChaps = (chapters || []).filter(c => c && c.subject === subject);
     const total = subjChaps.length;
     const completed = subjChaps.filter(c => {
-      const comp = typeof c.completion === 'number' && !isNaN(c.completion) ? c.completion : 0;
+      const comp = typeof c.completion === 'number' && !Number.isNaN(c.completion) ? c.completion : 0;
       return comp >= 100 || c.status === 'Mastered';
     }).length;
     const totalCompletion = subjChaps.reduce((acc, curr) => {
-      const comp = typeof curr?.completion === 'number' && !isNaN(curr.completion) ? curr.completion : 0;
+      const comp = typeof curr?.completion === 'number' && !Number.isNaN(curr.completion) ? curr.completion : 0;
       return acc + Math.min(100, Math.max(0, comp));
     }, 0);
     const rawPct = total > 0 ? Math.round(totalCompletion / total) : 0;
-    const percentage = isNaN(rawPct) ? 0 : Math.min(100, Math.max(0, rawPct));
+    const percentage = Number.isNaN(rawPct) ? 0 : Math.min(100, Math.max(0, rawPct));
     return { total, completed, percentage };
   },
 
   getDaysUntilExam(targetYear: string, examType: 'JEE Main' | 'JEE Advanced' = 'JEE Main'): number {
-    let targetYearNum = parseInt(targetYear) || 2027;
+    let targetYearNum = parseInt(targetYear, 10) || 2027;
     // JEE Main Session 1 is in January (Jan 24th). JEE Advanced is in May (May 30th).
     let targetDate = examType === 'JEE Main' 
       ? new Date(targetYearNum, 0, 24)

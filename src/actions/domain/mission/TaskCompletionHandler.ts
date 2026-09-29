@@ -4,7 +4,7 @@ import { CustomMissionRepository } from '@/repositories/customMissionRepository'
 import { ChapterRepository } from '@/repositories/chapterRepository';
 import { UserRepository } from '@/repositories/userRepository';
 import { StudySessionRepository } from '@/repositories/studySessionRepository';
-import { normalizeChapter } from '@/utils/academicState';
+import { normalizeChapter } from '@jee-os/engines';
 import { calculateLevelFromXP } from '@/utils/levelingCalculations';
 import { getCurrentSessionTimeSlot, formatTimeSlotDisplay } from '@/utils/timeSlotUtils';
 
@@ -198,7 +198,7 @@ export class TaskCompletionHandler extends BaseActions {
           let currentLecture = c.currentLecture || 0;
           const totalLectures = c.totalLectures || 12;
 
-          let statusUpdate: Chapter['status'] | undefined = undefined;
+          let statusUpdate: Chapter['status'] | undefined ;
 
           if (isCompleting) {
             if (mission.type === 'Watch Lecture') {

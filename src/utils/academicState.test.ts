@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getAcademicState, normalizeChapter } from './academicState';
+import { getAcademicState, normalizeChapter } from '@jee-os/engines';
 import { Chapter } from '@/types/index';
 
 describe('academicState (BUG-14: Lecture Progress Synchronization)', () => {

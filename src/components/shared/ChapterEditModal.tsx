@@ -1,122 +1,26 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { getSubjectTheme } from '@/constants/subjectTheme';
 import {
-  X, Save, CheckCircle2, Clock, BookOpen, Layers, Flame, Award,
-  AlertCircle, SlidersHorizontal, Calendar, FileText, Target, Activity,
-  Check, Trash2, Sparkles, TrendingUp, AlertTriangle, ChevronRight,
-  Play, ArrowUpRight, Zap, FileUp
+  X, Save, CheckCircle2, BookOpen, SlidersHorizontal, Target, Activity,
+  Trash2, AlertTriangle, Play
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { Chapter, SubjectId, SyllabusDiagnosisStage } from '@/types/index';
+import { Chapter } from '@/types/index';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { isTestForChapter } from '@/features/mockTests/MockTestsPage';
 import { ChapterTelemetry } from '@jee-os/engines';
 import { Modal } from '@/components/ui/Modal';
-import { CustomSelect } from '@/components/ui/CustomSelect';
 import { ConfirmDeleteModal } from '@/components/ui/ConfirmDeleteModal';
 import { springs } from '@/constants/motion';
 import { PrerequisiteFoundationAlert } from '@/features/subjects/components/PrerequisiteFoundationAlert';
 import { useToast } from '@/components/ui/ToastProvider';
-
-const PracticeModule = ({
-  title,
-  colorClass,
-  badgeColorClass,
-  subtitle,
-  holdMsg,
-  recommendedMsg,
-  onHold,
-  setOnHold,
-  completed,
-  setCompleted,
-  total,
-  setTotal,
-}: {
-  title: string;
-  colorClass: string;
-  badgeColorClass: string;
-  subtitle: string;
-  holdMsg: string;
-  recommendedMsg: string;
-  onHold: boolean;
-  setOnHold: (val: boolean) => void;
-  completed: number;
-  setCompleted: (val: number) => void;
-  total: number;
-  setTotal: (val: number) => void;
-}) => {
-  const percent = Math.min(100, Math.round((completed / (total || 1)) * 100));
-
-  return (
-    <div className="p-4 rounded-2xl border border-zinc-850/80 bg-zinc-950/60 flex flex-col justify-between gap-3 shadow-inner">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className={`text-xs font-mono font-bold tracking-wider uppercase ${colorClass}`}>{title}</span>
-          <span className="text-[10px] font-mono text-zinc-400">({percent}%)</span>
-        </div>
-        <button
-          type="button"
-          onClick={() => setOnHold(!onHold)}
-          className={`text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full border transition-all cursor-pointer select-none active:scale-95 ${
-            onHold
-              ? badgeColorClass
-              : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:border-zinc-700'
-          }`}
-        >
-          {onHold ? 'ON HOLD' : 'Put on Hold'}
-        </button>
-      </div>
-
-      <p className="text-[11px] font-mono text-zinc-400 leading-tight">{subtitle}</p>
-
-      {onHold && (
-        <div className="p-2 rounded-xl bg-amber-950/30 border border-amber-900/50 text-amber-300 text-[10px] font-mono">
-          {holdMsg}
-        </div>
-      )}
-
-      {/* Progress Track */}
-      <div className="w-full h-1.5 bg-zinc-900 rounded-full overflow-hidden">
-        <div 
-          className={`h-full transition-all duration-300 ${percent === 100 ? 'bg-emerald-500' : 'bg-indigo-500'}`}
-          style={{ width: `${percent}%` }}
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-2 font-mono text-xs">
-        <div>
-          <span className="text-[10px] text-zinc-400 uppercase tracking-wider block mb-1">Solved / Done</span>
-          <input
-            type="number"
-            min="0"
-            max={total}
-            value={completed === 0 ? '' : completed} placeholder="0"
-            onChange={(e) => {
-              const val = parseInt(e.target.value) || 0;
-              setCompleted(Math.max(0, Math.min(total, val)));
-            }}
-            className="w-full bg-zinc-900/90 border border-zinc-800 rounded-xl px-3 py-1.5 text-white font-mono text-xs focus:border-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 transition-colors"
-          />
-        </div>
-        <div>
-          <span className="text-[10px] text-zinc-400 uppercase tracking-wider block mb-1">Total Target</span>
-          <input
-            type="number"
-            min="1"
-            value={total === 0 ? '' : total} placeholder="0"
-            onChange={(e) => setTotal(Math.max(0, parseInt(e.target.value) || 0))}
-            className="w-full bg-zinc-900/90 border border-zinc-800 rounded-xl px-3 py-1.5 text-white font-mono text-xs focus:border-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 transition-colors"
-          />
-        </div>
-      </div>
-
-      <div className="text-[10px] font-mono text-zinc-400 italic">
-        {recommendedMsg}
-      </div>
-    </div>
-  );
-};
+import {
+  ChapterProgressTab,
+  ChapterPracticeTab,
+  ChapterMetaTab,
+  ChapterMistakesTab,
+  ChapterRadarTab
+} from './chapterModal';
 
 export type ChapterEditTab = 'progress' | 'practice' | 'mistakes' | 'meta' | 'radar';
 
@@ -137,6 +41,8 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
   const activeEditChapterId = useStudyBrainStore(state => state.activeEditChapterId);
   const chapterTelemetryMap = useStudyBrainStore(state => state.chapterTelemetryMap);
   const chapters = useStudyBrainStore(state => state.chapters);
+  const mistakes = useStudyBrainStore(state => state.mistakes);
+  const customMockTests = useStudyBrainStore(state => state.customMockTests) || [];
 
   const effectiveIsOpen = isOpen !== undefined ? isOpen : !!activeEditChapterId;
   const effectiveChapterId = chapterId !== undefined ? chapterId : activeEditChapterId;
@@ -153,25 +59,18 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
     lastChapterRef.current = rawChapter;
   }
   const chapter = rawChapter || lastChapterRef.current;
-
   const telemetry: ChapterTelemetry | undefined = chapter && chapterTelemetryMap ? chapterTelemetryMap[chapter.id] : undefined;
-
-  const mistakes = useStudyBrainStore(state => state.mistakes);
   const chapterMistakes = chapter ? mistakes.filter(m => m.chapter === chapter.name && m.revisionStatus !== 'Mastered') : [];
 
   const navigate = useNavigate();
   const { toast } = useToast();
-  const customMockTests = useStudyBrainStore(state => state.customMockTests) || [];
+
   const chapterTests = React.useMemo(() => {
     if (!chapter) return [];
     return customMockTests.filter(t => isTestForChapter(t, chapter.name, chapter.subject, chapter.id));
   }, [chapter, customMockTests]);
 
   const [activeTab, setActiveTab] = useState<ChapterEditTab>(defaultTab);
-  const [newMistakeTitle, setNewMistakeTitle] = useState('');
-  const [newMistakeDesc, setNewMistakeDesc] = useState('');
-  const [newMistakeTag, setNewMistakeTag] = useState('Calculation');
-  const [isAddingMistake, setIsAddingMistake] = useState(false);
 
   // Form states
   const [currentLecture, setCurrentLecture] = useState<number>(0);
@@ -212,14 +111,14 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
       setTeacher(chapter.lectureProgress?.teacher || '');
       setAvgLectureDuration(chapter.lectureProgress?.avgLectureDurationMinutes || 0);
 
-      const initialDppTotal = (chapter.practiceProgress as any)?.totalDpp || 10;
-      const initialPyqTotal = (chapter.practiceProgress as any)?.totalPyq || (chapter as any).totalPyqs || 30;
+      const initialDppTotal = chapter.practiceProgress?.totalDpp || 10;
+      const initialPyqTotal = chapter.practiceProgress?.totalPyq || chapter.practiceProgress?.totalPyqs || 30;
 
       setTotalDpp(initialDppTotal);
-      setCompletedDpp((chapter.practiceProgress as any)?.completedDpp ?? (chapter.practiceProgress?.dppPercent ? Math.round((chapter.practiceProgress.dppPercent / 100) * initialDppTotal) : (chapter.dppComplete ? initialDppTotal : 0)));
+      setCompletedDpp(chapter.practiceProgress?.completedDpp ?? (chapter.practiceProgress?.dppPercent ? Math.round((chapter.practiceProgress.dppPercent / 100) * initialDppTotal) : (chapter.dppComplete ? initialDppTotal : 0)));
       
       setTotalPyq(initialPyqTotal);
-      setCompletedPyq((chapter.practiceProgress as any)?.completedPyq ?? (chapter.practiceProgress?.pyqPercent ? Math.round((chapter.practiceProgress.pyqPercent / 100) * initialPyqTotal) : (chapter.pyqsComplete ? initialPyqTotal : 0)));
+      setCompletedPyq(chapter.practiceProgress?.completedPyq ?? (chapter.practiceProgress?.pyqPercent ? Math.round((chapter.practiceProgress?.pyqPercent / 100) * initialPyqTotal) : (chapter.pyqsComplete ? initialPyqTotal : 0)));
       
       setConfidence(chapter.confidence || 70);
       setDifficulty(chapter.difficulty || 'Medium');
@@ -231,7 +130,7 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
       setPyqOnHold(!!chapter.pyqOnHold);
       setChapterOnHold(!!chapter.chapterOnHold);
     }
-  }, [chapter, isOpen]);
+  }, [chapter, isOpen, telemetry]);
 
   const toggleChapterHold = async () => {
     const newVal = !chapterOnHold;
@@ -239,12 +138,14 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
     if (chapter) await actions.updateChapter(chapter.id, { chapterOnHold: newVal });
   };
 
-  const toggleDppHold = async (newVal: boolean) => {
+  const toggleDppHold = async () => {
+    const newVal = !dppOnHold;
     setDppOnHold(newVal);
     if (chapter) await actions.updateChapter(chapter.id, { dppOnHold: newVal });
   };
 
-  const togglePyqHold = async (newVal: boolean) => {
+  const togglePyqHold = async () => {
+    const newVal = !pyqOnHold;
     setPyqOnHold(newVal);
     if (chapter) await actions.updateChapter(chapter.id, { pyqOnHold: newVal });
   };
@@ -258,9 +159,6 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
     if (!chapter) return;
     setIsSaving(true);
 
-    // Completion percentage is now derived by normalizeChapter natively
-
-    // Check for duplicate serial number within the same subject only
     if (serialNumber) {
       const newSerialNumber = `CH${serialNumber}`;
       const duplicateChapter = chapters.find(
@@ -276,20 +174,19 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
         return;
       }
 
-      // Check if serial number exceeds max allowed (highest in subject + 1)
       const subjectChapters = chapters.filter(c => c.subject === chapter.subject);
       let maxNum = 0;
       subjectChapters.forEach(ch => {
-        if (ch.serialNumber && ch.serialNumber.startsWith('CH')) {
+        if (ch.serialNumber?.startsWith('CH')) {
           const numStr = ch.serialNumber.slice(2);
           const num = parseInt(numStr, 10);
-          if (!isNaN(num) && num > maxNum) {
+          if (!Number.isNaN(num) && num > maxNum) {
             maxNum = num;
           }
         }
       });
       const inputNum = parseInt(serialNumber, 10);
-      if (!isNaN(inputNum) && inputNum > maxNum + 1) {
+      if (!Number.isNaN(inputNum) && inputNum > maxNum + 1) {
         toast({
           title: 'Invalid Serial Number',
           description: `Serial number cannot exceed ${maxNum + 1} (highest current serial number + 1). Please use a smaller number.`,
@@ -336,7 +233,7 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
         accuracyPercent: confidence,
         confidencePercent: confidence,
         weakTopics: notes ? notes.split(',').map(s => s.trim()).filter(Boolean) : []
-      } as any
+      }
     };
 
     try {
@@ -358,10 +255,7 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
     }
   };
 
-  const theme = chapter ? getSubjectTheme(chapter.subject) : { badge: 'bg-indigo-900/40 text-indigo-300 border-indigo-500/30' };
-  const subjectColorClass = theme.badge;
-
-  const tabs: Array<{ id: ChapterEditTab; label: string; icon: any }> = [
+  const tabs: Array<{ id: ChapterEditTab; label: string; icon: React.ComponentType<{ className?: string }> }> = [
     { id: 'progress', label: 'Lectures', icon: BookOpen },
     { id: 'practice', label: 'Practice', icon: Target },
     { id: 'mistakes', label: `Mistakes (${chapterMistakes.length})`, icon: AlertTriangle },
@@ -492,523 +386,71 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
 
                 <AnimatePresence mode="wait">
                   {activeTab === 'progress' && (
-                    <motion.div
-                      key="progress"
-                      initial={{ opacity: 0, x: 14 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -14 }}
-                      transition={{ duration: 0.14, ease: [0.16, 1, 0.3, 1] }}
-                      className="space-y-4"
-                    >
-                      <div className="p-4 rounded-2xl border border-zinc-850/80 bg-zinc-950/60 space-y-3">
-                        <label className="text-xs font-mono font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5">
-                          <BookOpen className="w-4 h-4 text-indigo-400" />
-                          Lectures Progress Counter
-                        </label>
-                        <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                          <div>
-                            <span className="text-[11px] text-zinc-400 block mb-1 font-mono uppercase tracking-wider">Watched Lectures</span>
-                            <input
-                              type="number"
-                              min="0"
-                              max={totalLectures}
-                              disabled={theoryComplete}
-                              value={currentLecture === 0 ? '' : currentLecture} placeholder="0"
-                              onChange={(e) => {
-                                const val = parseInt(e.target.value) || 0;
-                                setCurrentLecture(Math.max(0, Math.min(totalLectures, val)));
-                              }}
-                              className={`w-full bg-zinc-900 border rounded-xl px-4 py-2.5 text-white font-mono text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 ${theoryComplete ? 'border-indigo-500/30 opacity-70 cursor-not-allowed' : 'border-zinc-800 focus:border-indigo-500'}`}
-                            />
-                          </div>
-                          <div>
-                            <span className="text-[11px] text-zinc-400 block mb-1 font-mono uppercase tracking-wider">Total Chapter Lectures</span>
-                            <input
-                              ref={totalLecturesRef}
-                              type="number"
-                              min="1"
-                              max="100"
-                              disabled={theoryComplete}
-                              value={totalLectures === 0 ? '' : totalLectures} placeholder="0"
-                              onChange={(e) => {
-                                setTotalLectures(parseInt(e.target.value) || 0);
-                                if (parseInt(e.target.value) > 0) setTotalLecturesError(false);
-                              }}
-                              className={`w-full bg-zinc-900 border rounded-xl px-4 py-2.5 text-white font-mono text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 ${totalLecturesError ? 'border-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.3)]' : theoryComplete ? 'border-indigo-500/30 opacity-70 cursor-not-allowed' : 'border-zinc-800 focus:border-indigo-500'}`}
-                            />
-                            {totalLecturesError && (
-                              <span className="text-[10px] text-rose-400 mt-1 block">Set total lectures first</span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                        <div className="p-4 rounded-2xl border border-zinc-850/80 bg-zinc-950/60 space-y-1.5">
-                          <span className="text-[11px] text-zinc-400 block font-mono uppercase tracking-wider">Teacher / Coaching Batch</span>
-                          <input
-                            type="text"
-                            placeholder="e.g. Physics Galaxy, PW, Allen"
-                            value={teacher}
-                            onChange={(e) => setTeacher(e.target.value)}
-                            className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2 text-white font-mono text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500"
-                          />
-                        </div>
-                        <div className="p-4 rounded-2xl border border-zinc-850/80 bg-zinc-950/60 space-y-1.5">
-                          <span className="text-[11px] text-zinc-400 block font-mono uppercase tracking-wider">Avg Duration (mins)</span>
-                          <input
-                            type="number"
-                            value={avgLectureDuration === 0 ? '' : avgLectureDuration} placeholder="0"
-                            onChange={(e) => setAvgLectureDuration(parseInt(e.target.value) || 0)}
-                            className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2 text-white font-mono text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500"
-                          />
-                        </div>
-                      </div>
-
-                      <label className="flex items-center gap-3 p-4 rounded-2xl border border-zinc-850/80 bg-zinc-950/60 cursor-pointer hover:border-indigo-500/40 transition-all select-none group">
-                        <input
-                          type="checkbox"
-                          checked={theoryComplete}
-                          onChange={(e) => {
-                            const isChecked = e.target.checked;
-                            if (isChecked && (!totalLectures || totalLectures === 0)) {
-                              setTotalLecturesError(true);
-                              totalLecturesRef.current?.focus();
-                              return; // Don't check the box yet
-                            }
-                            setTotalLecturesError(false);
-                            setTheoryComplete(isChecked);
-                            if (isChecked) {
-                              setCurrentLecture(totalLectures);
-                            }
-                          }}
-                          className="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-indigo-600 focus:ring-0 cursor-pointer accent-indigo-600"
-                        />
-                        <div className="flex-1">
-                          <span className="text-xs font-mono text-zinc-200 font-bold block group-hover:text-indigo-300 transition-colors">
-                            Theory / All Lectures Completed
-                          </span>
-                          <span className="text-[10px] font-mono text-zinc-400">
-                            Locks theory phase and unlocks 100% priority towards DPP and PYQ solving drills
-                          </span>
-                        </div>
-                      </label>
-                    </motion.div>
+                    <ChapterProgressTab
+                      currentLecture={currentLecture}
+                      setCurrentLecture={setCurrentLecture}
+                      totalLectures={totalLectures}
+                      setTotalLectures={setTotalLectures}
+                      totalLecturesError={totalLecturesError}
+                      setTotalLecturesError={setTotalLecturesError}
+                      totalLecturesRef={totalLecturesRef}
+                      theoryComplete={theoryComplete}
+                      setTheoryComplete={setTheoryComplete}
+                      teacher={teacher}
+                      setTeacher={setTeacher}
+                      avgLectureDuration={avgLectureDuration}
+                      setAvgLectureDuration={setAvgLectureDuration}
+                    />
                   )}
 
                   {activeTab === 'practice' && (
-                    <motion.div
-                      key="practice"
-                      initial={{ opacity: 0, x: 14 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -14 }}
-                      transition={{ duration: 0.14, ease: [0.16, 1, 0.3, 1] }}
-                      className="space-y-4"
-                    >
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                        <PracticeModule
-                          title="DPP Practice"
-                          colorClass="text-emerald-400"
-                          badgeColorClass="bg-amber-500/20 border-amber-500/40 text-amber-300"
-                          subtitle="Problem Sets & Daily Practice"
-                          holdMsg="DPPs won't be scheduled for this chapter until you turn this off."
-                          recommendedMsg={`* Recommended: ${Math.max(5, Math.round((totalLectures || 10) * 0.8))} sets for completion.`}
-                          onHold={dppOnHold}
-                          setOnHold={toggleDppHold}
-                          completed={completedDpp}
-                          setCompleted={setCompletedDpp}
-                          total={totalDpp}
-                          setTotal={setTotalDpp}
-                        />
-
-                        <PracticeModule
-                          title="JEE PYQs"
-                          colorClass="text-purple-400"
-                          badgeColorClass="bg-amber-500/20 border-amber-500/40 text-amber-300"
-                          subtitle="Past Years Questions Drill"
-                          holdMsg="PYQs won't be scheduled for this chapter until you turn this off."
-                          recommendedMsg="* Recommended: ~50-80 PYQs per chapter."
-                          onHold={pyqOnHold}
-                          setOnHold={togglePyqHold}
-                          completed={completedPyq}
-                          setCompleted={setCompletedPyq}
-                          total={totalPyq}
-                          setTotal={setTotalPyq}
-                        />
-                      </div>
-
-                      <div className="p-4 rounded-2xl border border-zinc-850/80 bg-zinc-950/60 space-y-3">
-                        <div className="flex justify-between items-center text-xs font-mono">
-                          <span className="text-zinc-400 font-bold uppercase tracking-wider">Confidence Score Rating</span>
-                          <span className="text-indigo-400 font-bold bg-indigo-950/50 px-2.5 py-1 rounded-lg border border-indigo-500/30">{confidence}%</span>
-                        </div>
-                        <div className="relative pt-2 pb-1">
-                          <div className="w-full h-2 bg-zinc-900 rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-gradient-to-r from-indigo-600 via-purple-500 to-emerald-400 rounded-full transition-all duration-150"
-                              style={{ width: `${confidence}%` }}
-                            />
-                          </div>
-                          <input
-                            type="range"
-                            min="0"
-                            max="100"
-                            value={confidence}
-                            onChange={(e) => {
-                              const val = parseInt(e.target.value) || 0;
-                              setConfidence(Math.max(0, Math.min(100, val)));
-                            }}
-                            className="w-full accent-indigo-500 cursor-pointer mt-2"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Chapter Custom Mock Tests & DPP Drills */}
-                      <div className="p-4 rounded-2xl border border-zinc-850/80 bg-zinc-950/60 space-y-3 shadow-inner">
-                        <div className="flex justify-between items-center">
-                          <div className="flex items-center gap-2">
-                            <Zap className="w-4 h-4 text-indigo-400" />
-                            <span className="text-xs font-mono font-bold text-zinc-200 uppercase tracking-wider">
-                              Chapter Tests & DPP Drills ({chapterTests.length})
-                            </span>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              actions.closeChapterEditModal();
-                              navigate(`/mock-tests?nav=${chapter.subject}&chapterId=${chapter.id}`);
-                            }}
-                            className="text-[10px] font-mono font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors cursor-pointer"
-                          >
-                            <span>Open in Mock Arena</span>
-                            <ArrowUpRight className="w-3 h-3" />
-                          </button>
-                        </div>
-
-                        {chapterTests.length > 0 ? (
-                          <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-                            {chapterTests.map(test => {
-                              const totalQ = test.sections.reduce((sum, s) => sum + s.questions.length, 0);
-                              return (
-                                <div
-                                  key={test.id}
-                                  className="flex items-center justify-between p-3 rounded-xl bg-zinc-900/70 border border-zinc-800/80 hover:border-zinc-700 transition-all"
-                                >
-                                  <div className="min-w-0 flex-1 pr-3">
-                                    <h4 className="text-xs font-bold text-zinc-100 truncate font-display">{test.name}</h4>
-                                    <div className="flex items-center gap-2 mt-0.5 text-[10px] font-mono text-zinc-400">
-                                      <span>{totalQ} Questions</span>
-                                      <span>•</span>
-                                      <span>{test.durationMinutes} mins</span>
-                                      <span>•</span>
-                                      <span className="uppercase text-indigo-400 font-semibold">{test.category || test.source || 'Drill'}</span>
-                                    </div>
-                                  </div>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      actions.closeChapterEditModal();
-                                      navigate(`/mock-tests?nav=${chapter.subject}&chapterId=${chapter.id}&testId=${test.id}`);
-                                    }}
-                                    className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-mono text-[11px] font-bold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer shadow-sm active:scale-95"
-                                  >
-                                    <Play className="w-3 h-3 fill-current" />
-                                    <span>Start</span>
-                                  </button>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        ) : (
-                          <div className="p-4 rounded-xl bg-zinc-900/40 border border-zinc-800/60 text-center space-y-2.5">
-                            <p className="text-xs font-mono text-zinc-400">
-                              No custom tests or DPPs created for this chapter yet.
-                            </p>
-                            <div className="flex flex-wrap items-center justify-center gap-2 pt-0.5">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  actions.closeChapterEditModal();
-                                  navigate(`/mock-tests?nav=${chapter.subject}&chapterId=${chapter.id}&openStudio=true`);
-                                }}
-                                className="px-3 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 text-indigo-300 text-[11px] font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer"
-                              >
-                                <Zap className="w-3 h-3" />
-                                <span>Generate Chapter Drill</span>
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  actions.closeChapterEditModal();
-                                  navigate(`/mock-tests?nav=${chapter.subject}&chapterId=${chapter.id}&openDpp=true`);
-                                }}
-                                className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-750 border border-zinc-700 text-zinc-300 text-[11px] font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer"
-                              >
-                                <FileUp className="w-3 h-3 text-emerald-400" />
-                                <span>Upload DPP</span>
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </motion.div>
+                    <ChapterPracticeTab
+                      chapter={chapter}
+                      totalLectures={totalLectures}
+                      dppOnHold={dppOnHold}
+                      toggleDppHold={toggleDppHold}
+                      completedDpp={completedDpp}
+                      setCompletedDpp={setCompletedDpp}
+                      totalDpp={totalDpp}
+                      setTotalDpp={setTotalDpp}
+                      pyqOnHold={pyqOnHold}
+                      togglePyqHold={togglePyqHold}
+                      completedPyq={completedPyq}
+                      setCompletedPyq={setCompletedPyq}
+                      totalPyq={totalPyq}
+                      setTotalPyq={setTotalPyq}
+                      confidence={confidence}
+                      setConfidence={setConfidence}
+                      chapterTests={chapterTests}
+                      onCloseModal={handleClose}
+                      navigate={navigate}
+                    />
                   )}
 
                   {activeTab === 'meta' && (
-                    <motion.div
-                      key="meta"
-                      initial={{ opacity: 0, x: 14 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -14 }}
-                      transition={{ duration: 0.14, ease: [0.16, 1, 0.3, 1] }}
-                      className="space-y-4"
-                    >
-                      <div className="grid grid-cols-2 gap-3 sm:gap-4 font-mono text-xs">
-                        <div className="p-4 rounded-2xl border border-zinc-850/80 bg-zinc-950/60 space-y-1.5">
-                          <label className="block text-zinc-400 uppercase text-[10px] font-bold tracking-wider">JEE Weightage %</label>
-                          <input
-                            type="number"
-                            value={weightage === 0 ? '' : weightage} placeholder="0"
-                            readOnly
-                            className="w-full bg-zinc-900/60 border border-zinc-800/80 rounded-xl px-3.5 py-2 text-zinc-400 cursor-not-allowed font-bold"
-                          />
-                          <span className="text-[10px] text-zinc-400 italic block">* System benchmark derived</span>
-                        </div>
-                        <div className="p-4 rounded-2xl border border-zinc-850/80 bg-zinc-950/60 space-y-1.5 relative z-20">
-                          <label className="block text-zinc-400 uppercase text-[10px] font-bold tracking-wider">Priority Tier</label>
-                          <CustomSelect
-                            size="sm"
-                            value={priority}
-                            onChange={(val) => setPriority(parseInt(val) as 1 | 2 | 3)}
-                            options={[
-                              { value: 1, label: 'Tier 1 (High Priority)' },
-                              { value: 2, label: 'Tier 2 (Medium Priority)' },
-                              { value: 3, label: 'Tier 3 (Low Priority)' },
-                            ]}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-3 sm:gap-4 font-mono text-xs">
-                        <div className="p-4 rounded-2xl border border-zinc-850/80 bg-zinc-950/60 space-y-1.5 relative z-10">
-                          <label className="block text-zinc-400 uppercase text-[10px] font-bold tracking-wider">Difficulty Level</label>
-                          <CustomSelect
-                            size="sm"
-                            value={difficulty}
-                            onChange={(val) => setDifficulty(val as 'Easy' | 'Medium' | 'Hard')}
-                            options={[
-                              { value: 'Easy', label: 'Easy' },
-                              { value: 'Medium', label: 'Medium' },
-                              { value: 'Hard', label: 'Hard' },
-                            ]}
-                          />
-                        </div>
-                        <div className="p-4 rounded-2xl border border-zinc-850/80 bg-zinc-950/60 space-y-1.5">
-                          <label className="block text-zinc-400 uppercase text-[10px] font-bold tracking-wider">Serial Number (Sorting)</label>
-                          <input
-                            type="text"
-                            value={serialNumber}
-                            onChange={(e) => setSerialNumber(e.target.value)}
-                            placeholder="e.g. 05"
-                            className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3.5 py-2 text-xs text-white placeholder-zinc-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500 font-mono"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="p-4 rounded-2xl border border-zinc-850/80 bg-zinc-950/60 space-y-1.5">
-                        <label className="block font-mono text-zinc-400 uppercase text-[10px] font-bold tracking-wider">Chapter Notes & Weak Points</label>
-                        <textarea
-                          value={notes}
-                          onChange={(e) => setNotes(e.target.value)}
-                          placeholder="Key concepts to revise, formula pitfalls, weak sub-topics..."
-                          rows={2}
-                          className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-xs text-white placeholder-zinc-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500 font-mono resize-none"
-                        />
-                      </div>
-                    </motion.div>
+                    <ChapterMetaTab
+                      weightage={weightage}
+                      priority={priority}
+                      setPriority={setPriority}
+                      difficulty={difficulty}
+                      setDifficulty={setDifficulty}
+                      serialNumber={serialNumber}
+                      setSerialNumber={setSerialNumber}
+                      notes={notes}
+                      setNotes={setNotes}
+                    />
                   )}
 
                   {activeTab === 'mistakes' && (
-                    <motion.div
-                      key="mistakes"
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -6 }}
-                      transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
-                      className="space-y-4"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <h4 className="text-xs font-mono font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-                            <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
-                            Chapter Mistakes & Pitfalls Ledger
-                          </h4>
-                          <p className="text-[11px] font-mono text-zinc-400">Track recurring conceptual blunders and formula calculation errors.</p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setIsAddingMistake(prev => !prev)}
-                          className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-mono text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
-                        >
-                          <Sparkles className="w-3.5 h-3.5" />
-                          <span>{isAddingMistake ? 'Close Form' : 'Log New Error'}</span>
-                        </button>
-                      </div>
-
-                      {isAddingMistake && (
-                        <div className="p-4 rounded-2xl border border-indigo-500/30 bg-indigo-950/20 space-y-3">
-                          <div className="space-y-1.5">
-                            <label className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 font-bold">Error Topic / Question Summary</label>
-                            <input
-                              type="text"
-                              value={newMistakeTitle}
-                              onChange={(e) => setNewMistakeTitle(e.target.value)}
-                              placeholder="e.g. Sign error in Lenz's law integration"
-                              className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white font-mono placeholder-zinc-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500"
-                            />
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-1.5 relative z-20">
-                              <label className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 font-bold">Mistake Tag</label>
-                              <CustomSelect
-                                size="sm"
-                                value={newMistakeTag}
-                                onChange={(val) => setNewMistakeTag(String(val))}
-                                options={[
-                                  { value: 'Calculation', label: 'Calculation Error' },
-                                  { value: 'Conceptual', label: 'Conceptual Flaw' },
-                                  { value: 'Formula', label: 'Formula Recall' },
-                                  { value: 'Speed/Panic', label: 'Speed / Time Pressure' },
-                                  { value: 'Silly Mistake', label: 'Silly Mistake' },
-                                ]}
-                              />
-                            </div>
-                            <div className="space-y-1.5">
-                              <label className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 font-bold">Notes / What went wrong</label>
-                              <input
-                                type="text"
-                                value={newMistakeDesc}
-                                onChange={(e) => setNewMistakeDesc(e.target.value)}
-                                placeholder="Forgot minus sign on flux derivative"
-                                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white font-mono placeholder-zinc-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500"
-                              />
-                            </div>
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              if (!newMistakeTitle.trim() || !chapter) return;
-                              actions.addMistake({
-                                subject: chapter.subject,
-                                chapter: chapter.name,
-                                topic: newMistakeTitle,
-                                subtopic: '',
-                                difficulty: 'Medium',
-                                source: 'Self-Study',
-                                timeTaken: 0,
-                                correctMethod: '',
-                                studentMethod: newMistakeDesc,
-                                mistakeTypes: [newMistakeTag],
-                                confidence: 0,
-                                revisionSchedule: new Date().toISOString(),
-                                masteryImpact: 'Medium',
-                                attemptNumber: 1,
-                                revisionStatus: 'New',
-                                recoveryScore: 0,
-                                teacherNotes: '',
-                                personalNotes: '',
-                                aiAdvice: '',
-                                priority: 'Medium',
-                                dateLogged: new Date().toISOString(),
-                                questionText: newMistakeTitle,
-                                correctSolution: ''
-                              });
-                              setNewMistakeTitle('');
-                              setNewMistakeDesc('');
-                              setIsAddingMistake(false);
-                            }}
-                            className="w-full py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                          >
-                            <Check className="w-3.5 h-3.5" />
-                            <span>Save Error to Vault</span>
-                          </button>
-                        </div>
-                      )}
-
-                      {chapterMistakes.length === 0 ? (
-                        <div className="p-8 text-center border border-dashed border-zinc-850 rounded-2xl bg-zinc-950/40 text-zinc-400 font-mono text-xs space-y-1">
-                          <CheckCircle2 className="w-6 h-6 text-emerald-400 mx-auto opacity-70" />
-                          <p className="font-bold text-zinc-300">Clean Vault for {chapter.name}</p>
-                          <p className="text-[11px] text-zinc-500">No active mistake notes logged for this chapter.</p>
-                        </div>
-                      ) : (
-                        <div className="space-y-2.5">
-                          {chapterMistakes.map(m => (
-                            <div key={m.id} className="p-3.5 rounded-xl bg-zinc-900/50 border border-zinc-850 space-y-1 text-left">
-                              <div className="flex items-center justify-between">
-                                <span className="text-xs font-bold text-white font-mono">{m.topic || m.questionText}</span>
-                                <span className="text-[10px] font-mono text-amber-300 bg-amber-950/40 border border-amber-900/50 px-2 py-0.5 rounded-lg">
-                                  {m.mistakeTypes.join(', ')}
-                                </span>
-                              </div>
-                              {m.studentMethod && (
-                                <p className="text-xs text-zinc-400 font-mono pt-0.5">{m.studentMethod}</p>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </motion.div>
+                    <ChapterMistakesTab
+                      chapter={chapter}
+                      chapterMistakes={chapterMistakes}
+                      onAddMistake={actions.addMistake}
+                    />
                   )}
 
                   {activeTab === 'radar' && (
-                    <motion.div
-                      key="radar"
-                      initial={{ opacity: 0, x: 14 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -14 }}
-                      transition={{ duration: 0.14, ease: [0.16, 1, 0.3, 1] }}
-                      className="space-y-4 font-mono text-xs"
-                    >
-                      <div className="p-4 rounded-2xl border border-zinc-850/80 bg-zinc-950/60 space-y-3">
-                        <span className="text-[10px] text-zinc-400 uppercase font-bold tracking-wider block">Strategy Radar Engine Metrics</span>
-                        <div className="grid grid-cols-2 gap-3 text-[11px]">
-                          <div className="p-3 bg-zinc-900/60 rounded-xl border border-zinc-800/80">
-                            <span className="text-zinc-400 block text-[10px] uppercase tracking-wider">Theory Completion</span>
-                            <strong className="text-indigo-400 text-base">{telemetry?.strategyRadar.theoryCompletionPercent ?? 0}%</strong>
-                          </div>
-                          <div className="p-3 bg-zinc-900/60 rounded-xl border border-zinc-800/80">
-                            <span className="text-zinc-400 block text-[10px] uppercase tracking-wider">DPP Practice</span>
-                            <strong className="text-emerald-400 text-base">{telemetry?.strategyRadar.dppCompletionPercent ?? 0}%</strong>
-                          </div>
-                          <div className="p-3 bg-zinc-900/60 rounded-xl border border-zinc-800/80">
-                            <span className="text-zinc-400 block text-[10px] uppercase tracking-wider">PYQ Completion</span>
-                            <strong className="text-purple-400 text-base">{telemetry?.strategyRadar.pyqCompletionPercent ?? 0}%</strong>
-                          </div>
-                          <div className="p-3 bg-zinc-900/60 rounded-xl border border-zinc-800/80">
-                            <span className="text-zinc-400 block text-[10px] uppercase tracking-wider">Retention Score</span>
-                            <strong className="text-sky-400 text-base">{telemetry?.strategyRadar.retentionConfidenceScore ?? 70}</strong>
-                          </div>
-                        </div>
-                        <div className="pt-2.5 border-t border-zinc-850 flex items-center justify-between text-[11px] text-zinc-400">
-                          <span>JEE Weightage Rank: <strong className="text-amber-400">{telemetry?.strategyRadar.jeeWeightageRank || 'Tier 2'}</strong></span>
-                          <span>Bottleneck Severity: <strong className={telemetry?.strategyRadar.bottleneckSeverity === 'Critical' ? 'text-amber-400' : 'text-emerald-400'}>{telemetry?.strategyRadar.bottleneckSeverity || 'None'}</strong></span>
-                        </div>
-                      </div>
-
-                      {telemetry?.isBottleneck && (
-                        <div className="p-4 rounded-2xl border border-amber-900/50 bg-amber-950/30 text-amber-300 space-y-1.5">
-                          <span className="text-[10px] font-bold uppercase tracking-wider block flex items-center gap-1.5 text-amber-400">
-                            <AlertCircle className="w-4 h-4 text-amber-400" />
-                            Active Bottleneck Detected
-                          </span>
-                          <p className="text-xs text-zinc-300 leading-normal">{telemetry.bottleneckReason}</p>
-                        </div>
-                      )}
-                    </motion.div>
+                    <ChapterRadarTab telemetry={telemetry} />
                   )}
                 </AnimatePresence>
               </div>
@@ -1028,13 +470,29 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
                     type="button"
                     onClick={() => {
                       handleClose();
-                      navigate('/focus-vault');
+                      navigate(`/focus-vault?chapterId=${chapter.id}`, {
+                        state: { chapterId: chapter.id, chapterName: chapter.name }
+                      });
                     }}
                     className="px-3.5 py-2.5 rounded-xl bg-indigo-950/60 hover:bg-indigo-900/80 border border-indigo-700/50 text-indigo-300 font-mono text-xs font-bold cursor-pointer transition-all active:scale-95 select-none flex items-center gap-1.5"
                     title="Launch deep study session for this chapter in Focus Vault"
                   >
                     <Play className="w-3.5 h-3.5 text-indigo-400" />
                     Focus Session
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleClose();
+                      navigate(`/revision?chapterId=${chapter.id}`, {
+                        state: { chapterId: chapter.id, chapterName: chapter.name }
+                      });
+                    }}
+                    className="px-3.5 py-2.5 rounded-xl bg-purple-950/60 hover:bg-purple-900/80 border border-purple-700/50 text-purple-300 font-mono text-xs font-bold cursor-pointer transition-all active:scale-95 select-none flex items-center gap-1.5"
+                    title="Practice active recall flashcards for this chapter"
+                  >
+                    <BookOpen className="w-3.5 h-3.5 text-purple-400" />
+                    Practice Flashcards
                   </button>
                   <button
                     type="button"
@@ -1066,8 +524,9 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
         onConfirm={async () => {
           if (chapter) {
             try {
-              if ('deleteChapter' in actions && typeof (actions as any).deleteChapter === 'function') {
-                await (actions as any).deleteChapter(chapter.id);
+              const customActions = actions as unknown as { deleteChapter?: (id: string) => Promise<void> };
+              if (typeof customActions.deleteChapter === 'function') {
+                await customActions.deleteChapter(chapter.id);
               } else {
                 await actions.updateChapter(chapter.id, { chapterOnHold: true });
               }

@@ -13,20 +13,22 @@ import { motion, AnimatePresence, Variants } from 'motion/react';
 import { springs } from '@/constants/motion';
 import { audioEngine } from '@/utils/audioEngine';
 
+import { Chapter, StudySession, UserSettings, XPState, MentorProfile, SessionAnalytics } from '@/types/index';
+
 interface DashboardFocusSectionProps {
   activeTab: 'focus' | 'analytics';
   setActiveTab: (tab: 'focus' | 'analytics') => void;
   revisionQueue: RevisionCard[];
   onLaunchRevision: (rev: RevisionCard) => void;
   targetYear: string;
-  syllabusProgress: any;
-  analytics: any;
-  settings: any;
-  xp: any;
-  studySessions: any[];
-  mentorProfile: any;
-  chapters: any[];
-  projectedReadiness: any;
+  syllabusProgress: Record<string, unknown>;
+  analytics: SessionAnalytics;
+  settings: UserSettings;
+  xp: XPState;
+  studySessions: StudySession[];
+  mentorProfile: MentorProfile;
+  chapters: Chapter[];
+  projectedReadiness: number;
 }
 
 const slideVariants: Variants = {
@@ -59,7 +61,7 @@ export const DashboardFocusSection = React.memo(function DashboardFocusSection({
   onLaunchRevision,
   targetYear,
   syllabusProgress,
-  analytics,
+  analytics: _analytics,
   settings,
   xp,
   studySessions,
@@ -77,7 +79,7 @@ export const DashboardFocusSection = React.memo(function DashboardFocusSection({
       id: 'focus', 
       label: (
         <span>
-          <span className="eva-japanese-badge">焦点復習 // </span>
+          <span className="eva-japanese-badge">焦点復習 {'// '}</span>
           <span>Focus & Revision</span>
         </span>
       ), 
@@ -87,7 +89,7 @@ export const DashboardFocusSection = React.memo(function DashboardFocusSection({
       id: 'analytics', 
       label: (
         <span>
-          <span className="eva-japanese-badge">分析評価 // </span>
+          <span className="eva-japanese-badge">分析評価 {'// '}</span>
           <span>Analytics & Trajectory</span>
         </span>
       ), 
@@ -127,7 +129,7 @@ export const DashboardFocusSection = React.memo(function DashboardFocusSection({
                 whileTap={{ scale: 0.96 }}
                 onClick={(e) => {
                   e.preventDefault();
-                  handleTabChange(tab.id as any);
+                  handleTabChange(tab.id as 'focus' | 'analytics');
                 }}
                 className={`relative px-4 py-2 sm:px-5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer select-none z-10 flex items-center justify-center gap-2 min-w-[150px] sm:min-w-[200px] text-center ${
                   isActive ? 'text-white' : 'text-zinc-400 hover:text-zinc-200'
@@ -148,7 +150,7 @@ export const DashboardFocusSection = React.memo(function DashboardFocusSection({
         </div>
 
         <span className="text-xs text-zinc-400 font-mono hidden sm:inline-block">
-          <span className="eva-japanese-badge">MAGI // </span>
+          <span className="eva-japanese-badge">MAGI {'// '}</span>
           <span>{activeTab === 'focus' ? 'ACTIVE REVISION QUEUE' : 'SYLLABUS TRAJECTORY MATRIX'}</span>
         </span>
       </div>

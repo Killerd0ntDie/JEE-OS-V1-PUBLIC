@@ -44,7 +44,7 @@ import { clearAppStorage } from './utils/storageUtils';
 import { storageAdapter } from './services/StorageAdapter';
 
 function AppLayout() {
-  const { user, loading: authLoading } = useAuth();
+  useAuth();
   const loading = useStudyBrainStore(s => s.loading);
   const initializationError = useStudyBrainStore(s => s.initializationError);
   const mentorProfile = useStudyBrainStore(s => s.mentorProfile);
@@ -280,7 +280,7 @@ function AppLayout() {
 
           {/* Bottom Dock Clearance Spacer ensuring content is never hidden behind FloatingDynamicDock */}
           {!isStandalone && !location.pathname.startsWith('/planner') && !isAiCoach && (
-            <div className="h-24 sm:h-28 w-full shrink-0 pointer-events-none" aria-hidden="true" />
+            <div className="h-[max(6.5rem,calc(env(safe-area-inset-bottom)+5.5rem))] w-full shrink-0 pointer-events-none" aria-hidden="true" />
           )}
         </main>
       </div>

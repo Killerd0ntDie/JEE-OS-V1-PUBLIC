@@ -3,7 +3,7 @@ import { Chapter, SubjectId, Mistake } from '@/types/index';
 import { ChapterRepository } from '@/repositories/chapterRepository';
 import { UserRepository } from '@/repositories/userRepository';
 import { MistakeRepository } from '@/repositories/mistakeRepository';
-import { normalizeChapter } from '@/utils/academicState';
+import { normalizeChapter } from '@jee-os/engines';
 import { calculateLevelFromXP } from '@/utils/levelingCalculations';
 import { SpacedRepetitionEngine } from '@jee-os/engines';
 import { sanitizeForFirestore } from '@/utils/firestoreSanitizer';
@@ -80,10 +80,10 @@ export class ChapterActions extends BaseActions {
       const subjectChapters = this.state.chapters.filter(c => c.subject === input.subject);
       let maxNum = 0;
       subjectChapters.forEach(ch => {
-        if (ch.serialNumber && ch.serialNumber.startsWith('CH')) {
+        if (ch.serialNumber?.startsWith('CH')) {
           const numStr = ch.serialNumber.slice(2);
           const num = parseInt(numStr, 10);
-          if (!isNaN(num) && num > maxNum) {
+          if (!Number.isNaN(num) && num > maxNum) {
             maxNum = num;
           }
         }
@@ -513,7 +513,7 @@ export class ChapterActions extends BaseActions {
     const updatedChapters = this.state.chapters
       .filter(c => c.id !== chapterId)
       .map(c => {
-        if (c.dependencies && c.dependencies.includes(chapterId)) {
+        if (c.dependencies?.includes(chapterId)) {
           return {
             ...c,
             dependencies: c.dependencies.filter(d => d !== chapterId)
@@ -577,7 +577,7 @@ export class ChapterActions extends BaseActions {
 
         updatedChapters.forEach(c => {
           const orig = originalSnapshot.chapters.find(oc => oc.id === c.id);
-          if (orig && orig.dependencies && orig.dependencies.includes(chapterId)) {
+          if (orig?.dependencies?.includes(chapterId)) {
             const cDoc = doc(db, 'users', this.userId, 'chapters', c.id);
             batch.set(cDoc, sanitizeForFirestore({ dependencies: c.dependencies }), { merge: true });
           }

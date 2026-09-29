@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { MockTest, MockTestAttempt } from '../../../types/mockTest';
 import { SubjectId, Chapter } from '../../../types';
 import { auth } from '@/firebase';
@@ -9,6 +9,7 @@ import {
 import { idbGet, idbSet } from '@/utils/idb';
 import { storageAdapter } from '@/services/StorageAdapter';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
+import { useShallow } from 'zustand/react/shallow';
 
 export const isPlaceholderExplanation = (text?: string) => {
   if (!text || text.trim().length === 0) return true;
@@ -23,6 +24,8 @@ export interface UseResultAnalyticsProps {
 
 export function useResultAnalytics({ test, attempt, chapters = [] }: UseResultAnalyticsProps) {
   const actions = useStudyBrainStore(state => state.actions);
+  const rawMistakes = useStudyBrainStore(useShallow(state => state?.mistakes));
+  const mistakes = rawMistakes || [];
   // Navigation tabs: Questions Studio vs Performance Forensics
   const [activeTab, setActiveTab] = useState<'questions' | 'forensics'>('questions');
   const [tabDirection, setTabDirection] = useState(1);
@@ -172,7 +175,7 @@ The incoming electron adds into the **$\\pi^* 2p_x / \\pi^* 2p_y$ orbital**. The
       }
 
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (token) headers['Authorization'] = `Bearer ${token}`;
+      if (token) headers.Authorization = `Bearer ${token}`;
 
       const storedKey = storageAdapter.getGeminiApiKey();
       if (storedKey) headers['x-gemini-api-key'] = storedKey;
@@ -341,6 +344,48 @@ The incoming electron adds into the **$\\pi^* 2p_x / \\pi^* 2p_y$ orbital**. The
     ? Math.round((analysis.correct / (analysis.correct + analysis.incorrect)) * 100) 
     : 0;
 
+  const labelMap: Record<string, string> = {
+    calc_error: 'Calculation Error: Arithmetical or sign slip',
+    concept_gap: 'Concept Gap: Did not understand core formula',
+    formula_forgot: 'Formula Slip: Misremembered formula',
+    trap_caught: 'Caught in Trap: Fell for examiner distractor',
+    time_rush: 'Time Pressure: Rushed under the clock'
+  };
+
+  const reverseLabelMap: Record<string, string> = {
+    'Calculation Error: Arithmetical or sign slip': 'calc_error',
+    'Concept Gap: Did not understand core formula': 'concept_gap',
+    'Formula Slip: Misremembered formula': 'formula_forgot',
+    'Caught in Trap: Fell for examiner distractor': 'trap_caught',
+    'Time Pressure: Rushed under the clock': 'time_rush'
+  };
+
+  // Initial Rehydration: Hydrate mistake tags from persistent Mistake Vault
+  useEffect(() => {
+    if (!analysis.detailedQuestions || analysis.detailedQuestions.length === 0 || !mistakes || mistakes.length === 0) return;
+    const rehydratedTags: Record<string, string> = {};
+    analysis.detailedQuestions.forEach(eq => {
+      const qText = eq.question.content || `Question ${eq.question.id} from ${test.name}`;
+      const foundMistake = (mistakes || []).find(m => 
+        m && (m.questionText === qText ||
+        (m.source === (test.name || 'Mock Examination') && m.questionText?.includes(eq.question.id)))
+      );
+      if (foundMistake) {
+        const tag = (foundMistake as any).errorType || 
+          reverseLabelMap[foundMistake.mistakeTypes?.[0]] || 
+          foundMistake.mistakeTypes?.[0] || 
+          '';
+        if (tag) {
+          rehydratedTags[eq.question.id] = tag;
+        }
+      }
+    });
+
+    if (Object.keys(rehydratedTags).length > 0) {
+      setMistakeTags(prev => ({ ...rehydratedTags, ...prev }));
+    }
+  }, [analysis.detailedQuestions, mistakes, test.name]);
+
   const handleSetMistakeTag = (qId: string, tagId: string) => {
     const isDeselecting = mistakeTags[qId] === tagId;
     setMistakeTags(prev => ({
@@ -348,48 +393,53 @@ The incoming electron adds into the **$\\pi^* 2p_x / \\pi^* 2p_y$ orbital**. The
       [qId]: isDeselecting ? '' : tagId
     }));
 
-    if (!isDeselecting) {
-      const qItem = analysis.detailedQuestions.find(eq => eq.question.id === qId);
-      if (qItem) {
-        const labelMap: Record<string, string> = {
-          calc_error: 'Calculation Error: Arithmetical or sign slip',
-          concept_gap: 'Concept Gap: Did not understand core formula',
-          formula_forgot: 'Formula Slip: Misremembered formula',
-          trap_caught: 'Caught in Trap: Fell for examiner distractor',
-          time_rush: 'Time Pressure: Rushed under the clock'
-        };
+    const qItem = analysis.detailedQuestions.find(eq => eq.question.id === qId);
+    if (!qItem) return;
 
-        const dominantSubject: SubjectId = qItem.sectionSubject || (selectedSubject !== 'ALL' ? selectedSubject : 'physics');
+    const qText = qItem.question.content || `Question ${qItem.question.id} from ${test.name}`;
 
-        actions.addMistake({
-          subject: dominantSubject,
-          chapter: qItem.question.chapter || test.name || 'Mock Test Review',
-          chapterId: test.chapterId || undefined,
-          topic: qItem.question.topic || qItem.question.chapter || 'Mock Exam Problem',
-          subtopic: '',
-          difficulty: (qItem.question.difficulty as any) || 'JEE Main',
-          source: test.name || 'Mock Examination',
-          timeTaken: qItem.attempt?.timeSpentSeconds || 120,
-          correctMethod: qItem.question.explanation || qItem.question.correctAnswer || '',
-          studentMethod: qItem.attempt?.selectedAnswer ? `Selected: ${qItem.attempt.selectedAnswer}` : 'Unattempted',
-          mistakeTypes: [labelMap[tagId] || tagId],
-          confidence: 30,
-          revisionSchedule: new Date(Date.now() + 86400000 * 2).toISOString(),
-          masteryImpact: 'High',
-          attemptNumber: 1,
-          revisionStatus: 'New',
-          recoveryScore: 0,
-          teacherNotes: '',
-          personalNotes: `Self-audit: ${labelMap[tagId] || tagId}`,
-          aiAdvice: '',
-          priority: 'High',
-          dateLogged: new Date().toISOString(),
-          questionText: qItem.question.content || `Question ${qItem.question.id} from ${test.name}`,
-          correctSolution: qItem.question.explanation || '',
-          errorType: tagId
-        });
-        actions.triggerToast('Mistake Saved', 'Added to your Mistake Vault for active remediation.', 'success');
+    if (isDeselecting) {
+      // Deselection Removal: Find existing mistake in store and delete it
+      const currentMistakes = useStudyBrainStore.getState()?.mistakes || [];
+      const existingMistake = currentMistakes.find(m =>
+        m && (m.questionText === qText ||
+        (m.source === (test.name || 'Mock Examination') && m.questionText?.includes(qId)))
+      );
+      if (existingMistake) {
+        actions.deleteMistake(existingMistake.id);
+        actions.triggerToast('Tag Removed', 'Mistake removed from your Mistake Vault.', 'info');
       }
+    } else {
+      const dominantSubject: SubjectId = qItem.sectionSubject || (selectedSubject !== 'ALL' ? selectedSubject : 'physics');
+
+      actions.addMistake({
+        subject: dominantSubject,
+        chapter: qItem.question.chapter || test.name || 'Mock Test Review',
+        chapterId: test.chapterId || undefined,
+        topic: qItem.question.topic || qItem.question.chapter || 'Mock Exam Problem',
+        subtopic: '',
+        difficulty: (qItem.question.difficulty as any) || 'JEE Main',
+        source: test.name || 'Mock Examination',
+        timeTaken: qItem.attempt?.timeSpentSeconds || 120,
+        correctMethod: qItem.question.explanation || qItem.question.correctAnswer || '',
+        studentMethod: qItem.attempt?.selectedAnswer ? `Selected: ${qItem.attempt.selectedAnswer}` : 'Unattempted',
+        mistakeTypes: [labelMap[tagId] || tagId],
+        confidence: 30,
+        revisionSchedule: new Date(Date.now() + 86400000 * 2).toISOString(),
+        masteryImpact: 'High',
+        attemptNumber: 1,
+        revisionStatus: 'New',
+        recoveryScore: 0,
+        teacherNotes: '',
+        personalNotes: `Self-audit: ${labelMap[tagId] || tagId}`,
+        aiAdvice: '',
+        priority: 'High',
+        dateLogged: new Date().toISOString(),
+        questionText: qText,
+        correctSolution: qItem.question.explanation || '',
+        errorType: tagId
+      });
+      actions.triggerToast('Mistake Saved', 'Added to your Mistake Vault for active remediation.', 'success');
     }
   };
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Play, Pause, Square, Headphones, RefreshCw, Volume2, VolumeX, CheckCircle2 } from 'lucide-react';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
@@ -6,6 +6,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useAuth } from '@/features/auth';
 import { SubjectId } from '@/types/index';
 import { storageAdapter } from '@/services/StorageAdapter';
+import { useLocation, useSearchParams } from 'react-router-dom';
 
 const DEFAULT_MINUTES = 50;
 
@@ -15,6 +16,24 @@ const LOFI_STATIONS = [
   { id: '7NOSDKb0HlU', title: 'Chillhop Radio', subtitle: 'jazzy & lofi hip hop' },
 ];
 
+function useOptionalLocation() {
+  try {
+    // biome-ignore lint/correctness/useHookAtTopLevel: router context fallback for test environments
+    return useLocation();
+  } catch {
+    return null;
+  }
+}
+
+function useOptionalSearchParams() {
+  try {
+    // biome-ignore lint/correctness/useHookAtTopLevel: router context fallback for test environments
+    return useSearchParams();
+  } catch {
+    return [new URLSearchParams()];
+  }
+}
+
 export function FocusVaultPage() {
   const { actions, chapters, todayMissions } = useStudyBrainStore(
     useShallow(state => ({
@@ -23,7 +42,10 @@ export function FocusVaultPage() {
       todayMissions: state.todayMissions
     }))
   );
-  const { user } = useAuth();
+  useAuth();
+  const location = useOptionalLocation();
+  const [searchParams] = useOptionalSearchParams();
+  const passedChapterId = (location?.state as any)?.chapterId || searchParams.get('chapterId') || '';
   
   const [selectedSubject, setSelectedSubject] = useState<SubjectId>('physics');
   const [selectedChapterId, setSelectedChapterId] = useState<string>('');
@@ -35,6 +57,23 @@ export function FocusVaultPage() {
   const [isMuted, setIsMuted] = useState(false);
   const [sessionDuration, setSessionDuration] = useState(0); // tracks total time spent this session
   const [stationIndex, setStationIndex] = useState(0);
+
+  useEffect(() => {
+    if (passedChapterId && chapters && chapters.length > 0) {
+      const match = chapters.find(c => c.id === passedChapterId);
+      if (match) {
+        setSelectedSubject(match.subject);
+        setSelectedChapterId(match.id);
+      }
+    }
+  }, [passedChapterId, chapters]);
+
+  const handleStepMinutes = (delta: number) => {
+    const current = typeof inputMinutes === 'number' ? inputMinutes : DEFAULT_MINUTES;
+    const next = Math.max(5, Math.min(180, current + delta));
+    setInputMinutes(next);
+    setTimeLeft(next * 60);
+  };
 
   const subjectChapters = useMemo(() => {
     return (chapters || []).filter(c => c.subject === selectedSubject);
@@ -301,33 +340,72 @@ export function FocusVaultPage() {
                 className="flex flex-col items-center"
               >
                 {!isActive && sessionDuration === 0 ? (
-                  <div className="flex items-baseline text-[6rem] md:text-[9rem] font-black tracking-tighter tabular-nums leading-none text-white drop-shadow-[0_0_30px_rgba(255,255,255,0.1)]">
-                    <input 
-                      type="number" 
-                      value={inputMinutes === 0 ? '' : inputMinutes} placeholder="0"
-                      onChange={(e) => {
-                        if (e.target.value === '') {
-                          setInputMinutes('');
-                          setTimeLeft(0);
-                          return;
-                        }
-                        const val = Math.min(300, parseInt(e.target.value, 10) || 0);
-                        setInputMinutes(val);
-                        setTimeLeft(val * 60);
-                      }}
-                      className="bg-transparent outline-none w-[3ch] text-center"
-                      aria-label="Custom session duration in minutes"
-                    />
-                    <span className="text-zinc-400">:00</span>
+                  <div className="flex flex-col items-center">
+                    <div className="flex items-center gap-2 sm:gap-4">
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleStepMinutes(-15)}
+                          className="px-2.5 py-1.5 rounded-lg bg-zinc-800/80 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 font-mono text-xs font-semibold cursor-pointer transition-all active:scale-95 select-none"
+                          title="Subtract 15 minutes"
+                        >
+                          -15m
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleStepMinutes(-5)}
+                          className="px-2.5 py-1.5 rounded-lg bg-zinc-800/80 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 font-mono text-xs font-semibold cursor-pointer transition-all active:scale-95 select-none"
+                          title="Subtract 5 minutes"
+                        >
+                          -5m
+                        </button>
+                      </div>
+
+                      <div className="flex items-baseline text-[5rem] sm:text-[7rem] md:text-[9rem] font-black tracking-tighter tabular-nums leading-none text-white drop-shadow-[0_0_30px_rgba(255,255,255,0.1)]">
+                        <input 
+                          type="number" 
+                          value={inputMinutes === 0 ? '' : inputMinutes} placeholder="0"
+                          onChange={(e) => {
+                            if (e.target.value === '') {
+                              setInputMinutes('');
+                              setTimeLeft(0);
+                              return;
+                            }
+                            const val = Math.max(5, Math.min(180, parseInt(e.target.value, 10) || 0));
+                            setInputMinutes(val);
+                            setTimeLeft(val * 60);
+                          }}
+                          className="bg-transparent outline-none w-[3ch] text-center"
+                          aria-label="Custom session duration in minutes"
+                        />
+                        <span className="text-zinc-400">:00</span>
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleStepMinutes(5)}
+                          className="px-2.5 py-1.5 rounded-lg bg-zinc-800/80 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 font-mono text-xs font-semibold cursor-pointer transition-all active:scale-95 select-none"
+                          title="Add 5 minutes"
+                        >
+                          +5m
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleStepMinutes(15)}
+                          className="px-2.5 py-1.5 rounded-lg bg-zinc-800/80 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 font-mono text-xs font-semibold cursor-pointer transition-all active:scale-95 select-none"
+                          title="Add 15 minutes"
+                        >
+                          +15m
+                        </button>
+                      </div>
+                    </div>
+                    <div className="text-zinc-400 font-mono text-xs mt-4">Use +/- step buttons or tap minutes to edit duration (5 - 180 min)</div>
                   </div>
                 ) : (
                   <div className="text-[6rem] md:text-[9rem] font-black tracking-tighter tabular-nums leading-none text-white drop-shadow-[0_0_30px_rgba(255,255,255,0.1)]" style={{ fontVariantNumeric: 'tabular-nums' }}>
                     {formatTime(timeLeft)}
                   </div>
-                )}
-                
-                {!isActive && sessionDuration === 0 && (
-                  <div className="text-zinc-400 font-mono text-xs mt-4">Click the minutes to edit custom duration (max 300)</div>
                 )}
               </motion.div>
             ) : (
@@ -404,7 +482,7 @@ export function FocusVaultPage() {
             key={LOFI_STATIONS[stationIndex].id}
             ref={youtubeRef}
             onLoad={() => {
-              if (youtubeRef.current && youtubeRef.current.contentWindow) {
+              if (youtubeRef.current?.contentWindow) {
                 youtubeRef.current.contentWindow.postMessage(`{"event":"command","func":"${isMuted ? 'mute' : 'unMute'}","args":""}`, '*');
               }
             }}
@@ -431,7 +509,7 @@ export function FocusVaultPage() {
             onClick={() => {
               const newMuted = !isMuted;
               setIsMuted(newMuted);
-              if (youtubeRef.current && youtubeRef.current.contentWindow) {
+              if (youtubeRef.current?.contentWindow) {
                 youtubeRef.current.contentWindow.postMessage(`{"event":"command","func":"${newMuted ? 'mute' : 'unMute'}","args":""}`, '*');
               }
             }}

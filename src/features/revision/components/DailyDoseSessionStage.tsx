@@ -6,9 +6,9 @@ import { Mistake } from '@/types';
 import { MathRenderer } from '@/components/MathRenderer';
 import { springs } from '@/constants/motion';
 import { 
-  ArrowLeft, Brain, Sparkles, CheckCircle2, ShieldCheck, 
-  Flame, Zap, AlertTriangle, ArrowRight, Eye, RotateCcw,
-  Check, X, Clock, BookOpen, AlertCircle
+  ArrowLeft, Sparkles, CheckCircle2, 
+  Flame, Zap, ArrowRight, Eye, 
+  Check, X, Clock, 
 } from 'lucide-react';
 import { audioEngine } from '@/utils/audioEngine';
 import { storageAdapter } from '@/services/StorageAdapter';
@@ -40,7 +40,7 @@ export const DailyDoseSessionStage: React.FC<DailyDoseSessionStageProps> = ({
   const [mistakeIndex, setMistakeIndex] = useState(0);
   const [isMistakeRevealed, setIsMistakeRevealed] = useState(false);
   const [resolvedMistakesCount, setResolvedMistakesCount] = useState(0);
-  const [scratchpadText, setScratchpadText] = useState('');
+  const [scratchpadMap, setScratchpadMap] = useState<Record<string, string>>({});
 
   // Phase 3 State: 30s Speed Drill Blitz
   const speedCards = cards.slice(0, 8);
@@ -93,7 +93,6 @@ export const DailyDoseSessionStage: React.FC<DailyDoseSessionStageProps> = ({
 
     if (mistakeIndex + 1 < unresolvedMistakes.length) {
       setIsMistakeRevealed(false);
-      setScratchpadText('');
       setMistakeIndex(prev => prev + 1);
     } else {
       // Transition to Phase 3
@@ -387,8 +386,11 @@ export const DailyDoseSessionStage: React.FC<DailyDoseSessionStageProps> = ({
                 Your Re-Solve Reasoning or Calculation:
               </label>
               <textarea
-                value={scratchpadText}
-                onChange={(e) => setScratchpadText(e.target.value)}
+                value={scratchpadMap[currentMistake?.id || `mistake_${mistakeIndex}`] || ''}
+                onChange={(e) => {
+                  const mKey = currentMistake?.id || `mistake_${mistakeIndex}`;
+                  setScratchpadMap(prev => ({ ...prev, [mKey]: e.target.value }));
+                }}
                 placeholder="Write the correct formula, sign convention, or key derivation step..."
                 rows={3}
                 className="w-full bg-zinc-950/80 border border-zinc-800 rounded-2xl p-3.5 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-red-500/50 font-mono leading-relaxed"

@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
+import { useBlocker, UNSAFE_DataRouterContext } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { 
   AlertTriangle, BookOpen, Printer, X, HelpCircle, 
@@ -16,6 +17,62 @@ import { QuestionWorkspace } from './components/arena/QuestionWorkspace';
 import { ExamControls } from './components/arena/ExamControls';
 import { ExamPalette } from './components/arena/ExamPalette';
 import { ArenaCountdown } from './components/arena/ArenaCountdown';
+
+interface BlockerController {
+  reset: () => void;
+  proceed: () => void;
+}
+
+function DataRouterBlocker({
+  isExamStarted,
+  onBlocked,
+  blockerRef
+}: {
+  isExamStarted: boolean;
+  onBlocked: () => void;
+  blockerRef: React.MutableRefObject<BlockerController | null>;
+}) {
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      currentLocation.pathname !== nextLocation.pathname && isExamStarted
+  );
+
+  useEffect(() => {
+    blockerRef.current = {
+      reset: () => {
+        if (blocker.state === 'blocked') blocker.reset();
+      },
+      proceed: () => {
+        if (blocker.state === 'blocked') blocker.proceed();
+      }
+    };
+    return () => {
+      blockerRef.current = null;
+    };
+  }, [blocker, blockerRef]);
+
+  useEffect(() => {
+    if (blocker.state === 'blocked') {
+      onBlocked();
+    }
+  }, [blocker.state, onBlocked]);
+
+  return null;
+}
+
+function BlockerGuard({
+  isExamStarted,
+  onBlocked,
+  blockerRef
+}: {
+  isExamStarted: boolean;
+  onBlocked: () => void;
+  blockerRef: React.MutableRefObject<BlockerController | null>;
+}) {
+  const dataRouter = React.useContext(UNSAFE_DataRouterContext);
+  if (!dataRouter) return null;
+  return <DataRouterBlocker isExamStarted={isExamStarted} onBlocked={onBlocked} blockerRef={blockerRef} />;
+}
 
 interface MockTestArenaProps {
   test: MockTest;
@@ -92,6 +149,22 @@ export function MockTestArena({ test, onComplete, onExit, initialExamStarted = f
     onExit
   });
 
+  const blockerRef = useRef<BlockerController | null>(null);
+
+  const handleResumeTest = () => {
+    setIsConfirmExitOpen(false);
+    if (blockerRef.current) {
+      blockerRef.current.reset();
+    }
+  };
+
+  const handleExitWithBlocker = () => {
+    handleConfirmExitAndDiscard();
+    if (blockerRef.current) {
+      blockerRef.current.proceed();
+    }
+  };
+
   if (isInitializing) {
     return (
       <div className="fixed inset-0 z-50 bg-[#070709] text-zinc-300 font-sans flex items-center justify-center">
@@ -142,6 +215,9 @@ export function MockTestArena({ test, onComplete, onExit, initialExamStarted = f
         isAuthenticTheme ? 'bg-[#f4f6f9] text-slate-900' : 'bg-[#070709] text-zinc-200'
       }`}
     >
+      {/* SPA Navigation Blocker Guard */}
+      <BlockerGuard isExamStarted={isExamStarted} onBlocked={() => setIsConfirmExitOpen(true)} blockerRef={blockerRef} />
+
       {/* 1. TOP NTA CBT HEADER BAR */}
       <ArenaHeader
         test={test}
@@ -402,7 +478,7 @@ export function MockTestArena({ test, onComplete, onExit, initialExamStarted = f
       {/* 7. EXIT EXAM CONFIRMATION MODAL */}
       <Modal
         isOpen={isConfirmExitOpen}
-        onClose={() => setIsConfirmExitOpen(false)}
+        onClose={handleResumeTest}
         className="max-w-md w-full"
         zIndex={100000}
       >
@@ -420,14 +496,14 @@ export function MockTestArena({ test, onComplete, onExit, initialExamStarted = f
           <div className="flex gap-2.5 pt-2">
             <button
               type="button"
-              onClick={() => setIsConfirmExitOpen(false)}
+              onClick={handleResumeTest}
               className="flex-1 py-2 px-3 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-medium transition-colors cursor-pointer"
             >
               Resume Test
             </button>
             <button
               type="button"
-              onClick={handleConfirmExitAndDiscard}
+              onClick={handleExitWithBlocker}
               className="flex-1 py-2 px-3 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold transition-colors shadow-sm cursor-pointer"
             >
               Exit & Discard

@@ -1,6 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
-import React from 'react';
 import { MockTestArena } from './MockTestArena';
 import { MockTest } from '../../types/mockTest';
 
@@ -894,6 +893,136 @@ describe('MockTestArena (BUG-04 Resilience & Lockout Prevention)', () => {
     expect(flushed).toBeTruthy();
     const parsed = JSON.parse(flushed!);
     expect(parsed.testId).toBe(testId);
+  });
+
+  it('correctly persists user answer selection into attempt on Save & Next and submission', async () => {
+    const onComplete = vi.fn();
+    const testId = 'answer-persistence-test';
+    const testWithQuestions: MockTest = {
+      id: testId,
+      name: 'Answer Persistence Test',
+      durationMinutes: 60,
+      totalMarks: 8,
+      sections: [
+        {
+          subject: 'physics',
+          questions: [
+            {
+              id: 'q-ans-1',
+              subject: 'physics',
+              type: 'MCQ',
+              chapter: 'Kinematics',
+              topic: 'Velocity',
+              difficulty: 'Easy',
+              content: 'What is unit of velocity?',
+              options: ['m/s', 'm/s^2', 'kg*m', 'Newton'],
+              correctAnswer: '0',
+              marks: { correct: 4, incorrect: -1 }
+            },
+            {
+              id: 'q-ans-2',
+              subject: 'physics',
+              type: 'MCQ',
+              chapter: 'Kinematics',
+              topic: 'Acceleration',
+              difficulty: 'Easy',
+              content: 'What is unit of acceleration?',
+              options: ['m/s', 'm/s^2', 'kg*m', 'Newton'],
+              correctAnswer: '1',
+              marks: { correct: 4, incorrect: -1 }
+            }
+          ]
+        }
+      ]
+    };
+
+    render(
+      <MockTestArena
+        test={testWithQuestions}
+        onComplete={onComplete}
+        onExit={vi.fn()}
+        initialExamStarted={true}
+      />
+    );
+
+    await screen.findByText('What is unit of velocity?');
+
+    // Select option A (index 0)
+    const optionA = screen.getByText('m/s');
+    fireEvent.click(optionA);
+
+    // Click "Save & Next"
+    const saveAndNextBtn = screen.getByRole('button', { name: /Save & Next/i });
+    fireEvent.click(saveAndNextBtn);
+
+    // Verify Q2 is now visible
+    await screen.findByText('What is unit of acceleration?');
+
+    // Submit test
+    const submitBtn = screen.getByRole('button', { name: /Submit Test/i });
+    fireEvent.click(submitBtn);
+
+    const confirmBtn = await screen.findByRole('button', { name: /Confirm & Submit/i });
+    fireEvent.click(confirmBtn);
+
+    await waitFor(() => {
+      expect(onComplete).toHaveBeenCalledTimes(1);
+    });
+
+    const submittedAttempt = onComplete.mock.calls[0][0];
+    expect(submittedAttempt.questions['q-ans-1'].selectedAnswer).toBe('0');
+    expect(submittedAttempt.questions['q-ans-1'].status).toBe('Answered');
+  });
+
+  it('prevents double submission when proctoring violation and timer auto-submit trigger concurrently', async () => {
+    const onComplete = vi.fn();
+    const testId = 'concurrent-submit-test';
+    const storageKey = `jeeos_mock_infractions_test_user_123_${testId}`;
+    localStorage.setItem(storageKey, '3');
+
+    const validTest: MockTest = {
+      id: testId,
+      name: 'Concurrent Submission Test',
+      durationMinutes: 0.001,
+      totalMarks: 4,
+      sections: [
+        {
+          subject: 'physics',
+          questions: [
+            {
+              id: 'q-concurrent-1',
+              subject: 'physics',
+              type: 'MCQ',
+              chapter: 'Kinematics',
+              topic: 'Kinematics',
+              difficulty: 'Easy',
+              content: 'Distance vs Displacement',
+              options: ['Scalar vs Vector', 'Vector vs Scalar', 'Both scalar', 'Both vector'],
+              correctAnswer: 'A',
+              marks: { correct: 4, incorrect: -1 }
+            }
+          ]
+        }
+      ]
+    };
+
+    render(
+      <MockTestArena
+        test={validTest}
+        onComplete={onComplete}
+        onExit={vi.fn()}
+        initialExamStarted={true}
+      />
+    );
+
+    await waitFor(() => {
+      expect(onComplete).toHaveBeenCalledTimes(1);
+    }, { timeout: 3500 });
+
+    await new Promise(r => setTimeout(r, 600));
+    expect(onComplete).toHaveBeenCalledTimes(1);
+
+    localStorage.removeItem(storageKey);
   });
 });
 

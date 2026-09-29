@@ -42,6 +42,11 @@ export interface PracticeProgress {
   accuracyPercent: number; // 0 - 100
   confidencePercent: number; // 0 - 100
   weakTopics?: string[];
+  totalDpp?: number;
+  completedDpp?: number;
+  totalPyq?: number;
+  totalPyqs?: number;
+  completedPyq?: number;
 }
 
 export interface RevisionState {

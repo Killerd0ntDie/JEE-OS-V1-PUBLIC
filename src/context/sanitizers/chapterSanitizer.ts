@@ -1,5 +1,5 @@
 import { Chapter } from '@/types/index';
-import { normalizeChapter } from '@/utils/academicState';
+import { normalizeChapter } from '@jee-os/engines';
 
 /**
  * Validates and sanitizes raw chapter records received from persistence or remote Firestore.
