@@ -18,7 +18,7 @@
     <script>
       (function() {
         try {
-          var savedTheme = localStorage.getItem('jeeos-theme');
+          var savedTheme = localStorage.getItem('jeeos_theme') || localStorage.getItem('jeeos-theme');
           var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
           if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
             document.documentElement.classList.add('dark');

@@ -42,7 +42,7 @@ export async function createServerApp() {
   const host = process.env.HOST || "0.0.0.0";
   const requestedPort = process.env.PORT ? Number(process.env.PORT) : 3000;
   const preferredPort = Number.isFinite(requestedPort) && requestedPort > 0 ? requestedPort : 3000;
-  const port = await findAvailablePort(preferredPort, host);
+  const _port = await findAvailablePort(preferredPort, host);
 
   // Render (and most PaaS hosts) run this app behind a reverse proxy.
   app.set('trust proxy', 'loopback, linklocal, uniquelocal');
@@ -53,7 +53,15 @@ export async function createServerApp() {
     contentSecurityPolicy: process.env.NODE_ENV === 'production' ? {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "https://apis.google.com", "https://*.firebaseapp.com", "https://www.gstatic.com"],
+        scriptSrc: [
+          "'self'",
+          "'unsafe-inline'",
+          "https://apis.google.com",
+          "https://*.firebaseapp.com",
+          "https://www.gstatic.com",
+          "https://cdnjs.cloudflare.com"
+        ],
+        workerSrc: ["'self'", "blob:", "https://cdnjs.cloudflare.com"],
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         imgSrc: ["'self'", "data:", "blob:", "https://*.firebasestorage.app", "https://*.googleusercontent.com"],
         connectSrc: [
@@ -64,9 +72,10 @@ export async function createServerApp() {
           "https://identitytoolkit.googleapis.com",
           "https://securetoken.googleapis.com",
           "https://generativelanguage.googleapis.com",
-          "https://*.firebaseapp.com"
+          "https://*.firebaseapp.com",
+          "https://*.onrender.com"
         ],
-        fontSrc: ["'self'", "https://fonts.gstatic.com"],
+        fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
         frameSrc: [
           "'self'",
           "https://*.firebaseapp.com",
@@ -84,20 +93,46 @@ export async function createServerApp() {
   const allowedOrigins = [
     process.env.VITE_APP_URL,
     process.env.APP_URL,
+    process.env.RENDER_EXTERNAL_URL,
     'https://jeeosv1.web.app',
     'https://jeeosv1.firebaseapp.com',
   ].filter((v): v is string => Boolean(v) && v !== 'MY_APP_URL');
 
   app.use(cors({
-    origin: process.env.NODE_ENV === 'production'
-      ? (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-          if (!origin || allowedOrigins.includes(origin)) {
-            callback(null, true);
-          } else {
-            callback(new Error('Not allowed by CORS'));
-          }
-        }
-      : true,
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+      // 1. Allow same-origin or tool requests lacking origin header
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      // 2. Allow explicitly configured origins
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      // 3. Allow all Render deployment hosts (*.onrender.com)
+      if (/^https:\/\/[a-zA-Z0-9-]+\.onrender\.com$/.test(origin)) {
+        return callback(null, true);
+      }
+
+      // 4. Allow Firebase hosting domains (*.web.app, *.firebaseapp.com)
+      if (/^https:\/\/[a-zA-Z0-9-]+\.(web\.app|firebaseapp\.com)$/.test(origin)) {
+        return callback(null, true);
+      }
+
+      // 5. Allow local dev and test origins
+      if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+        return callback(null, true);
+      }
+
+      if (process.env.NODE_ENV === 'production') {
+        const corsError: any = new Error('Not allowed by CORS');
+        corsError.statusCode = 403;
+        return callback(corsError);
+      }
+
+      return callback(null, true);
+    },
     credentials: true,
   }));
 
@@ -136,16 +171,37 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
+    // Determine the dist directory path whether running directly or via bundled dist/server.cjs
+    const distPath = fs.existsSync(path.join(process.cwd(), 'dist', 'index.html'))
+      ? path.join(process.cwd(), 'dist')
+      : (fs.existsSync(path.join(__dirname, 'index.html'))
+          ? __dirname
+          : path.resolve(__dirname, '..', 'dist'));
 
-    // Return 404 for missing static assets instead of serving index.html
-    app.use('/assets', (req, res) => {
-      res.status(404).send('Asset not found');
+    // Serve static assets with immutable caching for hashed bundles and no-cache for HTML
+    app.use(express.static(distPath, {
+      maxAge: '1y',
+      immutable: true,
+      index: false,
+      setHeaders: (res, filePath) => {
+        if (filePath.endsWith('.html')) {
+          res.setHeader('Cache-Control', 'no-cache');
+        }
+      }
+    }));
+
+    // Return 404 text for missing static assets instead of serving index.html
+    app.use('/assets', (_req, res) => {
+      res.status(404).type('text/plain').send('Asset not found');
     });
 
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+    app.get('*', (_req, res) => {
+      const indexPath = path.join(distPath, 'index.html');
+      if (fs.existsSync(indexPath)) {
+        res.sendFile(indexPath);
+      } else {
+        res.status(500).type('text/plain').send('Client application not built. index.html missing.');
+      }
     });
   }
 
