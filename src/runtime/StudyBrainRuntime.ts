@@ -26,6 +26,8 @@ import type { OptimizationInput, OptimizationResult } from '@jee-os/engines';
 import { StudyBrainService, createSyllabusGraph } from '@/services/studyBrainService';
 import { RevisionCard } from '@/services/revisionEngineService';
 import { synthesizeDailyMissionsAndTimeline } from './timelineSynthesizer';
+import { RollbackManager } from './managers/RollbackManager';
+import { calculateDashboardDerivedState } from './calculators/dashboardSummaryCalculator';
 
 export interface StudyBrainState {
   chapters: Chapter[];
@@ -332,11 +334,10 @@ export class StudyBrainRuntime {
    * avoiding clobbering concurrent optimistic updates to other chapters.
    */
   public rollbackChapter(chapterId: string, fallbackChapter: Chapter | null) {
-    const currentChapters = this.state.chapters;
-    const newChapters = fallbackChapter
-      ? currentChapters.map(c => c.id === chapterId ? fallbackChapter : c)
-      : currentChapters.filter(c => c.id !== chapterId);
-    this.state = { ...this.state, chapters: newChapters };
+    this.state = {
+      ...this.state,
+      chapters: RollbackManager.rollbackChapter(this.state.chapters, chapterId, fallbackChapter)
+    };
     this.notifySubscribers();
   }
 
@@ -345,11 +346,10 @@ export class StudyBrainRuntime {
    * avoiding clobbering concurrent optimistic updates to other missions.
    */
   public rollbackMission(missionId: string, fallbackMission: TodayMission | null) {
-    const currentMissions = this.state.todayMissions;
-    const newMissions = fallbackMission
-      ? currentMissions.map(m => m.id === missionId ? fallbackMission : m)
-      : currentMissions.filter(m => m.id !== missionId);
-    this.state = { ...this.state, todayMissions: newMissions };
+    this.state = {
+      ...this.state,
+      todayMissions: RollbackManager.rollbackMission(this.state.todayMissions, missionId, fallbackMission)
+    };
     this.notifySubscribers();
   }
 
@@ -802,141 +802,13 @@ export class StudyBrainRuntime {
 
     // 5. Precompute UI Derived States
     const uiStart = performance.now();
-    const dashboardSummary = StudyBrainService.getDashboardSummary(this.state.chapters, this.state.settings.targetYear);
-    const subjectPriorities = StudyBrainService.sortChaptersByRecommendation(this.state.chapters, this.state.mistakes).slice(0, 3);
-    
-    // Syllabus Progress with precise mastered count tracking
-    const syllabusProgress: StudyBrainState['syllabusProgress'] = {
-      physics: {
-        ...StudyBrainService.calculateSubjectCompletion(this.state.chapters, 'physics'),
-        masteredCount: this.state.chapters.filter(c => c.subject === 'physics' && (c.status === 'Mastered' || (typeof c.completion === 'number' && c.completion >= 100))).length,
-        totalCount: this.state.chapters.filter(c => c.subject === 'physics').length,
-      },
-      chemistry: {
-        ...StudyBrainService.calculateSubjectCompletion(this.state.chapters, 'chemistry'),
-        masteredCount: this.state.chapters.filter(c => c.subject === 'chemistry' && (c.status === 'Mastered' || (typeof c.completion === 'number' && c.completion >= 100))).length,
-        totalCount: this.state.chapters.filter(c => c.subject === 'chemistry').length,
-      },
-      maths: {
-        ...StudyBrainService.calculateSubjectCompletion(this.state.chapters, 'maths'),
-        masteredCount: this.state.chapters.filter(c => c.subject === 'maths' && (c.status === 'Mastered' || (typeof c.completion === 'number' && c.completion >= 100))).length,
-        totalCount: this.state.chapters.filter(c => c.subject === 'maths').length,
-      },
-    };
-
-    const daysRemaining = StudyBrainService.getDaysUntilExam(this.state.settings.targetYear);
-
-    // Compute Risk Profile
-    const avgMastery = this.state.chapters.reduce((sum, c) => {
-      const cMistakes = (this.state.mistakes || []).filter(m => m.chapter === c.name && m.revisionStatus !== 'Mastered').length;
-      const comp = typeof c.completion === 'number' && !isNaN(c.completion) ? c.completion : 0;
-      const completionPart = Math.min(100, Math.max(0, comp));
-      const mistakePenalty = Math.min(30, cMistakes * 5);
-      return sum + Math.max(0, completionPart - mistakePenalty);
-    }, 0) / (this.state.chapters.length || 1);
-    const safeAvgMastery = isNaN(avgMastery) ? 0 : avgMastery;
-    const accuracy = typeof this.state.analytics?.accuracy === 'number' && !isNaN(this.state.analytics.accuracy)
-      ? this.state.analytics.accuracy
-      : 0;
-    const questionsSolved = this.state.analytics?.questionsSolved || 0;
-    const rawReadiness = Math.round(safeAvgMastery * 0.7 + (questionsSolved > 0 ? accuracy * 0.3 : 25));
-    const estimatedReadinessScore = isNaN(rawReadiness) ? 25 : Math.max(10, Math.min(100, rawReadiness));
-    const projectedReadiness = estimatedReadinessScore;
-
-    const getSubjectMastery = (sub: string) => {
-      const subChaps = this.state.chapters.filter(c => c.subject === sub);
-      if (subChaps.length === 0) return 0;
-      const totalM = subChaps.reduce((acc, c) => {
-        const cMistakes = (this.state.mistakes || []).filter(m => m.chapter === c.name && m.revisionStatus !== 'Mastered').length;
-        const comp = typeof c.completion === 'number' && !isNaN(c.completion) ? c.completion : 0;
-        const completionPart = Math.min(100, Math.max(0, comp));
-        const mistakePenalty = Math.min(30, cMistakes * 5);
-        return acc + Math.max(0, completionPart - mistakePenalty);
-      }, 0);
-      const res = subChaps.length > 0 ? totalM / subChaps.length : 0;
-      return isNaN(res) ? 0 : res;
-    };
-    
-    let highestRiskSubject: 'Physics' | 'Chemistry' | 'Mathematics' = 'Physics';
-    let minMastery = getSubjectMastery('physics');
-    
-    const cMastery = getSubjectMastery('chemistry');
-    if (cMastery < minMastery) {
-      minMastery = cMastery;
-      highestRiskSubject = 'Chemistry';
-    }
-    
-    const mMastery = getSubjectMastery('maths');
-    if (mMastery < minMastery) {
-      highestRiskSubject = 'Mathematics';
-    }
-    
-    const riskProfile = {
-      estimatedReadinessScore,
-      highestRiskSubject,
-      highestRiskChapters: subjectPriorities
-    };
-
-    // Compute remaining study hours and questions
-    const incompleteMissions = todayMissions.filter(m => !m.completed);
-
-    const dayStartTime = this.state.settings?.dayStartTime || '07:00';
-    const dayEndTime = this.state.settings?.dayEndTime || '23:00';
-    const parseTimeVal = (val: string | undefined, fallback: number) => {
-      const p = parseInt(val || '', 10);
-      return isNaN(p) ? fallback : p;
-    };
-    let endHour = parseTimeVal(dayEndTime.split(':')[0], 23);
-    let endMinute = parseTimeVal(dayEndTime.split(':')[1], 0);
-    let logicalEndHour = endHour;
-    const startHourVal = parseTimeVal(dayStartTime.split(':')[0], 7);
-    if (logicalEndHour < startHourVal) {
-      logicalEndHour += 24;
-    }
-    const endMinsTotal = logicalEndHour * 60 + endMinute;
-
-    const now = new Date();
-    let logicalRealCurrentHour = now.getHours();
-    if (logicalRealCurrentHour < (parseInt(dayStartTime.split(':')[0]) || 7)) {
-      logicalRealCurrentHour += 24;
-    }
-    const nowMins = logicalRealCurrentHour * 60 + now.getMinutes();
-
-    let curPushMins = nowMins;
-    const validIncomplete = incompleteMissions.filter(m => {
-      const duration = m.duration || 60;
-      const start = curPushMins;
-      curPushMins += duration;
-      return start < endMinsTotal;
+    const derived = calculateDashboardDerivedState({
+      chapters: this.state.chapters,
+      mistakes: this.state.mistakes,
+      settings: this.state.settings,
+      analytics: this.state.analytics,
+      todayMissions
     });
-    
-    const studyMins = validIncomplete
-      .filter(m => m.type !== 'Break' && (m.subject as string) !== 'break')
-      .reduce((acc, curr) => acc + (curr.duration || 0), 0);
-      
-    const totalMinsIncludingBreaks = validIncomplete.reduce((acc, curr) => acc + (curr.duration || 0), 0);
-      
-    const estimatedRemainingHours = (studyMins / 60).toFixed(1);
-
-    const plannedQuestions = validIncomplete.reduce((acc, curr) => {
-      if (curr.type === 'Solve PYQs') return acc + 15;
-      if (curr.type === 'Solve DPP') return acc + 10;
-      return acc;
-    }, 0);
-
-    const finishDate = new Date();
-    // Add 5 min buffer per mission for transitions, breaks are already included in totalMinsIncludingBreaks
-    finishDate.setMinutes(finishDate.getMinutes() + totalMinsIncludingBreaks + (validIncomplete.length * 5)); 
-    const targetFinishTime = finishDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-    // Compute Chapter Data for UI
-    const chaptersWithData = this.state.chapters.map(chapter => {
-      return { 
-        chapter, 
-        data: StudyBrainService.getChapterCommandCenterData(chapter, this.state.chapters, this.state.mistakes) 
-      };
-    });
-
     engineTimes['UIComputation'] = performance.now() - uiStart;
 
     const totalDuration = performance.now() - startTime;
@@ -966,16 +838,16 @@ export class StudyBrainRuntime {
       todayMissions,
       timeline,
       revisionQueue,
-      dashboardSummary,
-      subjectPriorities,
-      syllabusProgress,
-      daysRemaining,
-      projectedReadiness,
-      riskProfile,
-      estimatedRemainingHours,
-      plannedQuestions,
-      targetFinishTime,
-      chaptersWithData,
+      dashboardSummary: derived.dashboardSummary,
+      subjectPriorities: derived.subjectPriorities,
+      syllabusProgress: derived.syllabusProgress,
+      daysRemaining: derived.daysRemaining,
+      projectedReadiness: derived.projectedReadiness,
+      riskProfile: derived.riskProfile,
+      estimatedRemainingHours: derived.estimatedRemainingHours,
+      plannedQuestions: derived.plannedQuestions,
+      targetFinishTime: derived.targetFinishTime,
+      chaptersWithData: derived.chaptersWithData,
       diagnostics,
       lastRefresh: new Date().toISOString()
     };

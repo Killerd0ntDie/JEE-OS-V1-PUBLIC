@@ -8,7 +8,8 @@ import {
   SessionActions,
   TimelineActions,
   MissionActions,
-  UserActions
+  UserActions,
+  NoteActions
 } from './domain';
 import {
   TodayMission,
@@ -39,6 +40,7 @@ export class StudyBrainActions {
   public readonly timeline: TimelineActions;
   public readonly missions: MissionActions;
   public readonly user: UserActions;
+  public readonly notes: NoteActions;
 
   constructor(runtime: StudyBrainRuntime, userId: string) {
     this.runtime = runtime;
@@ -52,6 +54,7 @@ export class StudyBrainActions {
     this.timeline = new TimelineActions(runtime, userId);
     this.missions = new MissionActions(runtime, userId);
     this.user = new UserActions(runtime, userId);
+    this.notes = new NoteActions(runtime, userId);
 
     // Cross-domain callback: timeline block completions tied to missions complete via MissionActions
     this.timeline.onCompleteTask = (taskId: string) => this.missions.completeTask(taskId);
@@ -83,6 +86,7 @@ export class StudyBrainActions {
       this.timeline.setUserId(newUid);
       this.missions.setUserId(newUid);
       this.user.setUserId(newUid);
+      this.notes.setUserId(newUid);
     }
   }
 
@@ -265,7 +269,7 @@ export class StudyBrainActions {
 
   // --- Notes & Cockpit Memory Deck ---
   async addNote(noteData: Omit<Note, 'id' | 'timestamp'> & { id?: string; timestamp?: string }) {
-    return this.missions.addNote(noteData);
+    return this.notes.addNote(noteData);
   }
 
   async addProofOfWorkNote(params: {
@@ -276,11 +280,11 @@ export class StudyBrainActions {
     missionId?: string;
     xpWager?: number;
   }) {
-    return this.missions.addProofOfWorkNote(params);
+    return this.notes.addProofOfWorkNote(params);
   }
 
   async deleteNote(noteId: string) {
-    return this.missions.deleteNote(noteId);
+    return this.notes.deleteNote(noteId);
   }
 
   // --- Chapters & Spaced Repetition ---

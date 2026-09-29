@@ -6,3 +6,4 @@ export * from './SessionActions';
 export * from './TimelineActions';
 export * from './MissionActions';
 export * from './UserActions';
+export * from './NoteActions';
