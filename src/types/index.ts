@@ -83,15 +83,6 @@ export const PAGES: PageDefinition[] = [
     badgeStyle: 'accent'
   },
   {
-    id: 'neural-link',
-    label: 'Neural Link',
-    icon: 'BrainCircuit',
-    description: 'Breathtaking 2D Knowledge Graph of the entire syllabus showing interconnected mastery progression.',
-    category: 'intelligence',
-    badge: 'NEW',
-    badgeStyle: 'accent'
-  },
-  {
     id: 'mistakes',
     label: 'Mistake Vault',
     icon: 'ShieldAlert',

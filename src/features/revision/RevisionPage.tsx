@@ -6,13 +6,12 @@ import { ChapterRevisionInspectorModal } from '@/components/mentor/ChapterRevisi
 import { AiPracticeModal } from '@/components/mentor/AiPracticeModal';
 import { ActiveRecallArena } from './components/ActiveRecallArena';
 import { FormulaSpeedDrillStage } from './components/FormulaSpeedDrillStage';
-import { FeynmanSandboxStage } from './components/FeynmanSandboxStage';
 import { RevisionFlashcardVault } from './components/RevisionFlashcardVault';
 import { DailyDoseCommandQueue } from './components/DailyDoseCommandQueue';
 import { DailyDoseSessionStage } from './components/DailyDoseSessionStage';
 import { EbbinghausDecayCurve } from './components/EbbinghausDecayCurve';
 import { 
-  Flame, Brain, Sparkles, ShieldCheck, 
+  Flame, Sparkles, ShieldCheck, 
   Zap, ArrowRight
 } from 'lucide-react';
 
@@ -31,8 +30,8 @@ export function RevisionPage() {
   const revisionTelemetry = useStudyBrainStore(s => s.revisionTelemetry);
   const mistakes = useStudyBrainStore(s => s.mistakes) || [];
 
-  // Sub-page navigation: 'hub' | 'vault' | 'arena' | 'speed_drill' | 'feynman' | 'daily_dose'
-  const [activeView, setActiveView] = useState<'hub' | 'vault' | 'arena' | 'speed_drill' | 'feynman' | 'daily_dose'>(() => {
+  // Sub-page navigation: 'hub' | 'vault' | 'arena' | 'speed_drill' | 'daily_dose'
+  const [activeView, setActiveView] = useState<'hub' | 'vault' | 'arena' | 'speed_drill' | 'daily_dose'>(() => {
     if ((location?.state as any)?.autoLaunchArena) return 'arena';
     if ((location?.state as any)?.chapterId) return 'vault';
     return 'hub';
@@ -160,8 +159,8 @@ export function RevisionPage() {
               onLaunchSpeedDrill={() => setActiveView('speed_drill')}
             />
 
-            {/* 3. PRIMARY REVISION HUBS GRID (4 DEDICATED ACTION HUBS) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* 3. PRIMARY REVISION HUBS GRID (3 DEDICATED ACTION HUBS) */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               
               {/* Card 1: Active Recall Vault & Syllabus Retention Matrix */}
               <div className="surface-2 rounded-3xl p-6 relative overflow-hidden transition-all shadow-xl flex flex-col justify-between space-y-4">
@@ -260,31 +259,6 @@ export function RevisionPage() {
                 >
                   <Zap className="w-4 h-4" />
                   <span>Launch 30s Speed Drill</span>
-                </motion.button>
-              </div>
-
-              {/* Card 4: Feynman Technique Sandbox */}
-              <div className="surface-2 rounded-3xl p-6 relative overflow-hidden transition-all shadow-xl flex flex-col justify-between space-y-4">
-                <div className="space-y-2">
-                  <div className="w-10 h-10 rounded-2xl bg-indigo-950/60 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-sm">
-                    <Brain className="w-5 h-5 text-indigo-400" />
-                  </div>
-                  <h3 className="text-lg font-display font-bold text-white tracking-tight">
-                    Feynman Technique Studio
-                  </h3>
-                  <p className="text-xs text-zinc-400 leading-relaxed font-sans">
-                    Explain complex formulas in simple terms without jargon to verify deep conceptual understanding and upgrade retention intervals.
-                  </p>
-                </div>
-
-                <motion.button
-                  type="button"
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setActiveView('feynman')}
-                  className="w-full py-3.5 rounded-2xl bg-indigo-950/40 hover:bg-indigo-900/40 border border-indigo-500/40 text-indigo-300 font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-colors cursor-pointer"
-                >
-                  <Brain className="w-4 h-4" />
-                  <span>Open Feynman Studio</span>
                 </motion.button>
               </div>
 
@@ -387,24 +361,6 @@ export function RevisionPage() {
             transition={{ duration: 0.2 }}
           >
             <FormulaSpeedDrillStage
-              cards={revisionData?.cards || []}
-              onBackToHub={() => setActiveView('hub')}
-            />
-          </motion.div>
-        )}
-
-        {/* ══════════════════════════════════════════════════════════════════
-            VIEW 5: DEDICATED FEYNMAN TECHNIQUE STUDIO STAGE
-           ══════════════════════════════════════════════════════════════════ */}
-        {activeView === 'feynman' && (
-          <motion.div
-            key="revision-feynman-stage"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.2 }}
-          >
-            <FeynmanSandboxStage
               cards={revisionData?.cards || []}
               onBackToHub={() => setActiveView('hub')}
             />

@@ -470,12 +470,13 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
                     type="button"
                     onClick={() => {
                       handleClose();
-                      navigate(`/focus-vault?chapterId=${chapter.id}`, {
-                        state: { chapterId: chapter.id, chapterName: chapter.name }
+                      useStudyBrainStore.setState({ radarFocusedChapter: chapter.id } as any);
+                      navigate('/cockpit', {
+                        state: { subject: chapter.subject, chapterId: chapter.id, chapterName: chapter.name }
                       });
                     }}
                     className="px-3.5 py-2.5 rounded-xl bg-indigo-950/60 hover:bg-indigo-900/80 border border-indigo-700/50 text-indigo-300 font-mono text-xs font-bold cursor-pointer transition-all active:scale-95 select-none flex items-center gap-1.5"
-                    title="Launch deep study session for this chapter in Focus Vault"
+                    title="Launch deep study session for this chapter in Cockpit"
                   >
                     <Play className="w-3.5 h-3.5 text-indigo-400" />
                     Focus Session

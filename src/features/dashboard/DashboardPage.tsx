@@ -1,15 +1,12 @@
-import React from 'react';
+
 import { motion, AnimatePresence } from 'motion/react';
 import { QuickRevisionModal } from '@/components/ui/QuickRevisionModal';
 import { DailyMissionTimeline } from './components/DailyMissionTimeline';
 import { CustomMissionModal } from '@/features/mission/components/CustomMissionModal';
 import { DailyCheckinCard } from '@/components/mentor/DailyCheckinCard';
-import { MonthlyObjectiveModal } from '@/components/mentor/MonthlyObjectiveModal';
 import { DashboardSkeleton } from '@/components/ui/Skeleton';
 import { DashboardHeader } from './components/DashboardHeader';
-import { RoutineBreakModal } from './components/RoutineBreakModal';
 import { DashboardFocusSection } from './components/DashboardFocusSection';
-import { BreakActiveModal } from './components/BreakActiveModal';
 import { useDashboardState } from './hooks/useDashboardState';
 
 export interface RecoverableSession {
@@ -102,33 +99,15 @@ export function DashboardPage() {
         nextTaskName={state.nextTaskName}
         energyLevel={state.energyLevel}
         setEnergyLevel={handlers.handleSetEnergyLevel}
-        onOpenRoutineBreak={handlers.handleOpenRoutineBreak}
         chapters={state.chapters || []}
         onOpenChapter={handlers.handleOpenChapter}
-        onSetMonthlyObjective={handlers.handleOpenMonthlyObjective}
         onSetDailyCapacity={handlers.handleNavigatePlanner}
         isHeaderExpanded={state.isHeaderExpanded}
         onToggleExpand={handlers.handleManualToggleHeader}
       />
 
-      <RoutineBreakModal
-        isOpen={state.isRoutineBreakModalOpen}
-        onClose={handlers.handleCloseRoutineBreak}
-      />
-
-      <BreakActiveModal
-        isOpen={!!state.activeBreakMissionId}
-        onClose={handlers.handleCloseActiveBreak}
-        breakMission={state.todayMissions.find(m => m.id === state.activeBreakMissionId) || null}
-      />
-
       {/* EMBEDDED HERO DAILY CHECK-IN CARD */}
       <DailyCheckinCard />
-
-      <MonthlyObjectiveModal 
-        isOpen={state.isMonthlyObjectiveModalOpen} 
-        onClose={handlers.handleCloseMonthlyObjective} 
-      />
 
       {/* TODAY'S MISSIONS HERO SECTION (65%/35% Split Layout) */}
       <DailyMissionTimeline

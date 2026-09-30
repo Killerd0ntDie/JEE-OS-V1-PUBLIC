@@ -1,15 +1,13 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { getSubjectTheme } from '@/constants/subjectTheme';
-import { SubjectId, Chapter } from '@/types/index';
+import { SubjectId, } from '@/types/index';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
-import { ChapterTelemetry } from '@jee-os/engines';
 import { ChapterCommandCard } from './ChapterCommandCard';
 import { Icon } from '@/components/ui/Icon';
-import { Search, Filter, ArrowUpDown, Network, ListFilter, Plus, Target, ArrowRight, Activity, Sparkles, TrendingUp } from 'lucide-react';
+import { Search, Filter, ArrowUpDown, ListFilter, Plus, Target, ArrowRight, Activity, TrendingUp } from 'lucide-react';
 import { GlassSelect, GlassSelectOption } from '@/components/ui/GlassSelect';
 import { AddCustomChapterModal } from './AddCustomChapterModal';
-import { RpgKnowledgeTreeWidget } from './RpgKnowledgeTreeWidget';
 import { ChapterRoiWeightageMatrix } from './ChapterRoiWeightageMatrix';
 import { AiPracticeModal } from '@/components/mentor/AiPracticeModal';
 import { springs } from '@/constants/motion';
@@ -35,7 +33,7 @@ export function SubjectCommandCenter({
 }: SubjectCommandCenterProps) {
   const actions = useStudyBrainStore(state => state.actions);
   const chapters = useStudyBrainStore(state => state.chapters);
-  const chapterTelemetryMap = useStudyBrainStore(state => state.chapterTelemetryMap);
+  const _chapterTelemetryMap = useStudyBrainStore(state => state.chapterTelemetryMap);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterType>('All');
@@ -43,8 +41,9 @@ export function SubjectCommandCenter({
   const [sortBy, setSortBy] = useState<SortType>('default');
   const [isAddChapterOpen, setIsAddChapterOpen] = useState(false);
   const [aiPracticeConfig, setAiPracticeConfig] = useState<{ chapterId: string; subject: string } | null>(null);
-  const [viewMode, setViewMode] = useState<'list' | 'matrix' | 'rpg'>(() => {
-    return storageAdapter.getSyllabusViewMode();
+  const [viewMode, setViewMode] = useState<'list' | 'matrix'>(() => {
+    const saved = storageAdapter.getSyllabusViewMode();
+    return saved === 'matrix' ? 'matrix' : 'list';
   });
 
   const searchInputRef = React.useRef<HTMLInputElement>(null);
@@ -152,7 +151,6 @@ export function SubjectCommandCenter({
       case 'name-asc':
         result = [...result].sort((a, b) => a.name.localeCompare(b.name));
         break;
-      case 'default':
       default:
         break;
     }
@@ -236,8 +234,8 @@ export function SubjectCommandCenter({
               <span>Add Chapter</span>
             </motion.button>
 
-            {/* View Mode Toggle (List | ROI Matrix | Tree) */}
-            <div className="grid grid-cols-3 gap-1 p-1 bg-zinc-950/80 border border-zinc-850 rounded-xl relative select-none">
+            {/* View Mode Toggle (List | ROI Matrix) */}
+            <div className="grid grid-cols-2 gap-1 p-1 bg-zinc-950/80 border border-zinc-850 rounded-xl relative select-none">
               <button
                 type="button"
                 onClick={() => setViewMode('list')}
@@ -272,24 +270,6 @@ export function SubjectCommandCenter({
                 )}
                 <TrendingUp className="w-3.5 h-3.5" />
                 <span>ROI Matrix</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setViewMode('rpg')}
-                className={`relative px-2.5 py-1.5 rounded-lg text-xs font-mono font-bold uppercase transition-colors cursor-pointer select-none z-10 flex items-center justify-center gap-1.5 ${
-                  viewMode === 'rpg' ? 'text-white' : 'text-zinc-400 hover:text-zinc-200'
-                }`}
-              >
-                {viewMode === 'rpg' && (
-                  <motion.div
-                    layoutId={`subjectViewMode_${subjectId}`}
-                    className="absolute inset-0 bg-indigo-600/30 border border-indigo-500/40 rounded-lg shadow-sm -z-10"
-                    transition={springs.snappy}
-                  />
-                )}
-                <Network className="w-3.5 h-3.5" />
-                <span>Tree</span>
               </button>
             </div>
           </div>
@@ -375,23 +355,6 @@ export function SubjectCommandCenter({
             <ChapterRoiWeightageMatrix
               defaultSubject={subjectId}
               onPracticeChapter={(chapterId, subject) => setAiPracticeConfig({ chapterId, subject })}
-            />
-          </motion.div>
-        </AnimatePresence>
-      ) : viewMode === 'rpg' ? (
-        <AnimatePresence mode="wait">
-          <motion.div
-            key="rpg-view"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.16 }}
-          >
-            <RpgKnowledgeTreeWidget 
-              chapters={filteredChapters} 
-              allChapters={subjectChapters} 
-              subjectId={subjectId} 
-              onChapterClick={(id) => actions.openChapterEditModal(id)}
             />
           </motion.div>
         </AnimatePresence>

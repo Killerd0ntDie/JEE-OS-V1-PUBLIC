@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import React from 'react';
 import { RevisionPage } from './RevisionPage';
 
 // Mock audioEngine
@@ -121,17 +120,16 @@ describe('RevisionPage Feature View (Magnitude 5.1)', () => {
     vi.clearAllMocks();
   });
 
-  it('renders Revision Command Center Hub with vitals and 4 action cards', () => {
+  it('renders Revision Command Center Hub with vitals and 3 action cards', () => {
     render(<RevisionPage />);
 
     expect(screen.getByText('Chapter Retention & Formula Hub')).toBeInTheDocument();
     expect(screen.getByText(/1 Chapters Decaying/i)).toBeInTheDocument();
 
-    // Verify 4 hub cards
+    // Verify 3 hub cards
     expect(screen.getByText('Active Recall Vault & Syllabus Matrix')).toBeInTheDocument();
     expect(screen.getByText('Timed Active Recall Arena')).toBeInTheDocument();
     expect(screen.getByText('30-Second Rapid Speed Drill')).toBeInTheDocument();
-    expect(screen.getByText('Feynman Technique Studio')).toBeInTheDocument();
   });
 
   it('navigates to Flashcard Vault stage and back to Hub', async () => {
@@ -187,26 +185,6 @@ describe('RevisionPage Feature View (Magnitude 5.1)', () => {
 
     // Return to hub
     const backBtn = screen.getByLabelText('Exit Sprint');
-    fireEvent.click(backBtn);
-
-    await waitFor(() => {
-      expect(screen.getByText('Chapter Retention & Formula Hub')).toBeInTheDocument();
-    });
-  });
-
-  it('navigates to Feynman Technique Studio stage and back to Hub', async () => {
-    render(<RevisionPage />);
-
-    // Open Feynman
-    const feynmanBtn = screen.getByRole('button', { name: /Open Feynman Studio/i });
-    fireEvent.click(feynmanBtn);
-
-    await waitFor(() => {
-      expect(screen.getByText('Conceptual Explanation & Intuition Canvas')).toBeInTheDocument();
-    });
-
-    // Return to hub
-    const backBtn = screen.getByLabelText('Back to Command Center');
     fireEvent.click(backBtn);
 
     await waitFor(() => {

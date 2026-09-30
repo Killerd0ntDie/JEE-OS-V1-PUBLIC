@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import React from 'react';
 import { SubjectDetailPage } from './SubjectDetailPage';
 import { Chapter } from '@/types/index';
 
@@ -182,7 +181,7 @@ describe('SubjectDetailPage Feature View (Magnitude 5.1)', () => {
     expect(screen.getByRole('heading', { level: 3, name: 'Electrostatics & Gauss Law' })).toBeInTheDocument();
   });
 
-  it('toggles view mode between List and Tree (RPG)', () => {
+  it('toggles view mode between List and ROI Matrix', () => {
     render(
       <SubjectDetailPage
         subjectId="physics"
@@ -193,10 +192,13 @@ describe('SubjectDetailPage Feature View (Magnitude 5.1)', () => {
       />
     );
 
-    const treeBtn = screen.getByRole('button', { name: /Tree/i });
-    fireEvent.click(treeBtn);
+    const matrixBtn = screen.getByRole('button', { name: /ROI Matrix/i });
+    fireEvent.click(matrixBtn);
+    expect(localStorage.getItem('syllabusViewMode')).toBe('matrix');
 
-    expect(localStorage.getItem('syllabusViewMode')).toBe('rpg');
+    const listBtn = screen.getByRole('button', { name: /List/i });
+    fireEvent.click(listBtn);
+    expect(localStorage.getItem('syllabusViewMode')).toBe('list');
   });
 
   it('opens Add Custom Chapter modal when clicking Add Chapter button', () => {
@@ -233,4 +235,26 @@ describe('SubjectDetailPage Feature View (Magnitude 5.1)', () => {
     expect(localStorage.getItem('syllabusViewMode')).toBe('matrix');
     expect(screen.getByText(/Chapter ROI & JEE Weightage Matrix/i)).toBeInTheDocument();
   });
+
+  it('safely falls back to List view and cleans up when legacy rpg mode is stored', () => {
+    localStorage.setItem('jeeos_syllabus_view_mode', 'rpg');
+    localStorage.setItem('syllabusViewMode', 'rpg');
+
+    render(
+      <SubjectDetailPage
+        subjectId="physics"
+        subjectTitle="Physics"
+        subjectSubtitle="Physics command center."
+        subjectIcon="Atom"
+        unitCategories={['All']}
+      />
+    );
+
+    // List view should be active
+    expect(screen.getByRole('heading', { level: 3, name: 'Kinematics 1D & 2D' })).toBeInTheDocument();
+    // Storage should be sanitized
+    expect(localStorage.getItem('jeeos_syllabus_view_mode')).toBe('list');
+    expect(localStorage.getItem('syllabusViewMode')).toBe('list');
+  });
 });
+

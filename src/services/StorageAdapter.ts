@@ -42,7 +42,7 @@ export function ensureStorageKey(key: string): string {
 }
 
 export type StorageTheme = 'dark' | 'light' | 'system';
-export type SyllabusViewMode = 'list' | 'matrix' | 'rpg';
+export type SyllabusViewMode = 'list' | 'matrix';
 
 export class StorageAdapter {
   private prefix = STORAGE_KEY_PREFIX;
@@ -250,13 +250,23 @@ export class StorageAdapter {
 
   // Syllabus view mode
   getSyllabusViewMode(): SyllabusViewMode {
-    const mode = this.getItem<SyllabusViewMode>('jeeos_syllabus_view_mode');
-    if (mode === 'matrix' || mode === 'rpg' || mode === 'list') return mode;
+    const mode = this.getItem<string>('jeeos_syllabus_view_mode');
+    if (mode === 'matrix' || mode === 'list') return mode;
+    if (mode === 'rpg') {
+      this.setItem('jeeos_syllabus_view_mode', 'list');
+    }
     // Backward compatibility check for legacy unprefixed key if existing
     if (typeof window !== 'undefined' && window.localStorage) {
       const legacy = window.localStorage.getItem('syllabusViewMode');
-      if (legacy === 'matrix' || legacy === 'rpg' || legacy === 'list') {
+      if (legacy === 'matrix' || legacy === 'list') {
         return legacy;
+      }
+      if (legacy === 'rpg') {
+        try {
+          window.localStorage.removeItem('syllabusViewMode');
+        } catch {
+          // ignore
+        }
       }
     }
     return 'list';

@@ -21,7 +21,6 @@ export function useMissionTimer({
   setCoachTip
 }: UseMissionTimerProps) {
   const settings = useStudyBrainStore(state => state.settings);
-  const isCasinoEnabled = settings.enablePomodoroCasino ?? false;
   const pauseOnTabChangeEnabled = settings.pauseOnTabChange ?? true;
 
   const storageKey = activeMissionId ? `jeeos_mission_state_${activeMissionId}` : null;
@@ -39,9 +38,9 @@ export function useMissionTimer({
     }
   }, [storageKey]);
 
-  const [isPaused, setIsPaused] = useState(savedState?.isPaused ?? (initialPaused && isCasinoEnabled));
+  const [isPaused, setIsPaused] = useState(savedState?.isPaused ?? initialPaused);
   const [isPauseOverlayDismissed, setIsPauseOverlayDismissed] = useState(false);
-  const [isSettingUp, setIsSettingUp] = useState(savedState ? false : (initialSeconds === 0 && !skipSetup && isCasinoEnabled));
+  const [isSettingUp, setIsSettingUp] = useState(false);
   const [targetQuestions, setTargetQuestions] = useState(25);
   const [xpWager, setXpWager] = useState(50);
   const [missionFailed, setMissionFailed] = useState(false);

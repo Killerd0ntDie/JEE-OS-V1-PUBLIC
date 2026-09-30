@@ -20,13 +20,11 @@ const RevisionPage = lazy(() => import('./features/revision/RevisionPage').then(
 const FormulaVaultPage = lazy(() => import('./features/formulas/FormulaVaultPage').then(m => ({ default: m.FormulaVaultPage })));
 const MistakesPage = lazy(() => import('./features/mistakes/MistakesPage').then(m => ({ default: m.MistakesPage })));
 const AnalyticsPage = lazy(() => import('./features/analytics/AnalyticsPage').then(m => ({ default: m.AnalyticsPage })));
-const FocusVaultPage = lazy(() => import('./features/focus/FocusVaultPage').then(m => ({ default: m.FocusVaultPage })));
 const AiCoachPage = lazy(() => import('./features/coach/AiCoachPage').then(m => ({ default: m.AiCoachPage })));
 const CoachHistoryPage = lazy(() => import('./features/coach/CoachHistoryPage').then(m => ({ default: m.CoachHistoryPage })));
 const SettingsPage = lazy(() => import('./features/dashboard/SettingsPage').then(m => ({ default: m.SettingsPage })));
 const MockTestsPage = lazy(() => import('./features/mockTests/MockTestsPage').then(m => ({ default: m.MockTestsPage })));
 const MockTestResultPage = lazy(() => import('./features/mockTests/MockTestResultPage').then(m => ({ default: m.MockTestResultPage })));
-const NeuralGraphPage = lazy(() => import('./features/neuralLink/NeuralGraphPage').then(m => ({ default: m.NeuralGraphPage })));
 const DiagnosticPage = lazy(() => import('./features/onboarding/DiagnosticPage').then(m => ({ default: m.DiagnosticPage })));
 import { ChapterEditModal } from './components/shared/ChapterEditModal';
 import { ShortcutGuideModal } from './components/ui/ShortcutGuideModal';
@@ -256,7 +254,8 @@ function AppLayout() {
                     <Route path="/chemistry" element={<ErrorBoundary><ChemistryPage /></ErrorBoundary>} />
                     <Route path="/maths" element={<ErrorBoundary><MathsPage /></ErrorBoundary>} />
                     <Route path="/planner" element={<ErrorBoundary><PlannerPage /></ErrorBoundary>} />
-                    <Route path="/focus-vault" element={<ErrorBoundary><FocusVaultPage /></ErrorBoundary>} />
+                    <Route path="/focus-vault" element={<Navigate to="/cockpit" replace />} />
+                    <Route path="/focus" element={<Navigate to="/cockpit" replace />} />
                     <Route path="/revision" element={<ErrorBoundary><RevisionPage /></ErrorBoundary>} />
                     <Route path="/formulas" element={<ErrorBoundary><FormulaVaultPage /></ErrorBoundary>} />
                     <Route path="/mistakes" element={<ErrorBoundary><MistakesPage /></ErrorBoundary>} />
@@ -268,7 +267,8 @@ function AppLayout() {
                     <Route path="/mock-tests/*" element={<ErrorBoundary><MockTestsPage /></ErrorBoundary>} />
                     <Route path="/result/:attemptId?" element={<ErrorBoundary><MockTestResultPage /></ErrorBoundary>} />
                     <Route path="/mock-test/result/:attemptId?" element={<ErrorBoundary><MockTestResultPage /></ErrorBoundary>} />
-                    <Route path="/neural-link" element={<ErrorBoundary><NeuralGraphPage onNavigate={(pageId) => navigate(`/${pageId}`)} /></ErrorBoundary>} />
+                    <Route path="/neural-link" element={<Navigate to="/physics" replace />} />
+                    <Route path="/neural-graph" element={<Navigate to="/physics" replace />} />
                     <Route path="/settings" element={<ErrorBoundary><SettingsPage /></ErrorBoundary>} />
                     <Route path="/diagnostic" element={<ErrorBoundary><DiagnosticPage /></ErrorBoundary>} />
                     <Route path="*" element={<Navigate to="/dashboard" replace />} />

@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback, } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { storageAdapter } from '@/services/StorageAdapter';
-import { Shield, Zap, Sparkles, Coffee, Hourglass, Timer } from 'lucide-react';
+import { Shield, Zap, Sparkles, Hourglass, Timer } from 'lucide-react';
 import { springs } from '@/constants/motion';
 
 import { MissionTimerWidget } from './components/MissionTimerWidget';
@@ -18,7 +18,6 @@ import { MissionTimeUpModal } from './components/MissionTimeUpModal';
 import { QuestionViewerWidget } from './components/QuestionViewerWidget';
 
 import { MissionHeader, FocusPresetMode } from './components/MissionHeader';
-import { CasinoSetupOverlay, CasinoFailureOverlay } from './components/CasinoOverlays';
 import { useMissionState, MissionModeProps } from './hooks/useMissionState';
 import { audioEngine } from '@/utils/audioEngine';
 import { CockpitTransitionEngine, CockpitAnimMode } from './CockpitTransitionEngine';
@@ -29,8 +28,8 @@ export function MissionMode(props: MissionModeProps) {
   const [showDebrief, setShowDebrief] = useState(false);
   const pendingCompleteData = useRef<any>(null);
   const actions = useStudyBrainStore(state => state.actions);
-  const studySessions = useStudyBrainStore(state => state.studySessions || []);
-  const settings = useStudyBrainStore(state => state.settings);
+  const _studySessions = useStudyBrainStore(state => state.studySessions || []);
+  const _settings = useStudyBrainStore(state => state.settings);
   const xp = useStudyBrainStore(state => state.xp);
   
   const computedStreak = xp?.streak ?? 0;
@@ -255,23 +254,6 @@ export function MissionMode(props: MissionModeProps) {
         originCoords={originCoords}
         stage={stage}
         onStageChange={setStage}
-      />
-
-      <CasinoSetupOverlay 
-        isSettingUp={state.isSettingUp} 
-        xpTotal={state.xp?.total || 0} 
-        xpWager={state.xpWager} 
-        setXpWager={setters.setXpWager}
-        onAccept={() => {
-          setters.setIsSettingUp(false);
-          setters.setIsPaused(false);
-        }} 
-      />
-
-      <CasinoFailureOverlay 
-        missionFailed={state.missionFailed} 
-        xpWager={state.xpWager} 
-        onExit={handleSmoothExit} 
       />
 
       {/* HUD MODE SWITCH TOAST NOTIFICATION */}
@@ -687,7 +669,7 @@ export function MissionMode(props: MissionModeProps) {
           });
           setters.setIsCompleted(true);
 
-          if (proofOfWork && proofOfWork.trim()) {
+          if (proofOfWork?.trim()) {
             try {
               const chapName = state.activeDetails?.chapter || state.activeSubjectMission?.chapter || 'Core Module';
               const chapId = state.activeSubjectMission?.chapterId;
