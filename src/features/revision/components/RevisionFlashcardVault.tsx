@@ -3,16 +3,24 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   ArrowLeft, Sparkles, Search, Skull, Timer, 
   CheckCircle2, Check, ChevronRight, Zap, Layers, 
-  Flame, AlertTriangle, ShieldCheck, BookOpen, Activity, RotateCw, Eye, EyeOff
+  Flame, AlertTriangle, ShieldCheck, BookOpen, Activity, RotateCw, 
 } from 'lucide-react';
 import { RevisionCardItem, ChapterRevisionSummary } from '@jee-os/engines';
 import { BlockMath, InlineMath } from 'react-katex';
 import { audioEngine } from '@/utils/audioEngine';
 
+function cleanFormulaString(raw: string | undefined | null): string {
+  if (!raw) return '';
+  return raw.trim().replace(/^\$\$([\s\S]*?)\$\$$|^\\\[([\s\S]*?)\\\]$|^\$([\s\S]*?)\$$/, (_m, p1, p2, p3) => (p1 || p2 || p3).trim()).trim();
+}
+
 function renderMathText(text: string | undefined | null) {
   if (!text) return null;
   try {
-    const cleanText = text.replace(/\\\$/g, '$');
+    let cleanText = text.replace(/\\\$/g, '$');
+    if (!cleanText.includes('$') && /\\(?:frac|sqrt|text|vec|hat|bar|Delta|nabla|times|cdot|pm|approx|equiv|implies|alpha|beta|gamma|delta|epsilon|theta|lambda|mu|nu|pi|rho|sigma|tau|phi|omega|tan|cos|sin|ln|log)\b|[=<>]\s*[-\\+0-9a-zA-Z]/.test(cleanText)) {
+      cleanText = `$${cleanText}$`;
+    }
     const parts = cleanText.split(/(\$\$.*?\$\$|\$.*?\$)/gs);
     return parts.map((part, i) => {
       if (part.startsWith('$$') && part.endsWith('$$')) {
@@ -121,9 +129,18 @@ export const RevisionFlashcardItem = React.memo(function RevisionFlashcardItem({
             <span className="text-[10px] font-mono text-emerald-400 uppercase font-bold tracking-wider block">
               Formula Expression:
             </span>
-            <div className="font-mono text-xs text-emerald-200 overflow-x-auto whitespace-pre-wrap leading-relaxed">
-              {renderMathText(card.formula || 'No formula string mapped')}
+            <div className="font-mono text-xs text-emerald-200 overflow-x-auto whitespace-pre-wrap leading-relaxed text-center py-1">
+              <BlockMath math={cleanFormulaString(card.formula || '')} errorColor="#ef4444" />
             </div>
+            {card.examNote && (
+              <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-[11px] font-mono text-amber-300 flex items-start gap-1.5 leading-relaxed text-left">
+                <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                <div className="space-y-0.5">
+                  <span className="font-bold text-amber-300 mr-1">[JEE Tip]</span>
+                  <span className="text-zinc-200">{renderMathText(card.examNote)}</span>
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <div className="space-y-1.5">
@@ -226,7 +243,7 @@ export const RevisionFlashcardVault: React.FC<RevisionFlashcardVaultProps> = ({
   searchQuery,
   setSearchQuery,
   onGradeFlashcard,
-  onPracticeWithAI,
+  onPracticeWithAI: _onPracticeWithAI,
   onInspectChapter,
   onBackToHub
 }) => {
@@ -247,6 +264,9 @@ export const RevisionFlashcardVault: React.FC<RevisionFlashcardVaultProps> = ({
     } else {
       pool = cards;
     }
+
+    // Exclude personal reflection / diary notes from revision flashcards
+    pool = pool.filter(c => c.cardType !== 'note');
 
     if (activeSubject !== 'all') {
       pool = pool.filter(c => c.subject === activeSubject);
@@ -279,7 +299,7 @@ export const RevisionFlashcardVault: React.FC<RevisionFlashcardVaultProps> = ({
           c.title.toLowerCase().includes(lowerQ) || 
           c.chapterName.toLowerCase().includes(lowerQ) || 
           c.concept.toLowerCase().includes(lowerQ) ||
-          (c.formula && c.formula.toLowerCase().includes(lowerQ))
+          (c.formula?.toLowerCase().includes(lowerQ))
         );
       }
     }
@@ -556,8 +576,7 @@ export const RevisionFlashcardVault: React.FC<RevisionFlashcardVaultProps> = ({
 
       {/* ── STAGE 1: FORMULA FLASHCARDS GRID ── */}
       {vaultView === 'cards' && (
-        <>
-          {cardsToDisplay.length === 0 ? (
+        cardsToDisplay.length === 0 ? (
             <div className="p-12 text-center bg-zinc-900/60 border border-white/10 rounded-3xl space-y-3 font-mono shadow-xl">
               <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 flex items-center justify-center mx-auto shadow-inner">
                 <Sparkles className="w-6 h-6" />
@@ -581,14 +600,12 @@ export const RevisionFlashcardVault: React.FC<RevisionFlashcardVaultProps> = ({
                 />
               ))}
             </div>
-          )}
-        </>
+          )
       )}
 
       {/* ── STAGE 2: SYLLABUS RETENTION MATRIX GRID ── */}
       {vaultView === 'matrix' && (
-        <>
-          {matrixChaptersToDisplay.length === 0 ? (
+        matrixChaptersToDisplay.length === 0 ? (
             <div className="p-12 text-center bg-zinc-900/60 border border-white/10 rounded-3xl space-y-3 font-mono shadow-xl">
               <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 flex items-center justify-center mx-auto shadow-inner">
                 <Sparkles className="w-6 h-6" />
@@ -673,8 +690,7 @@ export const RevisionFlashcardVault: React.FC<RevisionFlashcardVaultProps> = ({
                 );
               })}
             </div>
-          )}
-        </>
+          )
       )}
 
     </div>

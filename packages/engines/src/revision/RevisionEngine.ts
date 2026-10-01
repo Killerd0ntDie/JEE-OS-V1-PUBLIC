@@ -1,6 +1,115 @@
 import { RevisionEngineInput, RevisionEngineOutput, RevisionCardItem, ChapterRevisionSummary } from './types';
 import { FORMULA_BANK } from '../constants/formulaBank';
 import { SpacedRepetitionEngine } from './SpacedRepetitionEngine';
+import { Chapter } from '../types/index';
+import { ChapterTelemetry } from '../chapterInfo/types';
+
+/**
+ * Determines whether a syllabus chapter is running (in progress) or completed/mastered,
+ * strictly excluding untouched unstarted chapters from revision and drill queues.
+ */
+export function isChapterKnownOrRunning(
+  chap: Chapter,
+  telemetry?: ChapterTelemetry,
+  mistakesCount = 0
+): boolean {
+  if (chap.chapterOnHold || chap.revisionOnHold) return false;
+
+  // 1. Telemetry indicators
+  if (telemetry) {
+    if (telemetry.syllabusStage === 'In Progress' || telemetry.syllabusStage === 'Mastered') {
+      return true;
+    }
+    if (telemetry.isMastered || telemetry.theoryComplete || telemetry.dppComplete || telemetry.pyqsComplete) {
+      return true;
+    }
+    if ((telemetry.currentLecture && telemetry.currentLecture > 0) || (telemetry.masteryScore && telemetry.masteryScore > 0)) {
+      return true;
+    }
+  }
+
+  // 2. Chapter status indicators
+  if (chap.status && chap.status !== 'Not Started') {
+    return true;
+  }
+
+  // 3. Syllabus stage indicators
+  if (chap.syllabusStage && chap.syllabusStage !== 'Not Started' && chap.syllabusStage !== 'Unknown') {
+    return true;
+  }
+
+  // 4. Progress metrics
+  if (
+    (chap.completion && chap.completion > 0) ||
+    (chap.currentLecture && chap.currentLecture > 0) ||
+    chap.theoryComplete ||
+    chap.dppComplete ||
+    chap.pyqsComplete ||
+    (chap.solvedQuestions && chap.solvedQuestions > 0) ||
+    (chap.revisionCount && chap.revisionCount > 0)
+  ) {
+    return true;
+  }
+
+  // 5. Active student errors logged against chapter
+  if (mistakesCount > 0) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Resolves a syllabus chapter to its corresponding entry in FORMULA_BANK,
+ * supporting exact ID match, exact title match, substring match, and token-level fuzzy match
+ * (e.g. matching "Rotational Dynamics" / "p-rotation" with "Rotational Motion" / "p6").
+ */
+export function findMatchingBankChapter(chap: Chapter) {
+  const chapIdLower = (chap.id || '').toLowerCase().trim();
+  const chapNameLower = (chap.name || '').toLowerCase().trim();
+  const chapSubject = (chap.subject || '').toLowerCase().trim();
+
+  // 1. Direct ID match
+  const directId = FORMULA_BANK.find(fb => fb.chapterId.toLowerCase() === chapIdLower);
+  if (directId) return directId;
+
+  // 2. Direct name match
+  const directName = FORMULA_BANK.find(fb => 
+    (!chapSubject || fb.subject === chapSubject) && 
+    fb.chapterName.toLowerCase() === chapNameLower
+  );
+  if (directName) return directName;
+
+  // 3. Substring / inclusion match (e.g. 'Kinematics' in 'Kinematics (Motion in 1D & 2D)')
+  const inclusionMatch = FORMULA_BANK.find(fb => {
+    if (chapSubject && fb.subject !== chapSubject) return false;
+    const fbLower = fb.chapterName.toLowerCase();
+    return fbLower.includes(chapNameLower) || chapNameLower.includes(fbLower);
+  });
+  if (inclusionMatch) return inclusionMatch;
+
+  // 4. Token overlap match (e.g. ['rotational', 'dynamics'] and ['rotational', 'motion'] share 'rotational')
+  const chapTokens = chapNameLower.replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(t => t.length >= 4);
+  const tokenMatch = FORMULA_BANK.find(fb => {
+    if (chapSubject && fb.subject !== chapSubject) return false;
+    const fbTokens = fb.chapterName.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(t => t.length >= 4);
+    return chapTokens.some(ct => fbTokens.includes(ct));
+  });
+  if (tokenMatch) return tokenMatch;
+
+  // 5. Fallback ID token (e.g. 'p-rotation' matches 'p6' with 'rotation')
+  const idTokens = chapIdLower.replace(/[^a-z0-9]/g, ' ').split(/\s+/).filter(t => t.length >= 4);
+  if (idTokens.length > 0) {
+    const idTokenMatch = FORMULA_BANK.find(fb => {
+      if (chapSubject && fb.subject !== chapSubject) return false;
+      const fbTokens = fb.chapterName.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(t => t.length >= 4);
+      return idTokens.some(it => fbTokens.some(fbt => fbt.includes(it) || it.includes(fbt)));
+    });
+    if (idTokenMatch) return idTokenMatch;
+  }
+
+  return undefined;
+}
 
 export class RevisionEngine {
   private cacheHash: string = '';
@@ -28,10 +137,7 @@ export class RevisionEngine {
     // Process chapters, formula cards, and active student mistake cards
     chapters.forEach(chap => {
       if (chap.chapterOnHold || chap.revisionOnHold) return;
-      const telemetry = (chapterTelemetryMap || {})[chap.id];
-      const isStartedOrMastered = telemetry 
-        ? (telemetry.syllabusStage === 'In Progress' || telemetry.syllabusStage === 'Mastered')
-        : (chap.status !== 'Not Started' && chap.syllabusStage !== 'Not Started' && (chap.completion > 0 || (chap.currentLecture && chap.currentLecture > 0) || chap.theoryComplete || chap.dppComplete || chap.pyqsComplete || chap.status === 'Mastered' || chap.status === 'Learning'));
+      const telemetry = chapterTelemetryMap?.[chap.id];
 
       // Find matching student mistakes for this chapter
       const chapMistakes = (mistakes || []).filter(m => 
@@ -45,7 +151,7 @@ export class RevisionEngine {
         (n.chapter && n.chapter.toLowerCase() === chap.name.toLowerCase())
       );
 
-      const hasActiveWork = isStartedOrMastered || chapMistakes.length > 0;
+      const hasActiveWork = isChapterKnownOrRunning(chap, telemetry, chapMistakes.length);
 
       // BUGFIX: chapters that haven't been started have no memory to have decayed —
       // labeling them 'High'/95% retention is actively misleading (it previously made
@@ -59,7 +165,7 @@ export class RevisionEngine {
         : undefined;
 
       // Find matching formulas from FORMULA_BANK
-      const bankEntry = FORMULA_BANK.find(fb => fb.chapterId === chap.id || fb.chapterName.toLowerCase() === chap.name.toLowerCase());
+      const bankEntry = findMatchingBankChapter(chap);
       const formulas = bankEntry?.formulas || [];
 
       // Find last study session for chapter (BUG-10: match strictly by chapter id/name to avoid subject bleed)
@@ -68,7 +174,7 @@ export class RevisionEngine {
         ((s as any).chapterName && (s as any).chapterName.toLowerCase() === chap.name.toLowerCase()) ||
         ((s as any).chapter && (s as any).chapter.toLowerCase() === chap.name.toLowerCase())
       );
-      let lastSession: string | undefined = undefined;
+      let lastSession: string | undefined ;
       if (chapSessions.length > 0) {
         const sorted = [...chapSessions].sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
         lastSession = sorted[sorted.length - 1].startTime;
@@ -153,6 +259,7 @@ export class RevisionEngine {
           title: f.title,
           concept: f.concept,
           formula: f.formula,
+          examNote: f.examNote,
           lastReviewedDate: dbState?.lastReviewDate || lastSession,
           nextReviewDays,
           intervalStage,
@@ -257,11 +364,55 @@ export class RevisionEngine {
       });
     });
 
+    // Backfill formulas from FORMULA_BANK ONLY when chapters is empty (isolated engine test fallback).
+    // When chapters is provided (actual student syllabus), strictly NEVER backfill unstarted chapters!
+    if (chapters.length === 0) {
+      FORMULA_BANK.forEach(bankChapter => {
+        const alreadyHasCards = allCards.some(c => c.chapterId === bankChapter.chapterId);
+        if (alreadyHasCards) return;
+
+        bankChapter.formulas.forEach((f, idx) => {
+          const cardId = `${bankChapter.chapterId}-f${idx}`;
+          allCards.push({
+            id: cardId,
+            chapterId: bankChapter.chapterId,
+            chapterName: bankChapter.chapterName,
+            subject: bankChapter.subject,
+            cardType: 'formula',
+            retentionConfidence: 'Medium',
+            retentionScore: 60,
+            title: f.title,
+            concept: f.concept,
+            formula: f.formula,
+            examNote: f.examNote,
+            nextReviewDays: 1,
+            intervalStage: '1d',
+            recalledCount: 0,
+            urgencyRank: 30,
+            sm2State: {
+              repetitions: 0,
+              easeFactor: 2.5,
+              interval: 1
+            }
+          });
+        });
+      });
+    }
+
     // Sort all cards by urgency (highest urgency rank first)
     allCards.sort((a, b) => b.urgencyRank - a.urgencyRank);
 
-    // Urgent cards: ONLY include cards that genuinely require recall (Low or Medium confidence)
-    const urgentCards = allCards.filter(c => c.retentionConfidence === 'Low' || c.retentionConfidence === 'Medium').slice(0, 10);
+    // Urgent cards: ONLY include genuine formulas and mistakes (strictly NO proof-of-work notes)
+    // from running and completed chapters
+    const urgentCards = allCards
+      .filter(c => c.cardType !== 'note' && (c.retentionConfidence === 'Low' || c.retentionConfidence === 'Medium'))
+      .slice(0, 10);
+
+    // If urgentCards has fewer than 5 items, backfill with high-yield formula cards from allCards (strictly running/completed)
+    if (urgentCards.length < 5) {
+      const formulaCards = allCards.filter(c => c.cardType === 'formula' && !urgentCards.some(u => u.id === c.id));
+      urgentCards.push(...formulaCards.slice(0, 10 - urgentCards.length));
+    }
 
     const totalOverdue = overdueChapters.length;
     const totalUpcoming = upcomingChapters.length;

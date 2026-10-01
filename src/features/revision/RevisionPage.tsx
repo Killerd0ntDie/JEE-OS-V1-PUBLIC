@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { ChapterRevisionInspectorModal } from '@/components/mentor/ChapterRevisionInspectorModal';
@@ -10,9 +10,10 @@ import { RevisionFlashcardVault } from './components/RevisionFlashcardVault';
 import { DailyDoseCommandQueue } from './components/DailyDoseCommandQueue';
 import { DailyDoseSessionStage } from './components/DailyDoseSessionStage';
 import { EbbinghausDecayCurve } from './components/EbbinghausDecayCurve';
+import { FormulaVaultPage } from '@/features/formulas/FormulaVaultPage';
 import { 
   Flame, Sparkles, ShieldCheck, 
-  Zap, ArrowRight
+  Zap, ArrowRight, BookOpen
 } from 'lucide-react';
 
 function useOptionalLocation() {
@@ -24,16 +25,66 @@ function useOptionalLocation() {
   }
 }
 
+function useOptionalNavigate() {
+  try {
+    // biome-ignore lint/correctness/useHookAtTopLevel: router context fallback for test environments
+    return useNavigate();
+  } catch {
+    return null;
+  }
+}
+
 export function RevisionPage() {
   const location = useOptionalLocation();
+  const navigate = useOptionalNavigate();
   const _studySessions = useStudyBrainStore(s => s.studySessions) || [];
   const revisionTelemetry = useStudyBrainStore(s => s.revisionTelemetry);
   const mistakes = useStudyBrainStore(s => s.mistakes) || [];
+
+  // Parse query params (?tab=formulas or ?tab=spaced_review or ?tab=speed_drill) or location state
+  const queryTab = location?.search ? new URLSearchParams(location.search).get('tab') : null;
+  const stateTab = (location?.state as any)?.tab;
+
+  const [activeTab, setActiveTab] = useState<'formulas' | 'spaced_review' | 'speed_drill'>(() => {
+    if (queryTab === 'formulas' || queryTab === 'formula-vault' || stateTab === 'formulas') {
+      return 'formulas';
+    }
+    if (queryTab === 'drill' || queryTab === 'speed-drill' || queryTab === 'speed_drill' || stateTab === 'speed_drill') {
+      return 'speed_drill';
+    }
+    return 'spaced_review';
+  });
+
+  // Keep activeTab in sync if query param changes
+  useEffect(() => {
+    if (queryTab === 'formulas' || queryTab === 'formula-vault' || stateTab === 'formulas') {
+      setActiveTab('formulas');
+    } else if (queryTab === 'drill' || queryTab === 'speed-drill' || queryTab === 'speed_drill' || stateTab === 'speed_drill') {
+      setActiveTab('speed_drill');
+    } else if (queryTab === 'spaced_review' || queryTab === 'spaced-review' || queryTab === 'review') {
+      setActiveTab('spaced_review');
+    }
+  }, [queryTab, stateTab]);
+
+  const handleTabChange = (newTab: 'formulas' | 'spaced_review' | 'speed_drill') => {
+    setActiveTab(newTab);
+    if (newTab === 'speed_drill') {
+      setActiveView('speed_drill');
+    } else {
+      setActiveView('hub');
+    }
+    if (navigate && location) {
+      const searchParams = new URLSearchParams(location.search);
+      searchParams.set('tab', newTab);
+      navigate(`?${searchParams.toString()}`, { replace: true });
+    }
+  };
 
   // Sub-page navigation: 'hub' | 'vault' | 'arena' | 'speed_drill' | 'daily_dose'
   const [activeView, setActiveView] = useState<'hub' | 'vault' | 'arena' | 'speed_drill' | 'daily_dose'>(() => {
     if ((location?.state as any)?.autoLaunchArena) return 'arena';
     if ((location?.state as any)?.chapterId) return 'vault';
+    if (queryTab === 'drill' || queryTab === 'speed-drill' || queryTab === 'speed_drill' || stateTab === 'speed_drill') return 'speed_drill';
     return 'hub';
   });
 
@@ -74,12 +125,71 @@ export function RevisionPage() {
   return (
     <div className="space-y-6 max-w-6xl mx-auto text-left relative pb-32 sm:pb-36 font-sans select-none">
       
+      {/* 0. UNIFIED REVISION & FORMULA HUB TOP NAVIGATION */}
+      <div className="flex items-center justify-between gap-3 p-1.5 rounded-2xl bg-zinc-900/90 border border-zinc-800/80 backdrop-blur-xl shadow-xl print:hidden">
+        <div className="flex items-center gap-1.5 flex-1">
+          <button
+            type="button"
+            onClick={() => handleTabChange('formulas')}
+            className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-mono text-xs font-bold transition-all cursor-pointer flex-1 sm:flex-initial ${
+              activeTab === 'formulas'
+                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 border border-indigo-500/50'
+                : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
+            }`}
+          >
+            <BookOpen className="w-4 h-4" />
+            <span>Formula Vault</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleTabChange('spaced_review')}
+            className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-mono text-xs font-bold transition-all cursor-pointer flex-1 sm:flex-initial ${
+              activeTab === 'spaced_review' && activeView !== 'speed_drill'
+                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 border border-indigo-500/50'
+                : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
+            }`}
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>Spaced Review & Recall</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleTabChange('speed_drill')}
+            className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-mono text-xs font-bold transition-all cursor-pointer flex-1 sm:flex-initial ${
+              activeTab === 'speed_drill' || activeView === 'speed_drill'
+                ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/30 border border-amber-500/50'
+                : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
+            }`}
+          >
+            <Zap className="w-4 h-4" />
+            <span>30s Speed Drill</span>
+          </button>
+        </div>
+      </div>
+
       <AnimatePresence mode="wait">
         
         {/* ══════════════════════════════════════════════════════════════════
+            TAB 1: UNIFIED FORMULA VAULT EMBED
+            ══════════════════════════════════════════════════════════════════ */}
+        {activeTab === 'formulas' && (
+          <motion.div
+            key="revision-formula-vault-tab"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="space-y-6"
+          >
+            <FormulaVaultPage />
+          </motion.div>
+        )}
+
+        {/* ══════════════════════════════════════════════════════════════════
             VIEW 1: REVISION COMMAND CENTER & RETENTION HUB
             ══════════════════════════════════════════════════════════════════ */}
-        {activeView === 'hub' && (
+        {activeTab === 'spaced_review' && activeView === 'hub' && (
           <motion.div
             key="revision-hub"
             initial={{ opacity: 0 }}
@@ -156,7 +266,7 @@ export function RevisionPage() {
               unresolvedMistakes={mistakes.filter(m => m.revisionStatus !== 'Mastered')}
               onStartDailyDose={() => setActiveView('daily_dose')}
               onLaunchArena={() => setActiveView('arena')}
-              onLaunchSpeedDrill={() => setActiveView('speed_drill')}
+              onLaunchSpeedDrill={() => handleTabChange('speed_drill')}
             />
 
             {/* 3. PRIMARY REVISION HUBS GRID (3 DEDICATED ACTION HUBS) */}
@@ -254,7 +364,7 @@ export function RevisionPage() {
                 <motion.button
                   type="button"
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => setActiveView('speed_drill')}
+                  onClick={() => handleTabChange('speed_drill')}
                   className="w-full py-3.5 rounded-2xl bg-amber-950/40 hover:bg-amber-900/40 border border-amber-500/40 text-amber-300 font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-colors cursor-pointer"
                 >
                   <Zap className="w-4 h-4" />
@@ -283,7 +393,7 @@ export function RevisionPage() {
         {/* ══════════════════════════════════════════════════════════════════
             VIEW: DAILY DOSE SESSION RUNNER
            ══════════════════════════════════════════════════════════════════ */}
-        {activeView === 'daily_dose' && (
+        {activeTab === 'spaced_review' && activeView === 'daily_dose' && (
           <motion.div
             key="revision-daily-dose-stage"
             initial={{ opacity: 0, x: 20 }}
@@ -302,7 +412,7 @@ export function RevisionPage() {
         {/* ══════════════════════════════════════════════════════════════════
             VIEW 2: DEDICATED FLASHCARD & SYLLABUS MATRIX STAGE
            ══════════════════════════════════════════════════════════════════ */}
-        {activeView === 'vault' && (
+        {activeTab === 'spaced_review' && activeView === 'vault' && (
           <motion.div
             key="revision-vault-stage"
             initial={{ opacity: 0, x: 20 }}
@@ -334,7 +444,7 @@ export function RevisionPage() {
         {/* ══════════════════════════════════════════════════════════════════
             VIEW 3: DEDICATED TIMED ACTIVE RECALL ARENA STAGE
            ══════════════════════════════════════════════════════════════════ */}
-        {activeView === 'arena' && (
+        {activeTab === 'spaced_review' && activeView === 'arena' && (
           <motion.div
             key="revision-arena-stage"
             initial={{ opacity: 0, x: 20 }}
@@ -352,7 +462,7 @@ export function RevisionPage() {
         {/* ══════════════════════════════════════════════════════════════════
             VIEW 4: DEDICATED 30-SECOND SPEED DRILL STAGE
            ══════════════════════════════════════════════════════════════════ */}
-        {activeView === 'speed_drill' && (
+        {activeTab === 'speed_drill' && (
           <motion.div
             key="revision-speed-drill-stage"
             initial={{ opacity: 0, x: 20 }}
@@ -362,7 +472,7 @@ export function RevisionPage() {
           >
             <FormulaSpeedDrillStage
               cards={revisionData?.cards || []}
-              onBackToHub={() => setActiveView('hub')}
+              onBackToHub={() => handleTabChange('spaced_review')}
             />
           </motion.div>
         )}

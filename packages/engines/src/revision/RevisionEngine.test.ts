@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { RevisionEngine } from './RevisionEngine';
+import { RevisionEngine, isChapterKnownOrRunning } from './RevisionEngine';
 import { Chapter, StudySession } from '../types/index';
 
 describe('RevisionEngine (BUG-10: Subject-Level Bleed Resolution)', () => {
@@ -236,5 +236,205 @@ describe('RevisionEngine (BUG-10: Subject-Level Bleed Resolution)', () => {
     expect(noteCard?.noteId).toBe('note-pow-1');
     expect(noteCard?.title).toBe('Proof of Work: Rotational Dynamics');
     expect(noteCard?.concept).toContain('Parallel axis theorem');
+  });
+
+  it('guarantees urgentCards queue strictly excludes note cards and provides real formula cards', () => {
+    const chapter: Chapter = {
+      id: 'p-rotation',
+      name: 'Rotational Dynamics',
+      subject: 'physics',
+      status: 'Learning',
+      completion: 60,
+      totalLectures: 10,
+      currentLecture: 6,
+      theoryComplete: true,
+      dppComplete: true,
+      pyqsComplete: false
+    } as any;
+
+    const note = {
+      id: 'note-pow-reflection',
+      timestamp: '2026-03-01T14:00:00.000Z',
+      text: 'Damn I recovered the session, Using the missions incomplete banner',
+      category: 'Proof of Work',
+      subject: 'physics' as const,
+      chapter: 'Rotational Dynamics',
+      chapterId: 'p-rotation',
+      tags: ['ProofOfWork']
+    };
+
+    const result = engine.generateRevisionTelemetry({
+      chapters: [chapter],
+      chapterTelemetryMap: {},
+      sessions: [],
+      mistakes: [],
+      notes: [note]
+    });
+
+    // urgentCards must NEVER contain note cards
+    expect(result.urgentCards.some(c => c.cardType === 'note')).toBe(false);
+    expect(result.urgentCards.some(c => c.title.includes('Proof of Work'))).toBe(false);
+    expect(result.urgentCards.some(c => c.concept.includes('Damn I recovered'))).toBe(false);
+    // urgentCards must be populated with genuine formula cards
+    expect(result.urgentCards.length).toBeGreaterThan(0);
+    expect(result.urgentCards.every(c => c.cardType === 'formula' || c.cardType === 'mistake')).toBe(true);
+  });
+
+  it('populates cards with all 358 formulas from FORMULA_BANK and attaches examNote to all formula cards', () => {
+    const result = engine.generateRevisionTelemetry({
+      chapters: [],
+      chapterTelemetryMap: {},
+      sessions: [],
+      mistakes: []
+    });
+
+    const formulaCards = result.cards.filter(c => c.cardType === 'formula');
+    expect(formulaCards.length).toBe(358);
+    // Every single formula card must have examNote defined
+    for (const card of formulaCards) {
+      expect(card.examNote).toBeDefined();
+      expect(card.examNote!.length).toBeGreaterThan(0);
+    }
+  });
+
+  describe('Unstarted Chapter Exclusion Invariant', () => {
+    it('isChapterKnownOrRunning correctly identifies running/completed vs unstarted chapters', () => {
+      const unstartedChap: Chapter = {
+        id: 'p-thermo',
+        name: 'Thermodynamics',
+        subject: 'physics',
+        status: 'Not Started',
+        completion: 0,
+        totalLectures: 8,
+        currentLecture: 0,
+        theoryComplete: false,
+        dppComplete: false,
+        pyqsComplete: false,
+        solvedQuestions: 0
+      } as any;
+
+      expect(isChapterKnownOrRunning(unstartedChap)).toBe(false);
+
+      // Running chapter with completion
+      const inProgressChap: Chapter = {
+        ...unstartedChap,
+        status: 'Learning',
+        completion: 25,
+        currentLecture: 2
+      };
+      expect(isChapterKnownOrRunning(inProgressChap)).toBe(true);
+
+      // Mastered chapter
+      const masteredChap: Chapter = {
+        ...unstartedChap,
+        status: 'Mastered',
+        theoryComplete: true
+      };
+      expect(isChapterKnownOrRunning(masteredChap)).toBe(true);
+
+      // Unstarted chapter with logged mistake becomes active
+      expect(isChapterKnownOrRunning(unstartedChap, undefined, 1)).toBe(true);
+
+      // Chapter on hold is excluded
+      const onHoldChap: Chapter = {
+        ...inProgressChap,
+        chapterOnHold: true
+      };
+      expect(isChapterKnownOrRunning(onHoldChap)).toBe(false);
+    });
+
+    it('strictly isolates urgentCards and allCards to running and completed chapters only', () => {
+      const activeKinematics: Chapter = {
+        id: 'p-kinematics',
+        name: 'Kinematics',
+        subject: 'physics',
+        status: 'Learning',
+        completion: 45,
+        totalLectures: 10,
+        currentLecture: 5,
+        theoryComplete: true,
+        dppComplete: false,
+        pyqsComplete: false
+      } as any;
+
+      const unstartedRotation: Chapter = {
+        id: 'p-rotation',
+        name: 'Rotational Dynamics',
+        subject: 'physics',
+        status: 'Not Started',
+        completion: 0,
+        totalLectures: 12,
+        currentLecture: 0,
+        theoryComplete: false,
+        dppComplete: false,
+        pyqsComplete: false
+      } as any;
+
+      const unstartedAtomic: Chapter = {
+        id: 'c-atomic',
+        name: 'Atomic Structure',
+        subject: 'chemistry',
+        status: 'Not Started',
+        completion: 0,
+        totalLectures: 8,
+        currentLecture: 0,
+        theoryComplete: false,
+        dppComplete: false,
+        pyqsComplete: false
+      } as any;
+
+      const result = engine.generateRevisionTelemetry({
+        chapters: [activeKinematics, unstartedRotation, unstartedAtomic],
+        chapterTelemetryMap: {},
+        sessions: [],
+        mistakes: []
+      });
+
+      // 1. All cards in cards pool MUST come ONLY from activeKinematics
+      expect(result.cards.length).toBeGreaterThan(0);
+      expect(result.cards.every(c => c.chapterId === 'p-kinematics')).toBe(true);
+
+      // 2. Urgent cards MUST come ONLY from activeKinematics
+      expect(result.urgentCards.length).toBeGreaterThan(0);
+      expect(result.urgentCards.every(c => c.chapterId === 'p-kinematics')).toBe(true);
+
+      // 3. Under no circumstances should unstartedRotation or unstartedAtomic appear in cards or urgentCards
+      expect(result.cards.some(c => c.chapterId === 'p-rotation')).toBe(false);
+      expect(result.cards.some(c => c.chapterId === 'c-atomic')).toBe(false);
+      expect(result.urgentCards.some(c => c.chapterId === 'p-rotation')).toBe(false);
+      expect(result.urgentCards.some(c => c.chapterId === 'c-atomic')).toBe(false);
+
+      // 4. Summaries properly segregate unstarted chapters
+      expect(result.notStartedChapters.map(c => c.chapterId)).toContain('p-rotation');
+      expect(result.notStartedChapters.map(c => c.chapterId)).toContain('c-atomic');
+      expect(result.notStartedChapters.map(c => c.chapterId)).not.toContain('p-kinematics');
+    });
+
+    it('returns empty cards and urgentCards when all syllabus chapters are unstarted', () => {
+      const unstartedRotation: Chapter = {
+        id: 'p-rotation',
+        name: 'Rotational Dynamics',
+        subject: 'physics',
+        status: 'Not Started',
+        completion: 0,
+        totalLectures: 12,
+        currentLecture: 0,
+        theoryComplete: false,
+        dppComplete: false,
+        pyqsComplete: false
+      } as any;
+
+      const result = engine.generateRevisionTelemetry({
+        chapters: [unstartedRotation],
+        chapterTelemetryMap: {},
+        sessions: [],
+        mistakes: []
+      });
+
+      // When only unstarted chapters exist, revision & recall queues must be empty
+      expect(result.cards).toHaveLength(0);
+      expect(result.urgentCards).toHaveLength(0);
+      expect(result.notStartedChapters).toHaveLength(1);
+    });
   });
 });

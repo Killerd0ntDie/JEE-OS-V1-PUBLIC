@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { motion, } from 'motion/react';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { RevisionCardItem } from '@jee-os/engines';
 import { ArrowLeft, Clock, Zap, Sparkles, Trophy, Flame, RotateCcw, Check, X, Eye, EyeOff } from 'lucide-react';
@@ -17,6 +17,12 @@ export const FormulaSpeedDrillStage: React.FC<FormulaSpeedDrillStageProps> = ({
 }) => {
   const actions = useStudyBrainStore(state => state.actions);
 
+  // Filter out note/reflection cards to keep speed drill strictly for genuine formulas
+  const validCards = useMemo(() => {
+    const list = cards.filter(c => c.cardType !== 'note' && (c.cardType === 'formula' || !c.cardType));
+    return list.length > 0 ? list : cards;
+  }, [cards]);
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [timeLeft, setTimeLeft] = useState(30);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -30,10 +36,18 @@ export const FormulaSpeedDrillStage: React.FC<FormulaSpeedDrillStageProps> = ({
   const sessionFeedbackRef = useRef<Map<string, number[]>>(new Map());
   const lastInputTimeRef = useRef<number>(0);
 
+  const cleanFormulaString = (raw: string | undefined | null): string => {
+    if (!raw) return '';
+    return raw.trim().replace(/^\$\$([\s\S]*?)\$\$$|^\\\[([\s\S]*?)\\\]$|^\$([\s\S]*?)\$$/, (_m, p1, p2, p3) => (p1 || p2 || p3).trim()).trim();
+  };
+
   const renderMathText = (text: string | undefined | null) => {
     if (!text) return null;
     try {
-      const cleanText = text.replace(/\\\$/g, '$');
+      let cleanText = text.replace(/\\\$/g, '$');
+      if (!cleanText.includes('$') && /\\(?:frac|sqrt|text|vec|hat|bar|Delta|nabla|times|cdot|pm|approx|equiv|implies|alpha|beta|gamma|delta|epsilon|theta|lambda|mu|nu|pi|rho|sigma|tau|phi|omega|tan|cos|sin|ln|log)\b|[=<>]\s*[-\\+0-9a-zA-Z]/.test(cleanText)) {
+        cleanText = `$${cleanText}$`;
+      }
       const parts = cleanText.split(/(\$\$.*?\$\$|\$.*?\$)/gs);
       return parts.map((part, i) => {
         if (part.startsWith('$$') && part.endsWith('$$')) {
@@ -59,7 +73,7 @@ export const FormulaSpeedDrillStage: React.FC<FormulaSpeedDrillStageProps> = ({
 
   // 30-Second Countdown Timer Effect
   useEffect(() => {
-    if (isFinished || cards.length === 0) return;
+    if (isFinished || validCards.length === 0) return;
 
     const timer = setInterval(() => {
       setTimeLeft(prev => {
@@ -74,11 +88,11 @@ export const FormulaSpeedDrillStage: React.FC<FormulaSpeedDrillStageProps> = ({
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isFinished, cards.length]);
+  }, [isFinished, validCards.length]);
 
   // Submit batch feedback on finish
   useEffect(() => {
-    if (isFinished && !sessionLogged && reviewedCount > 0 && cards.length > 0) {
+    if (isFinished && !sessionLogged && reviewedCount > 0 && validCards.length > 0) {
       setSessionLogged(true);
       sessionFeedbackRef.current.forEach((scores, chapterId) => {
         const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
@@ -96,11 +110,11 @@ export const FormulaSpeedDrillStage: React.FC<FormulaSpeedDrillStageProps> = ({
         xpEarned: totalXp
       }).catch(() => {});
     }
-  }, [isFinished, sessionLogged, reviewedCount, scoreCount, maxStreak, cards.length, actions]);
+  }, [isFinished, sessionLogged, reviewedCount, scoreCount, maxStreak, validCards.length, actions]);
 
   // Keyboard Shortcuts (Space = Reveal, A = Forgot/Skip, D = Recalled)
   useEffect(() => {
-    if (isFinished || cards.length === 0) return;
+    if (isFinished || validCards.length === 0) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code === 'Space') {
@@ -115,9 +129,9 @@ export const FormulaSpeedDrillStage: React.FC<FormulaSpeedDrillStageProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isFinished, isFlipped, currentIndex, reviewedCount, cards.length]);
+  }, [isFinished, isFlipped, currentIndex, reviewedCount, validCards.length]);
 
-  const currentCard = cards.length > 0 ? cards[currentIndex % cards.length] : null;
+  const currentCard = validCards.length > 0 ? validCards[currentIndex % validCards.length] : null;
 
   const handleRecall = (difficulty: 'High' | 'Low') => {
     if (!currentCard || isFinished) return;
@@ -173,7 +187,7 @@ export const FormulaSpeedDrillStage: React.FC<FormulaSpeedDrillStageProps> = ({
   const totalXP = scoreCount * 25 + maxStreak * 5;
 
   // ── EMPTY STATE GUARD ──
-  if (cards.length === 0) {
+  if (validCards.length === 0) {
     return (
       <div className="max-w-4xl mx-auto space-y-6 text-left font-sans select-none pb-16">
         <div className="flex items-center justify-between border-b border-white/10 pb-4">
@@ -428,8 +442,19 @@ export const FormulaSpeedDrillStage: React.FC<FormulaSpeedDrillStageProps> = ({
                 <span className="text-[10px] font-mono uppercase text-emerald-400 font-bold tracking-wider block">
                   Formula Expression & Mechanics:
                 </span>
-                <div className="p-4 rounded-2xl bg-zinc-950/95 border border-emerald-500/40 text-emerald-200 font-mono text-sm leading-relaxed overflow-x-auto shadow-inner">
-                  {renderMathText(currentCard.formula || 'No formula mapped')}
+                <div className="p-5 rounded-2xl bg-zinc-950/95 border border-emerald-500/40 text-emerald-200 font-mono text-sm leading-relaxed overflow-x-auto shadow-inner text-center">
+                  <BlockMath math={cleanFormulaString(currentCard.formula || '')} errorColor="#ef4444" />
+                  {currentCard.examNote && (
+                    <div className="mt-3 pt-3 border-t border-emerald-500/20 flex items-start gap-2.5 text-xs font-mono text-amber-300 leading-relaxed text-left">
+                      <Sparkles className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                      <div className="space-y-0.5">
+                        <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 mr-1.5">
+                          JEE Pro Tip
+                        </span>
+                        <span className="text-zinc-200">{renderMathText(currentCard.examNote)}</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </motion.div>
             ) : (

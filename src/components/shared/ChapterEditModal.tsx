@@ -2,13 +2,14 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   X, Save, CheckCircle2, BookOpen, SlidersHorizontal, Target, Activity,
-  Trash2, AlertTriangle, Play
+  Trash2, AlertTriangle, Play, Binary
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Chapter } from '@/types/index';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { isTestForChapter } from '@/features/mockTests/MockTestsPage';
 import { ChapterTelemetry } from '@jee-os/engines';
+import { FORMULA_BANK } from '@/constants/formulaBank';
 import { Modal } from '@/components/ui/Modal';
 import { ConfirmDeleteModal } from '@/components/ui/ConfirmDeleteModal';
 import { springs } from '@/constants/motion';
@@ -19,10 +20,11 @@ import {
   ChapterPracticeTab,
   ChapterMetaTab,
   ChapterMistakesTab,
-  ChapterRadarTab
+  ChapterRadarTab,
+  ChapterFormulasTab
 } from './chapterModal';
 
-export type ChapterEditTab = 'progress' | 'practice' | 'mistakes' | 'meta' | 'radar';
+export type ChapterEditTab = 'progress' | 'practice' | 'formulas' | 'mistakes' | 'meta' | 'radar';
 
 export interface ChapterEditModalProps {
   isOpen?: boolean;
@@ -69,6 +71,19 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
     if (!chapter) return [];
     return customMockTests.filter(t => isTestForChapter(t, chapter.name, chapter.subject, chapter.id));
   }, [chapter, customMockTests]);
+
+  const chapterFormulas = React.useMemo(() => {
+    if (!chapter) return [];
+    const chapIdLower = (chapter.id || '').toLowerCase().trim();
+    const chapNameLower = (chapter.name || '').toLowerCase().trim();
+    const found = FORMULA_BANK.find(c => 
+      c.chapterId.toLowerCase() === chapIdLower ||
+      c.chapterName.toLowerCase() === chapNameLower ||
+      c.chapterName.toLowerCase().includes(chapNameLower) ||
+      chapNameLower.includes(c.chapterName.toLowerCase())
+    );
+    return found ? found.formulas : [];
+  }, [chapter]);
 
   const [activeTab, setActiveTab] = useState<ChapterEditTab>(defaultTab);
 
@@ -258,6 +273,7 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
   const tabs: Array<{ id: ChapterEditTab; label: string; icon: React.ComponentType<{ className?: string }> }> = [
     { id: 'progress', label: 'Lectures', icon: BookOpen },
     { id: 'practice', label: 'Practice', icon: Target },
+    { id: 'formulas', label: `Formulas (${chapterFormulas.length})`, icon: Binary },
     { id: 'mistakes', label: `Mistakes (${chapterMistakes.length})`, icon: AlertTriangle },
     { id: 'meta', label: 'Metadata', icon: SlidersHorizontal },
     { id: 'radar', label: 'Radar', icon: Activity },
@@ -347,7 +363,7 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
 
             {/* Segmented Tab Glider */}
             <div className="p-2 border-b border-zinc-850/80 bg-zinc-950/80 shrink-0">
-              <div className="grid grid-cols-5 gap-1.5 p-1 bg-zinc-900/60 border border-zinc-850 rounded-xl relative select-none">
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 p-1 bg-zinc-900/60 border border-zinc-850 rounded-xl relative select-none">
                 {tabs.map(tab => {
                   const isActive = activeTab === tab.id;
                   const TabIcon = tab.icon;
@@ -422,6 +438,14 @@ export const ChapterEditModal: React.FC<ChapterEditModalProps> = ({
                       confidence={confidence}
                       setConfidence={setConfidence}
                       chapterTests={chapterTests}
+                      onCloseModal={handleClose}
+                      navigate={navigate}
+                    />
+                  )}
+
+                  {activeTab === 'formulas' && (
+                    <ChapterFormulasTab
+                      chapter={chapter}
                       onCloseModal={handleClose}
                       navigate={navigate}
                     />

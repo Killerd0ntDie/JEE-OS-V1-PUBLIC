@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { Zap, ArrowUpRight, Play, FileUp } from 'lucide-react';
+import { Zap, ArrowUpRight, Play, FileUp, Binary } from 'lucide-react';
 import { Chapter } from '@/types/index';
 import { MockTest } from '@/types/mockTest';
 import { PracticeModule } from './PracticeModule';
@@ -113,6 +113,32 @@ export const ChapterPracticeTab: React.FC<ChapterPracticeTabProps> = ({
             className="w-full accent-indigo-500 cursor-pointer mt-2"
           />
         </div>
+      </div>
+
+      {/* Chapter High-Yield Formula Sheet Shortcut */}
+      <div className="p-3.5 rounded-2xl border border-zinc-850/80 bg-zinc-950/60 flex items-center justify-between gap-3 shadow-inner">
+        <div className="flex items-center gap-2.5">
+          <Binary className="w-4 h-4 text-sky-400" />
+          <div>
+            <span className="text-xs font-mono font-bold text-zinc-200 uppercase tracking-wider block">
+              Chapter Formulas & Theorems
+            </span>
+            <span className="text-[10px] text-zinc-400 font-sans">
+              High-yield KaTeX equations, conditions & ranker shortcuts
+            </span>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            onCloseModal();
+            navigate(`/revision?tab=formulas&chapterId=${chapter.id}`);
+          }}
+          className="text-[10px] font-mono font-bold text-sky-400 hover:text-sky-300 flex items-center gap-1 transition-colors cursor-pointer bg-sky-950/40 border border-sky-800/40 px-2.5 py-1 rounded-lg"
+        >
+          <span>View Formulas</span>
+          <ArrowUpRight className="w-3 h-3" />
+        </button>
       </div>
 
       {/* Chapter Custom Mock Tests & DPP Drills */}

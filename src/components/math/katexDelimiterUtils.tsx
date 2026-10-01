@@ -147,6 +147,41 @@ export const repairUnbalancedMathDelimiters = (str: string): string => {
   }).join('\n');
 };
 
+export const isStandaloneFormula = (str: string): boolean => {
+  if (!str) return false;
+  const trimmed = str.trim();
+  if (trimmed.startsWith('$') || trimmed.endsWith('$')) return false;
+  if (trimmed.includes('\n')) return false;
+
+  const hasLatexCommand = /\\(?:frac|sqrt|text|vec|hat|bar|dot|int|sum|prod|lim|infty|Delta|nabla|partial|times|cdot|pm|approx|equiv|implies|iff|left|right|alpha|beta|gamma|delta|epsilon|theta|lambda|mu|nu|xi|pi|rho|sigma|tau|phi|chi|psi|omega|tan|cos|sin|sec|csc|cot|log|ln)\b/.test(trimmed);
+  const hasMathRelation = /[=<>]\s*[-\\+0-9a-zA-Z\\{]/.test(trimmed);
+  const hasSubSup = /[_^]\{?[0-9a-zA-Z+-]+/.test(trimmed);
+
+  if (!hasLatexCommand && !hasMathRelation && !hasSubSup) return false;
+
+  const proseWordMatch = trimmed.match(/\b(the|is|are|which|following|calculate|find|where|when|with|from|between|because|statement|select|correct|incorrect|option|assume|given|consider|determine)\b/gi);
+  if (proseWordMatch && proseWordMatch.length >= 2) {
+    return false;
+  }
+
+  return true;
+};
+
+/**
+ * Renders a mathematical formula directly using KaTeX BlockMath.
+ * Cleans any leading/trailing delimiters ($$, $, \[, \]) and renders with zero prose interference.
+ */
+export const FormulaMath = React.memo(({ math, className }: { math: string; className?: string }) => {
+  if (!math) return null;
+  const clean = math.trim().replace(/^\$\$([\s\S]*?)\$\$$|^\\\[([\s\S]*?)\\\]$|^\$([\s\S]*?)\$$/, (_m, p1, p2, p3) => (p1 || p2 || p3).trim()).trim();
+  return (
+    <div className={className || "text-white text-base py-1"}>
+      <BlockMath math={clean} />
+    </div>
+  );
+});
+FormulaMath.displayName = 'FormulaMath';
+
 const delimiterCache = new Map<string, string>();
 const MAX_CACHE_SIZE = 1000;
 

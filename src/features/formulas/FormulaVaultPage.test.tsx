@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import React from 'react';
 import { FormulaVaultPage } from './FormulaVaultPage';
 
 // Mock Toast
@@ -20,7 +19,15 @@ vi.mock('@/utils/audioEngine', () => ({
   }
 }));
 
-describe('FormulaVaultPage Feature View (Magnitude 5.1)', { timeout: 20000 }, () => {
+// Mock MathRenderer to avoid expensive KaTeX DOM generation in JSDOM
+vi.mock('@/components/MathRenderer', () => ({
+  MathRenderer: ({ text, content }: any) => <div data-testid="math-renderer">{text || content}</div>,
+  RichTextRenderer: ({ content }: any) => <div data-testid="rich-text-renderer">{content}</div>,
+  BlockMath: ({ math }: any) => <div>{math}</div>,
+  InlineMath: ({ math }: any) => <span>{math}</span>,
+}));
+
+describe('FormulaVaultPage Feature View (Magnitude 5.1)', { timeout: 40000 }, () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
@@ -157,5 +164,11 @@ describe('FormulaVaultPage Feature View (Magnitude 5.1)', { timeout: 20000 }, ()
     await waitFor(() => {
       expect(screen.queryByText('High-Yield JEE Constants & Dimensions')).not.toBeInTheDocument();
     }, { timeout: 10000 });
+  });
+
+  it('renders high-yield JEE exam tip badges on formula cards', () => {
+    render(<FormulaVaultPage />);
+    const proTips = screen.getAllByText('JEE Pro Tip');
+    expect(proTips.length).toBeGreaterThan(0);
   });
 });

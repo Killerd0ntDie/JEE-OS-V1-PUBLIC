@@ -17,7 +17,7 @@ const ChemistryPage = lazy(() => import('./features/subjects/ChemistryPage').the
 const MathsPage = lazy(() => import('./features/subjects/MathsPage').then(m => ({ default: m.MathsPage })));
 const PlannerPage = lazy(() => import('./features/planner/PlannerPage').then(m => ({ default: m.PlannerPage })));
 const RevisionPage = lazy(() => import('./features/revision/RevisionPage').then(m => ({ default: m.RevisionPage })));
-const FormulaVaultPage = lazy(() => import('./features/formulas/FormulaVaultPage').then(m => ({ default: m.FormulaVaultPage })));
+const _FormulaVaultPage = lazy(() => import('./features/formulas/FormulaVaultPage').then(m => ({ default: m.FormulaVaultPage })));
 const MistakesPage = lazy(() => import('./features/mistakes/MistakesPage').then(m => ({ default: m.MistakesPage })));
 const AnalyticsPage = lazy(() => import('./features/analytics/AnalyticsPage').then(m => ({ default: m.AnalyticsPage })));
 const AiCoachPage = lazy(() => import('./features/coach/AiCoachPage').then(m => ({ default: m.AiCoachPage })));
@@ -257,7 +257,7 @@ function AppLayout() {
                     <Route path="/focus-vault" element={<Navigate to="/cockpit" replace />} />
                     <Route path="/focus" element={<Navigate to="/cockpit" replace />} />
                     <Route path="/revision" element={<ErrorBoundary><RevisionPage /></ErrorBoundary>} />
-                    <Route path="/formulas" element={<ErrorBoundary><FormulaVaultPage /></ErrorBoundary>} />
+                    <Route path="/formulas" element={<Navigate to="/revision?tab=formulas" replace />} />
                     <Route path="/mistakes" element={<ErrorBoundary><MistakesPage /></ErrorBoundary>} />
                     <Route path="/analytics" element={<ErrorBoundary><AnalyticsPage /></ErrorBoundary>} />
                     <Route path="/ai-coach" element={<ErrorBoundary><AiCoachPage isActive={isAiCoach} /></ErrorBoundary>} />

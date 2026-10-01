@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { RevisionCardItem } from '@jee-os/engines';
@@ -29,8 +29,11 @@ export const DailyDoseSessionStage: React.FC<DailyDoseSessionStageProps> = ({
   // Active Phase: 'cards' | 'mistakes' | 'speed_drill' | 'celebration'
   const [phase, setPhase] = useState<'cards' | 'mistakes' | 'speed_drill' | 'celebration'>('cards');
 
-  // Phase 1 State: Flashcards (target up to 10)
-  const sessionCards = cards.slice(0, 10);
+  // Phase 1 State: Flashcards (target up to 10 genuine formulas)
+  const sessionCards = useMemo(() => {
+    const list = cards.filter(c => c.cardType !== 'note' && (c.cardType === 'formula' || !c.cardType));
+    return (list.length > 0 ? list : cards).slice(0, 10);
+  }, [cards]);
   const [cardIndex, setCardIndex] = useState(0);
   const [isCardFlipped, setIsCardFlipped] = useState(false);
   const [gradedCardsCount, setGradedCardsCount] = useState(0);
@@ -42,8 +45,11 @@ export const DailyDoseSessionStage: React.FC<DailyDoseSessionStageProps> = ({
   const [resolvedMistakesCount, setResolvedMistakesCount] = useState(0);
   const [scratchpadMap, setScratchpadMap] = useState<Record<string, string>>({});
 
-  // Phase 3 State: 30s Speed Drill Blitz
-  const speedCards = cards.slice(0, 8);
+  // Phase 3 State: 30s Speed Drill Blitz (genuine formulas only)
+  const speedCards = useMemo(() => {
+    const list = cards.filter(c => c.cardType !== 'note' && (c.cardType === 'formula' || !c.cardType));
+    return (list.length > 0 ? list : cards).slice(0, 8);
+  }, [cards]);
   const [speedIndex, setSpeedIndex] = useState(0);
   const [speedTimer, setSpeedTimer] = useState(30);
   const [speedScore, setSpeedScore] = useState(0);
@@ -281,6 +287,15 @@ export const DailyDoseSessionStage: React.FC<DailyDoseSessionStageProps> = ({
                   >
                     <div className="text-white text-base md:text-lg font-mono py-2">
                       <MathRenderer text={currentCard.latex || currentCard.formula} />
+                      {currentCard.examNote && (
+                        <div className="mt-3 pt-3 border-t border-indigo-500/20 text-xs font-mono text-amber-300 flex items-start gap-2 text-left">
+                          <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                          <div>
+                            <span className="font-bold text-amber-300 mr-1.5">[JEE Pro Tip]</span>
+                            <MathRenderer text={currentCard.examNote} />
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </motion.div>
                 ) : (
@@ -338,6 +353,48 @@ export const DailyDoseSessionStage: React.FC<DailyDoseSessionStageProps> = ({
                 </button>
               </motion.div>
             )}
+          </motion.div>
+        )}
+
+        {/* PHASE 1 EMPTY STATE (NO STARTED CHAPTER FORMULAS) */}
+        {phase === 'cards' && sessionCards.length === 0 && (
+          <motion.div
+            key="empty-cards-daily-dose"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            className="surface-2 rounded-3xl p-8 border border-zinc-800 shadow-2xl text-center space-y-4"
+          >
+            <div className="w-12 h-12 mx-auto bg-indigo-950/60 rounded-full flex items-center justify-center border border-indigo-500/40 text-indigo-400">
+              <Sparkles className="w-6 h-6" />
+            </div>
+            <div className="space-y-1.5">
+              <h3 className="text-lg font-display font-bold text-white">
+                No Formulas Due in Spaced Queue
+              </h3>
+              <p className="text-xs text-zinc-400 max-w-md mx-auto leading-relaxed">
+                You have not started any chapters yet, or all formulas from running chapters are within safe retention bounds.
+              </p>
+            </div>
+            <div className="flex items-center justify-center gap-3 pt-2">
+              {unresolvedMistakes.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setPhase('mistakes')}
+                  className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-mono text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer"
+                >
+                  Proceed to Mistakes ({unresolvedMistakes.length})
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={onExit}
+                  className="px-5 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-mono text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer"
+                >
+                  Return to Command Center
+                </button>
+              )}
+            </div>
           </motion.div>
         )}
 
@@ -510,8 +567,14 @@ export const DailyDoseSessionStage: React.FC<DailyDoseSessionStageProps> = ({
                     {currentSpeedCard.title}
                   </h3>
                   {speedRevealed && (
-                    <div className="pt-2 text-indigo-300 font-mono text-base">
+                    <div className="pt-2 text-indigo-300 font-mono text-base space-y-2">
                       <MathRenderer text={currentSpeedCard.latex || currentSpeedCard.formula} />
+                      {currentSpeedCard.examNote && (
+                        <div className="text-xs font-mono text-amber-300 flex items-center justify-center gap-1.5">
+                          <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                          <span>{currentSpeedCard.examNote}</span>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

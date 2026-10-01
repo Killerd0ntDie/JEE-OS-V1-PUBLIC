@@ -2,6 +2,24 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { RevisionPage } from './RevisionPage';
 
+// Mock Toast
+const mockToast = vi.fn();
+vi.mock('@/components/ui/ToastProvider', () => ({
+  useToast: () => ({
+    toast: mockToast
+  })
+}));
+
+// Mock FormulaVaultPage to isolate RevisionPage tab switching tests
+vi.mock('@/features/formulas/FormulaVaultPage', () => ({
+  FormulaVaultPage: () => (
+    <div data-testid="formula-vault-page">
+      <div>JEE FORMULA REPOSITORY</div>
+      <div>Formula & Theorem Vault</div>
+    </div>
+  )
+}));
+
 // Mock audioEngine
 vi.mock('@/utils/audioEngine', () => ({
   audioEngine: {
@@ -212,5 +230,69 @@ describe('RevisionPage Feature View (Magnitude 5.1)', () => {
       expect(screen.getByText('Chapter Retention & Formula Hub')).toBeInTheDocument();
     });
   });
+
+  it('renders top-level navigation tabs [Formula Vault] | [Spaced Review & Recall] | [30s Speed Drill]', () => {
+    render(<RevisionPage />);
+
+    expect(screen.getByRole('button', { name: /^Formula Vault$/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Spaced Review & Recall$/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^30s Speed Drill$/i })).toBeInTheDocument();
+  });
+
+  it('switches between Formula Vault and Spaced Review tabs', async () => {
+    render(<RevisionPage />);
+
+    // Click Formula Vault tab
+    const formulaVaultTab = screen.getByRole('button', { name: /^Formula Vault$/i });
+    fireEvent.click(formulaVaultTab);
+
+    // Should embed Formula Vault
+    await waitFor(() => {
+      expect(screen.getByText('JEE FORMULA REPOSITORY')).toBeInTheDocument();
+      expect(screen.getByText('Formula & Theorem Vault')).toBeInTheDocument();
+    });
+
+    // Switch back to Spaced Review & Recall tab
+    const spacedReviewTab = screen.getByRole('button', { name: /^Spaced Review & Recall$/i });
+    fireEvent.click(spacedReviewTab);
+
+    await waitFor(() => {
+      expect(screen.getByText('Chapter Retention & Formula Hub')).toBeInTheDocument();
+    });
+  });
+
+  it('switches to 30s Speed Drill via top navigation tab', async () => {
+    render(<RevisionPage />);
+
+    const speedDrillTab = screen.getByRole('button', { name: /^30s Speed Drill$/i });
+    fireEvent.click(speedDrillTab);
+
+    await waitFor(() => {
+      expect(screen.getByText('Formula Speed Drill')).toBeInTheDocument();
+    });
+  });
+
+  it('guarantees mutual exclusivity: clicking Formula Vault tab while inside a subview cleanly hides the subview', async () => {
+    render(<RevisionPage />);
+
+    // 1. Open Flashcard Vault subview
+    const openVaultBtn = screen.getByRole('button', { name: /Open Vault & Matrix/i });
+    fireEvent.click(openVaultBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText('Active Recall & Revision Vault')).toBeInTheDocument();
+    });
+
+    // 2. Switch to Formula Vault tab
+    const formulaVaultTab = screen.getByRole('button', { name: /^Formula Vault$/i });
+    fireEvent.click(formulaVaultTab);
+
+    // 3. Formula Vault is visible, and Flashcard Vault subview is NOT rendered
+    await waitFor(() => {
+      expect(screen.getByText('JEE FORMULA REPOSITORY')).toBeInTheDocument();
+      expect(screen.queryByText('Active Recall & Revision Vault')).not.toBeInTheDocument();
+    });
+  });
 });
+
 

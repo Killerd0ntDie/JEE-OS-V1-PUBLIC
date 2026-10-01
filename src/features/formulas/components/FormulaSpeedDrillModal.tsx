@@ -1,15 +1,15 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  Zap, X, Check, RotateCcw, Star, 
-  ArrowRight, ShieldCheck, HelpCircle, Sparkles, ChevronRight 
+  Zap, X, Check, ShieldCheck, Sparkles, 
 } from 'lucide-react';
-import { FormulaEntry, ChapterFormulas, FORMULA_BANK } from '@/constants/formulaBank';
-import { MathRenderer } from '@/components/MathRenderer';
+import { FormulaEntry, FORMULA_BANK } from '@/constants/formulaBank';
+import { MathRenderer, BlockMath } from '@/components/MathRenderer';
 import { Modal } from '@/components/ui/Modal';
 import { audioEngine } from '@/utils/audioEngine';
-import { useToast } from '@/components/ui/ToastProvider';
 import { springs } from '@/constants/motion';
+import { useStudyBrainStore } from '@/store/useStudyBrainStore';
+import { isChapterKnownOrRunning } from '@jee-os/engines';
 
 interface FlattenedFormula extends FormulaEntry {
   chapterName: string;
@@ -33,26 +33,53 @@ export function FormulaSpeedDrillModal({
   onBookmarkFormula,
   bookmarkedKeys
 }: FormulaSpeedDrillModalProps) {
-  const { toast } = useToast();
-  
-  // Flatten and filter formula bank
+  const chapters = useStudyBrainStore(state => state.chapters) || [];
+  const chapterTelemetryMap = useStudyBrainStore(state => state.chapterTelemetryMap);
+
+  // Flatten and filter formula bank: strictly only running and completed chapters
   const allFormulas: FlattenedFormula[] = useMemo(() => {
     const list: FlattenedFormula[] = [];
+    const hasSyllabus = chapters.length > 0;
+
     FORMULA_BANK.forEach(c => {
       if (selectedSubject !== 'all' && c.subject !== selectedSubject) return;
-      c.formulas.forEach((f, idx) => {
-        list.push({
-          ...f,
-          chapterName: c.chapterName,
-          chapterId: c.chapterId,
-          subject: c.subject,
-          uniqueKey: `${c.chapterId}_${idx}`
+
+      if (hasSyllabus) {
+        const matchingChap = chapters.find(
+          ch => ch.id === c.chapterId || ch.name.toLowerCase() === c.chapterName.toLowerCase()
+        );
+        const telemetry = matchingChap ? chapterTelemetryMap?.[matchingChap.id] : undefined;
+        const isStarted = matchingChap ? isChapterKnownOrRunning(matchingChap, telemetry) : false;
+
+        c.formulas.forEach((f, idx) => {
+          const uniqueKey = `${c.chapterId}_${idx}`;
+          const isBookmarked = bookmarkedKeys.includes(uniqueKey);
+          if (isStarted || isBookmarked) {
+            list.push({
+              ...f,
+              chapterName: c.chapterName,
+              chapterId: c.chapterId,
+              subject: c.subject,
+              uniqueKey
+            });
+          }
         });
-      });
+      } else {
+        // Fallback for test environments without syllabus initialized
+        c.formulas.forEach((f, idx) => {
+          list.push({
+            ...f,
+            chapterName: c.chapterName,
+            chapterId: c.chapterId,
+            subject: c.subject,
+            uniqueKey: `${c.chapterId}_${idx}`
+          });
+        });
+      }
     });
     // Shuffle cards
     return list.sort(() => Math.random() - 0.5);
-  }, [selectedSubject, isOpen]);
+  }, [selectedSubject, isOpen, chapters, chapterTelemetryMap, bookmarkedKeys]);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isRevealed, setIsRevealed] = useState(false);
@@ -93,6 +120,11 @@ export function FormulaSpeedDrillModal({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, isRevealed, currentIndex, isFinished]);
+
+  const cleanFormulaString = (raw: string | undefined | null): string => {
+    if (!raw) return '';
+    return raw.trim().replace(/^\$\$([\s\S]*?)\$\$$|^\\\[([\s\S]*?)\\\]$|^\$([\s\S]*?)\$$/, (_m, p1, p2, p3) => (p1 || p2 || p3).trim()).trim();
+  };
 
   const currentCard = allFormulas[currentIndex];
 
@@ -151,6 +183,30 @@ export function FormulaSpeedDrillModal({
         </button>
       </div>
 
+      {/* ZERO FORMULAS EMPTY STATE */}
+      {!isFinished && allFormulas.length === 0 && (
+        <div className="p-8 rounded-2xl bg-zinc-950/80 border border-white/10 text-center space-y-4">
+          <div className="w-12 h-12 mx-auto bg-amber-950/60 rounded-full flex items-center justify-center border border-amber-500/40 text-amber-400 shadow-md">
+            <Zap className="w-6 h-6" />
+          </div>
+          <div className="space-y-1.5">
+            <h4 className="text-base font-display font-bold text-white">
+              No Formulas Available in Speed Drill
+            </h4>
+            <p className="text-xs text-zinc-400 max-w-sm mx-auto leading-relaxed">
+              Speed drills only test formulas from chapters you have started or completed. Start studying chapters in your syllabus to unlock rapid recall drills!
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-mono text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer"
+          >
+            Close Drill
+          </button>
+        </div>
+      )}
+
       {/* ACTIVE CARD OR FINAL REPORT */}
       {!isFinished && currentCard ? (
         <div className="space-y-6">
@@ -195,9 +251,18 @@ export function FormulaSpeedDrillModal({
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -8, scale: 0.97 }}
                   transition={springs.snappy}
-                  className="p-4 rounded-xl bg-indigo-950/40 border border-indigo-500/40 text-center font-mono text-base text-white shadow-lg"
+                  className="p-4 rounded-xl bg-indigo-950/40 border border-indigo-500/40 text-center font-mono text-base text-white shadow-lg space-y-3"
                 >
-                  <MathRenderer text={currentCard.formula} />
+                  <BlockMath math={cleanFormulaString(currentCard.formula)} />
+                  {currentCard.examNote && (
+                    <div className="pt-2 border-t border-indigo-500/20 text-xs font-mono text-amber-300 flex items-start gap-2 text-left">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                      <div>
+                        <span className="font-bold text-amber-300 mr-1.5">[JEE Pro Tip]</span>
+                        <MathRenderer text={currentCard.examNote} />
+                      </div>
+                    </div>
+                  )}
                 </motion.div>
               ) : (
                 <motion.button

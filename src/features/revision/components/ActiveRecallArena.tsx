@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   ArrowLeft, Flame, Skull, CheckCircle2, XCircle, 
-  Timer, Sparkles, Trophy, Zap, Clock, ShieldCheck, Check, RotateCcw
+  Timer, Sparkles, Trophy, Zap, Clock, ShieldCheck, RotateCcw
 } from 'lucide-react';
 import { RevisionCardItem } from '@jee-os/engines';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
@@ -18,8 +18,11 @@ interface ActiveRecallArenaProps {
 export function ActiveRecallArena({ cards, onExit }: ActiveRecallArenaProps) {
   const actions = useStudyBrainStore(state => state.actions);
   
-  // Freeze cards on mount for an immutable, stable sprint experience
-  const [sessionCards] = useState<RevisionCardItem[]>(() => [...cards]);
+  // Freeze cards on mount: strictly filter for genuine formulas and mistakes (exclude notes/proof of work)
+  const [sessionCards] = useState<RevisionCardItem[]>(() => {
+    const valid = cards.filter(c => c.cardType !== 'note' && (c.cardType === 'formula' || c.cardType === 'mistake' || !c.cardType));
+    return valid.length > 0 ? valid : [...cards];
+  });
   const [currentIndex, setCurrentIndex] = useState(0);
   const [timeLeft, setTimeLeft] = useState(15);
   const [isRevealed, setIsRevealed] = useState(false);
@@ -38,10 +41,19 @@ export function ActiveRecallArena({ cards, onExit }: ActiveRecallArenaProps) {
   const currentCard = sessionCards[currentIndex];
   const isFinished = sessionCards.length > 0 && currentIndex >= sessionCards.length;
 
+  const cleanFormulaString = (raw: string | undefined | null): string => {
+    if (!raw) return '';
+    return raw.trim().replace(/^\$\$([\s\S]*?)\$\$$|^\\\[([\s\S]*?)\\\]$|^\$([\s\S]*?)\$$/, (_m, p1, p2, p3) => (p1 || p2 || p3).trim()).trim();
+  };
+
   const renderMathText = (text: string | undefined | null) => {
     if (!text) return null;
     try {
-      const cleanText = text.replace(/\\\$/g, '$');
+      let cleanText = text.replace(/\\\$/g, '$');
+      // If it has no $ but contains math indicators, wrap in $
+      if (!cleanText.includes('$') && /\\(?:frac|sqrt|text|vec|hat|bar|Delta|nabla|times|cdot|pm|approx|equiv|implies|alpha|beta|gamma|delta|epsilon|theta|lambda|mu|nu|pi|rho|sigma|tau|phi|omega|tan|cos|sin|ln|log)\b|[=<>]\s*[-\\+0-9a-zA-Z]/.test(cleanText)) {
+        cleanText = `$${cleanText}$`;
+      }
       const parts = cleanText.split(/(\$\$.*?\$\$|\$.*?\$)/gs);
       return parts.map((part, i) => {
         if (part.startsWith('$$') && part.endsWith('$$')) {
@@ -176,7 +188,7 @@ export function ActiveRecallArena({ cards, onExit }: ActiveRecallArenaProps) {
     }
   }, [isFinished, sessionLogged, sessionCards.length, sessionResults, actions]);
 
-  const handleDecision = (quality: number, label: string) => {
+  const handleDecision = (quality: number, _label: string) => {
     if (!currentCard || isTransitioning) return;
     if (autoAdvanceRef.current) clearTimeout(autoAdvanceRef.current);
     setIsTransitioning(true);
@@ -517,14 +529,13 @@ export function ActiveRecallArena({ cards, onExit }: ActiveRecallArenaProps) {
                 {currentCard.subject}
               </span>
               <span className="text-zinc-300">{currentCard.chapterName}</span>
-              {currentCard.cardType === 'mistake' && (
+              {currentCard.cardType === 'mistake' ? (
                 <span className="px-2 py-0.5 rounded-lg border bg-rose-950/60 border-rose-500/40 text-rose-300 text-[10px]">
                   Mistake Recall
                 </span>
-              )}
-              {currentCard.cardType === 'note' && (
-                <span className="px-2 py-0.5 rounded-lg border bg-amber-950/60 border-amber-500/40 text-amber-300 text-[10px]">
-                  Proof of Work
+              ) : (
+                <span className="px-2 py-0.5 rounded-lg border bg-indigo-950/60 border-indigo-500/40 text-indigo-300 text-[10px]">
+                  Formula Recall
                 </span>
               )}
             </div>
@@ -538,7 +549,7 @@ export function ActiveRecallArena({ cards, onExit }: ActiveRecallArenaProps) {
           <div className="space-y-4 py-2">
             <div className="space-y-1">
               <span className="text-[11px] font-mono uppercase text-indigo-400 font-bold tracking-wider block">
-                {currentCard.cardType === 'mistake' ? 'Target Mistake / Error Analysis:' : currentCard.cardType === 'note' ? 'Study Reflection / Proof of Work:' : 'Target Concept / Formula:'}
+                {currentCard.cardType === 'mistake' ? 'Target Mistake / Error Analysis:' : 'Target Concept / Theorem:'}
               </span>
               <h2 className="text-2xl md:text-3xl font-display font-bold text-white tracking-tight">
                 {renderMathText(currentCard.title)}
@@ -547,7 +558,7 @@ export function ActiveRecallArena({ cards, onExit }: ActiveRecallArenaProps) {
 
             <div className="p-4 rounded-2xl bg-zinc-950/70 border border-white/5 space-y-1 shadow-inner">
               <span className="text-[10px] font-mono uppercase text-zinc-400 font-bold tracking-wider block">
-                {currentCard.cardType === 'mistake' ? 'Question & Approach Prompt:' : 'Concept Prompt:'}
+                {currentCard.cardType === 'mistake' ? 'Question & Approach Prompt:' : 'Concept / Variable Definitions:'}
               </span>
               <p className="text-sm text-zinc-200 leading-relaxed font-sans font-medium">
                 "{renderMathText(currentCard.concept)}"
@@ -565,10 +576,21 @@ export function ActiveRecallArena({ cards, onExit }: ActiveRecallArenaProps) {
                   className="space-y-2 overflow-hidden pt-2"
                 >
                   <span className="text-[10px] font-mono uppercase text-emerald-400 font-bold tracking-wider block">
-                    {currentCard.cardType === 'mistake' ? 'Correct Method & Key Takeaway:' : 'Formula Expression & Mechanism:'}
+                    {currentCard.cardType === 'mistake' ? 'Correct Method & Key Takeaway:' : 'Mathematical Formulation & Equation:'}
                   </span>
-                  <div className="p-5 rounded-2xl bg-zinc-950/90 border border-emerald-500/30 text-emerald-200 font-mono text-sm leading-relaxed overflow-x-auto shadow-inner">
-                    {renderMathText(currentCard.formula || 'No formula string mapped')}
+                  <div className="p-5 rounded-2xl bg-zinc-950/90 border border-emerald-500/30 text-emerald-200 font-mono text-sm leading-relaxed overflow-x-auto shadow-inner text-center">
+                    <BlockMath math={cleanFormulaString(currentCard.formula || '')} errorColor="#ef4444" />
+                    {currentCard.examNote && (
+                      <div className="mt-3 pt-3 border-t border-emerald-500/20 flex items-start gap-2.5 text-xs font-mono text-amber-300 leading-relaxed text-left">
+                        <Sparkles className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                        <div className="space-y-0.5">
+                          <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 mr-1.5">
+                            JEE Pro Tip
+                          </span>
+                          <span className="text-zinc-200">{renderMathText(currentCard.examNote)}</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </motion.div>
               )}

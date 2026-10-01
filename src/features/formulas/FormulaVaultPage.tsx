@@ -1,14 +1,12 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { useState, useMemo, useEffect } from 'react';
 import { 
-  Search, Bookmark, Star, Copy, Check, Printer, 
-  Atom, FlaskConical, Binary, Filter, Sparkles, 
-  ChevronRight, BookOpen, Download, Layers, X, Zap,
-  Scale, Eye, EyeOff
+  Search, Star, Copy, Check, Printer, 
+  Atom, FlaskConical, Binary, Sparkles, 
+  ChevronRight, BookOpen, X, Zap,
+  Scale, Eye, EyeOff, ArrowLeft, ArrowUpRight
 } from 'lucide-react';
-import { FORMULA_BANK, ChapterFormulas, FormulaEntry } from '@/constants/formulaBank';
+import { FORMULA_BANK, } from '@/constants/formulaBank';
 import { MathRenderer, BlockMath } from '@/components/MathRenderer';
-import { springs } from '@/constants/motion';
 import { audioEngine } from '@/utils/audioEngine';
 import { useToast } from '@/components/ui/ToastProvider';
 import { FormulaSpeedDrillModal } from './components/FormulaSpeedDrillModal';
@@ -16,11 +14,19 @@ import { DimensionalAnalysisModal } from './components/DimensionalAnalysisModal'
 import { storageAdapter } from '@/services/StorageAdapter';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 
-export function FormulaVaultPage() {
+export function FormulaVaultPage({ initialChapterId }: { initialChapterId?: string } = {}) {
   const { toast } = useToast();
   const [activeSubject, setActiveSubject] = useState<'all' | 'physics' | 'chemistry' | 'maths'>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedChapter, setSelectedChapter] = useState<string>('all');
+  const [selectedChapter, setSelectedChapter] = useState<string>(() => {
+    if (initialChapterId) return initialChapterId;
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlChap = urlParams.get('chapterId');
+      if (urlChap) return urlChap;
+    } catch {}
+    return 'all';
+  });
   const [onlyBookmarked, setOnlyBookmarked] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [isSpeedDrillOpen, setIsSpeedDrillOpen] = useState(false);
@@ -107,7 +113,8 @@ export function FormulaVaultPage() {
           f.title.toLowerCase().includes(q) ||
           f.concept.toLowerCase().includes(q) ||
           f.formula.toLowerCase().includes(q) ||
-          chap.chapterName.toLowerCase().includes(q)
+          chap.chapterName.toLowerCase().includes(q) ||
+          (f.examNote?.toLowerCase().includes(q))
         );
       });
 
@@ -121,6 +128,76 @@ export function FormulaVaultPage() {
   const totalFormulaCount = useMemo(() => {
     return filteredChapters.reduce((acc, c) => acc + c.formulas.length, 0);
   }, [filteredChapters]);
+
+  // Current chapter navigation helpers for chapter tab mode
+  const currentChapterIndex = useMemo(() => {
+    if (selectedChapter === 'all') return -1;
+    return chapterOptions.findIndex(c => c.chapterId === selectedChapter || c.chapterName === selectedChapter);
+  }, [chapterOptions, selectedChapter]);
+
+  const activeChapterData = useMemo(() => {
+    if (currentChapterIndex >= 0) return chapterOptions[currentChapterIndex];
+    return null;
+  }, [chapterOptions, currentChapterIndex]);
+
+  const goToPrevChapter = () => {
+    if (currentChapterIndex > 0) {
+      audioEngine.playMechanicalKey('click').catch(() => {});
+      setSelectedChapter(chapterOptions[currentChapterIndex - 1].chapterId);
+    }
+  };
+
+  const goToNextChapter = () => {
+    if (currentChapterIndex < chapterOptions.length - 1) {
+      audioEngine.playMechanicalKey('click').catch(() => {});
+      setSelectedChapter(chapterOptions[currentChapterIndex + 1].chapterId);
+    }
+  };
+
+  // State for expanded chapters in chapter list mode
+  const [expandedChapters, setExpandedChapters] = useState<Set<string>>(() => {
+    const initial = new Set<string>();
+    // Default to expanding the first chapter for immediate preview
+    if (FORMULA_BANK.length > 0) {
+      initial.add(FORMULA_BANK[0].chapterId);
+    }
+    return initial;
+  });
+
+  const toggleChapterExpand = (chapterId: string) => {
+    audioEngine.playMechanicalKey('click').catch(() => {});
+    setExpandedChapters(prev => {
+      const next = new Set(prev);
+      if (next.has(chapterId)) {
+        next.delete(chapterId);
+      } else {
+        next.add(chapterId);
+      }
+      return next;
+    });
+  };
+
+  const _expandAllChapters = () => {
+    audioEngine.playMechanicalKey('clack').catch(() => {});
+    setExpandedChapters(new Set(filteredChapters.map(c => c.chapterId)));
+  };
+
+  const _collapseAllChapters = () => {
+    audioEngine.playMechanicalKey('clack').catch(() => {});
+    setExpandedChapters(new Set());
+  };
+
+  // Auto-expand chapters when user is searching or selects a specific chapter
+  useEffect(() => {
+    if (searchQuery.trim() || selectedChapter !== 'all') {
+      setExpandedChapters(new Set(filteredChapters.map(c => c.chapterId)));
+    }
+  }, [searchQuery, selectedChapter, filteredChapters]);
+
+  const cleanFormulaString = (raw: string): string => {
+    if (!raw) return '';
+    return raw.trim().replace(/^\$\$([\s\S]*?)\$\$$|^\\\[([\s\S]*?)\\\]$|^\$([\s\S]*?)\$$/, (_m, p1, p2, p3) => (p1 || p2 || p3).trim()).trim();
+  };
 
   const handlePrint = () => {
     audioEngine.playMechanicalKey('clack').catch(() => {});
@@ -315,15 +392,92 @@ export function FormulaVaultPage() {
 
         </div>
 
-        {/* Results Counter */}
+        {/* Chapter Tabs Strip (Mock Tests style) */}
+        <div role="tablist" aria-label="Chapter formula tabs" className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={selectedChapter === 'all'}
+            onClick={() => {
+              audioEngine.playMechanicalKey('click').catch(() => {});
+              setSelectedChapter('all');
+            }}
+            className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1.5 border select-none ${
+              selectedChapter === 'all'
+                ? 'bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/30'
+                : 'bg-zinc-900/80 border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-850'
+            }`}
+          >
+            <span>All Chapters</span>
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${selectedChapter === 'all' ? 'bg-indigo-700 text-indigo-100' : 'bg-zinc-800 text-zinc-400'}`}>
+              {chapterOptions.length}
+            </span>
+          </button>
+
+          {chapterOptions.map(chap => {
+            const isSelected = selectedChapter === chap.chapterId || selectedChapter === chap.chapterName;
+            const starredInChap = chap.formulas.filter(f => bookmarkedFormulas.includes(`${chap.chapterId}_${f.title}`)).length;
+            return (
+              <button
+                key={chap.chapterId}
+                type="button"
+                role="tab"
+                aria-selected={isSelected}
+                onClick={() => {
+                  audioEngine.playMechanicalKey('click').catch(() => {});
+                  setSelectedChapter(chap.chapterId);
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1.5 border select-none ${
+                  isSelected
+                    ? 'bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/30'
+                    : 'bg-zinc-900/80 border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-850'
+                }`}
+              >
+                <span>{chap.chapterName}</span>
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${isSelected ? 'bg-indigo-700 text-indigo-100' : 'bg-zinc-800 text-zinc-400'}`}>
+                  {chap.formulas.length}
+                </span>
+                {starredInChap > 0 && (
+                  <Star className="w-3 h-3 text-amber-400 fill-amber-400 shrink-0" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Results Counter & Navigation Indicator */}
         <div className="flex items-center justify-between text-[11px] font-mono text-zinc-400 pt-1 border-t border-white/5">
-          <span>Displaying <strong className="text-white">{totalFormulaCount}</strong> formulas across <strong className="text-white">{filteredChapters.length}</strong> chapters</span>
-          {onlyBookmarked && <span className="text-amber-400">Showing Starred Only</span>}
+          <div className="flex items-center gap-2">
+            <span>Displaying <strong className="text-white">{totalFormulaCount}</strong> formulas across <strong className="text-white">{filteredChapters.length}</strong> chapters</span>
+            {onlyBookmarked && (
+              <span className="text-amber-400">
+                • <span>Showing Starred Only</span>
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            {selectedChapter !== 'all' ? (
+              <button
+                type="button"
+                onClick={() => {
+                  audioEngine.playMechanicalKey('click').catch(() => {});
+                  setSelectedChapter('all');
+                }}
+                className="text-indigo-400 hover:text-indigo-300 font-bold transition-colors cursor-pointer flex items-center gap-1"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span>Back to All Chapters</span>
+              </button>
+            ) : (
+              <span className="text-zinc-500 text-[10px]">Select any chapter tab to view dedicated formula sheet</span>
+            )}
+          </div>
         </div>
         </div>
       </div>
 
-      {/* 3. FORMULA SECTIONS & CARDS GRID */}
+      {/* 3. STRUCTURED CHAPTER LIST WITH FORMULAS */}
       {filteredChapters.length === 0 ? (
         <div className="p-12 text-center border border-dashed border-zinc-800 rounded-3xl surface-1 space-y-3">
           <BookOpen className="w-10 h-10 text-zinc-600 mx-auto" />
@@ -340,8 +494,63 @@ export function FormulaVaultPage() {
           </button>
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-4">
+          {/* Focused Chapter Hero Bar (Mock Tests Style) */}
+          {selectedChapter !== 'all' && activeChapterData && (
+            <div className="surface-1 rounded-2xl border border-white/5 p-4 md:p-5 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-lg">
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    audioEngine.playMechanicalKey('click').catch(() => {});
+                    setSelectedChapter('all');
+                  }}
+                  className="p-2 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-300 hover:text-white transition-colors cursor-pointer"
+                  title="Back to All Chapters"
+                >
+                  <ArrowLeft className="w-4 h-4 text-indigo-400" />
+                </button>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-indigo-400">
+                      {activeChapterData.subject.toUpperCase()}
+                    </span>
+                    <span className="text-zinc-600">•</span>
+                    <span className="text-[10px] font-mono text-zinc-400">
+                      Chapter {currentChapterIndex + 1} of {chapterOptions.length}
+                    </span>
+                  </div>
+                  <h2 className="text-lg sm:text-xl font-display font-bold text-white tracking-tight">
+                    {activeChapterData.chapterName} Formula Sheet
+                  </h2>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={currentChapterIndex <= 0}
+                  onClick={goToPrevChapter}
+                  className="px-3 py-1.5 rounded-xl text-xs font-mono font-bold border border-zinc-800 bg-zinc-900 hover:bg-zinc-850 text-zinc-300 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                >
+                  &lt; Prev Chapter
+                </button>
+                <button
+                  type="button"
+                  disabled={currentChapterIndex >= chapterOptions.length - 1}
+                  onClick={goToNextChapter}
+                  className="px-3 py-1.5 rounded-xl text-xs font-mono font-bold border border-zinc-800 bg-zinc-900 hover:bg-zinc-850 text-zinc-300 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                >
+                  Next Chapter &gt;
+                </button>
+              </div>
+            </div>
+          )}
+
           {filteredChapters.map(chapter => {
+            const isExpanded = expandedChapters.has(chapter.chapterId);
+            const starredInChapter = chapter.formulas.filter(f => bookmarkedFormulas.includes(`${chapter.chapterId}_${f.title}`)).length;
+
             const subjectTheme = 
               chapter.subject === 'physics' 
                 ? 'border-sky-500/30 text-sky-400 bg-sky-950/20' 
@@ -350,108 +559,161 @@ export function FormulaVaultPage() {
                 : 'border-purple-500/30 text-purple-400 bg-purple-950/20';
 
             return (
-              <div key={chapter.chapterId} className="space-y-3">
-                {/* Chapter Section Header */}
-                <div className="flex items-center justify-between gap-3 pt-2">
-                  <div className="flex items-center gap-2.5">
-                    <span className={`text-[10px] font-mono font-bold uppercase px-2.5 py-0.5 rounded-lg border ${subjectTheme}`}>
+              <div 
+                key={chapter.chapterId} 
+                className="surface-1 rounded-2xl border border-white/5 transition-all overflow-hidden shadow-lg"
+              >
+                {/* Chapter Card Header / Accordion Bar */}
+                <div 
+                  onClick={() => toggleChapterExpand(chapter.chapterId)}
+                  className="p-4 md:p-5 flex items-center justify-between gap-3 cursor-pointer hover:bg-white/[0.02] transition-colors select-none"
+                >
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <span className={`text-[10px] font-mono font-bold uppercase px-2.5 py-1 rounded-lg border shrink-0 ${subjectTheme}`}>
                       {chapter.subject}
                     </span>
-                    <h2 className="text-lg font-display font-bold text-white tracking-tight">
+                    <h2 className="text-base sm:text-lg font-display font-bold text-white tracking-tight truncate">
                       {chapter.chapterName}
                     </h2>
+                    {starredInChapter > 0 && (
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1 shrink-0">
+                        <Star className="w-2.5 h-2.5 fill-amber-400" />
+                        {starredInChapter}
+                      </span>
+                    )}
                   </div>
-                  <span className="text-xs font-mono text-zinc-500">
-                    {chapter.formulas.length} Formula{chapter.formulas.length > 1 ? 's' : ''}
-                  </span>
-                </div>
 
-                {/* Formula Cards for Chapter */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {chapter.formulas.map((formula, idx) => {
-                    const formulaKey = `${chapter.chapterId}_${formula.title}`;
-                    const isStarred = bookmarkedFormulas.includes(formulaKey);
-                    const isCopied = copiedKey === formulaKey;
-
-                    return (
-                      <motion.div
-                        key={idx}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.15 }}
-                        className="p-5 rounded-2xl surface-2 transition-all flex flex-col justify-between space-y-4 shadow-lg relative group"
+                  <div className="flex items-center gap-3 shrink-0">
+                    {selectedChapter === 'all' && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          audioEngine.playMechanicalKey('click').catch(() => {});
+                          setSelectedChapter(chapter.chapterId);
+                        }}
+                        className="hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-mono font-bold text-indigo-400 hover:text-indigo-300 hover:bg-indigo-950/40 border border-transparent hover:border-indigo-500/30 transition-all cursor-pointer"
+                        title="Focus Chapter Sheet"
                       >
-                        {/* Header: Title + Star + Copy */}
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="space-y-0.5 min-w-0 flex-1">
-                            <h3 className="text-sm font-bold text-white font-display tracking-tight leading-snug">
-                              {formula.title}
-                            </h3>
-                            <p className="text-xs text-zinc-400 leading-relaxed font-sans">
-                              {formula.concept}
-                            </p>
-                          </div>
-
-                          <div className="flex items-center gap-1 shrink-0 print:hidden">
-                            <button
-                              type="button"
-                              onClick={() => toggleBookmark(formulaKey, formula.title)}
-                              className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
-                                isStarred
-                                  ? 'bg-amber-500/20 border-amber-500/40 text-amber-400'
-                                  : 'bg-white/[0.03] border-white/5 text-zinc-500 hover:text-zinc-300'
-                              }`}
-                              title={isStarred ? "Remove Bookmark" : "Bookmark Formula"}
-                            >
-                              <Star className={`w-3.5 h-3.5 ${isStarred ? 'fill-amber-400' : ''}`} />
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => copyFormulaLatex(formula.formula, formulaKey)}
-                              className="p-1.5 rounded-lg bg-white/[0.03] border border-white/5 text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer"
-                              title="Copy LaTeX formula"
-                            >
-                              {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* KaTeX Math Box or Cloze Placeholder */}
-                        {isClozeMode && !revealedClozeKeys.has(formulaKey) ? (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              audioEngine.playMechanicalKey('click').catch(() => {});
-                              setRevealedClozeKeys(prev => {
-                                const next = new Set(prev);
-                                next.add(formulaKey);
-                                return next;
-                              });
-                            }}
-                            className="w-full py-4 px-3 rounded-xl border border-dashed border-amber-500/40 bg-amber-950/20 hover:bg-amber-900/30 text-amber-300 font-mono text-xs flex flex-col items-center justify-center gap-1.5 transition-all group cursor-pointer shadow-inner"
-                            title="Click to reveal formula and test recall"
-                          >
-                            <div className="flex items-center gap-2 font-bold">
-                              <Eye className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" />
-                              <span>[ ? Click to Reveal Formula ]</span>
-                            </div>
-                            <span className="text-[10px] text-zinc-400 font-sans">Active Recall Challenge</span>
-                          </button>
-                        ) : (
-                          <div className="p-3.5 rounded-xl bg-black/50 border border-white/5 overflow-x-auto text-center font-mono text-zinc-100 shadow-inner relative">
-                            {isClozeMode && (
-                              <span className="absolute top-1.5 right-2 text-[9px] font-mono font-bold text-emerald-400 bg-emerald-950/70 border border-emerald-500/40 px-1.5 py-0.5 rounded shadow-sm">
-                                Revealed
-                              </span>
-                            )}
-                            <MathRenderer text={formula.formula} />
-                          </div>
-                        )}
-                      </motion.div>
-                    );
-                  })}
+                        <span>Focus Tab</span>
+                        <ArrowUpRight className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                    <span className="text-xs font-mono text-zinc-400 bg-zinc-900/60 px-2.5 py-1 rounded-lg border border-white/5">
+                      {chapter.formulas.length} Formula{chapter.formulas.length > 1 ? 's' : ''}
+                    </span>
+                    <button
+                      type="button"
+                      aria-label={isExpanded ? 'Collapse chapter formulas' : 'Expand chapter formulas'}
+                      className="p-1 rounded-lg text-zinc-400 hover:text-white transition-colors"
+                    >
+                      <ChevronRight className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-90 text-indigo-400' : ''}`} />
+                    </button>
+                  </div>
                 </div>
+
+                {/* Formula Cards for Chapter (Rendered inside each chapter) */}
+                {isExpanded && (
+                  <div className="p-4 md:p-5 pt-0 border-t border-white/5 bg-black/20">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+                      {chapter.formulas.map((formula) => {
+                        const formulaKey = `${chapter.chapterId}_${formula.title}`;
+                        const isStarred = bookmarkedFormulas.includes(formulaKey);
+                        const isCopied = copiedKey === formulaKey;
+
+                        return (
+                          <div
+                            key={formulaKey}
+                            className="p-5 rounded-2xl surface-2 transition-all flex flex-col justify-between space-y-4 shadow-lg relative group border border-white/5 hover:border-white/10"
+                          >
+                            {/* Header: Title + Star + Copy */}
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="space-y-0.5 min-w-0 flex-1">
+                                <h3 className="text-sm font-bold text-white font-display tracking-tight leading-snug">
+                                  {formula.title}
+                                </h3>
+                                <p className="text-xs text-zinc-400 leading-relaxed font-sans">
+                                  {formula.concept}
+                                </p>
+                              </div>
+
+                              <div className="flex items-center gap-1 shrink-0 print:hidden">
+                                <button
+                                  type="button"
+                                  onClick={() => toggleBookmark(formulaKey, formula.title)}
+                                  className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                                    isStarred
+                                      ? 'bg-amber-500/20 border-amber-500/40 text-amber-400'
+                                      : 'bg-white/[0.03] border-white/5 text-zinc-500 hover:text-zinc-300'
+                                  }`}
+                                  title={isStarred ? "Remove Bookmark" : "Bookmark Formula"}
+                                >
+                                  <Star className={`w-3.5 h-3.5 ${isStarred ? 'fill-amber-400' : ''}`} />
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => copyFormulaLatex(formula.formula, formulaKey)}
+                                  className="p-1.5 rounded-lg bg-white/[0.03] border border-white/5 text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer"
+                                  title="Copy LaTeX formula"
+                                >
+                                  {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-zinc-400" />}
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Real KaTeX Display Math Block or Cloze Placeholder */}
+                            {isClozeMode && !revealedClozeKeys.has(formulaKey) ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  audioEngine.playMechanicalKey('click').catch(() => {});
+                                  setRevealedClozeKeys(prev => {
+                                    const next = new Set(prev);
+                                    next.add(formulaKey);
+                                    return next;
+                                  });
+                                }}
+                                className="w-full py-4 px-3 rounded-xl border border-dashed border-amber-500/40 bg-amber-950/20 hover:bg-amber-900/30 text-amber-300 font-mono text-xs flex flex-col items-center justify-center gap-1.5 transition-all group cursor-pointer shadow-inner"
+                                title="Click to reveal formula and test recall"
+                              >
+                                <div className="flex items-center gap-2 font-bold">
+                                  <Eye className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" />
+                                  <span>[ ? Click to Reveal Formula ]</span>
+                                </div>
+                                <span className="text-[10px] text-zinc-400 font-sans">Active Recall Challenge</span>
+                              </button>
+                            ) : (
+                              <div className="p-3.5 rounded-xl bg-black/60 border border-white/5 overflow-x-auto text-center font-mono text-zinc-100 shadow-inner relative">
+                                {isClozeMode && (
+                                  <span className="absolute top-1.5 right-2 text-[9px] font-mono font-bold text-emerald-400 bg-emerald-950/70 border border-emerald-500/40 px-1.5 py-0.5 rounded shadow-sm">
+                                    Revealed
+                                  </span>
+                                )}
+                                <BlockMath math={cleanFormulaString(formula.formula)} />
+                              </div>
+                            )}
+
+                            {/* High-Yield JEE Exam Tip Badge */}
+                            {formula.examNote && (
+                              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs font-mono leading-relaxed shadow-sm">
+                                <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                                <div className="space-y-0.5">
+                                  <span className="inline-block text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 mr-1.5">
+                                    JEE Pro Tip
+                                  </span>
+                                  <span className="text-zinc-200">
+                                    <MathRenderer text={formula.examNote} />
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
