@@ -1,7 +1,7 @@
-import React from 'react';
+
 import { motion } from 'motion/react';
 import { Modal } from '@/components/ui/Modal';
-import { Flame, Zap, Clock, ArrowRight, Activity, Award } from 'lucide-react';
+import { Flame, Zap, Clock, Activity, CheckCircle2 } from 'lucide-react';
 import { SubjectDetail } from './MissionSubjectSwitcherWidget';
 import { springs } from '@/constants/motion';
 import { audioEngine } from '@/utils/audioEngine';
@@ -184,8 +184,8 @@ export function MissionCompleteModal({
           }}
           className="w-full sm:flex-1 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 hover:from-emerald-500 hover:to-teal-500 text-white font-mono font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/40 cursor-pointer border border-emerald-400/40"
         >
-          <span>Log & Review Debrief</span>
-          <ArrowRight className="w-4 h-4" />
+          <span>Complete Mission</span>
+          <CheckCircle2 className="w-4 h-4" />
         </motion.button>
 
         <motion.button

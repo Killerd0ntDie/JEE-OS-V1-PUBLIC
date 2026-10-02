@@ -13,7 +13,6 @@ import { MissionNotesDrawer } from './components/MissionNotesDrawer';
 import { MissionFormulaSheetModal } from './components/MissionFormulaSheetModal';
 import { MissionPauseOverlay } from './components/MissionPauseOverlay';
 import { MissionCompleteModal } from './components/MissionCompleteModal';
-import { MissionDebriefModal } from './components/MissionDebriefModal';
 import { MissionTimeUpModal } from './components/MissionTimeUpModal';
 import { QuestionViewerWidget } from './components/QuestionViewerWidget';
 
@@ -25,9 +24,7 @@ import { CockpitTransitionEngine, CockpitAnimMode } from './CockpitTransitionEng
 export function MissionMode(props: MissionModeProps) {
   const { mode = 'learning', children } = props;
   const [isClosing, setIsClosing] = useState(false);
-  const [showDebrief, setShowDebrief] = useState(false);
-  const pendingCompleteData = useRef<any>(null);
-  const actions = useStudyBrainStore(state => state.actions);
+  const _actions = useStudyBrainStore(state => state.actions);
   const _studySessions = useStudyBrainStore(state => state.studySessions || []);
   const _settings = useStudyBrainStore(state => state.settings);
   const xp = useStudyBrainStore(state => state.xp);
@@ -36,6 +33,11 @@ export function MissionMode(props: MissionModeProps) {
   
   const parentOnExitRef = useRef(props.onExit);
   parentOnExitRef.current = props.onExit;
+
+  // Request desktop notification permission on mission launch
+  useEffect(() => {
+    audioEngine.requestNotificationPermission().catch(() => {});
+  }, []);
 
   // Zen / Stealth Focus Mode (Z key or Double-Click)
   const [isZenMode, setIsZenMode] = useState(false);
@@ -57,7 +59,7 @@ export function MissionMode(props: MissionModeProps) {
     return 1.0;
   });
 
-  const [stage, setStage] = useState<'standby' | 'magi' | 'active' | 'revealed'>('standby');
+  const [stage, setStage] = useState<'standby' | 'magi' | 'active' | 'revealed'>('revealed');
   const timerRef = useRef<HTMLDivElement | null>(null);
   const [originCoords, setOriginCoords] = useState<{ x: number; y: number; pctX: number; pctY: number }>({
     x: 0,
@@ -145,26 +147,36 @@ export function MissionMode(props: MissionModeProps) {
   useEffect(() => {
     if (focusPreset === 'pomodoro' && state.seconds > 0 && !isPomodoroBreak && Math.floor(state.seconds / 1500) > Math.floor((state.seconds - 1) / 1500)) {
       audioEngine.playAlert();
+      audioEngine.sendDesktopNotification(
+        "Pomodoro Sprint Complete! ☕",
+        "25 minutes of deep focus concluded. Stand up, hydrate, and rest your eyes for 5 minutes."
+      );
       setIsPomodoroBreak(true);
       setPomodoroBreakSecs(300);
     }
   }, [focusPreset, state.seconds, isPomodoroBreak]);
 
-  // Break Countdown
+  // Break Countdown with Wall-Clock Delta Calculation (Guardrail Rule 4)
   useEffect(() => {
     if (!isPomodoroBreak) return;
+    const targetEndTime = Date.now() + pomodoroBreakSecs * 1000;
     const interval = setInterval(() => {
-      setPomodoroBreakSecs(prev => {
-        if (prev <= 1) {
-          setIsPomodoroBreak(false);
-          audioEngine.playSuccess();
-          return 300;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+      const remaining = Math.max(0, Math.ceil((targetEndTime - Date.now()) / 1000));
+      if (remaining <= 0) {
+        clearInterval(interval);
+        setIsPomodoroBreak(false);
+        setPomodoroBreakSecs(300);
+        audioEngine.playSuccess();
+        audioEngine.sendDesktopNotification(
+          "Rest Break Concluded! ⚡",
+          "5-minute cooling period complete. Ready to engage the next focus sprint!"
+        );
+      } else {
+        setPomodoroBreakSecs(remaining);
+      }
+    }, 250);
     return () => clearInterval(interval);
-  }, [isPomodoroBreak]);
+  }, [isPomodoroBreak, pomodoroBreakSecs]);
 
   // Handle Preset Switching with HUD Transition Feedback
   const handleSelectFocusPreset = (preset: FocusPresetMode) => {
@@ -607,7 +619,7 @@ export function MissionMode(props: MissionModeProps) {
       />
 
       <MissionCompleteModal
-        isCompleted={state.isCompleted && !showDebrief}
+        isCompleted={state.isCompleted}
         activeDetails={state.activeDetails}
         seconds={state.seconds}
         streak={computedStreak}
@@ -615,50 +627,14 @@ export function MissionMode(props: MissionModeProps) {
         focusInterruptions={state.focusInterruptions}
         focusScore={state.focusScore}
         onComplete={(data) => {
-          pendingCompleteData.current = data;
-          setShowDebrief(true);
+          handleSmoothComplete(data);
         }}
         onNextSubject={handlers.handleNextSubject}
       />
 
-      <MissionDebriefModal
-        isOpen={showDebrief}
-        onSubmit={(debrief) => {
-          const isBerserk = (state.seconds >= 2700 && state.focusScore >= 95);
-          const baseXP = Math.floor(state.seconds / 60) * 5;
-          const finalXP = isBerserk ? Math.floor(baseXP * 1.5) : baseXP;
-
-          const base = pendingCompleteData.current || {
-            duration: state.seconds,
-            questions: 0,
-            xp: finalXP,
-            streak: computedStreak,
-            idleTime: state.idleTime,
-            focusInterruptions: state.focusInterruptions,
-            focusScore: state.focusScore,
-          };
-          handleSmoothComplete({
-            ...base,
-            questions: debrief.questions,
-            correct: debrief.correct,
-            confidence: debrief.confidence,
-          });
-        }}
-        onSkip={() => {
-          handleSmoothComplete(pendingCompleteData.current);
-        }}
-      />
-
       <MissionTimeUpModal 
         isOpen={state.isTimeUpModalOpen}
-        xpWager={state.xpWager}
-        onFail={async () => {
-          setters.setIsTimeUpModalOpen(false);
-          setters.setMissionFailed(true);
-          setters.setCoachTip('CASINO PENALTY: You failed to provide Proof of Work. Wager lost.');
-          await actions.deductCasinoWager(state.xpWager);
-        }}
-        onComplete={async (proofOfWork?: string) => {
+        onComplete={() => {
           setters.setIsTimeUpModalOpen(false);
           setters.setChecklist({
             'Watch lecture': true,
@@ -668,34 +644,6 @@ export function MissionMode(props: MissionModeProps) {
             'Revise formulas': true,
           });
           setters.setIsCompleted(true);
-
-          if (proofOfWork?.trim()) {
-            try {
-              const chapName = state.activeDetails?.chapter || state.activeSubjectMission?.chapter || 'Core Module';
-              const chapId = state.activeSubjectMission?.chapterId;
-              await actions.addProofOfWorkNote({
-                text: proofOfWork.trim(),
-                subject: state.activeSubject,
-                chapter: chapName,
-                chapterId: chapId,
-                missionId: state.activeSubjectMission?.id,
-                xpWager: state.xpWager
-              });
-
-              // Add to local notes state so it immediately appears in the cockpit memory drawer
-              setters.setNotes(prev => [
-                {
-                  id: `pow-${Date.now()}`,
-                  timestamp: handlers.formatTime(state.seconds),
-                  text: proofOfWork.trim(),
-                  category: 'Proof of Work'
-                },
-                ...prev
-              ]);
-            } catch (err) {
-              console.error("Failed to save proof of work note:", err);
-            }
-          }
         }}
         onAddExtraTime={(mins) => {
           setters.setExtraTimeAdded(prev => prev + mins);

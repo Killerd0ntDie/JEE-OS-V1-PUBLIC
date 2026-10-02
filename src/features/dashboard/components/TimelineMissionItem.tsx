@@ -15,7 +15,6 @@ import {
 } from 'lucide-react';
 import { springs } from '@/constants/motion';
 import { TodayMission, Chapter } from '@/types/index';
-import { audioEngine } from '@/utils/audioEngine';
 
 export interface TimelineMissionItemProps {
   mission: TodayMission;
@@ -176,14 +175,14 @@ export const TimelineMissionItem = React.memo(function TimelineMissionItem({
               <Trash2 className="w-3 h-3" />
             </button>
           )}
-          {isLive && (
+          {!mission.completed && (isLive || isSelected) && (
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 onStartSession();
               }}
-              className="px-3.5 py-1 bg-amber-500 hover:bg-amber-400 text-zinc-950 shadow-[0_0_12px_rgba(245,158,11,0.4)] text-xs opacity-75 font-mono font-bold uppercase tracking-wider rounded-lg flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
+              className="px-3.5 py-1 bg-amber-500 hover:bg-amber-400 text-zinc-950 shadow-[0_0_12px_rgba(245,158,11,0.4)] text-xs font-mono font-bold uppercase tracking-wider rounded-lg flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
             >
               <Play className="w-3 h-3 fill-current" /> START
             </button>

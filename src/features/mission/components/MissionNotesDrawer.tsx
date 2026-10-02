@@ -55,7 +55,7 @@ export function MissionNotesDrawer({
 
             {/* Category tabs */}
             <div className="flex border-b border-zinc-900/60 px-2 shrink-0 overflow-x-auto custom-scrollbar">
-              {['Quick Notes', 'Important Formula', 'Doubts', 'Proof of Work', 'Bookmarks'].map(cat => (
+              {['Quick Notes', 'Important Formula', 'Doubts', 'Key Concepts', 'Bookmarks'].map(cat => (
                 <button
                   key={cat}
                   onClick={() => setActiveNoteCategory(cat)}
@@ -65,7 +65,7 @@ export function MissionNotesDrawer({
                       : 'border-transparent text-zinc-400 hover:text-zinc-300'
                   }`}
                 >
-                  {cat === 'Proof of Work' ? 'PoW' : cat.split(' ')[0]}
+                  {cat.split(' ')[0]}
                 </button>
               ))}
             </div>
@@ -98,7 +98,7 @@ export function MissionNotesDrawer({
                 
                 {notes.filter(n => n.category === activeNoteCategory).length === 0 && (
                   <div className="text-center py-12 text-zinc-600 text-xs font-mono">
-                    No memory logs logged in this category.
+                    No notes saved in this category.
                   </div>
                 )}
 

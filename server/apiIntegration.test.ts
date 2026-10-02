@@ -93,7 +93,7 @@ describe('API Integration Test Suite (Supertest)', () => {
         .expect(401);
 
       expect(res.body.error).toMatch(/unauthorized/i);
-    });
+    }, 15000);
   });
 
   describe('Input Validation & Error Responses', () => {

@@ -1,17 +1,17 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, } from 'motion/react';
 import { 
-  Search, Filter, BookOpen, RotateCcw, Sparkles, Printer, Plus,
-  CheckCircle2, XCircle, ChevronRight, Clock, AlertTriangle,
-  Brain, Trash2, Check, ArrowRight, Eye, Calendar, Tag, ShieldAlert,
-  Layers, ChevronDown, CheckSquare, Square
+  Search, RotateCcw, Sparkles, Printer, Plus,
+  CheckCircle2, XCircle, Clock, 
+  Brain, Trash2, Eye, 
+  Layers, CheckSquare, Square
 } from 'lucide-react';
 import { Mistake, SubjectId } from '@/types/index';
 import { RichTextRenderer } from '@/components/MathRenderer';
-import { springs } from '@/constants/motion';
 import { MISTAKE_CATEGORIES } from '../MistakesPage';
 import { Modal } from '@/components/ui/Modal';
 import { ConfirmDeleteModal } from '@/components/ui/ConfirmDeleteModal';
+import { Button } from '@/components/ui/Button';
 
 export interface MistakeStudioViewProps {
   mistakes: Mistake[];
@@ -58,8 +58,8 @@ export const MistakeStudioView: React.FC<MistakeStudioViewProps> = ({
   setSearchQuery,
   selectedTag,
   setSelectedTag,
-  selectedDifficulty,
-  setSelectedDifficulty,
+  selectedDifficulty: _selectedDifficulty,
+  setSelectedDifficulty: _setSelectedDifficulty,
   selectedSource,
   setSelectedSource,
   availableSources,
@@ -101,7 +101,9 @@ export const MistakeStudioView: React.FC<MistakeStudioViewProps> = ({
       if (onDeleteMistakesBatch) {
         onDeleteMistakesBatch(deleteConfirmation.ids);
       } else {
-        deleteConfirmation.ids.forEach(id => onDeleteMistake(id));
+        deleteConfirmation.ids.forEach(id => {
+          onDeleteMistake(id);
+        });
       }
       clearSelection();
     }
@@ -329,7 +331,9 @@ export const MistakeStudioView: React.FC<MistakeStudioViewProps> = ({
               <button
                 type="button"
                 onClick={() => {
-                  selectedIds.forEach(id => onUpdateStatus(id, 'Mastered'));
+                  selectedIds.forEach(id => {
+                    onUpdateStatus(id, 'Mastered');
+                  });
                   clearSelection();
                 }}
                 className="px-3 py-1 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 font-bold cursor-pointer"
@@ -406,7 +410,7 @@ export const MistakeStudioView: React.FC<MistakeStudioViewProps> = ({
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-3.5">
-            {filteredMistakes.map((mistake, idx) => {
+            {filteredMistakes.map((mistake, _idx) => {
               const subTheme = getSubjectColor(mistake.subject);
               const statusBadge = getStatusBadge(mistake.revisionStatus);
               const isSelected = selectedIds.has(mistake.id);
@@ -415,20 +419,20 @@ export const MistakeStudioView: React.FC<MistakeStudioViewProps> = ({
               return (
                 <div
                   key={mistake.id}
-                  className={`bg-[#101116] border transition-all rounded-2xl p-4 sm:p-5 space-y-3.5 relative overflow-hidden shadow-md ${
-                    isSelected ? 'border-indigo-500 ring-1 ring-indigo-500/30 bg-indigo-950/10' :
+                  className={`bg-surface-1 border transition-all duration-150 rounded-xl p-4 sm:p-5 space-y-3.5 relative overflow-hidden shadow-sm ${
+                    isSelected ? 'border-cyan-500 ring-1 ring-cyan-500/30 bg-surface-2' :
                     isMastered ? 'border-emerald-950/80 opacity-75 hover:opacity-100 hover:border-emerald-800/50' :
-                    'border-zinc-800/90 hover:border-zinc-700/90'
+                    'border-border-subtle hover:border-border-muted'
                   }`}
                 >
-                  {/* Card Header: Checkbox + Badges + Actions */}
+                  {/* Card Header: Checkbox + Badges + Status */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                     <div className="flex items-center gap-2 flex-wrap min-w-0">
                       <button
                         onClick={() => toggleSelectId(mistake.id)}
                         className="text-zinc-500 hover:text-white cursor-pointer"
                       >
-                        {isSelected ? <CheckSquare className="w-4 h-4 text-indigo-400" /> : <Square className="w-4 h-4" />}
+                        {isSelected ? <CheckSquare className="w-4 h-4 text-cyan-400" /> : <Square className="w-4 h-4" />}
                       </button>
 
                       <span className={`text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded-md border ${subTheme.badge}`}>
@@ -442,14 +446,14 @@ export const MistakeStudioView: React.FC<MistakeStudioViewProps> = ({
                       {mistake.topic && mistake.topic !== mistake.chapter && (
                         <>
                           <span className="text-zinc-600">•</span>
-                          <span className="text-[11px] font-mono text-zinc-400 truncate max-w-[150px]">
+                          <span className="text-xs font-mono text-zinc-400 truncate max-w-[150px]">
                             {mistake.topic}
                           </span>
                         </>
                       )}
 
                       {mistake.source && (
-                        <span className="text-[10px] font-mono text-zinc-400 bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded-md truncate max-w-[160px]">
+                        <span className="text-[10px] font-mono text-zinc-400 bg-surface-2 border border-border-subtle px-2 py-0.5 rounded-md truncate max-w-[160px]">
                           {mistake.source}
                         </span>
                       )}
@@ -460,13 +464,13 @@ export const MistakeStudioView: React.FC<MistakeStudioViewProps> = ({
                         statusBadge.style === 'destructive' ? 'bg-rose-950/40 border-rose-800/40 text-rose-300' :
                         statusBadge.style === 'accent' ? 'bg-amber-950/40 border-amber-800/40 text-amber-300' :
                         statusBadge.style === 'success' ? 'bg-emerald-950/40 border-emerald-800/40 text-emerald-300' :
-                        'bg-zinc-900 border-zinc-800 text-zinc-400'
+                        'bg-surface-2 border-border-subtle text-zinc-400'
                       }`}>
                         {statusBadge.label}
                       </span>
 
                       {mistake.mistakeTypes && mistake.mistakeTypes.length > 0 && (
-                        <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-md bg-zinc-900 border border-zinc-800 text-zinc-400">
+                        <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-md bg-surface-2 border border-border-subtle text-zinc-400">
                           {mistake.mistakeTypes[0]}
                         </span>
                       )}
@@ -476,13 +480,13 @@ export const MistakeStudioView: React.FC<MistakeStudioViewProps> = ({
                   {/* Question Statement Preview with Math */}
                   <div className="text-xs sm:text-sm text-zinc-200 leading-relaxed max-h-24 overflow-hidden relative font-sans">
                     <RichTextRenderer content={mistake.questionText} />
-                    <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-[#101116] to-transparent pointer-events-none" />
+                    <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-surface-1 to-transparent pointer-events-none" />
                   </div>
 
-                  {/* Card Footer Actions */}
-                  <div className="pt-2 border-t border-zinc-800/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="flex items-center gap-2 text-[11px] font-mono text-zinc-500">
-                      <Clock className="w-3 h-3 text-zinc-500" />
+                  {/* Card Footer: Standardized 2-Action Hierarchy */}
+                  <div className="pt-2.5 border-t border-border-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 text-xs font-mono text-zinc-500">
+                      <Clock className="w-3.5 h-3.5 text-zinc-500" />
                       <span>Logged: {new Date(mistake.dateLogged).toLocaleDateString()}</span>
                       {mistake.timeTaken > 0 && (
                         <>
@@ -493,34 +497,41 @@ export const MistakeStudioView: React.FC<MistakeStudioViewProps> = ({
                     </div>
 
                     <div className="flex items-center gap-2 flex-wrap">
-                      <button
+                      <Button
+                        variant="accent"
+                        size="sm"
                         onClick={() => onStartInterrogation(mistake)}
-                        className="px-2.5 py-1 rounded-lg bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/30 text-indigo-300 text-[11px] font-mono font-bold flex items-center gap-1 transition-all cursor-pointer"
                         title="Start Socratic AI Interrogation"
                       >
-                        <Brain className="w-3 h-3 text-indigo-400" />
+                        <Brain className="w-3.5 h-3.5" />
                         <span>AI Autopsy</span>
-                      </button>
+                      </Button>
 
-                      <button
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        aria-label="Remediate"
                         onClick={() => onStartRemediation(mistake)}
-                        className="px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-[11px] font-mono font-bold flex items-center gap-1 transition-all cursor-pointer"
                         title="Step-by-Step Remediation Lab"
                       >
-                        <Sparkles className="w-3 h-3 text-amber-400" />
+                        <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                         <span>Remediate</span>
-                      </button>
+                      </Button>
 
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => setInspectedMistake(mistake)}
-                        className="px-2.5 py-1 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 text-[11px] font-mono font-bold flex items-center gap-1 transition-all cursor-pointer"
+                        title="Inspect Question & Solution"
                       >
-                        <Eye className="w-3 h-3 text-zinc-400" />
+                        <Eye className="w-3.5 h-3.5 text-zinc-400" />
                         <span>Inspect</span>
-                      </button>
+                      </Button>
 
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
+                        size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
                           setDeleteConfirmation({
@@ -530,11 +541,11 @@ export const MistakeStudioView: React.FC<MistakeStudioViewProps> = ({
                             message: `Are you sure you want to delete this mistake (${mistake.chapter}${mistake.topic ? ` - ${mistake.topic}` : ''})? This will remove it from your revision queue.`
                           });
                         }}
-                        className="p-1 rounded-lg bg-zinc-900 hover:bg-rose-950/50 hover:text-rose-400 text-zinc-500 hover:border-rose-800/50 border border-zinc-800 transition-all cursor-pointer"
+                        className="hover:text-rose-400 text-zinc-500"
                         title="Delete Mistake"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 </div>

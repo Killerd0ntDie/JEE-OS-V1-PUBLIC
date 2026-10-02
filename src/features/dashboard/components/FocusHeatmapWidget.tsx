@@ -3,7 +3,7 @@ import { StudySession } from '@/types';
 import { toLocalDateString } from '@/utils/dateUtils';
 import { motion, AnimatePresence } from 'motion/react';
 import { springs } from '@/constants/motion';
-import { Flame, X, Clock, Target, Sparkles, ChevronRight, Activity } from 'lucide-react';
+import { Flame, X, Clock, Activity } from 'lucide-react';
 import { audioEngine } from '@/utils/audioEngine';
 
 interface FocusHeatmapWidgetProps {
@@ -73,29 +73,8 @@ export const FocusHeatmapWidget: React.FC<FocusHeatmapWidgetProps> = ({ studySes
 
   return (
     <div 
-      style={{
-        background: 'rgba(10, 14, 23, 0.85)',
-        backdropFilter: 'blur(24px) saturate(190%)',
-        border: '1px solid rgba(255, 255, 255, 0.10)',
-        borderTop: '1.5px solid rgba(255, 255, 255, 0.25)',
-        boxShadow: '0 12px 35px rgba(0, 0, 0, 0.6)'
-      }}
-      className="rounded-2xl p-5 border text-left relative overflow-hidden flex-1 flex flex-col justify-between shadow-sm"
+      className="rounded-2xl p-5 border border-border-subtle hover:border-border-muted bg-surface-1 text-left relative overflow-hidden flex-1 flex flex-col justify-between shadow-xl"
     >
-      {/* Top Emerald Hazard Warning Tape Ribbon */}
-      <div 
-        className="absolute top-0 inset-x-0 h-1 opacity-75 pointer-events-none"
-        style={{
-          background: 'repeating-linear-gradient(-45deg, #10b981 0px, #10b981 8px, transparent 8px, transparent 16px)'
-        }}
-      />
-
-      {/* Caliper Crosshairs */}
-      <span className="absolute top-2.5 left-2.5 text-[9px] font-mono text-zinc-600 select-none pointer-events-none">+</span>
-      <span className="absolute top-2.5 right-2.5 text-[9px] font-mono text-zinc-600 select-none pointer-events-none">+</span>
-      <span className="absolute bottom-2.5 left-2.5 text-[9px] font-mono text-zinc-600 select-none pointer-events-none">+</span>
-      <span className="absolute bottom-2.5 right-2.5 text-[9px] font-mono text-zinc-600 select-none pointer-events-none">+</span>
-
       <div className="flex items-center justify-between mb-3.5 relative z-10">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center shadow-sm">

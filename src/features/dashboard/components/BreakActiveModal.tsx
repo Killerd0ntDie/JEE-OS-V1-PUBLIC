@@ -1,14 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Icon } from '@/components/ui/Icon';
 import { TodayMission } from '@/types/index';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
+import { audioEngine } from '@/utils/audioEngine';
 
 interface BreakActiveModalProps {
   isOpen: boolean;
   onClose: () => void;
   breakMission: TodayMission | null;
 }
+
+type BreakFSMState = 'idle' | 'active' | 'paused' | 'completed';
 
 const RELAXATION_TIPS = [
   { icon: 'Coffee', title: 'Hydrate & Refuel', text: 'Drink a glass of water to keep your brain hydrated and alert.' },
@@ -20,43 +23,72 @@ const RELAXATION_TIPS = [
 export function BreakActiveModal({ isOpen, onClose, breakMission }: BreakActiveModalProps) {
   const actions = useStudyBrainStore(s => s.actions);
   const totalSeconds = (breakMission?.duration || 15) * 60;
-  const [secondsRemaining, setSecondsRemaining] = useState(totalSeconds);
-  const [isPaused, setIsPaused] = useState(false);
+  
+  const [fsmState, setFsmState] = useState<BreakFSMState>('idle');
+  const [secondsRemaining, setSecondsRemaining] = useState<number>(totalSeconds);
   const [tipIndex, setTipIndex] = useState(0);
 
+  const lastTickRef = useRef<number>(Date.now());
+
+  // Initialize or reset session when modal opens or breakMission changes
   useEffect(() => {
-    if (isOpen) {
-      setSecondsRemaining((breakMission?.duration || 15) * 60);
-      setIsPaused(false);
+    if (!isOpen) {
+      setFsmState('idle');
+      return;
     }
-  }, [isOpen, breakMission]);
+    const initialSecs = (breakMission?.duration || 15) * 60;
+    setSecondsRemaining(initialSecs);
+    setFsmState('active');
+    lastTickRef.current = Date.now();
+  }, [isOpen, breakMission?.id, breakMission?.duration]);
 
+  // Wall-clock delta FSM timer
   useEffect(() => {
-    if (!isOpen || isPaused) return;
+    if (fsmState !== 'active') return;
+
+    lastTickRef.current = Date.now();
     const interval = setInterval(() => {
-      setSecondsRemaining(prev => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [isOpen, isPaused]);
+      const now = Date.now();
+      const deltaSeconds = Math.floor((now - lastTickRef.current) / 1000);
+      
+      if (deltaSeconds >= 1) {
+        lastTickRef.current = now;
+        setSecondsRemaining(prev => {
+          const next = Math.max(0, prev - deltaSeconds);
+          if (next === 0) {
+            setFsmState('completed');
+            audioEngine.playSuccess().catch(() => {});
+          }
+          return next;
+        });
+      }
+    }, 250);
 
-  // Rotate relaxation tip every 15 seconds
+    return () => clearInterval(interval);
+  }, [fsmState]);
+
+  // Rotate relaxation tip every 15 seconds when active
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || fsmState !== 'active') return;
     const interval = setInterval(() => {
       setTipIndex(prev => (prev + 1) % RELAXATION_TIPS.length);
     }, 15000);
     return () => clearInterval(interval);
-  }, [isOpen]);
+  }, [isOpen, fsmState]);
+
+  const handleTogglePause = () => {
+    if (fsmState === 'active') {
+      setFsmState('paused');
+    } else if (fsmState === 'paused') {
+      lastTickRef.current = Date.now();
+      setFsmState('active');
+    }
+  };
 
   const handleFinishBreak = () => {
     if (breakMission) {
       actions.completeTask(breakMission.id);
+      audioEngine.playSuccess().catch(() => {});
     }
     onClose();
   };
@@ -68,7 +100,12 @@ export function BreakActiveModal({ isOpen, onClose, breakMission }: BreakActiveM
   const activeTip = RELAXATION_TIPS[tipIndex];
 
   return (
-    <Modal isOpen={isOpen} zIndex={120} className="max-w-lg w-full p-8 rounded-3xl border border-amber-500/30 text-white shadow-[0_0_50px_rgba(245,158,11,0.15)] text-center relative overflow-hidden glass-panel">
+    <Modal 
+      isOpen={isOpen} 
+      onClose={onClose}
+      zIndex={120} 
+      className="max-w-lg w-full p-8 rounded-3xl border border-amber-500/30 text-white shadow-[0_0_50px_rgba(245,158,11,0.15)] text-center relative overflow-hidden glass-panel"
+    >
       {/* Background Ambient Aura */}
       <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-72 h-72 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -76,7 +113,7 @@ export function BreakActiveModal({ isOpen, onClose, breakMission }: BreakActiveM
       <div className="flex items-center justify-between border-b border-zinc-800/80 pb-4 mb-6 relative z-10">
         <div className="flex items-center gap-2.5">
           <div className="p-2 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400">
-            <Icon name="Coffee" className="w-5 h-5 animate-bounce" />
+            <Icon name="Coffee" className="w-5 h-5 animate-pulse" />
           </div>
           <div className="text-left">
             <h2 className="text-base font-display font-bold text-white leading-tight">
@@ -85,7 +122,14 @@ export function BreakActiveModal({ isOpen, onClose, breakMission }: BreakActiveM
             <p className="text-xs text-amber-400/80 font-mono">Rest & Recovery Mode</p>
           </div>
         </div>
-        {/* Close button removed intentionally to enforce break completion/pause */}
+        <button
+          type="button"
+          onClick={onClose}
+          className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/60 transition-colors cursor-pointer"
+          title="Minimize Break Modal"
+        >
+          <Icon name="X" className="w-4 h-4" />
+        </button>
       </div>
 
       {/* Soothing Radial Timer */}
@@ -105,7 +149,7 @@ export function BreakActiveModal({ isOpen, onClose, breakMission }: BreakActiveM
               cx="50"
               cy="50"
               r="44"
-              className="text-amber-400 stroke-current transition-all duration-1000"
+              className="text-amber-400 stroke-current transition-all duration-500"
               strokeWidth="6"
               strokeDasharray="276"
               strokeDashoffset={276 - (276 * progressPercent) / 100}
@@ -118,7 +162,7 @@ export function BreakActiveModal({ isOpen, onClose, breakMission }: BreakActiveM
               {formatTime}
             </div>
             <span className="text-[10px] font-mono text-amber-400/90 uppercase tracking-widest block font-bold">
-              {isPaused ? 'PAUSED' : 'RECHARGING'}
+              {fsmState === 'completed' ? 'RESTORED' : fsmState === 'paused' ? 'PAUSED' : 'RECHARGING'}
             </span>
           </div>
         </div>
@@ -137,14 +181,16 @@ export function BreakActiveModal({ isOpen, onClose, breakMission }: BreakActiveM
 
       {/* Action Buttons */}
       <div className="flex items-center gap-3 pt-2 relative z-10">
-        <button
-          type="button"
-          onClick={() => setIsPaused(!isPaused)}
-          className="flex-1 py-3 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-850 text-zinc-200 font-mono text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2"
-        >
-          <Icon name={isPaused ? 'Play' : 'Pause'} className="w-4 h-4" />
-          <span>{isPaused ? 'Resume' : 'Pause'}</span>
-        </button>
+        {fsmState !== 'completed' && (
+          <button
+            type="button"
+            onClick={handleTogglePause}
+            className="flex-1 py-3 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-850 text-zinc-200 font-mono text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-95"
+          >
+            <Icon name={fsmState === 'paused' ? 'Play' : 'Pause'} className="w-4 h-4" />
+            <span>{fsmState === 'paused' ? 'Resume' : 'Pause'}</span>
+          </button>
+        )}
 
         <button
           type="button"
@@ -152,7 +198,7 @@ export function BreakActiveModal({ isOpen, onClose, breakMission }: BreakActiveM
           className="flex-1 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-mono text-xs font-bold transition-all shadow-lg shadow-amber-500/25 flex items-center justify-center gap-2 cursor-pointer active:scale-95"
         >
           <Icon name="Check" className="w-4 h-4 stroke-[3]" />
-          <span>Finish Break Early</span>
+          <span>{fsmState === 'completed' ? 'Done — Back to Mission' : 'Finish Break Early'}</span>
         </button>
       </div>
     </Modal>

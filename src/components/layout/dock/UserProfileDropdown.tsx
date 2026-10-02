@@ -48,8 +48,8 @@ export const UserProfileDropdown: React.FC<UserProfileDropdownProps> = ({
     <div className="relative">
       <motion.button
         type="button"
-        whileHover={{ scale: 1.18, x: isVertical ? -3 : 0, y: isVertical ? 0 : -3 }}
-        whileTap={{ scale: 0.9 }}
+        whileHover={{ scale: 1.06, y: isVertical ? 0 : -2 }}
+        whileTap={{ scale: 0.94 }}
         transition={springs.snappy}
         onClick={() => toggleMenu('profile')}
         onMouseEnter={() => handleItemHover('profile')}

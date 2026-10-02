@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import React from 'react';
+import { MemoryRouter } from 'react-router-dom';
 import { AnalyticsPage } from './AnalyticsPage';
 import { Chapter, ChapterTelemetry } from '@jee-os/engines';
 
@@ -220,7 +220,11 @@ describe('AnalyticsPage Feature View (Magnitude 5.1)', () => {
   });
 
   it('renders primary analytics telemetry banner and tab navigation', () => {
-    render(<AnalyticsPage />);
+    render(
+      <MemoryRouter>
+        <AnalyticsPage />
+      </MemoryRouter>
+    );
 
     expect(screen.getByText('Telemetry & Performance Intelligence')).toBeInTheDocument();
     expect(screen.getByText('Preparation Analytics & Velocity')).toBeInTheDocument();
@@ -233,7 +237,11 @@ describe('AnalyticsPage Feature View (Magnitude 5.1)', () => {
   });
 
   it('allows switching between intelligence tabs', async () => {
-    render(<AnalyticsPage />);
+    render(
+      <MemoryRouter>
+        <AnalyticsPage />
+      </MemoryRouter>
+    );
 
     // Switch to Exam Strategy tab
     const strategyTab = screen.getByText('Exam Strategy');
@@ -261,7 +269,11 @@ describe('AnalyticsPage Feature View (Magnitude 5.1)', () => {
   });
 
   it('filters subject view using subject switcher pills', () => {
-    render(<AnalyticsPage />);
+    render(
+      <MemoryRouter>
+        <AnalyticsPage />
+      </MemoryRouter>
+    );
 
     // Subject buttons
     const physicsBtn = screen.getByRole('button', { name: /Physics/i });

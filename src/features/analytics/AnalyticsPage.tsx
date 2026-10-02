@@ -1,15 +1,11 @@
-import React, { useState, useMemo, startTransition } from 'react';
+import React, { useState, useMemo, } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
-import { Icon } from '@/components/ui/Icon';
-import { Badge } from '@/components/ui/Badge';
 import { calculateLevelFromXP, getTitleAndColor } from '@/utils/levelingCalculations';
-import { ChapterTelemetry } from '@jee-os/engines';
+import { ChapterTelemetry, calculateSubjectMasteryAverages } from '@jee-os/engines';
 import { springs } from '@/constants/motion';
 import { 
-  Activity, Target, PieChart, TrendingUp, AlertTriangle, 
-  Clock, Zap, Award, Flame, CheckCircle2, ChevronRight, ShieldAlert,
-  Sparkles, RefreshCw, Calendar, Info, HelpCircle, Brain
+  Activity, Target, PieChart, TrendingUp, AlertTriangle, Zap, ShieldAlert,Brain
 } from 'lucide-react';
 import { SyllabusCompletionProjector } from './components/SyllabusCompletionProjector';
 import { SolvingVelocityTracker } from './components/SolvingVelocityTracker';
@@ -22,14 +18,6 @@ import { RevisionCalendarHeatmap } from '@/features/revision/components/Revision
 import { ChapterRoiWeightageMatrix } from '@/features/subjects/components/ChapterRoiWeightageMatrix';
 import { useNavigate } from 'react-router-dom';
 
-function useOptionalNavigate() {
-  try {
-    return useNavigate();
-  } catch {
-    return () => {};
-  }
-}
-
 type AnalyticsTab = 'velocity' | 'strategy' | 'retention' | 'macro';
 
 const TABS = [
@@ -40,14 +28,14 @@ const TABS = [
 ];
 
 export function AnalyticsPage() {
-  const navigate = useOptionalNavigate();
+  const navigate = useNavigate();
   const actions = useStudyBrainStore(state => state.actions);
   const chapterTelemetryMap = useStudyBrainStore(state => state.chapterTelemetryMap);
   const studySessions = useStudyBrainStore(state => state.studySessions) || [];
   const xp = useStudyBrainStore(state => state.xp);
   const analytics = useStudyBrainStore(state => state.analytics);
   const chapters = useStudyBrainStore(state => state.chapters);
-  const settings = useStudyBrainStore(state => state.settings);
+  const _settings = useStudyBrainStore(state => state.settings);
   const revisionTelemetry = useStudyBrainStore(state => state.revisionTelemetry);
   const mocks = useStudyBrainStore(state => state.mocks) || [];
 
@@ -86,17 +74,7 @@ export function AnalyticsPage() {
   }, [filteredTelemetry]);
 
   const subjectMastery = useMemo(() => {
-    const calc = (sub: string) => {
-      const list = chapterTelemetryList.filter(t => t.subject === sub);
-      if (list.length === 0) return 0;
-      return Math.round(list.reduce((acc, t) => acc + t.masteryScore, 0) / list.length);
-    };
-
-    return {
-      physics: calc('physics'),
-      chemistry: calc('chemistry'),
-      maths: calc('maths')
-    };
+    return calculateSubjectMasteryAverages(chapterTelemetryList);
   }, [chapterTelemetryList]);
 
   const totalXP = xp?.total || 0;

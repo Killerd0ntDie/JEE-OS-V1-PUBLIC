@@ -1,6 +1,6 @@
-import React from 'react';
+
 import { motion } from 'motion/react';
-import { Zap, Target, Flame, Sparkles } from 'lucide-react';
+import { Zap, Flame, } from 'lucide-react';
 import { calculateLevelFromXP, getTitleAndColor } from '@/utils/levelingCalculations';
 
 interface DailyStudyTrackerWidgetProps {
@@ -14,9 +14,9 @@ interface DailyStudyTrackerWidgetProps {
 export function DailyStudyTrackerWidget({
   studyTime,
   dailyQuota,
-  xpLevel,
+  xpLevel: _xpLevel,
   xpTotal,
-  xpNextLevel
+  xpNextLevel: _xpNextLevel
 }: DailyStudyTrackerWidgetProps) {
   const studyHours = (studyTime / 60).toFixed(1);
   const quotaHours = dailyQuota || 4;
@@ -28,44 +28,16 @@ export function DailyStudyTrackerWidget({
 
   return (
     <div 
-      style={{
-        background: 'rgba(10, 14, 23, 0.85)',
-        backdropFilter: 'blur(24px) saturate(190%)',
-        border: '1px solid rgba(255, 255, 255, 0.10)',
-        borderTop: '1.5px solid rgba(255, 255, 255, 0.25)',
-        boxShadow: '0 12px 35px rgba(0, 0, 0, 0.6)'
-      }}
-      className="rounded-2xl p-5 space-y-4 shadow-sm relative overflow-hidden flex-1 flex flex-col justify-between"
+      className="rounded-2xl p-5 space-y-4 shadow-xl relative overflow-hidden flex-1 flex flex-col justify-between bg-surface-1 border border-border-subtle hover:border-border-muted"
     >
-      {/* Top Amber Hazard Warning Tape Ribbon */}
-      <div 
-        className="absolute top-0 inset-x-0 h-1 opacity-75 pointer-events-none"
-        style={{
-          background: 'repeating-linear-gradient(-45deg, #f59e0b 0px, #f59e0b 8px, transparent 8px, transparent 16px)'
-        }}
-      />
-
-      {/* Caliper Crosshairs */}
-      <span className="absolute top-2.5 left-2.5 text-[9px] font-mono text-zinc-600 select-none pointer-events-none">+</span>
-      <span className="absolute top-2.5 right-2.5 text-[9px] font-mono text-zinc-600 select-none pointer-events-none">+</span>
-      <span className="absolute bottom-2.5 left-2.5 text-[9px] font-mono text-zinc-600 select-none pointer-events-none">+</span>
-      <span className="absolute bottom-2.5 right-2.5 text-[9px] font-mono text-zinc-600 select-none pointer-events-none">+</span>
-
       <div className="flex items-center justify-between relative z-10">
         <div className="flex items-center gap-3">
-          {/* Animated Kinetic Ring Badge */}
-          <div className="relative w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center shadow-sm shrink-0 overflow-hidden">
-            <svg viewBox="0 0 40 40" className="eva-kinetic-ring w-full h-full absolute inset-0 animate-[spin_10s_linear_infinite]">
-              <circle cx="20" cy="20" r="16" className="stroke-amber-400/40 fill-none" strokeWidth="1.5" strokeDasharray="4 4" />
-            </svg>
-            <svg viewBox="0 0 40 40" className="eva-kinetic-ring w-full h-full absolute inset-0 animate-[spin_6s_linear_infinite_reverse]">
-              <circle cx="20" cy="20" r="12" className="stroke-orange-400/50 fill-none" strokeWidth="1.5" strokeDasharray="6 3" />
-            </svg>
+          <div className="relative w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center shadow-sm shrink-0">
             <Flame className="w-4 h-4 text-amber-400 relative z-10 animate-pulse" />
           </div>
           <div>
             <h3 className="text-sm font-bold font-mono text-white tracking-tight uppercase">
-              <span className="eva-japanese-badge">稼働追跡 // </span>DAILY STUDY ENGINE
+              DAILY STUDY ENGINE
             </h3>
             <p className="text-[10px] text-zinc-400 font-mono">
               Target Capacity & Output

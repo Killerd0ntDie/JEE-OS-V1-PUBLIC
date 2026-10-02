@@ -1,126 +1,118 @@
-@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Noto+Sans+JP:wght@400;500;700;900&family=Share+Tech+Mono&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Space+Grotesk:wght@500;600;700&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", "Noto Sans JP", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Space Grotesk", "Inter", sans-serif;
-  --font-mono: "JetBrains Mono", "Space Mono", ui-monospace, monospace;
-  --font-hud: "Share Tech Mono", "JetBrains Mono", monospace;
-  --font-tactical: "Chakra Petch", "Space Grotesk", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-hud: "JetBrains Mono", monospace;
+  --font-tactical: "Inter", "Space Grotesk", sans-serif;
   
-  /* Sophisticated Dark Theme Color Palette */
-  --color-zinc-950: #09090b;
-  --color-zinc-900: #0c0c0e;
-  --color-zinc-850: #18181b;
-  --color-zinc-800: #27272a;
-  --color-zinc-750: #2a2a2e;
-  --color-zinc-700: #3f3f46;
+  /* 4-Tier Dark Elevation System */
+  --color-void: #07080a;               /* Layer 0: Root Canvas / Full-bleed backdrop */
+  --color-surface-1: #0d0f14;          /* Layer 1: Base Cards, Page Sections */
+  --color-surface-2: #141721;          /* Layer 2: Nested Containers, Hover Cards, Inputs */
+  --color-surface-elevated: #1c202e;   /* Layer 3: Modals, Drawers, Floating Dock, Popovers */
+
+  /* Precision Border Tokens */
+  --color-border-subtle: rgba(255, 255, 255, 0.06);
+  --color-border-muted: rgba(255, 255, 255, 0.10);
+  --color-border-strong: rgba(255, 255, 255, 0.18);
+  --color-border-highlight: rgba(255, 255, 255, 0.28);
+
+  /* Tactical Functional Accent Palette */
+  --color-cyber-cyan: #06b6d4;         /* High-Yield Actions, Mock Engine, Telemetry */
+  --color-cyber-cyan-glow: rgba(6, 182, 212, 0.18);
+
+  --color-focus-amber: #f59e0b;        /* Active Pomodoro, Daily Quotas, Streak Fire */
+  --color-focus-amber-glow: rgba(245, 158, 11, 0.20);
+
+  --color-precision-violet: #8b5cf6;   /* Mathematics, Strategic AI Mentor, Deep Work */
+  --color-precision-violet-glow: rgba(139, 92, 246, 0.18);
+
+  --color-critical-crimson: #ef4444;   /* Error Traps, Retention Decay Alerts, Penalties */
+  --color-critical-crimson-glow: rgba(239, 68, 68, 0.22);
+
+  --color-mastery-emerald: #10b981;    /* Mastered Milestones, 100% Nominal, High Accuracy */
+  --color-mastery-emerald-glow: rgba(16, 185, 129, 0.18);
+
+  /* Backward Compatibility Zinc & Brand Scale */
+  --color-zinc-950: #07080a;
+  --color-zinc-900: #0d0f14;
+  --color-zinc-850: #141721;
+  --color-zinc-800: #202433;
+  --color-zinc-750: #2a2f42;
+  --color-zinc-700: #3f465c;
   
   --color-brand-primary: #ffffff;
-  --color-brand-accent: #6366f1; /* Sophisticated Indigo accent */
-  --color-brand-accent-glow: rgba(99, 102, 241, 0.15);
+  --color-brand-accent: #06b6d4;
+  --color-brand-accent-glow: rgba(6, 182, 212, 0.18);
 
   --font-size-3xs: 0.68rem; /* ~10.9px */
   --font-size-2xs: 0.75rem; /* ~12px */
 }
 
-/* Tactical NERV / Evangelion Typography Utilities */
+/* Tactical & Telemetry Typography Utilities */
 .font-hud {
   font-family: var(--font-hud), "JetBrains Mono", monospace;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-variant-numeric: tabular-nums;
 }
 
 .font-tactical {
-  font-family: var(--font-tactical), "Chakra Petch", "Space Grotesk", sans-serif;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
+  font-family: var(--font-tactical), "Inter", sans-serif;
+  letter-spacing: 0.01em;
 }
 
 .font-telemetry {
   font-family: var(--font-mono), "JetBrains Mono", monospace;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  font-feature-settings: "tnum" on, "zero" on;
+  letter-spacing: 0.05em;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "zero" 1;
 }
 
-/* --- 3-TIER TACTICAL SURFACE HIERARCHY --- */
+/* --- 4-TIER TACTICAL SURFACE HIERARCHY --- */
 .surface-1 {
-  background-color: rgba(9, 9, 11, 0.8);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background-color: var(--color-surface-1);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--color-border-subtle);
 }
 
 .surface-2 {
-  background-color: rgba(12, 12, 14, 0.9);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  background-color: var(--color-surface-2);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--color-border-muted);
   transition: border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .surface-2:hover {
-  border-color: rgba(99, 102, 241, 0.4);
+  border-color: var(--color-border-strong);
 }
 
 .surface-elevated {
-  background-color: rgba(9, 9, 11, 0.95);
-  backdrop-filter: blur(32px);
-  -webkit-backdrop-filter: blur(32px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 14px rgba(99, 102, 241, 0.08);
+  background-color: var(--color-surface-elevated);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border: 1px solid var(--color-border-strong);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 14px var(--color-cyber-cyan-glow);
 }
 
-/* --- THEME MODES (MODERN MINIMALIST OVERRIDES) --- */
+/* --- THEME MODES (TACTICAL MINIMALIST THEME) --- */
 .theme-modern {
   --font-display: "Space Grotesk", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-tactical: "Space Grotesk", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-tactical: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
   --font-hud: "JetBrains Mono", monospace;
 }
 
 .theme-modern .font-tactical {
-  font-family: "Space Grotesk", "Inter", sans-serif !important;
-  letter-spacing: normal !important;
-  text-transform: none !important;
+  letter-spacing: normal;
+  text-transform: none;
 }
 
 .theme-modern .font-hud {
-  font-family: "JetBrains Mono", monospace !important;
-  letter-spacing: normal !important;
-}
-
-/* Revert/Hide hazard caution tape ribbons in Modern mode */
-.theme-modern [style*="repeating-linear-gradient"],
-.theme-modern .hazard-ribbon {
-  display: none !important;
-}
-
-/* Revert/Hide tactical corner crosshair calipers in Modern mode */
-.theme-modern span.select-none.pointer-events-none:is([class*="font-mono"]),
-.theme-modern .corner-caliper {
-  display: none !important;
-}
-
-/* Revert/Hide Japanese anime telemetry badges in Modern mode */
-.theme-modern .eva-japanese-badge,
-.theme-modern .eva-tactical-only {
-  display: none !important;
-}
-
-.theme-modern .modern-badge-text {
-  display: inline !important;
-}
-
-/* Revert/Hide rotating kinetic circle animations in Modern mode */
-.theme-modern .eva-kinetic-ring,
-.theme-modern svg[class*="animate-[spin_"] {
-  display: none !important;
-}
-
-/* Revert high-voltage neon glow outlines back to subtle modern shadows */
-.theme-modern [class*="shadow-[0_0_"] {
-  box-shadow: none !important;
+  letter-spacing: normal;
 }
 
 /* --- THEME SHIFTS (GOD MODE & ROT MODE) --- */

@@ -74,7 +74,7 @@ export function MockDirectorySidebar({
           whileTap={{ scale: 0.98 }}
           transition={springs.snappy}
           onClick={onOpenStudio}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-mono font-bold bg-indigo-600 hover:bg-indigo-500 text-white border border-indigo-400/30 shadow-sm transition-colors cursor-pointer"
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-mono font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm transition-colors cursor-pointer"
         >
           <Sparkles className="w-3.5 h-3.5 text-indigo-200" />
           <span>AI Mock Generator</span>
@@ -86,7 +86,7 @@ export function MockDirectorySidebar({
             whileTap={{ scale: 0.98 }}
             transition={springs.snappy}
             onClick={onOpenPyqUpload}
-            className="flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-[11px] font-mono font-medium bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-300 hover:text-white transition-colors cursor-pointer"
+            className="flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-[11px] font-mono font-medium bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 hover:text-white transition-colors cursor-pointer"
             title="Upload PYQ"
           >
             <FileUp className="w-3.5 h-3.5 text-sky-400 shrink-0" />
@@ -98,7 +98,7 @@ export function MockDirectorySidebar({
             whileTap={{ scale: 0.98 }}
             transition={springs.snappy}
             onClick={onOpenDppUpload}
-            className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-mono font-medium bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-300 hover:text-white transition-colors cursor-pointer"
+            className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-mono font-medium bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 hover:text-white transition-colors cursor-pointer"
           >
             <Target className="w-3.5 h-3.5 text-emerald-400" />
             <span>Upload DPP</span>
@@ -118,8 +118,8 @@ export function MockDirectorySidebar({
           onClick={() => onSelectNav('full_tests')}
           className={`relative w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-left cursor-pointer transition-colors group ${
             activeNav === 'full_tests'
-              ? 'border border-zinc-700 shadow-sm'
-              : 'border border-zinc-855 bg-zinc-900/40 hover:bg-zinc-850/60 hover:border-zinc-750 text-zinc-400 hover:text-zinc-200'
+              ? 'bg-zinc-800/90 text-white shadow-xs'
+              : 'bg-transparent hover:bg-white/[0.06] text-zinc-400 hover:text-zinc-200'
           }`}
         >
           {activeNav === 'full_tests' && (
@@ -132,8 +132,8 @@ export function MockDirectorySidebar({
           <div className="relative z-10 flex items-center gap-2.5 min-w-0">
             <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
               activeNav === 'full_tests'
-                ? 'bg-amber-950/70 border border-amber-700/60 text-amber-300'
-                : 'bg-amber-950/40 border border-amber-800/30 text-amber-400/80 group-hover:text-amber-400'
+                ? 'bg-amber-950/70 text-amber-300'
+                : 'bg-amber-950/40 text-amber-400/80 group-hover:text-amber-400'
             }`}>
               <Trophy className="w-3.5 h-3.5" />
             </div>
@@ -141,10 +141,10 @@ export function MockDirectorySidebar({
               Full JEE CBT Mocks
             </span>
           </div>
-          <span className={`relative z-10 shrink-0 text-[10px] font-mono font-medium px-2 py-0.5 rounded border transition-colors ${
+          <span className={`relative z-10 shrink-0 text-[10px] font-mono font-medium px-2 py-0.5 rounded transition-colors ${
             activeNav === 'full_tests'
-              ? 'bg-zinc-700/80 text-zinc-200 border-zinc-600'
-              : 'bg-zinc-850/80 text-zinc-400 border-zinc-800'
+              ? 'bg-zinc-700/80 text-zinc-200'
+              : 'bg-zinc-850/80 text-zinc-400'
           }`}>
             {fullTestsCount}
           </span>
@@ -156,8 +156,8 @@ export function MockDirectorySidebar({
           onClick={() => onSelectNav('pyq')}
           className={`relative w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-left cursor-pointer transition-colors group ${
             activeNav === 'pyq'
-              ? 'border border-zinc-700 shadow-sm'
-              : 'border border-zinc-855 bg-zinc-900/40 hover:bg-zinc-850/60 hover:border-zinc-750 text-zinc-400 hover:text-zinc-200'
+              ? 'bg-zinc-800/90 text-white shadow-xs'
+              : 'bg-transparent hover:bg-white/[0.06] text-zinc-400 hover:text-zinc-200'
           }`}
         >
           {activeNav === 'pyq' && (
@@ -170,8 +170,8 @@ export function MockDirectorySidebar({
           <div className="relative z-10 flex items-center gap-2.5 min-w-0">
             <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
               activeNav === 'pyq'
-                ? 'bg-sky-950/70 border border-sky-700/60 text-sky-300'
-                : 'bg-sky-950/40 border border-sky-800/30 text-sky-400/80 group-hover:text-sky-400'
+                ? 'bg-sky-950/70 text-sky-300'
+                : 'bg-sky-950/40 text-sky-400/80 group-hover:text-sky-400'
             }`}>
               <FileText className="w-3.5 h-3.5" />
             </div>
@@ -179,10 +179,10 @@ export function MockDirectorySidebar({
               PYQ Papers
             </span>
           </div>
-          <span className={`relative z-10 shrink-0 text-[10px] font-mono font-medium px-2 py-0.5 rounded border transition-colors ${
+          <span className={`relative z-10 shrink-0 text-[10px] font-mono font-medium px-2 py-0.5 rounded transition-colors ${
             activeNav === 'pyq'
-              ? 'bg-zinc-700/80 text-zinc-200 border-zinc-600'
-              : 'bg-zinc-850/80 text-zinc-400 border-zinc-800'
+              ? 'bg-zinc-700/80 text-zinc-200'
+              : 'bg-zinc-850/80 text-zinc-400'
           }`}>
             {pyqTestsCount}
           </span>
@@ -201,8 +201,8 @@ export function MockDirectorySidebar({
           onClick={() => onSelectNav('physics')}
           className={`relative w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-left cursor-pointer transition-colors group ${
             activeNav === 'physics'
-              ? 'border border-zinc-700 shadow-sm'
-              : 'border border-zinc-855 bg-zinc-900/40 hover:bg-zinc-850/60 hover:border-zinc-750 text-zinc-400 hover:text-zinc-200'
+              ? 'bg-zinc-800/90 text-white shadow-xs'
+              : 'bg-transparent hover:bg-white/[0.06] text-zinc-400 hover:text-zinc-200'
           }`}
         >
           {activeNav === 'physics' && (
@@ -215,8 +215,8 @@ export function MockDirectorySidebar({
           <div className="relative z-10 flex items-center gap-2.5 min-w-0">
             <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
               activeNav === 'physics'
-                ? 'bg-sky-950/70 border border-sky-700/60 text-sky-300'
-                : 'bg-sky-950/40 border border-sky-800/30 text-sky-400/80 group-hover:text-sky-400'
+                ? 'bg-sky-950/70 text-sky-300'
+                : 'bg-sky-950/40 text-sky-400/80 group-hover:text-sky-400'
             }`}>
               <Atom className="w-3.5 h-3.5" />
             </div>
@@ -224,10 +224,10 @@ export function MockDirectorySidebar({
               Physics
             </span>
           </div>
-          <span className={`relative z-10 shrink-0 text-[10px] font-mono font-medium px-2 py-0.5 rounded border transition-colors ${
+          <span className={`relative z-10 shrink-0 text-[10px] font-mono font-medium px-2 py-0.5 rounded transition-colors ${
             activeNav === 'physics'
-              ? 'bg-sky-950/80 text-sky-300 border-sky-700/60'
-              : 'bg-sky-950/30 text-sky-400/90 border-sky-800/40'
+              ? 'bg-sky-950/80 text-sky-300'
+              : 'bg-sky-950/40 text-sky-400/90'
           }`}>
             {physicsChaptersCount} Ch
           </span>
@@ -239,8 +239,8 @@ export function MockDirectorySidebar({
           onClick={() => onSelectNav('chemistry')}
           className={`relative w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-left cursor-pointer transition-colors group ${
             activeNav === 'chemistry'
-              ? 'border border-zinc-700 shadow-sm'
-              : 'border border-zinc-855 bg-zinc-900/40 hover:bg-zinc-850/60 hover:border-zinc-750 text-zinc-400 hover:text-zinc-200'
+              ? 'bg-zinc-800/90 text-white shadow-xs'
+              : 'bg-transparent hover:bg-white/[0.06] text-zinc-400 hover:text-zinc-200'
           }`}
         >
           {activeNav === 'chemistry' && (
@@ -253,8 +253,8 @@ export function MockDirectorySidebar({
           <div className="relative z-10 flex items-center gap-2.5 min-w-0">
             <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
               activeNav === 'chemistry'
-                ? 'bg-emerald-950/70 border border-emerald-700/60 text-emerald-300'
-                : 'bg-emerald-950/40 border border-emerald-800/30 text-emerald-400/80 group-hover:text-emerald-400'
+                ? 'bg-emerald-950/70 text-emerald-300'
+                : 'bg-emerald-950/40 text-emerald-400/80 group-hover:text-emerald-400'
             }`}>
               <FlaskConical className="w-3.5 h-3.5" />
             </div>
@@ -262,10 +262,10 @@ export function MockDirectorySidebar({
               Chemistry
             </span>
           </div>
-          <span className={`relative z-10 shrink-0 text-[10px] font-mono font-medium px-2 py-0.5 rounded border transition-colors ${
+          <span className={`relative z-10 shrink-0 text-[10px] font-mono font-medium px-2 py-0.5 rounded transition-colors ${
             activeNav === 'chemistry'
-              ? 'bg-emerald-950/80 text-emerald-300 border-emerald-700/60'
-              : 'bg-emerald-950/30 text-emerald-400/90 border-emerald-800/40'
+              ? 'bg-emerald-950/80 text-emerald-300'
+              : 'bg-emerald-950/40 text-emerald-400/90'
           }`}>
             {chemistryChaptersCount} Ch
           </span>
@@ -277,8 +277,8 @@ export function MockDirectorySidebar({
           onClick={() => onSelectNav('maths')}
           className={`relative w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-left cursor-pointer transition-colors group ${
             activeNav === 'maths'
-              ? 'border border-zinc-700 shadow-sm'
-              : 'border border-zinc-855 bg-zinc-900/40 hover:bg-zinc-850/60 hover:border-zinc-750 text-zinc-400 hover:text-zinc-200'
+              ? 'bg-zinc-800/90 text-white shadow-xs'
+              : 'bg-transparent hover:bg-white/[0.06] text-zinc-400 hover:text-zinc-200'
           }`}
         >
           {activeNav === 'maths' && (
@@ -291,8 +291,8 @@ export function MockDirectorySidebar({
           <div className="relative z-10 flex items-center gap-2.5 min-w-0">
             <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
               activeNav === 'maths'
-                ? 'bg-indigo-950/70 border border-indigo-700/60 text-indigo-300'
-                : 'bg-indigo-950/40 border border-indigo-800/30 text-indigo-400/80 group-hover:text-indigo-400'
+                ? 'bg-indigo-950/70 text-indigo-300'
+                : 'bg-indigo-950/40 text-indigo-400/80 group-hover:text-indigo-400'
             }`}>
               <Calculator className="w-3.5 h-3.5" />
             </div>
@@ -300,10 +300,10 @@ export function MockDirectorySidebar({
               Mathematics
             </span>
           </div>
-          <span className={`relative z-10 shrink-0 text-[10px] font-mono font-medium px-2 py-0.5 rounded border transition-colors ${
+          <span className={`relative z-10 shrink-0 text-[10px] font-mono font-medium px-2 py-0.5 rounded transition-colors ${
             activeNav === 'maths'
-              ? 'bg-indigo-950/80 text-indigo-300 border-indigo-700/60'
-              : 'bg-indigo-950/30 text-indigo-400/90 border-indigo-800/40'
+              ? 'bg-indigo-950/80 text-indigo-300'
+              : 'bg-indigo-950/40 text-indigo-400/90'
           }`}>
             {mathsChaptersCount} Ch
           </span>
@@ -316,7 +316,7 @@ export function MockDirectorySidebar({
           <div className="text-[10px] font-mono font-semibold uppercase tracking-wider text-zinc-500">
             History & Analytics
           </div>
-          <span className="text-[9px] font-mono text-indigo-400 bg-indigo-950/60 border border-indigo-800/40 px-2 py-0.5 rounded">
+          <span className="text-[9px] font-mono text-indigo-400 bg-indigo-950/60 px-2 py-0.5 rounded">
             Target: 99%ile
           </span>
         </div>
@@ -327,8 +327,8 @@ export function MockDirectorySidebar({
           onClick={() => onSelectNav('history')}
           className={`relative w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-left cursor-pointer transition-colors group ${
             activeNav === 'history'
-              ? 'border border-zinc-700 shadow-sm'
-              : 'border border-zinc-855 bg-zinc-900/40 hover:bg-zinc-850/60 hover:border-zinc-750 text-zinc-400 hover:text-zinc-200'
+              ? 'bg-zinc-800/90 text-white shadow-xs'
+              : 'bg-transparent hover:bg-white/[0.06] text-zinc-400 hover:text-zinc-200'
           }`}
         >
           {activeNav === 'history' && (
@@ -341,8 +341,8 @@ export function MockDirectorySidebar({
           <div className="relative z-10 flex items-center gap-2.5 min-w-0">
             <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
               activeNav === 'history'
-                ? 'bg-rose-950/70 border border-rose-700/60 text-rose-300'
-                : 'bg-rose-950/40 border border-rose-800/30 text-rose-400/80 group-hover:text-rose-400'
+                ? 'bg-rose-950/70 text-rose-300'
+                : 'bg-rose-950/40 text-rose-400/80 group-hover:text-rose-400'
             }`}>
               <History className="w-3.5 h-3.5" />
             </div>
@@ -350,10 +350,10 @@ export function MockDirectorySidebar({
               Past Attempts
             </span>
           </div>
-          <span className={`relative z-10 shrink-0 text-[10px] font-mono font-medium px-2 py-0.5 rounded border transition-colors ${
+          <span className={`relative z-10 shrink-0 text-[10px] font-mono font-medium px-2 py-0.5 rounded transition-colors ${
             activeNav === 'history'
-              ? 'bg-rose-950/80 text-rose-300 border-rose-700/60'
-              : 'bg-zinc-850/80 text-zinc-400 border-zinc-800'
+              ? 'bg-rose-950/80 text-rose-300'
+              : 'bg-zinc-850/80 text-zinc-400'
           }`}>
             {pastAttemptsCount}
           </span>
@@ -363,19 +363,19 @@ export function MockDirectorySidebar({
         <div className="bg-zinc-900/60 border border-zinc-850 rounded-xl p-2.5 space-y-2">
           {/* Micro Telemetry Metrics */}
           <div className="grid grid-cols-3 gap-1.5 text-center">
-            <div className="bg-zinc-850/60 border border-zinc-800/80 rounded-lg py-1 px-1">
+            <div className="bg-zinc-850/60 rounded-lg py-1 px-1">
               <div className="text-[9px] font-mono uppercase text-zinc-400 font-medium">Mocks</div>
               <div className="text-xs font-bold font-mono text-zinc-100 mt-0.5">
                 {mockStats.totalAttempts}
               </div>
             </div>
-            <div className="bg-zinc-850/60 border border-zinc-800/80 rounded-lg py-1 px-1">
+            <div className="bg-zinc-850/60 rounded-lg py-1 px-1">
               <div className="text-[9px] font-mono uppercase text-zinc-400 font-medium">Avg Score</div>
               <div className="text-xs font-bold font-mono text-amber-400 mt-0.5">
                 {mockStats.avgScore}<span className="text-[9px] text-zinc-500 font-normal">/300</span>
               </div>
             </div>
-            <div className="bg-zinc-850/60 border border-zinc-800/80 rounded-lg py-1 px-1">
+            <div className="bg-zinc-850/60 rounded-lg py-1 px-1">
               <div className="text-[9px] font-mono uppercase text-zinc-400 font-medium">Accuracy</div>
               <div className="text-xs font-bold font-mono text-emerald-400 mt-0.5">
                 {mockStats.avgAccuracy}%
@@ -387,7 +387,7 @@ export function MockDirectorySidebar({
           <div className="grid grid-cols-2 gap-1.5">
             <button
               onClick={onNavigateToMistakes}
-              className="flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg bg-zinc-850/80 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 text-[10px] font-mono text-zinc-300 hover:text-white transition-colors cursor-pointer"
+              className="flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg bg-zinc-850/80 hover:bg-zinc-800 text-[10px] font-mono text-zinc-300 hover:text-white transition-colors cursor-pointer"
             >
               <AlertTriangle className="w-3 h-3 text-rose-400" />
               <span>Mistake Vault</span>
@@ -395,7 +395,7 @@ export function MockDirectorySidebar({
 
             <button
               onClick={onNavigateToFormulas}
-              className="flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg bg-zinc-850/80 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 text-[10px] font-mono text-zinc-300 hover:text-white transition-colors cursor-pointer"
+              className="flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg bg-zinc-850/80 hover:bg-zinc-800 text-[10px] font-mono text-zinc-300 hover:text-white transition-colors cursor-pointer"
             >
               <Zap className="w-3 h-3 text-amber-400" />
               <span>Speed Drills</span>

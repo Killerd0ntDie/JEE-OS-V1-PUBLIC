@@ -71,21 +71,22 @@ export const FormulaSpeedDrillStage: React.FC<FormulaSpeedDrillStageProps> = ({
     });
   };
 
-  // 30-Second Countdown Timer Effect
+  // 30-Second Countdown Timer Effect with Wall-Clock Delta Calculation
   useEffect(() => {
     if (isFinished || validCards.length === 0) return;
 
+    const targetEndTime = Date.now() + timeLeft * 1000;
     const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          setIsFinished(true);
-          audioEngine.playSuccess();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+      const remaining = Math.max(0, Math.ceil((targetEndTime - Date.now()) / 1000));
+      if (remaining <= 0) {
+        clearInterval(timer);
+        setTimeLeft(0);
+        setIsFinished(true);
+        audioEngine.playSuccess();
+      } else {
+        setTimeLeft(remaining);
+      }
+    }, 250);
 
     return () => clearInterval(timer);
   }, [isFinished, validCards.length]);

@@ -82,7 +82,7 @@ export function useDashboardState() {
 
   const hasBottleneckAlert = useMemo(() => {
     const list = Object.values(chapterTelemetryMap || {}).filter(
-      t => t && t.isBottleneck && t.bottleneckReason
+      t => t?.isBottleneck && t.bottleneckReason
     );
     return list.length > 0;
   }, [chapterTelemetryMap]);
@@ -178,9 +178,16 @@ export function useDashboardState() {
     }
     
     const targetMission = todayMissions.find(m => m.id === targetMissionId);
-    const isBreak = targetMission && ((targetMission.subject as string) === 'break' || (targetMission.type as string) === 'BREAK' || targetMission.taskName?.toLowerCase().includes('break'));
+    const isBreak = Boolean(
+      targetMission && (
+        (targetMission.subject as string)?.toLowerCase() === 'break' ||
+        (targetMission.type as string)?.toLowerCase() === 'break' ||
+        targetMission.taskName?.toLowerCase().includes('break')
+      )
+    );
     
     if (isBreak) {
+      audioEngine.playClick().catch(() => {});
       setActiveBreakMissionId(targetMissionId);
       return;
     }

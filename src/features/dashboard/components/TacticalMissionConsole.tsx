@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { SlidersHorizontal, Activity, Pause } from 'lucide-react';
+import { SlidersHorizontal, Activity, Pause, Coffee } from 'lucide-react';
 import { springs } from '@/constants/motion';
 import { TodayMission, SubjectId, Chapter } from '@/types/index';
 import { audioEngine } from '@/utils/audioEngine';
@@ -54,46 +54,30 @@ export const TacticalMissionConsole = React.memo(function TacticalMissionConsole
   onSetRadarFocusedChapter,
   onSetActiveSubject
 }: TacticalMissionConsoleProps) {
+  const isBreak = Boolean(
+    activeMission && (
+      (activeMission.subject as string)?.toLowerCase() === 'break' ||
+      (activeMission.type as string)?.toLowerCase() === 'break' ||
+      activeMission.taskName?.toLowerCase().includes('break')
+    )
+  );
+
   return (
     <div className="lg:col-span-5 xl:col-span-5 self-start sticky top-4 max-h-[calc(100vh-2rem)] overflow-y-auto custom-scrollbar">
       <div 
-        style={{
-          background: 'rgba(10, 14, 23, 0.85)',
-          backdropFilter: 'blur(24px) saturate(190%)',
-          border: '1px solid rgba(255, 255, 255, 0.10)',
-          borderTop: '1.5px solid rgba(255, 255, 255, 0.25)',
-          boxShadow: '0 12px 35px rgba(0, 0, 0, 0.6)'
-        }}
-        className="p-4 md:p-5 rounded-2xl space-y-3.5 shadow-sm relative overflow-hidden text-left font-sans"
+        className="p-4 md:p-5 rounded-2xl space-y-3.5 bg-surface-1 border border-border-subtle hover:border-border-muted shadow-2xl relative overflow-hidden text-left font-sans"
       >
-        {/* Top Hazard Warning Tape Ribbon */}
-        <div 
-          className="absolute top-0 inset-x-0 h-1 opacity-75 pointer-events-none"
-          style={{
-            background: 'repeating-linear-gradient(-45deg, #6366f1 0px, #6366f1 8px, transparent 8px, transparent 16px)'
-          }}
-        />
-
-        {/* Caliper Crosshairs */}
-        <span className="absolute top-2.5 left-2.5 text-xs opacity-50 font-mono text-zinc-600 select-none pointer-events-none">+</span>
-        <span className="absolute top-2.5 right-2.5 text-xs opacity-50 font-mono text-zinc-600 select-none pointer-events-none">+</span>
-        <span className="absolute bottom-2.5 left-2.5 text-xs opacity-50 font-mono text-zinc-600 select-none pointer-events-none">+</span>
-        <span className="absolute bottom-2.5 right-2.5 text-xs opacity-50 font-mono text-zinc-600 select-none pointer-events-none">+</span>
-        
         <div className="space-y-4 relative z-10">
           
           {/* Compact Header Radar */}
-          <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
+          <div className="flex items-center justify-between border-b border-border-subtle pb-2.5">
             <div className="flex items-center gap-2.5">
-              {/* Animated Kinetic Rings Indicator */}
-              <div className="relative w-7 h-7 flex items-center justify-center shrink-0">
-                <svg viewBox="0 0 30 30" className="eva-kinetic-ring w-full h-full absolute inset-0 animate-[spin_8s_linear_infinite]">
-                  <circle cx="15" cy="15" r="13" className="stroke-indigo-400/40 fill-none" strokeWidth="1.5" strokeDasharray="3 3" />
-                </svg>
-                <span className="w-2 h-2 rounded-full bg-indigo-400 animate-ping" />
-              </div>
-              <h3 className="text-base font-bold font-mono text-white tracking-tight uppercase">
-                <span className="eva-japanese-badge">戦略誘導 // </span>STRATEGY RADAR
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+              </span>
+              <h3 className="text-sm font-bold font-mono text-white tracking-wide uppercase">
+                STRATEGY RADAR
               </h3>
             </div>
             
@@ -129,20 +113,40 @@ export const TacticalMissionConsole = React.memo(function TacticalMissionConsole
               {/* Active Module Header */}
               <div className="space-y-1.5">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className={`text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-lg border shadow-sm ${getSubjectBadgeStyle(activeMission.subject)}`}>
-                    {activeMission.subject.toUpperCase()}
+                  <span className={`text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-lg border shadow-sm ${
+                    isBreak
+                      ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                      : getSubjectBadgeStyle(activeMission.subject)
+                  }`}>
+                    {isBreak ? 'ROUTINE BREAK' : activeMission.subject.toUpperCase()}
                   </span>
-                  <span className="text-xs font-semibold text-amber-300 bg-amber-950/40 border border-amber-500/30 px-2.5 py-0.5 rounded-lg shadow-sm">
-                    +{strategyRadar.weightageGain} Marks Gain
-                  </span>
+                  {isBreak ? (
+                    <span className="text-xs font-semibold text-amber-300 bg-amber-950/40 border border-amber-500/30 px-2.5 py-0.5 rounded-lg shadow-sm">
+                      Rest & Neuro-Reset
+                    </span>
+                  ) : (
+                    <span className="text-xs font-semibold text-amber-300 bg-amber-950/40 border border-amber-500/30 px-2.5 py-0.5 rounded-lg shadow-sm">
+                      +{strategyRadar.weightageGain} Marks Gain
+                    </span>
+                  )}
                 </div>
                 <h4 className="text-base font-bold text-white tracking-tight pt-0.5 leading-snug">
                   {activeMission.taskName}
                 </h4>
               </div>
 
-              {/* Chapter Vitals */}
-              {activeChap ? (
+              {/* Chapter Vitals or Break Guidance */}
+              {isBreak ? (
+                <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-xs text-amber-200/90 flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/30 flex items-center justify-center shrink-0 text-amber-400">
+                    <Coffee className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="font-bold text-amber-300 block font-display">Cognitive Reset Protocol</span>
+                    <span className="text-zinc-300">Step away from the screen, stretch, hydrate, and relax your eyes.</span>
+                  </div>
+                </div>
+              ) : activeChap ? (
                 <div className="space-y-2 mt-2">
                   <span className="text-xs font-semibold text-zinc-400 block">
                     Chapter Vitals
@@ -195,20 +199,26 @@ export const TacticalMissionConsole = React.memo(function TacticalMissionConsole
               {/* Performance Metrics: Clean 3-Box Row */}
               <div className="grid grid-cols-3 gap-2.5 pt-1">
                 <div className="p-3 rounded-xl bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 transition-colors text-center flex flex-col justify-center">
-                  <span className="text-xs text-zinc-400 font-medium">Est. Time</span>
-                  <span className="text-sm font-bold text-white font-mono mt-0.5">{strategyRadar.estimatedMinutes || activeMission?.duration || 45}m</span>
+                  <span className="text-xs text-zinc-400 font-medium">{isBreak ? 'Duration' : 'Est. Time'}</span>
+                  <span className="text-sm font-bold text-white font-mono mt-0.5">{isBreak ? `${activeMission?.duration || 15}m` : `${strategyRadar.estimatedMinutes || activeMission?.duration || 45}m`}</span>
                 </div>
                 <div className="p-3 rounded-xl bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 transition-colors text-center flex flex-col justify-center">
-                  <span className="text-xs text-zinc-400 font-medium">Target PYQs</span>
-                  <span className="text-sm font-bold text-indigo-400 font-mono mt-0.5">
-                    {activeMission.type === 'Watch Lecture'
+                  <span className="text-xs text-zinc-400 font-medium">{isBreak ? 'Focus Boost' : 'Target PYQs'}</span>
+                  <span className={`text-sm font-bold font-mono mt-0.5 ${isBreak ? 'text-amber-400' : 'text-indigo-400'}`}>
+                    {isBreak
+                      ? '+High'
+                      : activeMission.type === 'Watch Lecture'
                       ? 'Theory'
                       : `${strategyRadar.recommendedPYQs || targetPYQs || 15} Qs`}
                   </span>
                 </div>
                 <div className="p-3 rounded-xl bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 transition-colors text-center flex flex-col justify-center">
-                  <span className="text-xs text-zinc-400 font-medium">XP Reward</span>
-                  <span className="text-sm font-bold text-emerald-400 font-mono mt-0.5">+{displayXp || (activeMission?.xp ?? Math.round((strategyRadar.estimatedMinutes || activeMission?.duration || 45) * 1.5))}</span>
+                  <span className="text-xs text-zinc-400 font-medium">{isBreak ? 'Status' : 'XP Reward'}</span>
+                  <span className="text-sm font-bold text-emerald-400 font-mono mt-0.5">
+                    {isBreak
+                      ? (activeMission.completed ? 'Done' : 'Ready')
+                      : `+${displayXp || (activeMission?.xp ?? Math.round((strategyRadar.estimatedMinutes || activeMission?.duration || 45) * 1.5))}`}
+                  </span>
                 </div>
               </div>
 
@@ -243,6 +253,8 @@ export const TacticalMissionConsole = React.memo(function TacticalMissionConsole
                 ? 'bg-indigo-950/80 border border-indigo-500/50 text-indigo-200 hover:bg-indigo-900'
                 : sessionState === 'paused'
                 ? 'bg-amber-500 hover:bg-amber-400 text-zinc-950 shadow-amber-500/20'
+                : isBreak
+                ? 'bg-amber-500 hover:bg-amber-400 text-zinc-950 shadow-amber-500/20 active:scale-95'
                 : 'bg-white hover:bg-zinc-100 text-zinc-950'
             }`}
           >
@@ -255,6 +267,11 @@ export const TacticalMissionConsole = React.memo(function TacticalMissionConsole
               <span className="flex items-center justify-center gap-2">
                 <Pause className="w-3.5 h-3.5" />
                 <span>RESUME FOCUS COCKPIT ({formatTimer(secondsElapsed)})</span>
+              </span>
+            ) : isBreak ? (
+              <span className="flex items-center justify-center gap-2">
+                <Coffee className="w-3.5 h-3.5" />
+                <span>START BREAK SESSION</span>
               </span>
             ) : (
               <span>{(activeMission?.id && resumableMissions[activeMission.id]) ? 'RESUME FOCUS COCKPIT SESSION' : 'ARM FOCUS COCKPIT SESSION'}</span>

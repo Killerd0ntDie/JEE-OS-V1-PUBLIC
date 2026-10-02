@@ -217,7 +217,7 @@ export function AnimatedSearchIcon({ isHovered }: { isHovered: boolean }) {
 
 export function AnimatedStreakIcon({ 
   streak, 
-  isHovered: _isHovered, 
+  isHovered, 
   isGodMode: _isGodMode 
 }: { 
   streak: number; 
@@ -229,18 +229,28 @@ export function AnimatedStreakIcon({
   if (!hasStreak) {
     return (
       <div className="relative flex items-center justify-center text-zinc-500">
-        <Icon name="Flame" className="w-3.5 h-3.5" />
+        <motion.div
+          animate={isHovered ? { scale: 1.2, y: -1 } : { scale: 1, y: 0 }}
+          transition={springs.snappy}
+          className="flex items-center justify-center"
+        >
+          <Icon name="Flame" className="w-3.5 h-3.5" />
+        </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="relative w-4 h-4 flex items-center justify-center">
+    <motion.div 
+      animate={isHovered ? { scale: 1.15, y: -1 } : { scale: 1, y: 0 }}
+      transition={springs.snappy}
+      className="relative w-4 h-4 flex items-center justify-center"
+    >
       {/* 1. Ambient Thermal Inferno Glow */}
       <motion.div
         animate={{ 
-          scale: [1, 1.35, 1.05, 1.28, 1], 
-          opacity: [0.5, 0.85, 0.55, 0.8, 0.5] 
+          scale: isHovered ? [1.1, 1.45, 1.15, 1.4, 1.1] : [1, 1.35, 1.05, 1.28, 1], 
+          opacity: isHovered ? [0.65, 0.95, 0.7, 0.9, 0.65] : [0.5, 0.85, 0.55, 0.8, 0.5] 
         }}
         transition={{ duration: 0.75, repeat: Infinity, ease: 'easeInOut' }}
         className="absolute inset-[-4px] bg-gradient-to-t from-red-600/50 via-orange-500/40 to-amber-300/20 blur-xs rounded-full pointer-events-none -z-10"
@@ -321,7 +331,7 @@ export function AnimatedStreakIcon({
           <path d="M8 1.5c-.6 1.8-2 3.2-2 5a2 2 0 0 0 4 0c0-1.8-1.4-3.2-2-5z" />
         </svg>
       </motion.div>
-    </div>
+    </motion.div>
   );
 }
 

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { calculateFocusScore } from '@/utils/focusScore';
 import { storageAdapter } from '@/services/StorageAdapter';
+import { audioEngine } from '@/utils/audioEngine';
 
 export interface UseMissionTimerProps {
   activeMissionId?: string;
@@ -16,7 +17,7 @@ export function useMissionTimer({
   activeMissionId,
   initialPaused = false,
   initialSeconds = 0,
-  skipSetup = false,
+  skipSetup: _skipSetup = false,
   sessionDurationSecs,
   setCoachTip
 }: UseMissionTimerProps) {
@@ -42,7 +43,7 @@ export function useMissionTimer({
   const [isPauseOverlayDismissed, setIsPauseOverlayDismissed] = useState(false);
   const [isSettingUp, setIsSettingUp] = useState(false);
   const [targetQuestions, setTargetQuestions] = useState(25);
-  const [xpWager, setXpWager] = useState(50);
+  const [xpWager, setXpWager] = useState(0);
   const [missionFailed, setMissionFailed] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
   
@@ -174,13 +175,19 @@ export function useMissionTimer({
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [isPaused, isCompleted, pauseOnTabChangeEnabled, isSettingUp, missionFailed, setCoachTip]);
 
-  // Time-up trigger
+  // Time-up trigger with audio and desktop notification
   useEffect(() => {
     if (seconds >= sessionDurationSecs && !hasTriggeredTimeUp && !isCompleted) {
       setIsTimeUpModalOpen(true);
       setHasTriggeredTimeUp(true);
+      audioEngine.playAlert().catch(() => {});
+      audioEngine.sendDesktopNotification(
+        "Focus Session Complete! 🎯",
+        "Your planned mission duration has ended. Great job staying focused! Time to wrap up or add extra time."
+      );
+      setCoachTip?.("Session duration reached! Excellent focus block completed.");
     }
-  }, [seconds, sessionDurationSecs, hasTriggeredTimeUp, isCompleted]);
+  }, [seconds, sessionDurationSecs, hasTriggeredTimeUp, isCompleted, setCoachTip]);
 
   useEffect(() => {
     if (isPaused) {

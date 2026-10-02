@@ -1,13 +1,12 @@
-import React, { useMemo } from 'react';
-import { Card } from '@/components/ui/Card';
-import { Icon } from '@/components/ui/Icon';
+import { useMemo } from 'react';
 import { Chapter, MentorProfile } from '@/types';
 import { useNavigate } from 'react-router-dom';
-import { Compass, ArrowRight, Activity, Target, Zap, Clock, ShieldCheck } from 'lucide-react';
+import { Compass, ArrowRight, Activity, Target, Clock, } from 'lucide-react';
 import { motion } from 'motion/react';
 import { springs } from '@/constants/motion';
 import { audioEngine } from '@/utils/audioEngine';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
+import { calculateWeeklyStrategyDistribution } from '@jee-os/engines';
 
 interface WeeklyStrategyWidgetProps {
   chapters: Chapter[];
@@ -19,73 +18,21 @@ export function WeeklyStrategyWidget({ chapters, mentorProfile, projectedReadine
   const navigate = useNavigate();
   const settings = useStudyBrainStore(s => s.settings);
 
-  // Calculate real subject distribution and mastery from chapters
+  // Authoritative subject distribution calculated via engines
   const subjectDistribution = useMemo(() => {
-    let pCount = 0, cCount = 0, mCount = 0;
-    let pMastered = 0, cMastered = 0, mMastered = 0;
-
-    (chapters || []).forEach(ch => {
-      const isMastered = ch.status === 'Mastered' || (typeof ch.completion === 'number' && ch.completion >= 100);
-      if (ch.subject === 'physics') {
-        pCount++;
-        if (isMastered) pMastered++;
-      } else if (ch.subject === 'chemistry') {
-        cCount++;
-        if (isMastered) cMastered++;
-      } else if (ch.subject === 'maths') {
-        mCount++;
-        if (isMastered) mMastered++;
-      }
-    });
-
-    const total = pCount + cCount + mCount || 1;
-    const pPct = Math.round((pCount / total) * 100);
-    const cPct = Math.round((cCount / total) * 100);
-    const mPct = 100 - pPct - cPct;
-
-    const pMasteryPct = pCount > 0 ? Math.round((pMastered / pCount) * 100) : 0;
-    const cMasteryPct = cCount > 0 ? Math.round((cMastered / cCount) * 100) : 0;
-    const mMasteryPct = mCount > 0 ? Math.round((mMastered / mCount) * 100) : 0;
-
-    return {
-      physics: { total: pCount, mastered: pMastered, pct: pPct, masteryPct: pMasteryPct },
-      chemistry: { total: cCount, mastered: cMastered, pct: cPct, masteryPct: cMasteryPct },
-      maths: { total: mCount, mastered: mMastered, pct: mPct, masteryPct: mMasteryPct }
-    };
+    return calculateWeeklyStrategyDistribution(chapters || []);
   }, [chapters]);
 
   // Derived milestones for the sprint
   const activeFocus = mentorProfile?.monthlyObjective?.category || 'Finish Mechanics & GOC';
-  const dailyHours = (settings?.dailyQuota && settings.dailyQuota <= 14 ? settings.dailyQuota : mentorProfile?.dailyAvailableHours) || 6.5;
+  // Canonical Authority (Guardrail Rule 5): strictly settings.dailyQuota
+  const dailyHours = (settings?.dailyQuota && settings.dailyQuota <= 14 ? settings.dailyQuota : 6) || 6.5;
 
   return (
     <div className="flex flex-col gap-4 h-full justify-between text-left">
       
       {/* 1. Core Weekly Strategy Focus Card */}
-      <div 
-        style={{
-          background: 'rgba(10, 14, 23, 0.85)',
-          backdropFilter: 'blur(24px) saturate(190%)',
-          border: '1px solid rgba(255, 255, 255, 0.10)',
-          borderTop: '1.5px solid rgba(255, 255, 255, 0.25)',
-          boxShadow: '0 12px 35px rgba(0, 0, 0, 0.6)'
-        }}
-        className="rounded-2xl p-5 shadow-sm relative overflow-hidden flex-1 flex flex-col justify-between"
-      >
-        {/* Top Hazard Warning Tape Ribbon */}
-        <div 
-          className="absolute top-0 inset-x-0 h-1 opacity-75 pointer-events-none"
-          style={{
-            background: 'repeating-linear-gradient(-45deg, #6366f1 0px, #6366f1 8px, transparent 8px, transparent 16px)'
-          }}
-        />
-
-        {/* Caliper Crosshairs */}
-        <span className="absolute top-2.5 left-2.5 text-[9px] font-mono text-zinc-600 select-none pointer-events-none">+</span>
-        <span className="absolute top-2.5 right-2.5 text-[9px] font-mono text-zinc-600 select-none pointer-events-none">+</span>
-        <span className="absolute bottom-2.5 left-2.5 text-[9px] font-mono text-zinc-600 select-none pointer-events-none">+</span>
-        <span className="absolute bottom-2.5 right-2.5 text-[9px] font-mono text-zinc-600 select-none pointer-events-none">+</span>
-
+      <div className="rounded-2xl p-5 shadow-xl relative overflow-hidden flex-1 flex flex-col justify-between bg-surface-1 border border-border-subtle hover:border-border-muted">
         <div className="flex items-center justify-between relative z-10">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 flex items-center justify-center shadow-sm">
@@ -93,7 +40,7 @@ export function WeeklyStrategyWidget({ chapters, mentorProfile, projectedReadine
             </div>
             <div>
               <h3 className="text-sm font-bold font-mono text-white tracking-tight uppercase">
-                <span className="eva-japanese-badge">作戦方針 // </span>WEEKLY STRATEGY
+                WEEKLY STRATEGY
               </h3>
               <p className="text-[10px] text-zinc-400 font-mono">
                 Active Tactical Roadmap
@@ -135,7 +82,7 @@ export function WeeklyStrategyWidget({ chapters, mentorProfile, projectedReadine
           <div className="p-3 rounded-xl bg-zinc-950/60 border border-white/10 flex items-center justify-between gap-2 shadow-sm">
             <div className="space-y-0.5">
               <span className="text-[10px] font-mono text-zinc-400 font-bold uppercase block">Target Readiness</span>
-              <span className="text-sm font-bold font-mono text-sky-400">{typeof projectedReadiness === 'number' && !isNaN(projectedReadiness) ? projectedReadiness : 0}% Projected</span>
+              <span className="text-sm font-bold font-mono text-sky-400">{typeof projectedReadiness === 'number' && !Number.isNaN(projectedReadiness) ? projectedReadiness : 0}% Projected</span>
             </div>
             <div className="w-8 h-8 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center shrink-0">
               <Target className="w-4 h-4 text-sky-400" />
@@ -154,43 +101,16 @@ export function WeeklyStrategyWidget({ chapters, mentorProfile, projectedReadine
         </div>
       </div>
 
-      {/* 2. Tri-Subject Velocity Balance Card with Animated Kinetic Rings */}
-      <div 
-        style={{
-          background: 'rgba(10, 14, 23, 0.85)',
-          backdropFilter: 'blur(24px) saturate(190%)',
-          border: '1px solid rgba(255, 255, 255, 0.10)',
-          borderTop: '1.5px solid rgba(255, 255, 255, 0.25)',
-          boxShadow: '0 12px 35px rgba(0, 0, 0, 0.6)'
-        }}
-        className="rounded-2xl p-5 shadow-sm relative overflow-hidden flex-1 flex flex-col justify-between"
-      >
-        {/* Top Hazard Warning Tape Ribbon */}
-        <div 
-          className="absolute top-0 inset-x-0 h-1 opacity-75 pointer-events-none"
-          style={{
-            background: 'repeating-linear-gradient(-45deg, #10b981 0px, #10b981 8px, transparent 8px, transparent 16px)'
-          }}
-        />
-
-        {/* Caliper Crosshairs */}
-        <span className="absolute top-2.5 left-2.5 text-[9px] font-mono text-zinc-600 select-none pointer-events-none">+</span>
-        <span className="absolute top-2.5 right-2.5 text-[9px] font-mono text-zinc-600 select-none pointer-events-none">+</span>
-        <span className="absolute bottom-2.5 left-2.5 text-[9px] font-mono text-zinc-600 select-none pointer-events-none">+</span>
-        <span className="absolute bottom-2.5 right-2.5 text-[9px] font-mono text-zinc-600 select-none pointer-events-none">+</span>
-
+      {/* 2. Tri-Subject Velocity Balance Card */}
+      <div className="rounded-2xl p-5 shadow-xl relative overflow-hidden flex-1 flex flex-col justify-between bg-surface-1 border border-border-subtle hover:border-border-muted">
         <div className="flex items-center justify-between relative z-10">
           <div className="flex items-center gap-2.5">
-            {/* Animated Kinetic Ring Miniature Indicator */}
-            <div className="relative w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center shadow-sm shrink-0 overflow-hidden">
-              <svg viewBox="0 0 40 40" className="eva-kinetic-ring w-full h-full absolute inset-0 animate-[spin_8s_linear_infinite]">
-                <circle cx="20" cy="20" r="16" className="stroke-emerald-400/40 fill-none" strokeWidth="1.5" strokeDasharray="3 4" />
-              </svg>
-              <Activity className="w-4 h-4 relative z-10" />
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center shadow-sm shrink-0">
+              <Activity className="w-4 h-4" />
             </div>
             <div>
               <h3 className="text-sm font-bold font-mono text-white tracking-tight uppercase">
-                <span className="eva-japanese-badge">科目均衡 // </span>MASTERY BALANCE
+                MASTERY BALANCE
               </h3>
               <p className="text-[10px] text-zinc-400 font-mono">
                 Syllabus Proportions & Momentum

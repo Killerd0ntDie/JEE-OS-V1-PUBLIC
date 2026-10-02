@@ -1,8 +1,7 @@
-import React, { useMemo } from 'react';
-import { Button } from '@/components/ui/Button';
+import { useMemo } from 'react';
 import { RevisionCard, RevisionEngineService } from '@/services/revisionEngineService';
 import { useNavigate } from 'react-router-dom';
-import { ShieldCheck, Sparkles, Brain, Clock, Layers, Play, FlaskConical, Atom, Calculator, Calendar, ArrowRight, Zap, AlertTriangle } from 'lucide-react';
+import { ShieldCheck, Sparkles, Clock, Layers, Play, FlaskConical, Atom, Calculator, Calendar, Zap, AlertTriangle } from 'lucide-react';
 import { motion } from 'motion/react';
 import { springs } from '@/constants/motion';
 import { audioEngine } from '@/utils/audioEngine';
@@ -77,29 +76,8 @@ export function SmartRevisionQueueWidget({
 
   return (
     <div 
-      style={{
-        background: 'rgba(10, 14, 23, 0.85)',
-        backdropFilter: 'blur(24px) saturate(190%)',
-        border: '1px solid rgba(255, 255, 255, 0.10)',
-        borderTop: '1.5px solid rgba(255, 255, 255, 0.25)',
-        boxShadow: '0 12px 35px rgba(0, 0, 0, 0.6)'
-      }}
-      className="rounded-2xl p-5 md:p-6 h-full flex flex-col justify-between shadow-sm relative overflow-hidden text-left font-mono"
+      className="rounded-2xl p-5 md:p-6 h-full flex flex-col justify-between shadow-xl relative overflow-hidden text-left font-mono bg-surface-1 border border-border-subtle hover:border-border-muted"
     >
-      {/* Top Hazard Warning Tape Ribbon */}
-      <div 
-        className="absolute top-0 inset-x-0 h-1 opacity-75 pointer-events-none"
-        style={{
-          background: 'repeating-linear-gradient(-45deg, #06b6d4 0px, #06b6d4 8px, transparent 8px, transparent 16px)'
-        }}
-      />
-
-      {/* Caliper Crosshairs */}
-      <span className="absolute top-2.5 left-2.5 text-[9px] font-mono text-zinc-600 select-none pointer-events-none">+</span>
-      <span className="absolute top-2.5 right-2.5 text-[9px] font-mono text-zinc-600 select-none pointer-events-none">+</span>
-      <span className="absolute bottom-2.5 left-2.5 text-[9px] font-mono text-zinc-600 select-none pointer-events-none">+</span>
-      <span className="absolute bottom-2.5 right-2.5 text-[9px] font-mono text-zinc-600 select-none pointer-events-none">+</span>
-
       <div className="space-y-3.5 relative z-10">
         {/* Header with Glowing Icon */}
         <div className="flex items-center justify-between">

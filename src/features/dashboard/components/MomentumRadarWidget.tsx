@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { motion } from 'motion/react';
-import { Zap, ShieldCheck, Target, Activity } from 'lucide-react';
+import { Activity } from 'lucide-react';
 import { Chapter, StudySession } from '@/types';
 
 interface MomentumRadarWidgetProps {
@@ -91,23 +91,8 @@ export const MomentumRadarWidget: React.FC<MomentumRadarWidgetProps> = ({
 
   return (
     <div 
-      style={{
-        background: 'rgba(10, 14, 23, 0.85)',
-        backdropFilter: 'blur(24px) saturate(190%)',
-        border: '1px solid rgba(255, 255, 255, 0.10)',
-        borderTop: '1.5px solid rgba(255, 255, 255, 0.25)',
-        boxShadow: '0 12px 35px rgba(0, 0, 0, 0.6)'
-      }}
-      className="rounded-2xl p-5 border text-left relative overflow-hidden flex-1 flex flex-col justify-between shadow-sm"
+      className="rounded-2xl p-5 border border-border-subtle hover:border-border-muted bg-surface-1 text-left relative overflow-hidden flex-1 flex flex-col justify-between shadow-xl"
     >
-      {/* Hazard Warning Ribbon */}
-      <div 
-        className="absolute top-0 inset-x-0 h-1 opacity-75 pointer-events-none"
-        style={{
-          background: 'repeating-linear-gradient(-45deg, #06b6d4 0px, #06b6d4 8px, transparent 8px, transparent 16px)'
-        }}
-      />
-
       {/* Header */}
       <div className="flex items-center justify-between mb-2 relative z-10">
         <div className="flex items-center gap-2.5">

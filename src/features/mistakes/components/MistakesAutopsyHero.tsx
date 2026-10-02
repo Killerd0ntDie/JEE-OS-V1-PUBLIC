@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { AlertTriangle, ArrowRight, ShieldAlert, Target, Plus } from 'lucide-react';
+import { calculateMistakesMarksAtStake } from '@jee-os/engines';
 
 interface MistakesAutopsyHeroProps {
   totalMistakes: number;
@@ -17,7 +18,7 @@ export const MistakesAutopsyHero: React.FC<MistakesAutopsyHeroProps> = ({
   resolutionRate,
   onOpenLogModal,
 }) => {
-  const marksAtStake = unresolvedCount * 5;
+  const marksAtStake = calculateMistakesMarksAtStake(unresolvedCount);
 
   return (
     <div className="space-y-4">

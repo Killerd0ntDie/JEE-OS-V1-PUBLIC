@@ -4,13 +4,11 @@ import { SpringToggle } from './SettingsInputs';
 
 interface GamificationSettingsSectionProps {
   enableGodMode: boolean;
-  enablePomodoroCasino: boolean;
   onChange: (key: string, value: any) => void;
 }
 
 export const GamificationSettingsSection: React.FC<GamificationSettingsSectionProps> = ({
   enableGodMode,
-  enablePomodoroCasino,
   onChange
 }) => {
   return (
@@ -45,24 +43,6 @@ export const GamificationSettingsSection: React.FC<GamificationSettingsSectionPr
             checked={enableGodMode} 
             onChange={(v) => onChange('enableGodMode', v)} 
             activeColor="bg-amber-500"
-          />
-        </div>
-
-        {/* Pomodoro Casino Toggle Switch */}
-        <div className="flex items-center justify-between p-4.5 rounded-2xl bg-zinc-850/60 border border-white/10 gap-4 shadow-sm">
-          <div className="space-y-1 pr-2">
-            <div className="text-sm font-mono font-bold text-white flex items-center gap-2">
-              <span>Pomodoro Casino (XP Wager)</span>
-              <span className="text-[10px] font-mono text-rose-400 bg-rose-950/60 border border-rose-800/60 px-2 py-0.5 rounded-md">2.5x Payout</span>
-            </div>
-            <p className="text-xs text-zinc-400 leading-relaxed font-sans">
-              Wager XP on study sessions. Submit Proof-of-Work to earn a 2.5x payout, or forfeit your wager on premature exit.
-            </p>
-          </div>
-          <SpringToggle 
-            checked={enablePomodoroCasino} 
-            onChange={(v) => onChange('enablePomodoroCasino', v)} 
-            activeColor="bg-rose-500"
           />
         </div>
       </div>

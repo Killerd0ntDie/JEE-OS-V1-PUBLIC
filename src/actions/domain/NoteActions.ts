@@ -51,15 +51,14 @@ export class NoteActions extends BaseActions {
   }) {
     const note = await this.addNote({
       text: params.text,
-      category: 'Proof of Work',
+      category: 'Key Concepts',
       subject: params.subject,
       chapter: params.chapter,
       chapterId: params.chapterId,
-      tags: ['ProofOfWork', 'Casino', params.subject]
+      tags: ['Reflection', params.subject]
     });
 
-    const rewardText = params.xpWager ? ` (${Math.round(params.xpWager * 2.5)} XP Payout Verified)` : '';
-    this.triggerToast('Proof of Work Saved', `Reflection saved to Cockpit Memory Deck${rewardText}`, 'success');
+    this.triggerToast('Reflection Saved', 'Reflection saved to Cockpit Memory Deck', 'success');
     return note;
   }
 

@@ -67,19 +67,19 @@ export const DockTelemetryPills: React.FC<DockTelemetryPillsProps> = ({
       <div className="relative">
         <motion.button
           type="button"
-          whileHover={{ scale: 1.14, x: isVertical ? -3 : 0, y: isVertical ? 0 : -2 }}
-          whileTap={{ scale: 0.92 }}
+          whileHover={{ scale: 1.06, y: isVertical ? 0 : -2 }}
+          whileTap={{ scale: 0.94 }}
           transition={springs.snappy}
           onClick={() => toggleMenu('streak')}
           onMouseEnter={() => handleItemHover('streak')}
           onMouseLeave={() => handleItemHover(null)}
           aria-label="Consistency Streak"
           aria-expanded={activeMenu === 'streak'}
-          className={`${isVertical ? 'w-9 h-9 p-0' : 'h-8 px-2.5'} rounded-xl sm:rounded-full flex items-center justify-center gap-1 text-xs font-mono transition-all cursor-pointer ${
+          className={`${isVertical ? 'w-9 h-9 p-0' : 'h-8 px-2 sm:px-3'} rounded-xl sm:rounded-full flex items-center justify-center gap-1.5 text-xs font-mono transition-colors cursor-pointer ${
             effectiveStreak > 0 
               ? isGodModeStreak
-                ? 'bg-gradient-to-r from-orange-600/30 via-amber-500/25 to-red-600/25 border border-amber-500/50 text-amber-300 shadow-[0_0_14px_rgba(245,158,11,0.45)]'
-                : 'bg-gradient-to-r from-orange-500/20 via-amber-500/20 to-red-500/15 border border-amber-500/40 text-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.35)]'
+                ? 'bg-amber-500/15 border border-amber-500/40 text-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.25)]'
+                : 'bg-amber-500/10 border border-amber-500/30 text-amber-400'
               : 'bg-zinc-900/40 text-zinc-400 hover:text-zinc-200 border border-transparent'
           }`}
         >
@@ -94,17 +94,9 @@ export const DockTelemetryPills: React.FC<DockTelemetryPillsProps> = ({
             ) : (
               <div className="flex items-center gap-1">
                 <AnimatedStreakIcon streak={effectiveStreak} isHovered={hoveredItem === 'streak'} isGodMode={isGodModeStreak} />
-                <motion.span 
-                  animate={
-                    effectiveStreak > 0
-                      ? { scale: [1, 1.08, 1], textShadow: ['0 0 4px rgba(245,158,11,0.4)', '0 0 10px rgba(249,115,22,0.8)', '0 0 4px rgba(245,158,11,0.4)'] }
-                      : { scale: 1 }
-                  }
-                  transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
-                  className={`font-bold ${effectiveStreak > 0 ? 'text-amber-300' : 'text-zinc-400'}`}
-                >
+                <span className={`font-bold hidden sm:inline ${effectiveStreak > 0 ? 'text-amber-300' : 'text-zinc-400'}`}>
                   {effectiveStreak}
-                </motion.span>
+                </span>
               </div>
             )}
           </div>
@@ -244,8 +236,8 @@ export const DockTelemetryPills: React.FC<DockTelemetryPillsProps> = ({
       <div className="relative hidden md:block">
         <motion.button
           type="button"
-          whileHover={{ scale: 1.18, x: isVertical ? -3 : 0, y: isVertical ? 0 : -3 }}
-          whileTap={{ scale: 0.9 }}
+          whileHover={{ scale: 1.06, y: isVertical ? 0 : -2 }}
+          whileTap={{ scale: 0.94 }}
           transition={springs.snappy}
           onClick={() => toggleMenu('time')}
           onMouseEnter={() => handleItemHover('time')}
@@ -254,7 +246,7 @@ export const DockTelemetryPills: React.FC<DockTelemetryPillsProps> = ({
           aria-expanded={activeMenu === 'time'}
           className={`${isVertical ? 'w-9 h-9 p-0' : 'h-8 px-2.5'} rounded-xl sm:rounded-full flex items-center justify-center gap-1.5 text-xs font-mono transition-colors cursor-pointer ${
             activeMenu === 'time'
-              ? 'bg-indigo-500/18 shadow-[0_0_12px_rgba(99,102,241,0.36)] text-indigo-300'
+              ? 'bg-indigo-500/18 text-indigo-300'
               : 'bg-zinc-900/60 hover:bg-zinc-800 text-zinc-300'
           }`}
         >
@@ -267,7 +259,7 @@ export const DockTelemetryPills: React.FC<DockTelemetryPillsProps> = ({
             ) : (
               <div className="flex items-center gap-1.5">
                 <AnimatedClockIcon isHovered={hoveredItem === 'time'} />
-                <span className={`font-bold text-indigo-400 transition-all ${hoveredItem === 'time' ? 'drop-shadow-[0_0_6px_rgba(99,102,241,0.5)]' : ''}`}>
+                <span className="font-bold text-indigo-400 transition-colors">
                   {todayHoursStr}
                 </span>
               </div>
@@ -390,8 +382,8 @@ export const DockTelemetryPills: React.FC<DockTelemetryPillsProps> = ({
       <div className="relative">
         <motion.button
           type="button"
-          whileHover={{ scale: 1.18, x: isVertical ? -3 : 0, y: isVertical ? 0 : -3 }}
-          whileTap={{ scale: 0.9 }}
+          whileHover={{ scale: 1.06, y: isVertical ? 0 : -2 }}
+          whileTap={{ scale: 0.94 }}
           transition={springs.snappy}
           onClick={() => toggleMenu('notifications')}
           onMouseEnter={() => handleItemHover('notifications')}
@@ -400,7 +392,7 @@ export const DockTelemetryPills: React.FC<DockTelemetryPillsProps> = ({
           aria-expanded={activeMenu === 'notifications'}
           className={`relative ${isVertical ? 'w-9 h-9' : 'w-8 h-8 sm:w-8.5 sm:h-8.5'} rounded-xl sm:rounded-full flex items-center justify-center transition-colors cursor-pointer ${
             activeMenu === 'notifications'
-              ? 'text-indigo-300 bg-indigo-500/18 shadow-[0_0_12px_rgba(99,102,241,0.36)]'
+              ? 'text-indigo-300 bg-indigo-500/18'
               : 'text-zinc-400 hover:text-white'
           }`}
         >

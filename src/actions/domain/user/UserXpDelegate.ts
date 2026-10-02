@@ -78,33 +78,9 @@ export class UserXpDelegate extends BaseActions {
     console.log(`[PartialXP] Awarded ${partialXP} XP for ${Math.round(elapsedSecs / 60)}m work on mission ${missionId} (focus: ${focusScore}%)`);
   }
 
-  async deductCasinoWager(wagerAmount: number) {
-    this.checkWriteBlock();
-    if (!wagerAmount || wagerAmount <= 0) return;
-
-    const newXp = {
-      ...this.state.xp,
-      total: Math.max(0, this.state.xp.total - wagerAmount)
-    };
-
-    const { level: newLevel, nextLevelXP: xpNeededForNext } = calculateLevelFromXP(newXp.total);
-    newXp.level = newLevel;
-    newXp.nextLevelXP = xpNeededForNext;
-
-    const originalSnapshot = {
-      xp: this.state.xp
-    };
-
-    this.runtime.updateStateOptimistic({ xp: newXp });
-
-    try {
-      await UserRepository.updateUserProfile(this.userId, { xp: newXp });
-      await this.runtime.refresh('SESSION_UPDATE', { xp: newXp, lastSyncError: null });
-      console.log(`[Casino] Deducted ${wagerAmount} XP for failed Proof of Work.`);
-    } catch (err) {
-      this.runtime.updateStateOptimistic({ xp: originalSnapshot.xp });
-      await this.handleWriteError(err, 'deductCasinoWager');
-    }
+  async deductCasinoWager(_wagerAmount: number) {
+    // Casino XP wager system has been completely decommissioned
+    return;
   }
 
   async resetXpAndLevel() {

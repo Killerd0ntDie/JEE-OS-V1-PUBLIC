@@ -7,6 +7,7 @@ import { DailyCheckinCard } from '@/components/mentor/DailyCheckinCard';
 import { DashboardSkeleton } from '@/components/ui/Skeleton';
 import { DashboardHeader } from './components/DashboardHeader';
 import { DashboardFocusSection } from './components/DashboardFocusSection';
+import { BreakActiveModal } from './components/BreakActiveModal';
 import { useDashboardState } from './hooks/useDashboardState';
 
 export interface RecoverableSession {
@@ -155,6 +156,13 @@ export function DashboardPage() {
         isOpen={state.isCustomMissionModalOpen}
         onClose={handlers.handleCloseCustomMission}
         missionToEdit={state.missionToEdit}
+      />
+
+      {/* ACTIVE BREAK MODAL */}
+      <BreakActiveModal
+        isOpen={!!state.activeBreakMissionId}
+        onClose={handlers.handleCloseActiveBreak}
+        breakMission={state.todayMissions?.find(m => m.id === state.activeBreakMissionId) || null}
       />
 
     </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CheckCircle2, Zap, X, SlidersHorizontal } from 'lucide-react';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
@@ -17,7 +17,8 @@ export function DailyCheckinCard() {
   const todayStr = toLocalDateString();
 
   const previousCheckin = mentorProfile?.dailyCheckins?.[mentorProfile.dailyCheckins.length - 1];
-  const defaultHours = mentorProfile?.dailyAvailableHours ?? settings?.dailyQuota ?? previousCheckin?.actualHoursAvailable ?? 4.0;
+  // Canonical Authority (Guardrail Rule 5): strictly settings.dailyQuota
+  const defaultHours = settings?.dailyQuota ?? previousCheckin?.actualHoursAvailable ?? 4.0;
   const defaultEnergy = previousCheckin?.energyLevel || 'Medium';
 
   const [hours, setHours] = useState<number>(defaultHours);

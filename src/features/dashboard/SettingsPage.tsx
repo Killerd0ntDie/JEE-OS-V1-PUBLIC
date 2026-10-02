@@ -43,7 +43,6 @@ export function SettingsPage() {
     pauseOnTabChange: settings.pauseOnTabChange ?? true,
     enableGodMode: settings.enableGodMode ?? true,
     minStreakHours: settings.minStreakHours ?? 0.5,
-    enablePomodoroCasino: settings.enablePomodoroCasino ?? false,
     prerequisiteEnforcementStrategy: settings.prerequisiteEnforcementStrategy || 'parallel',
     themeMode: (settings.themeMode || 'evangelion') as 'evangelion' | 'modern',
   });
@@ -61,20 +60,20 @@ export function SettingsPage() {
   const {
     targetYear, dreamIit, targetBranch, dailyQuota, subjectSplitStrategy,
     dayStartTime, dayEndTime, twoDaySplitConfig, soundEffects, desktopNotifications,
-    volume, cockpitVolume, pauseOnTabChange, enableGodMode, minStreakHours, enablePomodoroCasino,
+    volume, cockpitVolume, pauseOnTabChange, enableGodMode, minStreakHours,
     prerequisiteEnforcementStrategy, themeMode
   } = formData;
 
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
-  const [showResetSuccess, setShowResetSuccess] = useState(false);
+  const [_showResetSuccess, setShowResetSuccess] = useState(false);
   const [showXpResetConfirm, setShowXpResetConfirm] = useState(false);
-  const [showXpResetSuccess, setShowXpResetSuccess] = useState(false);
-  const [showHiddenMissionsConfirm, setShowHiddenMissionsConfirm] = useState(false);
-  const [showHiddenMissionsSuccess, setShowHiddenMissionsSuccess] = useState(false);
-  const [showCustomMissionsConfirm, setShowCustomMissionsConfirm] = useState(false);
-  const [showCustomMissionsSuccess, setShowCustomMissionsSuccess] = useState(false);
+  const [_showXpResetSuccess, setShowXpResetSuccess] = useState(false);
+  const [_showHiddenMissionsConfirm, setShowHiddenMissionsConfirm] = useState(false);
+  const [_showHiddenMissionsSuccess, _setShowHiddenMissionsSuccess] = useState(false);
+  const [_showCustomMissionsConfirm, setShowCustomMissionsConfirm] = useState(false);
+  const [_showCustomMissionsSuccess, _setShowCustomMissionsSuccess] = useState(false);
   const [showUndoConfirm, setShowUndoConfirm] = useState(false);
 
   // Auth Form States
@@ -129,7 +128,6 @@ export function SettingsPage() {
       pauseOnTabChange: settings.pauseOnTabChange ?? true,
       enableGodMode: settings.enableGodMode ?? true,
       minStreakHours: settings.minStreakHours ?? 0.5,
-      enablePomodoroCasino: settings.enablePomodoroCasino ?? false,
       prerequisiteEnforcementStrategy: settings.prerequisiteEnforcementStrategy || 'parallel',
       themeMode: (settings.themeMode || 'evangelion') as 'evangelion' | 'modern',
     });
@@ -166,7 +164,6 @@ export function SettingsPage() {
         dayStartTime,
         dayEndTime,
         minStreakHours,
-        enablePomodoroCasino,
         prerequisiteEnforcementStrategy,
         themeMode: themeMode || 'evangelion'
       });
@@ -339,7 +336,6 @@ export function SettingsPage() {
         {/* SECTION 4: GAMIFICATION & GOD MODE */}
         <GamificationSettingsSection
           enableGodMode={enableGodMode}
-          enablePomodoroCasino={enablePomodoroCasino}
           onChange={handleChange}
         />
 

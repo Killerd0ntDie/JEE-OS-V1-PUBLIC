@@ -4,7 +4,7 @@ import { motion } from 'motion/react';
 import { StudyBrainService } from '@/services/studyBrainService';
 import { calculateRealisticDailyChapterVelocity } from '@/utils/chapterVelocity';
 import { springs } from '@/constants/motion';
-import { AlertTriangle, Clock, Skull, Zap, Target, Compass, Sparkles, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, Clock, Skull, Zap, Target, Compass, ShieldCheck } from 'lucide-react';
 import { audioEngine } from '@/utils/audioEngine';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 
@@ -50,7 +50,7 @@ export function ExamReadinessWidget({ targetYear, syllabusProgress, studySession
       
       if (s.startTime) {
         const t = new Date(s.startTime).getTime();
-        if (!isNaN(t)) {
+        if (!Number.isNaN(t)) {
           if (earliest === null || t < earliest) earliest = t;
           if (duration > 0) hasRealHistory = true;
         }
@@ -85,31 +85,12 @@ export function ExamReadinessWidget({ targetYear, syllabusProgress, studySession
 
   return (
     <div 
-      style={{
-        background: isDoomsday ? 'rgba(30, 10, 15, 0.88)' : 'rgba(10, 14, 23, 0.85)',
-        backdropFilter: 'blur(24px) saturate(190%)',
-        border: isDoomsday ? '1.5px solid rgba(244, 63, 94, 0.45)' : '1px solid rgba(255, 255, 255, 0.10)',
-        borderTop: isDoomsday ? '2px solid rgba(244, 63, 94, 0.8)' : '1.5px solid rgba(255, 255, 255, 0.25)',
-        boxShadow: isDoomsday ? '0 12px 35px rgba(244, 63, 94, 0.15)' : '0 12px 35px rgba(0, 0, 0, 0.6)'
-      }}
-      className="rounded-2xl p-5 md:p-6 relative overflow-hidden transition-all duration-300 shadow-sm h-full flex flex-col justify-between"
+      className={`rounded-2xl p-5 md:p-6 relative overflow-hidden transition-all duration-300 shadow-xl h-full flex flex-col justify-between ${
+        isDoomsday 
+          ? 'bg-rose-950/20 border border-rose-500/40' 
+          : 'bg-surface-1 border border-border-subtle hover:border-border-muted'
+      }`}
     >
-      {/* Top Hazard Warning Tape Ribbon */}
-      <div 
-        className="absolute top-0 inset-x-0 h-1 opacity-75 pointer-events-none"
-        style={{
-          background: isDoomsday 
-            ? 'repeating-linear-gradient(-45deg, #f43f5e 0px, #f43f5e 8px, transparent 8px, transparent 16px)'
-            : 'repeating-linear-gradient(-45deg, #6366f1 0px, #6366f1 8px, transparent 8px, transparent 16px)'
-        }}
-      />
-
-      {/* Caliper Crosshairs */}
-      <span className="absolute top-2.5 left-2.5 text-[9px] font-mono text-zinc-600 select-none pointer-events-none">+</span>
-      <span className="absolute top-2.5 right-2.5 text-[9px] font-mono text-zinc-600 select-none pointer-events-none">+</span>
-      <span className="absolute bottom-2.5 left-2.5 text-[9px] font-mono text-zinc-600 select-none pointer-events-none">+</span>
-      <span className="absolute bottom-2.5 right-2.5 text-[9px] font-mono text-zinc-600 select-none pointer-events-none">+</span>
-
       {/* Doomsday Background FX */}
       {isDoomsday && (
         <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none mix-blend-screen">

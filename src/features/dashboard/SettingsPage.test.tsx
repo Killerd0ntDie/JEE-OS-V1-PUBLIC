@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import React from 'react';
 import { SettingsPage } from './SettingsPage';
 
 // Mock auth
@@ -55,7 +54,6 @@ const mockStoreState = {
     dayStartTime: '07:00',
     dayEndTime: '23:00',
     minStreakHours: 0.5,
-    enablePomodoroCasino: false,
     prerequisiteEnforcementStrategy: 'parallel',
     themeMode: 'evangelion',
   },

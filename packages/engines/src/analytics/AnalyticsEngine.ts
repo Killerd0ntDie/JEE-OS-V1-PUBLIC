@@ -153,12 +153,12 @@ export class AnalyticsEngine {
       const rawDays = remainingHours / studyVelocity;
       // BUG-11: Clamp daysToComplete to prevent JavaScript Date overflow (RangeError: Invalid time value)
       // Supports realistic horizon between 1 day and 10 years (3650 days)
-      const daysToComplete = isNaN(rawDays) || !isFinite(rawDays) || rawDays <= 0
+      const daysToComplete = Number.isNaN(rawDays) || !Number.isFinite(rawDays) || rawDays <= 0
         ? 365
         : Math.min(3650, Math.max(1, rawDays));
       const futureMs = now.getTime() + daysToComplete * msPerDay;
       try {
-        predictedDate = isNaN(futureMs) ? new Date().toISOString() : new Date(futureMs).toISOString();
+        predictedDate = Number.isNaN(futureMs) ? new Date().toISOString() : new Date(futureMs).toISOString();
       } catch {
         predictedDate = new Date().toISOString();
       }
@@ -183,4 +183,100 @@ export class AnalyticsEngine {
       predictedCompletionDate: predictedDate
     };
   }
+}
+
+/**
+ * Authoritative Subject Mastery Average calculation.
+ */
+export function calculateSubjectMasteryAverages(
+  telemetryList: Array<{ subject: string; masteryScore: number }>
+): { physics: number; chemistry: number; maths: number } {
+  const calc = (sub: string) => {
+    const list = telemetryList.filter(t => t.subject === sub);
+    if (list.length === 0) return 0;
+    return Math.round(list.reduce((acc, t) => acc + t.masteryScore, 0) / list.length);
+  };
+  return {
+    physics: calc('physics'),
+    chemistry: calc('chemistry'),
+    maths: calc('maths'),
+  };
+}
+
+/**
+ * Authoritative Weekly Strategy Subject Distribution calculation.
+ */
+export function calculateWeeklyStrategyDistribution(
+  chapters: Array<{ subject: string; status?: string; isMastered?: boolean }>
+) {
+  let pCount = 0;
+  let cCount = 0;
+  let mCount = 0;
+  let pMastered = 0;
+  let cMastered = 0;
+  let mMastered = 0;
+
+  chapters.forEach(ch => {
+    const isMastered = ch.status === 'Mastered' || !!ch.isMastered;
+    if (ch.subject === 'physics') {
+      pCount++;
+      if (isMastered) pMastered++;
+    } else if (ch.subject === 'chemistry') {
+      cCount++;
+      if (isMastered) cMastered++;
+    } else if (ch.subject === 'maths') {
+      mCount++;
+      if (isMastered) mMastered++;
+    }
+  });
+
+  const total = pCount + cCount + mCount || 1;
+  const pPct = Math.round((pCount / total) * 100);
+  const cPct = Math.round((cCount / total) * 100);
+  const mPct = 100 - pPct - cPct;
+
+  const pMasteryPct = pCount > 0 ? Math.round((pMastered / pCount) * 100) : 0;
+  const cMasteryPct = cCount > 0 ? Math.round((cMastered / cCount) * 100) : 0;
+  const mMasteryPct = mCount > 0 ? Math.round((mMastered / mCount) * 100) : 0;
+
+  return {
+    physics: { total: pCount, mastered: pMastered, pct: pPct, masteryPct: pMasteryPct },
+    chemistry: { total: cCount, mastered: cMastered, pct: cPct, masteryPct: cMasteryPct },
+    maths: { total: mCount, mastered: mMastered, pct: mPct, masteryPct: mMasteryPct },
+  };
+}
+
+/**
+ * Authoritative calculation for marks at stake from unresolved mistakes.
+ */
+export function calculateMistakesMarksAtStake(unresolvedCount: number): number {
+  return unresolvedCount * 5;
+}
+
+/**
+ * Authoritative calculation for mock test mastery, potential, and penalties.
+ */
+export function calculateMockMasteryMetrics(
+  totalScore: number,
+  whatIfScore: number,
+  totalMarks: number
+): {
+  masteryLevel: number;
+  potentialMastery: number;
+  avoidablePenalty: number;
+} {
+  const safeMarks = totalMarks > 0 ? totalMarks : 1;
+  return {
+    masteryLevel: Math.max(0, Math.round((totalScore / safeMarks) * 100)),
+    potentialMastery: Math.min(100, Math.max(0, Math.round((whatIfScore / safeMarks) * 100))),
+    avoidablePenalty: Math.max(0, whatIfScore - totalScore),
+  };
+}
+
+/**
+ * Authoritative calculation for subject question accuracy rate.
+ */
+export function calculateSubjectAccuracy(correct: number, attempted: number): number {
+  if (attempted <= 0) return 0;
+  return Math.round((correct / attempted) * 100);
 }
