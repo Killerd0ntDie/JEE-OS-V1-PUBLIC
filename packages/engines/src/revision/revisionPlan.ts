@@ -279,6 +279,13 @@ export function buildRevisionPlan(input: BuildRevisionPlanInput): RevisionPlanOu
     return b.completion - a.completion;
   });
 
+  // Sort upcoming chapters: soonest nextRevisionDueAt first
+  upcomingChapters.sort((a, b) => {
+    const timeA = a.nextRevisionDueAt ? new Date(a.nextRevisionDueAt).getTime() : Number.MAX_SAFE_INTEGER;
+    const timeB = b.nextRevisionDueAt ? new Date(b.nextRevisionDueAt).getTime() : Number.MAX_SAFE_INTEGER;
+    return timeA - timeB;
+  });
+
   // Sort cards by urgency rank
   dueCards.sort((a, b) => b.urgencyRank - a.urgencyRank);
   allCards.sort((a, b) => b.urgencyRank - a.urgencyRank);

@@ -86,8 +86,22 @@ export function DailyChapterReviewWidget({
     return new Set(revisionQueue.map(r => r.chapterId).filter(Boolean));
   }, [revisionQueue]);
 
-  // Determine chapters due for review (explicitly due, in queue, or not reviewed in 7+ days)
+  // Determine chapters due for review (strictly using canonical dueChapters if available, or fall back to studiedChapters)
   const dueChapters = useMemo(() => {
+    if (revisionTelemetry?.dueChapters && revisionTelemetry.dueChapters.length > 0) {
+      const canonicalIds = new Set(revisionTelemetry.dueChapters.map(d => d.chapterId));
+      const matched = chapters
+        .filter(c => canonicalIds.has(c.id) && !markedDoneIds.has(c.id))
+        .sort((a, b) => {
+          const idxA = revisionTelemetry.dueChapters!.findIndex(d => d.chapterId === a.id);
+          const idxB = revisionTelemetry.dueChapters!.findIndex(d => d.chapterId === b.id);
+          return idxA - idxB;
+        });
+      if (matched.length > 0) {
+        return matched;
+      }
+    }
+
     return studiedChapters.filter(c => {
       if (markedDoneIds.has(c.id)) return false;
       return (
@@ -104,7 +118,7 @@ export function DailyChapterReviewWidget({
       if (bIsDue && !aIsDue) return 1;
       return (b.lastRevisionDaysAgo || 0) - (a.lastRevisionDaysAgo || 0);
     });
-  }, [studiedChapters, markedDoneIds, queueChapterIds]);
+  }, [revisionTelemetry?.dueChapters, chapters, studiedChapters, markedDoneIds, queueChapterIds]);
 
   // Filtered by selected subject
   const filteredDueChapters = useMemo(() => {

@@ -116,6 +116,7 @@ export interface RevisionEngineOutput {
   cards: RevisionCardItem[];
   urgentCards: RevisionCardItem[]; // Top 6 urgent cards for compact display
   dueChapters?: DueChapterItem[];
+  upcomingDueChapters?: DueChapterItem[];
   dueCards?: RevisionCardItem[];
   revisionQueue?: RevisionCard[];
   stats: {

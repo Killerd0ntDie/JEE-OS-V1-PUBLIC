@@ -442,6 +442,7 @@ export class RevisionEngine {
       cards: allCards,
       urgentCards,
       dueChapters: plan.dueChapters,
+      upcomingDueChapters: plan.upcomingChapters,
       dueCards: plan.dueCards,
       revisionQueue: plan.revisionQueue,
       stats: {

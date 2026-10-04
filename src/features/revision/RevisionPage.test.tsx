@@ -10,7 +10,7 @@ vi.mock('@/components/ui/ToastProvider', () => ({
   })
 }));
 
-// Mock FormulaVaultPage to isolate RevisionPage tab switching tests
+// Mock FormulaVaultPage to isolate RevisionPage Formula browsing
 vi.mock('@/features/formulas/FormulaVaultPage', () => ({
   FormulaVaultPage: () => (
     <div data-testid="formula-vault-page">
@@ -42,56 +42,70 @@ const mockCards = [
     id: 'card-1',
     chapterId: 'p1',
     chapterName: 'Kinematics',
-    subject: 'physics',
+    subject: 'physics' as const,
     title: 'Velocity-Time Equation',
     concept: 'Constant acceleration kinematics',
     formula: 'v = u + at',
     latex: 'v = u + at',
     masteryScore: 80,
-    retentionConfidence: 'High',
-    lastReviewedDaysAgo: 1,
-    nextReviewDueDays: 3,
-    difficulty: 'Easy'
+    retentionConfidence: 'High' as const,
+    retentionScore: 80,
+    nextReviewDays: 3,
+    intervalStage: '3d',
+    recalledCount: 2,
+    urgencyRank: 20
   },
   {
     id: 'card-2',
     chapterId: 'c1',
     chapterName: 'Thermodynamics',
-    subject: 'chemistry',
+    subject: 'chemistry' as const,
     title: 'First Law of Thermodynamics',
     concept: 'Internal energy conservation',
     formula: '\\Delta U = q + w',
     latex: '\\Delta U = q + w',
     masteryScore: 40,
-    retentionConfidence: 'Low',
-    lastReviewedDaysAgo: 7,
-    nextReviewDueDays: -2,
-    difficulty: 'Hard'
+    retentionConfidence: 'Low' as const,
+    retentionScore: 40,
+    nextReviewDays: 1,
+    intervalStage: '1d',
+    recalledCount: 1,
+    urgencyRank: 90
   }
 ];
 
-const mockSummaries = [
-  {
-    chapterId: 'p1',
-    chapterName: 'Kinematics',
-    subject: 'physics',
-    masteryScore: 80,
-    retentionConfidence: 'High',
-    overdueDays: 0,
-    formulaCount: 5,
-    lastRevisionDate: new Date().toISOString()
-  },
-  {
-    chapterId: 'c1',
-    chapterName: 'Thermodynamics',
-    subject: 'chemistry',
-    masteryScore: 40,
-    retentionConfidence: 'Low',
-    overdueDays: 4,
-    formulaCount: 8,
-    lastRevisionDate: new Date(Date.now() - 7 * 86400000).toISOString()
-  }
-];
+const mockDueChapter = {
+  chapterId: 'c1',
+  chapterName: 'Thermodynamics',
+  subject: 'chemistry' as const,
+  status: 'Revision Due',
+  completion: 60,
+  revisionCount: 1,
+  daysOverdue: 2,
+  urgency: 'overdue' as const,
+  dueReason: 'Overdue by 2 days',
+  formulaCardsCount: 8,
+  mistakeCardsCount: 0,
+  totalCardsCount: 8,
+  cards: [mockCards[1]]
+};
+
+const mockUpcomingChapter = {
+  chapterId: 'p1',
+  chapterName: 'Kinematics',
+  subject: 'physics' as const,
+  status: 'Active',
+  completion: 80,
+  revisionCount: 2,
+  nextRevisionDueAt: new Date(Date.now() + 2 * 86400000).toISOString(),
+  daysOverdue: 0,
+  urgency: 'upcoming' as const,
+  dueReason: 'Scheduled SM-2 review',
+  formulaCardsCount: 5,
+  mistakeCardsCount: 0,
+  totalCardsCount: 5,
+  cards: [mockCards[0]]
+};
 
 vi.mock('@/store/useStudyBrainStore', () => ({
   useStudyBrainStore: Object.assign(
@@ -101,18 +115,23 @@ vi.mock('@/store/useStudyBrainStore', () => ({
           gradeFlashcard: vi.fn(),
           recordStudySession: vi.fn(),
           openChapterEditModal: vi.fn(),
+          gradeFlashcardsBatch: vi.fn().mockResolvedValue(undefined),
+          completeRevision: vi.fn().mockResolvedValue(undefined)
         },
         studySessions: [],
         revisionTelemetry: {
           cards: mockCards,
           urgentCards: [mockCards[1]],
-          overdueChapters: [mockSummaries[1]],
+          overdueChapters: [],
           upcomingChapters: [],
-          masteredChapters: [mockSummaries[0]],
+          masteredChapters: [],
           notStartedChapters: [],
+          dueChapters: [mockDueChapter],
+          dueCards: [mockCards[1]],
+          upcomingDueChapters: [mockUpcomingChapter],
           stats: {
             totalOverdue: 1,
-            totalUpcoming: 0,
+            totalUpcoming: 1,
             totalMastered: 1,
             totalNotStarted: 0,
             avgRetentionScore: 78,
@@ -127,172 +146,86 @@ vi.mock('@/store/useStudyBrainStore', () => ({
         actions: {
           gradeFlashcard: vi.fn(),
           recordStudySession: vi.fn(),
+          gradeFlashcardsBatch: vi.fn().mockResolvedValue(undefined),
+          completeRevision: vi.fn().mockResolvedValue(undefined)
         }
       })
     }
   )
 }));
 
-describe('RevisionPage Feature View (Magnitude 5.1)', () => {
+describe('RevisionPage Overhauled View (Magnitude 5.1)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('renders Revision Command Center Hub with vitals and 3 action cards', () => {
+  it('renders single unified header with chapter, card, and time estimate', () => {
     render(<RevisionPage />);
 
-    expect(screen.getByText('Chapter Retention & Formula Hub')).toBeInTheDocument();
-    expect(screen.getByText(/1 Chapters Decaying/i)).toBeInTheDocument();
-
-    // Verify 3 hub cards
-    expect(screen.getByText('Active Recall Vault & Syllabus Matrix')).toBeInTheDocument();
-    expect(screen.getByText('Timed Active Recall Arena')).toBeInTheDocument();
-    expect(screen.getByText('30-Second Rapid Speed Drill')).toBeInTheDocument();
+    expect(screen.getByText(/Today: 1 chapter · 1 card · ~5 min/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Start revision/i })).toBeInTheDocument();
   });
 
-  it('navigates to Flashcard Vault stage and back to Hub', async () => {
+  it('renders Due Today chapters list with Revise button', () => {
     render(<RevisionPage />);
 
-    // Open Vault
-    const openVaultBtn = screen.getByRole('button', { name: /Open Vault & Matrix/i });
-    fireEvent.click(openVaultBtn);
+    expect(screen.getByText('Due Today')).toBeInTheDocument();
+    expect(screen.getByText('Thermodynamics')).toBeInTheDocument();
+    expect(screen.getByText('Overdue by 2 days')).toBeInTheDocument();
+    expect(screen.getByText(/8 cards/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Revise$/i })).toBeInTheDocument();
+  });
+
+  it('renders Coming Up (Next 7 Days) section with upcoming chapters', () => {
+    render(<RevisionPage />);
+
+    expect(screen.getByText('Coming Up (Next 7 Days)')).toBeInTheDocument();
+    expect(screen.getByText('Kinematics')).toBeInTheDocument();
+  });
+
+  it('launches RevisionSession when clicking Start revision button', async () => {
+    render(<RevisionPage />);
+
+    const startBtn = screen.getByRole('button', { name: /Start revision/i });
+    fireEvent.click(startBtn);
 
     await waitFor(() => {
-      expect(screen.getByText('Active Recall & Revision Vault')).toBeInTheDocument();
+      // RevisionSession should render the active card
+      expect(screen.getByText('First Law of Thermodynamics')).toBeInTheDocument();
+      expect(screen.getByText(/Show Answer/i)).toBeInTheDocument();
+    });
+  });
+
+  it('launches RevisionSession when clicking Revise on a chapter card', async () => {
+    render(<RevisionPage />);
+
+    const reviseBtn = screen.getByRole('button', { name: /^Revise$/i });
+    fireEvent.click(reviseBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText('First Law of Thermodynamics')).toBeInTheDocument();
+      expect(screen.getByText(/Show Answer/i)).toBeInTheDocument();
+    });
+  });
+
+  it('switches to Formula Vault when clicking Browse Formula Vault and back to Spaced Revision', async () => {
+    render(<RevisionPage />);
+
+    // Click Browse Formula Vault in header
+    const browseBtn = screen.getByRole('button', { name: /Browse Formula Vault/i });
+    fireEvent.click(browseBtn);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('formula-vault-page')).toBeInTheDocument();
+      expect(screen.getByText('Back to Spaced Revision')).toBeInTheDocument();
     });
 
-    // Return to Hub
-    const backBtn = screen.getByLabelText('Back to Command Center');
+    // Click Back to Spaced Revision
+    const backBtn = screen.getByRole('button', { name: /Back to Spaced Revision/i });
     fireEvent.click(backBtn);
 
     await waitFor(() => {
-      expect(screen.getByText('Chapter Retention & Formula Hub')).toBeInTheDocument();
-    });
-  });
-
-  it('navigates to Timed Active Recall Arena stage and back to Hub', async () => {
-    render(<RevisionPage />);
-
-    // Open Arena
-    const enterArenaBtn = screen.getByRole('button', { name: /Enter Timed Arena/i });
-    fireEvent.click(enterArenaBtn);
-
-    await waitFor(() => {
-      expect(screen.getByText('Active Recall Sprint')).toBeInTheDocument();
-    });
-
-    // Click back / exit
-    const exitBtn = screen.getByLabelText('Exit Arena');
-    fireEvent.click(exitBtn);
-
-    await waitFor(() => {
-      expect(screen.getByText('Chapter Retention & Formula Hub')).toBeInTheDocument();
-    });
-  });
-
-  it('navigates to 30-Second Speed Drill stage and back to Hub', async () => {
-    render(<RevisionPage />);
-
-    // Open Speed Drill
-    const drillBtn = screen.getByRole('button', { name: /Launch 30s Speed Drill/i });
-    fireEvent.click(drillBtn);
-
-    await waitFor(() => {
-      expect(screen.getByText('Formula Speed Drill')).toBeInTheDocument();
-    });
-
-    // Return to hub
-    const backBtn = screen.getByLabelText('Exit Sprint');
-    fireEvent.click(backBtn);
-
-    await waitFor(() => {
-      expect(screen.getByText('Chapter Retention & Formula Hub')).toBeInTheDocument();
-    });
-  });
-
-  it('renders and navigates into Daily Spaced Retention Queue (Daily Dose) and back to Hub', async () => {
-    render(<RevisionPage />);
-
-    expect(screen.getByText('Daily Spaced Retention Queue')).toBeInTheDocument();
-    expect(screen.getByText(/NTA Calibrated Daily Dose/i)).toBeInTheDocument();
-
-    const startDailyDoseBtn = screen.getByRole('button', { name: /Start Daily Dose/i });
-    fireEvent.click(startDailyDoseBtn);
-
-    await waitFor(() => {
-      expect(screen.getByText('Daily Spaced Routine')).toBeInTheDocument();
-    });
-
-    const exitBtn = screen.getByLabelText('Back to Command Center');
-    fireEvent.click(exitBtn);
-
-    await waitFor(() => {
-      expect(screen.getByText('Chapter Retention & Formula Hub')).toBeInTheDocument();
-    });
-  });
-
-  it('renders top-level navigation tabs [Formula Vault] | [Spaced Review & Recall] | [30s Speed Drill]', () => {
-    render(<RevisionPage />);
-
-    expect(screen.getByRole('button', { name: /^Formula Vault$/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^Spaced Review & Recall$/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^30s Speed Drill$/i })).toBeInTheDocument();
-  });
-
-  it('switches between Formula Vault and Spaced Review tabs', async () => {
-    render(<RevisionPage />);
-
-    // Click Formula Vault tab
-    const formulaVaultTab = screen.getByRole('button', { name: /^Formula Vault$/i });
-    fireEvent.click(formulaVaultTab);
-
-    // Should embed Formula Vault
-    await waitFor(() => {
-      expect(screen.getByText('JEE FORMULA REPOSITORY')).toBeInTheDocument();
-      expect(screen.getByText('Formula & Theorem Vault')).toBeInTheDocument();
-    });
-
-    // Switch back to Spaced Review & Recall tab
-    const spacedReviewTab = screen.getByRole('button', { name: /^Spaced Review & Recall$/i });
-    fireEvent.click(spacedReviewTab);
-
-    await waitFor(() => {
-      expect(screen.getByText('Chapter Retention & Formula Hub')).toBeInTheDocument();
-    });
-  });
-
-  it('switches to 30s Speed Drill via top navigation tab', async () => {
-    render(<RevisionPage />);
-
-    const speedDrillTab = screen.getByRole('button', { name: /^30s Speed Drill$/i });
-    fireEvent.click(speedDrillTab);
-
-    await waitFor(() => {
-      expect(screen.getByText('Formula Speed Drill')).toBeInTheDocument();
-    });
-  });
-
-  it('guarantees mutual exclusivity: clicking Formula Vault tab while inside a subview cleanly hides the subview', async () => {
-    render(<RevisionPage />);
-
-    // 1. Open Flashcard Vault subview
-    const openVaultBtn = screen.getByRole('button', { name: /Open Vault & Matrix/i });
-    fireEvent.click(openVaultBtn);
-
-    await waitFor(() => {
-      expect(screen.getByText('Active Recall & Revision Vault')).toBeInTheDocument();
-    });
-
-    // 2. Switch to Formula Vault tab
-    const formulaVaultTab = screen.getByRole('button', { name: /^Formula Vault$/i });
-    fireEvent.click(formulaVaultTab);
-
-    // 3. Formula Vault is visible, and Flashcard Vault subview is NOT rendered
-    await waitFor(() => {
-      expect(screen.getByText('JEE FORMULA REPOSITORY')).toBeInTheDocument();
-      expect(screen.queryByText('Active Recall & Revision Vault')).not.toBeInTheDocument();
+      expect(screen.getByText(/Today: 1 chapter · 1 card · ~5 min/i)).toBeInTheDocument();
     });
   });
 });
-
-
