@@ -6,12 +6,12 @@ import { Icon } from '@/components/ui/Icon';
 export function DockTooltip({
   label,
   shortcut,
-  isAiCoach,
+  isAiCoach = false,
   isVisible
 }: {
   label: string;
   shortcut?: string;
-  isAiCoach: boolean;
+  isAiCoach?: boolean;
   isVisible: boolean;
 }) {
   return (

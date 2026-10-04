@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { FloatingDynamicDock } from './FloatingDynamicDock';
+import { storageAdapter } from '@/services/StorageAdapter';
 
 // Mock Auth Context
 vi.mock('@/features/auth', () => ({
@@ -61,12 +62,11 @@ describe('FloatingDynamicDock (Radical Zero-Chrome Navigation)', () => {
     // Verify Home Logo
     expect(screen.getByTestId('dock-logo')).toBeInTheDocument();
 
-    // Verify 5 High-Yield Pillars
+    // Verify 4 High-Yield Pillars
     const dashboardLink = screen.getByLabelText('Dashboard');
     const mockTestsLink = screen.getByLabelText('Mock Tests');
     const plannerLink = screen.getByLabelText('Daily Planner');
     const practiceLink = screen.getByLabelText('Practice & Revision');
-    const coachLink = screen.getByLabelText('AI Coach');
 
     expect(dashboardLink).toBeInTheDocument();
     expect(dashboardLink).toHaveAttribute('href', '/dashboard');
@@ -79,9 +79,6 @@ describe('FloatingDynamicDock (Radical Zero-Chrome Navigation)', () => {
 
     expect(practiceLink).toBeInTheDocument();
     expect(practiceLink).toHaveAttribute('href', '/revision');
-
-    expect(coachLink).toBeInTheDocument();
-    expect(coachLink).toHaveAttribute('href', '/ai-coach');
 
     // Verify Command Search Button
     const searchBtn = screen.getByLabelText('Search commands (Cmd+K)');
@@ -120,16 +117,6 @@ describe('FloatingDynamicDock (Radical Zero-Chrome Navigation)', () => {
     const practiceBtn = screen.getByLabelText('Practice & Revision');
     expect(practiceBtn.firstChild).toHaveClass('text-emerald-400');
     unmount3();
-
-    // 4. Nested intelligence route: /analytics activates AI Coach pillar
-    const { unmount: unmount4 } = render(
-      <MemoryRouter initialEntries={['/analytics']}>
-        <FloatingDynamicDock onOpenCommandPalette={vi.fn()} />
-      </MemoryRouter>
-    );
-    const coachBtn = screen.getByLabelText('AI Coach');
-    expect(coachBtn.firstChild).toHaveClass('text-purple-400');
-    unmount4();
 
     // 5. Planner route: /planner activates Daily Planner pillar
     const { unmount: unmount5 } = render(
@@ -261,5 +248,32 @@ describe('FloatingDynamicDock (Radical Zero-Chrome Navigation)', () => {
     expect(screen.getByText(/\bLog\b/)).toBeInTheDocument();
     expect(screen.getByText(/Total/i)).toBeInTheDocument();
     expect(screen.getByText(/Today:/i)).toBeInTheDocument();
+  });
+
+  it('applies accessibility attributes and prevents keyboard traps when dock is hidden', () => {
+    // 1. Unpinned / hidden state (default): aria-hidden and inert applied
+    const { unmount } = render(
+      <MemoryRouter initialEntries={['/dashboard']}>
+        <FloatingDynamicDock onOpenCommandPalette={vi.fn()} />
+      </MemoryRouter>
+    );
+
+    const hiddenDock = screen.getByRole('navigation', { hidden: true });
+    expect(hiddenDock).toHaveAttribute('aria-label', 'Application dock');
+    expect(hiddenDock).toHaveAttribute('aria-hidden', 'true');
+    expect(hiddenDock).toHaveAttribute('inert');
+    unmount();
+
+    // 2. Pinned state: dock is visible in accessibility tree with aria-hidden="false"
+    vi.spyOn(storageAdapter, 'getDockPinned').mockReturnValue(true);
+    render(
+      <MemoryRouter initialEntries={['/dashboard']}>
+        <FloatingDynamicDock onOpenCommandPalette={vi.fn()} />
+      </MemoryRouter>
+    );
+
+    const visibleDock = screen.getByRole('navigation', { name: 'Application dock' });
+    expect(visibleDock).toBeInTheDocument();
+    expect(visibleDock).toHaveAttribute('aria-hidden', 'false');
   });
 });

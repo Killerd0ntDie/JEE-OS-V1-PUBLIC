@@ -85,12 +85,19 @@ export function useExamNavigationAndSubmit({
         const savedIdb = await idbGet<MockTestAttempt>(`jeeos_mock_attempt_${userId}_${test.id}`);
         if (savedIdb?.questions && Object.keys(savedIdb.questions).length > 0) {
           loadedAttempt = savedIdb;
+          // Clean up any lingering Tier 4 legacy copy
+          storageAdapter.removeItem(`jeeos_mock_attempt_${userId}_${test.id}`);
         } else {
           const savedLocal = storageAdapter.getItem<MockTestAttempt | string>(`jeeos_mock_attempt_${userId}_${test.id}`);
           if (savedLocal) {
             loadedAttempt = typeof savedLocal === 'string'
               ? safelyParseJSON<MockTestAttempt | null>(savedLocal, null)
               : savedLocal;
+            // Idempotent migration: Write to Tier 2 IDB and immediately evict from Tier 4 LocalStorage
+            if (loadedAttempt) {
+              await idbSet(`jeeos_mock_attempt_${userId}_${test.id}`, loadedAttempt);
+              storageAdapter.removeItem(`jeeos_mock_attempt_${userId}_${test.id}`);
+            }
           }
         }
       } catch(e) {

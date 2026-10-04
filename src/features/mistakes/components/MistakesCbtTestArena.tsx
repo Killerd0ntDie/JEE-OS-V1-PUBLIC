@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import ReactDOM from 'react-dom';
-import { motion, AnimatePresence } from 'motion/react';
-import { modalVariants } from '@/constants/motion';
+import { motion } from 'motion/react';
 import { 
-  Clock, X, Check, Award, AlertTriangle, CheckCircle2, 
-  XCircle, ChevronRight, ChevronLeft, RotateCcw, Trophy, ArrowRight
+  Clock, X, Check, RotateCcw, Trophy
 } from 'lucide-react';
 import { Mistake, SubjectId } from '@/types/index';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
-import { RichTextRenderer, ExplanationRenderer } from '@/components/MathRenderer';
+import { RichTextRenderer } from '@/components/MathRenderer';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { useJourneyStateMachine } from '@/utils/fsm/useJourneyStateMachine';
 
 export interface MistakesCbtTestArenaProps {
   isOpen: boolean;
@@ -31,18 +31,38 @@ export const MistakesCbtTestArena: React.FC<MistakesCbtTestArenaProps> = ({
 }) => {
   const actions = useStudyBrainStore(state => state.actions);
 
+  const arenaRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(arenaRef, isOpen);
+
+  const totalDurationSeconds = useMemo(() => Math.max(300, mistakes.length * 180), [mistakes.length]);
   const [currentIdx, setCurrentIdx] = useState(0);
+  const currentIdxRef = useRef(currentIdx);
   const [userAnswers, setUserAnswers] = useState<Record<string, string>>({});
   const [questionStatuses, setQuestionStatuses] = useState<Record<string, QuestionAttemptStatus>>({});
   const [timeSpentSeconds, setTimeSpentSeconds] = useState<Record<string, number>>({});
-  const [secondsRemaining, setSecondsRemaining] = useState(0);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isConfirmSubmitOpen, setIsConfirmSubmitOpen] = useState(false);
   const [selfGrades, setSelfGrades] = useState<Record<string, boolean>>({});
 
-  const totalDurationSeconds = useMemo(() => Math.max(300, mistakes.length * 180), [mistakes.length]);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const currentIdxRef = useRef(currentIdx);
+  const {
+    state: fsmState,
+    remainingSeconds: secondsRemaining,
+    elapsedSeconds,
+    start: startJourney,
+    pause: pauseJourney,
+    resume: resumeJourney,
+    complete: completeJourney,
+    reset: resetJourney,
+  } = useJourneyStateMachine({
+    recoveryKey: 'mistakes_cbt_retest',
+    totalDurationSeconds,
+    autoTickIntervalMs: 500,
+    onStateChange: (newState) => {
+      if (newState === 'evaluating' || newState === 'completed') {
+        setIsSubmitted(true);
+      }
+    }
+  });
 
   useEffect(() => {
     currentIdxRef.current = currentIdx;
@@ -50,6 +70,8 @@ export const MistakesCbtTestArena: React.FC<MistakesCbtTestArenaProps> = ({
 
   useLockBodyScroll(isOpen);
   useEscapeKey(onClose, isOpen);
+
+  const lastElapsedRef = useRef(0);
 
   useEffect(() => {
     if (isOpen && mistakes.length > 0) {
@@ -59,7 +81,8 @@ export const MistakesCbtTestArena: React.FC<MistakesCbtTestArenaProps> = ({
       setIsConfirmSubmitOpen(false);
       setSelfGrades({});
       setTimeSpentSeconds({});
-      setSecondsRemaining(totalDurationSeconds);
+      lastElapsedRef.current = 0;
+      startJourney();
 
       // Initialize statuses
       const initStatuses: Record<string, QuestionAttemptStatus> = {};
@@ -67,35 +90,36 @@ export const MistakesCbtTestArena: React.FC<MistakesCbtTestArenaProps> = ({
         initStatuses[m.id] = idx === 0 ? 'NOT_ANSWERED' : 'NOT_VISITED';
       });
       setQuestionStatuses(initStatuses);
-
-      timerRef.current = setInterval(() => {
-        setSecondsRemaining(prev => {
-          if (prev <= 1) {
-            if (timerRef.current) clearInterval(timerRef.current);
-            setIsSubmitted(true);
-            return 0;
-          }
-          return prev - 1;
-        });
-
-        // Track active question time using stable ref
-        setTimeSpentSeconds(prev => {
-          const currentId = mistakes[currentIdxRef.current]?.id;
-          if (!currentId) return prev;
-          return {
-            ...prev,
-            [currentId]: (prev[currentId] || 0) + 1
-          };
-        });
-      }, 1000);
     } else {
-      if (timerRef.current) clearInterval(timerRef.current);
+      resetJourney();
     }
+  }, [isOpen, startJourney, resetJourney]);
 
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [isOpen]);
+  // Track per-question time from FSM wall-clock elapsed ticks
+  useEffect(() => {
+    if (!isOpen || isSubmitted) return;
+    const delta = elapsedSeconds - lastElapsedRef.current;
+    if (delta > 0) {
+      lastElapsedRef.current = elapsedSeconds;
+      const currentId = mistakes[currentIdxRef.current]?.id;
+      if (currentId) {
+        setTimeSpentSeconds(prev => ({
+          ...prev,
+          [currentId]: (prev[currentId] || 0) + delta
+        }));
+      }
+    }
+  }, [elapsedSeconds, isOpen, isSubmitted, mistakes]);
+
+  // Pause / resume FSM on confirmation modal toggle
+  useEffect(() => {
+    if (!isOpen || isSubmitted) return;
+    if (isConfirmSubmitOpen) {
+      pauseJourney();
+    } else if (fsmState === 'paused') {
+      resumeJourney();
+    }
+  }, [isConfirmSubmitOpen, isOpen, isSubmitted, fsmState, pauseJourney, resumeJourney]);
 
   // Keyboard navigation shortcuts (n: next, p: prev, c: clear)
   useEffect(() => {
@@ -192,7 +216,7 @@ export const MistakesCbtTestArena: React.FC<MistakesCbtTestArenaProps> = ({
   const handleSubmitTest = async () => {
     setIsConfirmSubmitOpen(false);
     setIsSubmitted(true);
-    if (timerRef.current) clearInterval(timerRef.current);
+    completeJourney();
   };
 
   const handleToggleSelfGrade = async (id: string, isCorrect: boolean) => {
@@ -225,7 +249,13 @@ export const MistakesCbtTestArena: React.FC<MistakesCbtTestArenaProps> = ({
   const testAccuracy = answeredCount > 0 ? Math.round((totalSolvedInTest / mistakes.length) * 100) : 0;
 
   const arenaContent = (
-    <div className="fixed inset-0 z-[100020] bg-[#090a0f] text-zinc-100 flex flex-col overflow-hidden select-none font-sans">
+    <div
+      ref={arenaRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Mistakes CBT Retest Arena"
+      className="fixed inset-0 z-[100020] bg-[#090a0f] text-zinc-100 flex flex-col overflow-hidden select-none font-sans"
+    >
       
       {/* 1. CBT TOP NAVBAR */}
       <div className="h-14 border-b border-zinc-850 bg-zinc-950 px-4 sm:px-6 flex items-center justify-between shrink-0">
@@ -307,6 +337,10 @@ export const MistakesCbtTestArena: React.FC<MistakesCbtTestArenaProps> = ({
                 <span className="text-[10px] text-emerald-400 block uppercase font-bold">Resolved</span>
                 <span className="text-base font-bold text-emerald-300">{totalSolvedInTest}</span>
               </div>
+              <div className="p-3 rounded-xl bg-blue-950/40 border border-blue-800/60 text-center min-w-[80px]">
+                <span className="text-[10px] text-blue-400 block uppercase font-bold">Accuracy</span>
+                <span className="text-base font-bold text-blue-300">{testAccuracy}%</span>
+              </div>
               <div className="p-3 rounded-xl bg-indigo-950/40 border border-indigo-800/60 text-center min-w-[90px]">
                 <span className="text-[10px] text-indigo-300 block uppercase font-bold">Avg Speed</span>
                 <span className="text-base font-bold text-indigo-200">
@@ -350,7 +384,7 @@ export const MistakesCbtTestArena: React.FC<MistakesCbtTestArenaProps> = ({
                       <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-md bg-zinc-900 border border-zinc-700 text-white">
                         Q{idx + 1}
                       </span>
-                      <span className="text-xs font-mono font-bold text-indigo-400 uppercase">
+                      <span className={`text-xs font-mono font-bold uppercase ${getSubjectColor(m.subject).text}`}>
                         {m.subject} • {m.chapter}
                       </span>
                       <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-md border flex items-center gap-1 ${timeBadgeStyle}`}>
@@ -439,7 +473,7 @@ export const MistakesCbtTestArena: React.FC<MistakesCbtTestArenaProps> = ({
                 <span className="text-xs font-mono font-black px-2.5 py-1 rounded-lg bg-zinc-900 border border-zinc-700 text-white">
                   Question {currentIdx + 1}
                 </span>
-                <span className="text-xs font-mono font-bold text-indigo-400 uppercase">
+                <span className={`text-xs font-mono font-bold uppercase ${getSubjectColor(currentMistake.subject).text}`}>
                   {currentMistake.subject} • {currentMistake.chapter}
                 </span>
                 <span className="text-zinc-600 font-mono">•</span>

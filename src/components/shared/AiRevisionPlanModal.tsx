@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { motion } from 'motion/react';
-import { Sparkles, Calendar, Clock, Check, Loader2, X, ArrowRight, Zap, Target } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Sparkles, Calendar, Clock, Check, Loader2, X, Target } from 'lucide-react';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { auth } from '@/firebase';
 import { ChapterTelemetry } from '@jee-os/engines';
@@ -19,7 +18,6 @@ export function AiRevisionPlanModal({ isOpen, onClose }: AiRevisionPlanModalProp
 
   const actions = useStudyBrainStore(state => state.actions);
   const chapterTelemetryMap = useStudyBrainStore(state => state.chapterTelemetryMap);
-  const mentorProfile = useStudyBrainStore(state => state.mentorProfile);
   const settings = useStudyBrainStore(state => state.settings);
   const [selectedDays, setSelectedDays] = useState<3 | 7>(3);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -30,7 +28,7 @@ export function AiRevisionPlanModal({ isOpen, onClose }: AiRevisionPlanModalProp
   const telemetryList = (Object.values(chapterTelemetryMap || {}) as ChapterTelemetry[]);
   const bottlenecks = telemetryList.filter(t => t.isBottleneck).map(t => t.chapterName);
   const lowRetention = telemetryList.filter(t => t.retentionConfidence === 'Low').map(t => t.chapterName);
-  const dailyHours = (settings?.dailyQuota && settings.dailyQuota <= 14 ? settings.dailyQuota : mentorProfile?.dailyAvailableHours) || 6.5;
+  const dailyHours = (settings?.dailyQuota && settings.dailyQuota <= 14) ? settings.dailyQuota : 6.5;
 
   useEffect(() => {
     return () => {
@@ -69,7 +67,7 @@ export function AiRevisionPlanModal({ isOpen, onClose }: AiRevisionPlanModalProp
       let data: any = {};
       try {
         data = responseText ? JSON.parse(responseText) : {};
-      } catch (e) {
+      } catch (_e) {
         throw new Error(res.ok ? 'Received invalid response from server' : `Server Error (${res.status}): ${responseText.substring(0, 100)}`);
       }
 

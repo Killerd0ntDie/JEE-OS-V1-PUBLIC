@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
-import { WeeklyBlock, getDayFocusPill, getHeaderBadgeText } from '@jee-os/engines';
-import { TodayMission, SubjectId } from '@/types/index';
+import { WeeklyBlock } from '@jee-os/engines';
+import { TodayMission } from '@/types/index';
 
 export function usePlannerState() {
   const actions = useStudyBrainStore(state => state.actions);
@@ -17,7 +17,7 @@ export function usePlannerState() {
   const [isSandboxMode, setIsSandboxMode] = useState(false);
   const [isEditGoalsOpen, setIsEditGoalsOpen] = useState(false);
 
-  const rawDailyQuota = (settings?.dailyQuota && settings.dailyQuota <= 14 ? settings.dailyQuota : mentorProfile?.dailyAvailableHours) || 6;
+  const rawDailyQuota = (settings?.dailyQuota && settings.dailyQuota <= 14) ? settings.dailyQuota : 6.5;
   const dailyCapHours = Math.min(14, Math.max(1, rawDailyQuota));
 
   const [viewMode, setViewMode] = useState<'daily' | 'weekly' | 'monthly'>('daily');
@@ -57,7 +57,7 @@ export function usePlannerState() {
   const activeBottlenecks = useMemo(() => {
     const list: string[] = [];
     Object.values(chapterTelemetryMap || {}).forEach((t: any) => {
-      if (t && t.isBottleneck && t.bottleneckReason) {
+      if (t?.isBottleneck && t.bottleneckReason) {
         list.push(t.bottleneckReason);
       }
     });

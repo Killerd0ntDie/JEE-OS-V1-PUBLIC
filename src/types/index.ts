@@ -4,15 +4,11 @@ export type PageId =
   | 'chemistry'
   | 'maths'
   | 'planner'
-  | 'focus-vault'
   | 'revision'
   | 'formulas'
   | 'mistakes'
   | 'analytics'
-  | 'ai-coach'
-  | 'coach-history'
   | 'mock-tests'
-  | 'neural-link'
   | 'settings';
 
 export interface PageDefinition {
@@ -96,15 +92,6 @@ export const PAGES: PageDefinition[] = [
     icon: 'BarChart3',
     description: 'Detailed study hours, questions solved, accuracy trends, and subject-wise performance charts.',
     category: 'intelligence',
-  },
-  {
-    id: 'ai-coach',
-    label: 'AI Coach',
-    icon: 'Sparkles',
-    description: 'Personalized AI mentorship powered by Gemini, offering actionable guidance and study strategies.',
-    category: 'intelligence',
-    badge: 'AI',
-    badgeStyle: 'accent',
   },
   {
     id: 'mock-tests',

@@ -192,7 +192,7 @@ export const DashboardFocusSection = React.memo(function DashboardFocusSection({
               <div className="flex flex-col gap-4 h-full justify-between">
                 <DailyStudyTrackerWidget
                   studyTime={todayStudyMinutes}
-                  dailyQuota={(settings?.dailyQuota && settings.dailyQuota <= 14 ? settings.dailyQuota : mentorProfile?.dailyAvailableHours) || 6.5}
+                  dailyQuota={(settings?.dailyQuota && settings.dailyQuota <= 14) ? settings.dailyQuota : 6.5}
                   xpLevel={xp?.level || 1}
                   xpTotal={xp?.total || 0}
                   xpNextLevel={xp?.nextLevelXP || 100}
@@ -260,7 +260,7 @@ export const DashboardFocusSection = React.memo(function DashboardFocusSection({
                         <MomentumRadarWidget
                           chapters={chapters || []}
                           studySessions={studySessions || []}
-                          dailyTargetHours={(settings?.dailyQuota && settings.dailyQuota <= 14 ? settings.dailyQuota : mentorProfile?.dailyAvailableHours) || 6.5}
+                          dailyTargetHours={(settings?.dailyQuota && settings.dailyQuota <= 14) ? settings.dailyQuota : 6.5}
                         />
                       </motion.div>
                     ) : (

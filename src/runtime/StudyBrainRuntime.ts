@@ -1,7 +1,7 @@
 import { toLocalDateString } from '@/utils/dateUtils';
 import { 
   Chapter, TodayMission, TimelineBlock, Note, StudySession, MockResult, 
-  Mistake, XPState, SessionAnalytics, SubjectId, RevisionSettings, UserProfile, MentorProfile
+  Mistake, XPState, SessionAnalytics, SubjectId, MentorProfile
 } from '../types/index';
 import { MockTest } from '@/types/mockTest';
 import { mockTest1 } from '@/data/mockTests/jeeMain2024Shift1';
@@ -368,7 +368,7 @@ export class StudyBrainRuntime {
   
   private refreshTimer: NodeJS.Timeout | null = null;
   private pendingReasons = new Set<RefreshTriggers>();
-  private pendingResolvers: Array<(value: void) => void> = [];
+  private pendingResolvers: Array<() => void> = [];
   private pendingRejecters: Array<(reason?: any) => void> = [];
 
   public async refresh(reason: RefreshTriggers, optimisticData?: Partial<StudyBrainState>) {
@@ -442,9 +442,13 @@ export class StudyBrainRuntime {
       this.isProcessingRefresh = false;
       // Propagate result to all waiters for this batch
       if (refreshError) {
-        rejecters.forEach(rej => rej(refreshError));
+        rejecters.forEach(rej => {
+          rej(refreshError);
+        });
       } else {
-        resolvers.forEach(r => r());
+        resolvers.forEach(r => {
+          r();
+        });
       }
 
       // If more came in while we were processing, kick off another cycle
@@ -512,7 +516,7 @@ export class StudyBrainRuntime {
         mocks: this.state.mocks,
         settings: this.state.settings
       });
-      engineTimes['ChapterInfoEngine'] = performance.now() - ciStart;
+      engineTimes.ChapterInfoEngine = performance.now() - ciStart;
       invalidatedEngines.push('ChapterInfoEngine');
 
       // 0.5 Revision Engine (Spaced Repetition & Retention Scheduling Authority)
@@ -524,7 +528,7 @@ export class StudyBrainRuntime {
         mistakes: this.state.mistakes,
         notes: this.state.notes
       });
-      engineTimes['RevisionEngine'] = performance.now() - rStart;
+      engineTimes.RevisionEngine = performance.now() - rStart;
       invalidatedEngines.push('RevisionEngine');
     }
 
@@ -535,7 +539,7 @@ export class StudyBrainRuntime {
       const nodes = createSyllabusGraph(this.state.chapters);
       this.knowledgeEngine = new KnowledgeEngine(nodes);
       knowledgeGraph = nodes; 
-      engineTimes['KnowledgeEngine'] = performance.now() - kStart;
+      engineTimes.KnowledgeEngine = performance.now() - kStart;
       invalidatedEngines.push('KnowledgeEngine');
       this.cacheMisses++;
     } else {
@@ -558,7 +562,7 @@ export class StudyBrainRuntime {
         chapterTelemetryMap
       };
       analyticsSummary = this.analyticsEngine!.generateAnalytics(analyticsInput);
-      engineTimes['AnalyticsEngine'] = performance.now() - aStart;
+      engineTimes.AnalyticsEngine = performance.now() - aStart;
       invalidatedEngines.push('AnalyticsEngine');
       this.cacheMisses++;
     } else {
@@ -592,7 +596,7 @@ export class StudyBrainRuntime {
       }
       
       // Realistic base daily study hours (typical JEE prep is 4h - 6h)
-      const rawQuota = this.state.settings?.dailyQuota || this.state.mentorProfile?.dailyAvailableHours || 4.5;
+      const rawQuota = this.state.settings?.dailyQuota || 6.5;
       const baseDailyHours = (rawQuota > 14) ? 4.5 : Math.max(2.0, rawQuota);
 
       // Energy sets the intensity of the day based on baseDailyHours
@@ -743,7 +747,7 @@ export class StudyBrainRuntime {
             (this.state.completedPlannerMissionIds || []).includes(m.id);
 
           // Never let an uncompleted candidate overwrite a completed task
-          if (existing && existing.completed && !m.completed) {
+          if (existing?.completed && !m.completed) {
             continue;
           }
 
@@ -777,7 +781,7 @@ export class StudyBrainRuntime {
       weeklySchedule = synthesized.weeklySchedule;
       timeline = synthesized.timeline;
 
-      engineTimes['PlannerAndOptimization'] = performance.now() - pStart;
+      engineTimes.PlannerAndOptimization = performance.now() - pStart;
       invalidatedEngines.push('PlannerEngine');
       this.cacheMisses++;
     } else {
@@ -793,7 +797,7 @@ export class StudyBrainRuntime {
         this.state.mistakes, 
         this.state.settings.revisionSettings
       );
-      engineTimes['RevisionEngine'] = performance.now() - rStart;
+      engineTimes.RevisionEngine = performance.now() - rStart;
       invalidatedEngines.push('RevisionEngine');
       this.cacheMisses++;
     } else {
@@ -809,7 +813,7 @@ export class StudyBrainRuntime {
       analytics: this.state.analytics,
       todayMissions
     });
-    engineTimes['UIComputation'] = performance.now() - uiStart;
+    engineTimes.UIComputation = performance.now() - uiStart;
 
     const totalDuration = performance.now() - startTime;
     this.totalEngineRuntimeMs += totalDuration;

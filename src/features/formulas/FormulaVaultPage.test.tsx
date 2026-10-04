@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { FormulaVaultPage } from './FormulaVaultPage';
+import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 
 // Mock Toast
 const mockToast = vi.fn();
@@ -31,6 +32,7 @@ describe('FormulaVaultPage Feature View (Magnitude 5.1)', { timeout: 40000 }, ()
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    useStudyBrainStore.setState({ bookmarkedFormulaIds: [] });
     Object.assign(navigator, {
       clipboard: {
         writeText: vi.fn().mockResolvedValue(undefined),
@@ -97,11 +99,10 @@ describe('FormulaVaultPage Feature View (Magnitude 5.1)', { timeout: 40000 }, ()
     // Click first bookmark
     fireEvent.click(bookmarkButtons[0]);
 
-    // Check localStorage was updated
-    const saved = localStorage.getItem('jeeos_bookmarked_formulas');
-    expect(saved).not.toBeNull();
-    const parsed = JSON.parse(saved || '[]');
-    expect(parsed.length).toBe(1);
+    // Check localStorage is NOT used (Tier 4 violation fixed) and canonical store was updated
+    expect(localStorage.getItem('jeeos_bookmarked_formulas')).toBeNull();
+    const storeBookmarks = useStudyBrainStore.getState().bookmarkedFormulaIds;
+    expect(storeBookmarks).toHaveLength(1);
 
     // Filter to Starred
     const starredFilterBtn = screen.getByTitle('Filter Starred Formulas');

@@ -382,4 +382,17 @@ describe('StudyBrainActions - Optimistic Mutation Rollbacks', () => {
     mockUpdateUser.mockRestore();
     mockUpdateMistake.mockRestore();
   });
+
+  it('13. rolls back bookmarkedFormulaIds when toggleFormulaBookmark fails remotely', async () => {
+    runtime.updateStateOptimistic({ bookmarkedFormulaIds: ['formula-1'] });
+    const mockUpdateUser = vi.spyOn(UserRepository, 'updateUserProfile').mockRejectedValueOnce(new Error('Firestore write failed'));
+
+    await expect(actions.toggleFormulaBookmark('formula-2')).rejects.toThrow('Sync Error (toggleFormulaBookmark): Firestore write failed');
+
+    // Verify rollback restored bookmarkedFormulaIds to original ['formula-1']
+    expect(runtime.getState().bookmarkedFormulaIds).toEqual(['formula-1']);
+    expect(runtime.getState().lastSyncError).toContain('Sync Error (toggleFormulaBookmark)');
+
+    mockUpdateUser.mockRestore();
+  });
 });

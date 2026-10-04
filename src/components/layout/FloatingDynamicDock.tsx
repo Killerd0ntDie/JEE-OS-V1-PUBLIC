@@ -164,9 +164,6 @@ export function FloatingDynamicDock({
 
   const unreadNotifications = notifications.filter(n => !readNotificationIds.includes(n.id));
 
-  // Auto-hide dock like Windows taskbar: reveals when cursor hits edge, hides when leaving
-  const isAiCoach = location.pathname.startsWith('/ai-coach');
-
   useEffect(() => {
     if (isDockPinned) {
       setIsDockHidden(false);
@@ -175,18 +172,12 @@ export function FloatingDynamicDock({
 
     const handleMouseMove = (e: MouseEvent) => {
       const bottomThreshold = window.innerHeight - 45;
-      const rightThreshold = window.innerWidth - 45;
-
-      const isNearEdge = isAiCoach
-        ? e.clientX >= rightThreshold
-        : e.clientY >= bottomThreshold;
+      const isNearEdge = e.clientY >= bottomThreshold;
 
       if (isNearEdge) {
         revealDock();
       } else if (!isHoveringDockRef.current && !activeMenu) {
-        const isFarFromDock = isAiCoach
-          ? e.clientX < window.innerWidth - 85
-          : e.clientY < window.innerHeight - 85;
+        const isFarFromDock = e.clientY < window.innerHeight - 85;
 
         if (isFarFromDock && !isDockHidden) {
           scheduleHide(350);
@@ -199,7 +190,7 @@ export function FloatingDynamicDock({
       window.removeEventListener('mousemove', handleMouseMove);
       cancelHideTimeout();
     };
-  }, [isDockPinned, location.pathname, isAiCoach, activeMenu, isDockHidden]);
+  }, [isDockPinned, location.pathname, activeMenu, isDockHidden]);
 
   // Close menus on outside click and schedule hide if cursor is away
   useEffect(() => {
@@ -208,10 +199,7 @@ export function FloatingDynamicDock({
         setActiveMenu(null);
         if (!isDockPinned) {
           const bottomThreshold = window.innerHeight - 85;
-          const rightThreshold = window.innerWidth - 85;
-          const isFar = isAiCoach
-            ? e.clientX < rightThreshold
-            : e.clientY < bottomThreshold;
+          const isFar = e.clientY < bottomThreshold;
           if (isFar) {
             scheduleHide(350);
           }
@@ -220,7 +208,7 @@ export function FloatingDynamicDock({
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isDockPinned, isAiCoach]);
+  }, [isDockPinned]);
 
   const [isInMockTest, setIsInMockTest] = useState(() => {
     return typeof document !== 'undefined' && document.body.classList.contains('in-mock-test');
@@ -260,23 +248,21 @@ export function FloatingDynamicDock({
   const isPracticeActive = location.pathname.startsWith('/revision') || 
                            location.pathname.startsWith('/mistakes') || 
                            location.pathname.startsWith('/formulas');
-  const isCoachActive = location.pathname.startsWith('/ai-coach') || 
+  const _isCoachActive = location.pathname.startsWith('/ai-coach') || 
                         location.pathname.startsWith('/coach-history') || 
                         location.pathname.startsWith('/analytics') || 
                         location.pathname.startsWith('/neural-link');
 
-  const activePillLayoutId = isAiCoach ? "dockActivePillVertical" : "dockActivePillHorizontal";
+  const activePillLayoutId = "dockActivePillHorizontal";
 
   const renderDockItems = (isVertical: boolean) => (
     <>
       <DockNavigation
         isVertical={isVertical}
-        isAiCoach={isAiCoach}
         isDashboardActive={isDashboardActive}
         isMockTestsActive={isMockTestsActive}
         isPlannerActive={isPlannerActive}
         isPracticeActive={isPracticeActive}
-        isCoachActive={isCoachActive}
         activePillLayoutId={activePillLayoutId}
         hoveredItem={hoveredItem}
         handleItemHover={handleItemHover}
@@ -335,7 +321,7 @@ export function FloatingDynamicDock({
     <>
       {/* Invisible Hover & Touch Edge Detector for Quick Reveal */}
       <div 
-        className={isAiCoach ? "fixed right-0 inset-y-0 w-6 z-40 pointer-events-auto" : "fixed bottom-0 inset-x-0 h-6 z-40 pointer-events-auto"}
+        className="fixed bottom-0 inset-x-0 h-6 z-40 pointer-events-auto"
         onMouseEnter={revealDock}
         onTouchStart={revealDock}
         aria-hidden="true"
@@ -343,7 +329,7 @@ export function FloatingDynamicDock({
 
       {/* Subtle Windows-style Auto-Hide Peek Bar Indicator for Desktop/Mobile */}
       <AnimatePresence>
-        {isDockHidden && !isAiCoach && (
+        {isDockHidden && (
           <motion.button
             type="button"
             initial={{ opacity: 0, y: 8 }}
@@ -357,81 +343,41 @@ export function FloatingDynamicDock({
             className="fixed bottom-1.5 left-1/2 -translate-x-1/2 w-12 h-1 rounded-full bg-white/20 hover:bg-white/40 active:bg-white/60 cursor-pointer z-40 transition-colors shadow-sm"
           />
         )}
-        {isDockHidden && isAiCoach && (
-          <motion.button
-            type="button"
-            initial={{ opacity: 0, x: 8 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 8 }}
-            transition={{ duration: 0.15 }}
-            onClick={revealDock}
-            onMouseEnter={revealDock}
-            onTouchStart={revealDock}
-            aria-label="Reveal Navigation Dock"
-            className="fixed right-1.5 top-1/2 -translate-y-1/2 w-1 h-12 rounded-full bg-white/20 hover:bg-white/40 active:bg-white/60 cursor-pointer z-40 transition-colors shadow-sm"
-          />
-        )}
       </AnimatePresence>
 
-      {/* Dynamic Dock Presentation with Orientation Transitions */}
-      <AnimatePresence mode="wait">
-        {isAiCoach ? (
-          <motion.div
-            key="vertical-dock-wand"
-            ref={dockRef}
-            initial={false}
-            animate={{ 
-              opacity: isDockHidden ? 0 : 1, 
-              x: isDockHidden ? 90 : 0 
+      {/* Dynamic Horizontal Dock Presentation */}
+      <AnimatePresence>
+        <motion.div
+          key="horizontal-dock-capsule"
+          ref={dockRef}
+          role="navigation"
+          aria-label="Application dock"
+          aria-hidden={isDockHidden}
+          inert={isDockHidden}
+          initial={false}
+          animate={{ 
+            opacity: isDockHidden ? 0 : 1, 
+            y: isDockHidden ? 90 : 0 
+          }}
+          exit={{ opacity: 0, y: 30 }}
+          transition={springs.snappy}
+          className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 max-w-[calc(100vw-1rem)] sm:max-w-none ${isDockHidden ? 'pointer-events-none' : 'pointer-events-auto'}`}
+        >
+          <div 
+            onMouseEnter={() => {
+              isHoveringDockRef.current = true;
+              revealDock();
             }}
-            exit={{ opacity: 0, x: 30 }}
-            transition={springs.snappy}
-            className={`fixed right-3.5 top-1/2 -translate-y-1/2 z-50 ${isDockHidden ? 'pointer-events-none' : 'pointer-events-auto'}`}
-          >
-            <div 
-              onMouseEnter={() => {
-                isHoveringDockRef.current = true;
-                revealDock();
-              }}
-              onMouseLeave={() => {
-                isHoveringDockRef.current = false;
-                handleItemHover(null);
-                if (!activeMenu) scheduleHide(350);
-              }}
-              className="relative w-12 py-3 px-1.5 flex flex-col items-center gap-2 rounded-3xl surface-elevated ring-1 ring-white/10 select-none shadow-2xl backdrop-blur-2xl"
-            >
-              {renderDockItems(true)}
-            </div>
-          </motion.div>
-        ) : (
-          <motion.div
-            key="horizontal-dock-capsule"
-            ref={dockRef}
-            initial={false}
-            animate={{ 
-              opacity: isDockHidden ? 0 : 1, 
-              y: isDockHidden ? 90 : 0 
+            onMouseLeave={() => {
+              isHoveringDockRef.current = false;
+              handleItemHover(null);
+              if (!activeMenu) scheduleHide(350);
             }}
-            exit={{ opacity: 0, y: 30 }}
-            transition={springs.snappy}
-            className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 max-w-[calc(100vw-1rem)] sm:max-w-none ${isDockHidden ? 'pointer-events-none' : 'pointer-events-auto'}`}
+            className="relative surface-elevated rounded-2xl sm:rounded-full p-1 sm:p-1.5 ring-1 ring-white/10 flex flex-row items-center gap-0.5 sm:gap-1.5 select-none overflow-x-auto sm:overflow-visible hide-scrollbar shadow-2xl backdrop-blur-2xl"
           >
-            <div 
-              onMouseEnter={() => {
-                isHoveringDockRef.current = true;
-                revealDock();
-              }}
-              onMouseLeave={() => {
-                isHoveringDockRef.current = false;
-                handleItemHover(null);
-                if (!activeMenu) scheduleHide(350);
-              }}
-              className="relative surface-elevated rounded-2xl sm:rounded-full p-1 sm:p-1.5 ring-1 ring-white/10 flex flex-row items-center gap-0.5 sm:gap-1.5 select-none overflow-x-auto sm:overflow-visible hide-scrollbar shadow-2xl backdrop-blur-2xl"
-            >
-              {renderDockItems(false)}
-            </div>
-          </motion.div>
-        )}
+            {renderDockItems(false)}
+          </div>
+        </motion.div>
       </AnimatePresence>
     </>
   );

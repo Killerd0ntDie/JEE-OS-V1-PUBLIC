@@ -11,8 +11,7 @@ import { audioEngine } from '@/utils/audioEngine';
 import { useToast } from '@/components/ui/ToastProvider';
 import { FormulaSpeedDrillModal } from './components/FormulaSpeedDrillModal';
 import { DimensionalAnalysisModal } from './components/DimensionalAnalysisModal';
-import { storageAdapter } from '@/services/StorageAdapter';
-import { useStudyBrainStore } from '@/store/useStudyBrainStore';
+import { useStudyBrainStore, useShallow } from '@/store/useStudyBrainStore';
 
 export function FormulaVaultPage({ initialChapterId }: { initialChapterId?: string } = {}) {
   const { toast } = useToast();
@@ -34,38 +33,18 @@ export function FormulaVaultPage({ initialChapterId }: { initialChapterId?: stri
   const [isClozeMode, setIsClozeMode] = useState(false);
   const [revealedClozeKeys, setRevealedClozeKeys] = useState<Set<string>>(new Set());
 
-  const actions = useStudyBrainStore(s => s.actions);
-  const runtimeBookmarks = useStudyBrainStore(s => s.bookmarkedFormulaIds);
+  const { actions, runtimeBookmarks } = useStudyBrainStore(
+    useShallow(state => ({
+      actions: state.actions,
+      runtimeBookmarks: state.bookmarkedFormulaIds
+    }))
+  );
 
-  // Persistent bookmarked formulas: runtime/Firestore is single source of truth,
-  // with storageAdapter as mirror/offline fallback cache
-  const [localBookmarks, setLocalBookmarks] = useState<string[]>(() => {
-    return storageAdapter.getItem<string[]>('jeeos_bookmarked_formulas') || [];
-  });
-
-  // Effective bookmarks combines runtime state (authoritative) or local fallback
-  const bookmarkedFormulas = useMemo(() => {
-    if (runtimeBookmarks && runtimeBookmarks.length > 0) {
-      return runtimeBookmarks;
-    }
-    return localBookmarks;
-  }, [runtimeBookmarks, localBookmarks]);
-
-  // Synchronize legacy local cache to runtime on initial mount if runtime is unseeded
-  useEffect(() => {
-    const cached = storageAdapter.getItem<string[]>('jeeos_bookmarked_formulas');
-    if (cached && cached.length > 0 && (!runtimeBookmarks || runtimeBookmarks.length === 0)) {
-      actions.setFormulaBookmarks?.(cached).catch(() => {});
-    }
-  }, []);
+  const bookmarkedFormulas = useMemo(() => runtimeBookmarks || [], [runtimeBookmarks]);
 
   const toggleBookmark = (formulaId: string, title: string) => {
     audioEngine.playMechanicalKey('click').catch(() => {});
     const exists = bookmarkedFormulas.includes(formulaId);
-    const next = exists ? bookmarkedFormulas.filter(id => id !== formulaId) : [...bookmarkedFormulas, formulaId];
-    
-    setLocalBookmarks(next);
-    storageAdapter.setItem('jeeos_bookmarked_formulas', next);
     actions.toggleFormulaBookmark?.(formulaId).catch(() => {});
 
     toast({

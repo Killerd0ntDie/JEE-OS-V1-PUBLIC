@@ -109,10 +109,7 @@ export class MissionActions extends BaseActions {
         lastSyncError: null
       });
     } catch (err) {
-      this.runtime.rollbackMission(newMission.id, null);
-      this.runtime.updateStateOptimistic({
-        customMissions: this.state.customMissions.filter(m => m.id !== newMission.id)
-      });
+      this.runtime.updateStateOptimistic(originalSnapshot);
       await this.handleWriteError(err, 'addCustomMission');
     }
   }
@@ -347,7 +344,7 @@ export class MissionActions extends BaseActions {
     });
 
     const { generateWeeklyMatrix } = await import('@jee-os/engines');
-    const rawQuota = this.state.settings?.dailyQuota || this.state.mentorProfile?.dailyAvailableHours || 4.5;
+    const rawQuota = this.state.settings?.dailyQuota || 6.5;
     const baseDailyHours = (rawQuota > 14) ? 4.5 : Math.max(2.0, rawQuota);
     const energyMultiplier = this.state.energyLevel === 'Low' ? 0.5 : this.state.energyLevel === 'Medium' ? 1.0 : 1.25;
     const totalDailyQuotaHours = Math.round(baseDailyHours * energyMultiplier * 10) / 10;
@@ -374,7 +371,7 @@ export class MissionActions extends BaseActions {
 
     const currentDayBlocks = updatedWeekly.filter(b => b.dayIndex === currentDayIndex);
     
-    let updatedTodayMissions;
+    let updatedTodayMissions: TodayMission[];
     if (updatedWeekly.length === 0 && cleanedMissions.length > 0) {
       updatedTodayMissions = cleanedMissions;
     } else {

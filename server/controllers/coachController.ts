@@ -107,7 +107,7 @@ Valid Action examples (as payload):
 - { "type": "CLEAR_MISSIONS", "payload": {} }
 `;
 
-    const cacheKey = generateCacheKey(req.body, 'coach');
+    const cacheKey = generateCacheKey({ uid: req.user?.uid || 'anonymous', ...req.body }, 'coach');
     const cachedResponse = aiCache.get(cacheKey);
     if (cachedResponse) {
       const parsed = JSON.parse(cachedResponse);

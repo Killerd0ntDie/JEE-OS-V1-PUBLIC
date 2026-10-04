@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { motion } from 'motion/react';
 import { Activity } from 'lucide-react';
 import { Chapter, StudySession } from '@/types';
+import { calculateRadarMetrics } from '@jee-os/engines';
 
 interface MomentumRadarWidgetProps {
   chapters: Chapter[];
@@ -14,46 +15,9 @@ export const MomentumRadarWidget: React.FC<MomentumRadarWidgetProps> = ({
   studySessions,
   dailyTargetHours = 6.5
 }) => {
-  // Compute the 3 axis values normalized between 0 and 100
+  // Consume canonical precomputed metrics from runtime engine
   const metrics = useMemo(() => {
-    // 1. Velocity Axis (Hours per day over last 7 days vs target)
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-    const recentMinutes = (studySessions || [])
-      .filter(s => s.startTime && new Date(s.startTime) >= sevenDaysAgo)
-      .reduce((acc, s) => acc + (s.duration || 0), 0);
-
-    const avgDailyHours = (recentMinutes / 60) / 7;
-    const velocityScore = Math.min(100, Math.round((avgDailyHours / (dailyTargetHours || 6)) * 100)) || 65;
-
-    // 2. Retention Axis (Average confidence & revision progress across chapters)
-    let totalRetention = 0;
-    let countedChapters = 0;
-
-    (chapters || []).forEach(ch => {
-      if (ch.completion > 0 || ch.status === 'Mastered') {
-        const rawConfidence = ch.confidence ? (ch.confidence <= 5 ? ch.confidence * 20 : ch.confidence) : 65;
-        const score = ch.revisionProgress?.retentionScore ?? (ch.status === 'Mastered' ? 92 : rawConfidence);
-        totalRetention += score;
-        countedChapters++;
-      }
-    });
-
-    const retentionScore = countedChapters > 0 ? Math.round(totalRetention / countedChapters) : 78;
-
-    // 3. Depth Axis (PYQs completed vs expected across syllabus)
-    let totalPyqComplete = 0;
-    (chapters || []).forEach(ch => {
-      if (ch.pyqsComplete) totalPyqComplete++;
-    });
-    const depthScore = chapters.length > 0 ? Math.min(100, Math.round((totalPyqComplete / Math.max(1, chapters.length * 0.4)) * 100)) || 55 : 60;
-
-    return {
-      velocity: { score: velocityScore, label: `${avgDailyHours.toFixed(1)}h/day`, raw: velocityScore },
-      retention: { score: retentionScore, label: `${retentionScore}% Score`, raw: retentionScore },
-      depth: { score: depthScore, label: `${totalPyqComplete} Modules`, raw: depthScore }
-    };
+    return calculateRadarMetrics(chapters, studySessions, dailyTargetHours);
   }, [chapters, studySessions, dailyTargetHours]);
 
   // Radar SVG Math: Triangle centered at (100, 105) with radius 75

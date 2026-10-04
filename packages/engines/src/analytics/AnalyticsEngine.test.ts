@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { AnalyticsEngine } from './AnalyticsEngine';
+import { AnalyticsEngine, calculateRadarMetrics } from './AnalyticsEngine';
 import { Chapter, Mistake, StudySession, MockResult } from '../types/index';
 
 describe('AnalyticsEngine', () => {
@@ -121,7 +121,7 @@ describe('AnalyticsEngine', () => {
       expect(typeof result.predictedCompletionDate).toBe('string');
       // Assert it is a valid date within 10-year clamped horizon
       const predictedTimestamp = new Date(result.predictedCompletionDate!).getTime();
-      expect(isNaN(predictedTimestamp)).toBe(false);
+      expect(Number.isNaN(predictedTimestamp)).toBe(false);
 
       const maxFutureMs = Date.now() + (3651 * 86400000);
       expect(predictedTimestamp).toBeLessThanOrEqual(maxFutureMs);
@@ -166,5 +166,55 @@ describe('AnalyticsEngine', () => {
     // studyHoursPastWeek: index 6 is today (Sept 4), index 5 is yesterday (Sept 3)
     expect(result.studyHoursPastWeek[6]).toBe(1.0); // 60 mins today
     expect(result.studyHoursPastWeek[5]).toBe(0.8); // 45 mins yesterday
+  });
+
+  describe('calculateRadarMetrics', () => {
+    it('computes velocity, retention, and depth normalized scores correctly', () => {
+      const chapters: Chapter[] = [
+        {
+          id: 'ch-1',
+          subject: 'physics',
+          name: 'Kinematics',
+          completion: 80,
+          confidence: 85,
+          status: 'Learning',
+          pyqsComplete: true,
+        } as any,
+        {
+          id: 'ch-2',
+          subject: 'chemistry',
+          name: 'Thermodynamics',
+          completion: 100,
+          status: 'Mastered',
+          pyqsComplete: true,
+        } as any,
+      ];
+
+      const sessions: StudySession[] = [
+        {
+          id: 's-1',
+          startTime: new Date().toISOString(),
+          duration: 180, // 3 hours
+          subjectId: 'physics'
+        } as any,
+      ];
+
+      const metrics = calculateRadarMetrics(chapters, sessions, 6.5);
+
+      expect(metrics.velocity).toBeDefined();
+      expect(metrics.retention).toBeDefined();
+      expect(metrics.depth).toBeDefined();
+
+      expect(metrics.velocity.score).toBeGreaterThan(0);
+      expect(metrics.retention.score).toBeGreaterThan(0);
+      expect(metrics.depth.score).toBeGreaterThan(0);
+    });
+
+    it('handles empty inputs gracefully with fallbacks', () => {
+      const metrics = calculateRadarMetrics([], [], 6.5);
+      expect(metrics.velocity.score).toBe(65);
+      expect(metrics.retention.score).toBe(78);
+      expect(metrics.depth.score).toBe(60);
+    });
   });
 });

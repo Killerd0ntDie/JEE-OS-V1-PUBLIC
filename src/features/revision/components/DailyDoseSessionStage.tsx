@@ -108,17 +108,21 @@ export const DailyDoseSessionStage: React.FC<DailyDoseSessionStageProps> = ({
 
   // ── PHASE 3: SPEED DRILL TIMER ──
   useEffect(() => {
-    if (phase === 'speed_drill' && isSpeedActive && speedTimer > 0) {
-      const timer = setInterval(() => {
-        setSpeedTimer(prev => prev - 1);
-      }, 1000);
-      return () => clearInterval(timer);
-    } else if (phase === 'speed_drill' && isSpeedActive && speedTimer === 0) {
-      // Finish speed drill
-      setIsSpeedActive(false);
-      handleFinishDailyDose();
-    }
-  }, [phase, isSpeedActive, speedTimer]);
+    if (phase !== 'speed_drill' || !isSpeedActive) return;
+
+    const targetEndTime = Date.now() + speedTimer * 1000;
+    const timer = setInterval(() => {
+      const remaining = Math.max(0, Math.ceil((targetEndTime - Date.now()) / 1000));
+      setSpeedTimer(remaining);
+      if (remaining <= 0) {
+        clearInterval(timer);
+        setIsSpeedActive(false);
+        handleFinishDailyDose();
+      }
+    }, 200);
+
+    return () => clearInterval(timer);
+  }, [phase, isSpeedActive]);
 
   const handleSpeedAnswer = (correct: boolean) => {
     playTap();

@@ -25,7 +25,7 @@ export function MissionMode(props: MissionModeProps) {
   const { mode = 'learning', children } = props;
   const [isClosing, setIsClosing] = useState(false);
   const _actions = useStudyBrainStore(state => state.actions);
-  const _studySessions = useStudyBrainStore(state => state.studySessions || []);
+  const _studySessions = useStudyBrainStore(state => state.studySessions);
   const _settings = useStudyBrainStore(state => state.settings);
   const xp = useStudyBrainStore(state => state.xp);
   

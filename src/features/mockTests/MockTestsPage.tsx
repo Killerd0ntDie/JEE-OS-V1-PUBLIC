@@ -386,12 +386,7 @@ export function MockTestsPage({ onNavigate: _onNavigate, defaultView: _defaultVi
     setActiveSession(scanForActiveSession());
 
     const timer = setInterval(() => {
-      setActiveSession(prev => {
-        if (!prev) return scanForActiveSession();
-        const newSec = prev.remainingSeconds - 1;
-        if (newSec <= 0) return null;
-        return { ...prev, remainingSeconds: newSec };
-      });
+      setActiveSession(scanForActiveSession());
     }, 1000);
 
     return () => clearInterval(timer);

@@ -1,4 +1,4 @@
-import { SubjectId } from '../types/index';
+import { SubjectId, Chapter, StudySession } from '../types/index';
 import { AnalyticsInput, AnalyticsOutput } from './types';
 
 function getLocalDateKey(date: Date): string {
@@ -279,4 +279,64 @@ export function calculateMockMasteryMetrics(
 export function calculateSubjectAccuracy(correct: number, attempted: number): number {
   if (attempted <= 0) return 0;
   return Math.round((correct / attempted) * 100);
+}
+
+export interface RadarAxisMetric {
+  score: number;
+  label: string;
+  raw: number;
+}
+
+export interface RadarMetrics {
+  velocity: RadarAxisMetric;
+  retention: RadarAxisMetric;
+  depth: RadarAxisMetric;
+}
+
+/**
+ * Authoritative calculation for Momentum Radar metrics (Velocity, Retention, Depth).
+ */
+export function calculateRadarMetrics(
+  chapters: Chapter[],
+  studySessions: StudySession[],
+  dailyTargetHours: number = 6.5
+): RadarMetrics {
+  // 1. Velocity Axis (Hours per day over last 7 days vs target)
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+  const recentMinutes = (studySessions || [])
+    .filter(s => s.startTime && new Date(s.startTime) >= sevenDaysAgo)
+    .reduce((acc, s) => acc + (s.duration || 0), 0);
+
+  const avgDailyHours = (recentMinutes / 60) / 7;
+  const velocityScore = Math.min(100, Math.round((avgDailyHours / (dailyTargetHours || 6)) * 100)) || 65;
+
+  // 2. Retention Axis (Average confidence & revision progress across chapters)
+  let totalRetention = 0;
+  let countedChapters = 0;
+
+  (chapters || []).forEach(ch => {
+    if (ch.completion > 0 || ch.status === 'Mastered') {
+      const rawConfidence = ch.confidence ? (ch.confidence <= 5 ? ch.confidence * 20 : ch.confidence) : 65;
+      const score = ch.revisionProgress?.retentionScore ?? (ch.status === 'Mastered' ? 92 : rawConfidence);
+      totalRetention += score;
+      countedChapters++;
+    }
+  });
+
+  const retentionScore = countedChapters > 0 ? Math.round(totalRetention / countedChapters) : 78;
+
+  // 3. Depth Axis (PYQs completed vs expected across syllabus)
+  let totalPyqComplete = 0;
+  (chapters || []).forEach(ch => {
+    if (ch.pyqsComplete) totalPyqComplete++;
+  });
+  const depthScore = chapters && chapters.length > 0 ? Math.min(100, Math.round((totalPyqComplete / Math.max(1, chapters.length * 0.4)) * 100)) || 55 : 60;
+
+  return {
+    velocity: { score: velocityScore, label: `${avgDailyHours.toFixed(1)}h/day`, raw: velocityScore },
+    retention: { score: retentionScore, label: `${retentionScore}% Score`, raw: retentionScore },
+    depth: { score: depthScore, label: `${totalPyqComplete} Modules`, raw: depthScore }
+  };
 }

@@ -8,19 +8,18 @@ import {
   AnimatedMockTestsIcon,
   AnimatedPlannerIcon,
   AnimatedPracticeIcon,
-  AnimatedCoachIcon,
   AnimatedSearchIcon,
   DockTooltip
 } from './DockIcons';
 
 export interface DockNavigationProps {
   isVertical: boolean;
-  isAiCoach: boolean;
+  isAiCoach?: boolean;
   isDashboardActive: boolean;
   isMockTestsActive: boolean;
   isPlannerActive: boolean;
   isPracticeActive: boolean;
-  isCoachActive: boolean;
+  isCoachActive?: boolean;
   activePillLayoutId: string;
   hoveredItem: string | null;
   handleItemHover: (id: string | null) => void;
@@ -36,7 +35,7 @@ export const DockNavigation: React.FC<DockNavigationProps> = ({
   isMockTestsActive,
   isPlannerActive,
   isPracticeActive,
-  isCoachActive,
+  isCoachActive: _isCoachActive,
   activePillLayoutId,
   hoveredItem,
   handleItemHover,
@@ -200,40 +199,6 @@ export const DockNavigation: React.FC<DockNavigationProps> = ({
               )}
               <AnimatedPracticeIcon isHovered={hoveredItem === 'practice'} />
               <DockTooltip label="Practice & Revision" shortcut="R" isAiCoach={isVertical} isVisible={hoveredItem === 'practice'} />
-            </motion.div>
-          );
-        }}
-      </NavLink>
-
-      {/* Pillar 5: AI Coach */}
-      <NavLink
-        to="/ai-coach"
-        aria-label="AI Coach"
-        onClick={onSelectNav}
-        onMouseEnter={() => handleItemHover('ai-coach')}
-        onMouseLeave={() => handleItemHover(null)}
-        className="relative"
-      >
-        {({ isActive: isNavActive }) => {
-          const isActive = isNavActive || isCoachActive;
-          return (
-            <motion.div
-              whileHover={{ scale: 1.06, y: isVertical ? 0 : -2 }}
-              whileTap={{ scale: 0.94 }}
-              transition={springs.snappy}
-              className={`relative w-8 h-8 sm:w-9 sm:h-9 rounded-xl sm:rounded-full flex items-center justify-center transition-colors ${
-                isActive ? 'text-purple-400 font-semibold' : 'text-zinc-400 hover:text-white'
-              }`}
-            >
-              {isActive && (
-                <motion.div
-                  layoutId={activePillLayoutId}
-                  transition={springs.fluid}
-                  className="absolute inset-0 rounded-xl sm:rounded-full bg-purple-500/18 -z-0 pointer-events-none"
-                />
-              )}
-              <AnimatedCoachIcon isHovered={hoveredItem === 'ai-coach'} />
-              <DockTooltip label="AI Coach" shortcut="C" isAiCoach={isVertical} isVisible={hoveredItem === 'ai-coach'} />
             </motion.div>
           );
         }}

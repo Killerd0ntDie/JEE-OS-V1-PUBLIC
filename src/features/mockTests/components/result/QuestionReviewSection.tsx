@@ -98,7 +98,7 @@ export function QuestionReviewSection({
   const handleAskMentor = (prompt: string) => {
     if (onNavigate) {
       storageAdapter.setSession('jeeos_pending_coach_prompt', prompt);
-      onNavigate('ai-coach');
+      onNavigate('dashboard');
     } else {
       setMentorInitialPrompt(prompt);
       setIsMentorModalOpen(true);

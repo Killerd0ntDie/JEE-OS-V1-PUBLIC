@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { motion } from 'motion/react';
 import { 
   ArrowLeft, BookOpen, BarChart3, Brain, Printer, X 
@@ -115,7 +115,7 @@ export function ResultHeader({
             onClick={() => {
               const prompt = `I just completed the Mock Test "${testName}". I scored ${totalScore} out of ${totalMarks}. I attempted ${correctCount + incorrectCount} questions, got ${correctCount} correct and ${incorrectCount} incorrect. Can you analyze my performance and suggest a revision strategy?`;
               storageAdapter.setSession('jeeos_pending_coach_prompt', prompt);
-              onNavigate?.('ai-coach');
+              onNavigate?.('dashboard');
             }}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-300 rounded-xl border border-indigo-500/30 text-xs font-bold transition-colors cursor-pointer"
             title="Chat with AI Mentor about this Test"

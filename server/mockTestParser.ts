@@ -59,6 +59,7 @@ export function registerMockTestParserRoutes(app: any, deps: MockTestParserDeps)
   // 3. DPP coaching institute and metadata auto-detection
   app.post(
     "/api/mocktest/analyze-dpp-metadata",
+    verifyAuth,
     apiLimiter,
     (req: any, res: any) => handleAnalyzeDppMetadata(req, res, handlerDeps)
   );

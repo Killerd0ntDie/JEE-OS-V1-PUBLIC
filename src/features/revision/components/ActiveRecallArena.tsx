@@ -116,20 +116,21 @@ export function ActiveRecallArena({ cards, onExit }: ActiveRecallArenaProps) {
       return;
     }
 
+    const targetEndTime = Date.now() + timeLeft * 1000;
+
     timerRef.current = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 1) {
-          handleTimeUp();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+      const remaining = Math.max(0, Math.ceil((targetEndTime - Date.now()) / 1000));
+      setTimeLeft(remaining);
+      if (remaining <= 0) {
+        if (timerRef.current) clearInterval(timerRef.current);
+        handleTimeUp();
+      }
+    }, 200);
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [isFinished, isRevealed, isTransitioning, handleTimeUp, sessionCards.length]);
+  }, [isFinished, isRevealed, isTransitioning, currentIndex, handleTimeUp, sessionCards.length]);
 
   // Clean up auto advance timeouts
   useEffect(() => {

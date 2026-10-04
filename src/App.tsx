@@ -17,11 +17,8 @@ const ChemistryPage = lazy(() => import('./features/subjects/ChemistryPage').the
 const MathsPage = lazy(() => import('./features/subjects/MathsPage').then(m => ({ default: m.MathsPage })));
 const PlannerPage = lazy(() => import('./features/planner/PlannerPage').then(m => ({ default: m.PlannerPage })));
 const RevisionPage = lazy(() => import('./features/revision/RevisionPage').then(m => ({ default: m.RevisionPage })));
-const _FormulaVaultPage = lazy(() => import('./features/formulas/FormulaVaultPage').then(m => ({ default: m.FormulaVaultPage })));
 const MistakesPage = lazy(() => import('./features/mistakes/MistakesPage').then(m => ({ default: m.MistakesPage })));
 const AnalyticsPage = lazy(() => import('./features/analytics/AnalyticsPage').then(m => ({ default: m.AnalyticsPage })));
-const AiCoachPage = lazy(() => import('./features/coach/AiCoachPage').then(m => ({ default: m.AiCoachPage })));
-const CoachHistoryPage = lazy(() => import('./features/coach/CoachHistoryPage').then(m => ({ default: m.CoachHistoryPage })));
 const SettingsPage = lazy(() => import('./features/dashboard/SettingsPage').then(m => ({ default: m.SettingsPage })));
 const MockTestsPage = lazy(() => import('./features/mockTests/MockTestsPage').then(m => ({ default: m.MockTestsPage })));
 const MockTestResultPage = lazy(() => import('./features/mockTests/MockTestResultPage').then(m => ({ default: m.MockTestResultPage })));
@@ -178,19 +175,16 @@ function AppLayout() {
     );
   }
 
-  const isAiCoach = location.pathname.startsWith('/ai-coach');
-
   // God Mode & Rot Mode Logic (Based on Streak)
   const isGodMode = streak >= 7 && (enableGodMode !== false);
   const isRotMode = streak > 0 && streak < 3 && enableGodMode === true;
   const themeClass = `${isGodMode ? 'theme-god-mode' : isRotMode ? 'theme-rot-mode' : ''} ${themeMode === 'modern' ? 'theme-modern' : 'theme-evangelion'}`;
 
-  const isCockpit = location.pathname.startsWith('/cockpit') || location.pathname.startsWith('/dev-cockpit') || location.pathname.startsWith('/mission');
+  const isCockpit = location.pathname.startsWith('/cockpit') || location.pathname.startsWith('/mission');
   const isDiagnostic = location.pathname.startsWith('/diagnostic');
-  const isResultPage = location.pathname.startsWith('/mock-tests/result') || location.pathname.startsWith('/result') || location.pathname.startsWith('/mock-test/result');
-  const isNeuralLink = location.pathname.startsWith('/neural-link');
+  const isResultPage = location.pathname.startsWith('/mock-tests/result');
   const isStandalone = isCockpit || isDiagnostic || isResultPage;
-  const isFullBleed = isStandalone || isNeuralLink;
+  const isFullBleed = isStandalone;
   const isMockTests = location.pathname.startsWith('/mock-tests');
 
   return (
@@ -207,9 +201,9 @@ function AppLayout() {
       />
 
       {/* Main Workspace Frame - 100% Full-Bleed Edge-to-Edge Canvas */}
-      <div className={`w-full flex flex-col min-w-0 h-[100dvh] ${location.pathname.startsWith('/planner') || isAiCoach || isFullBleed ? 'overflow-hidden' : 'overflow-y-auto scrollbar'} relative`}>
+      <div className={`w-full flex flex-col min-w-0 h-[100dvh] ${location.pathname.startsWith('/planner') || isFullBleed ? 'overflow-hidden' : 'overflow-y-auto scrollbar'} relative`}>
         {/* Central Router Stage with Smooth Framer Motion Transition */}
-        <main id="main-content" className={`flex-1 flex flex-col relative min-h-0 ${isFullBleed ? 'p-0 overflow-hidden' : isAiCoach ? 'pl-3 sm:pl-6 md:pl-8 pr-20 sm:pr-24 md:pr-28 lg:pr-32 pt-2 sm:pt-3 pb-2 overflow-hidden' : isMockTests ? 'px-3 sm:px-6 lg:px-8 py-5 pb-32 sm:pb-36 max-w-[1600px] w-full mx-auto' : 'px-4 sm:px-8 md:px-12 lg:px-16 py-6 pb-32 sm:pb-36'}`}>
+        <main id="main-content" className={`flex-1 flex flex-col relative min-h-0 ${isFullBleed ? 'p-0 overflow-hidden' : isMockTests ? 'px-3 sm:px-6 lg:px-8 py-5 pb-32 sm:pb-36 max-w-[1600px] w-full mx-auto' : 'px-4 sm:px-8 md:px-12 lg:px-16 py-6 pb-32 sm:pb-36'}`}>
           {!isOnline && (
             <div className="bg-amber-500/10 border border-amber-500/30 text-amber-300 px-4 py-3 rounded-xl mb-4 flex items-center justify-center font-mono text-xs shadow-lg animate-fade-in shrink-0">
               <div className="flex items-center gap-2">
@@ -246,10 +240,8 @@ function AppLayout() {
                 <Suspense fallback={<PageSkeleton />}>
                   <Routes location={location} key={location.pathname}>
                     <Route path="/dashboard" element={<ErrorBoundary><DashboardPage /></ErrorBoundary>} />
-                    <Route path="/dev-dashboard" element={<Navigate to="/dashboard" replace />} />
                     <Route path="/cockpit/:missionId?" element={<ErrorBoundary><CockpitPage /></ErrorBoundary>} />
                     <Route path="/mission/:missionId?" element={<ErrorBoundary><CockpitPage /></ErrorBoundary>} />
-                    <Route path="/dev-cockpit" element={<Navigate to="/cockpit" replace />} />
                     <Route path="/physics" element={<ErrorBoundary><PhysicsPage /></ErrorBoundary>} />
                     <Route path="/chemistry" element={<ErrorBoundary><ChemistryPage /></ErrorBoundary>} />
                     <Route path="/maths" element={<ErrorBoundary><MathsPage /></ErrorBoundary>} />
@@ -260,13 +252,13 @@ function AppLayout() {
                     <Route path="/formulas" element={<Navigate to="/revision?tab=formulas" replace />} />
                     <Route path="/mistakes" element={<ErrorBoundary><MistakesPage /></ErrorBoundary>} />
                     <Route path="/analytics" element={<ErrorBoundary><AnalyticsPage /></ErrorBoundary>} />
-                    <Route path="/ai-coach" element={<ErrorBoundary><AiCoachPage isActive={isAiCoach} /></ErrorBoundary>} />
-                    <Route path="/coach-history" element={<ErrorBoundary><CoachHistoryPage /></ErrorBoundary>} />
+                    <Route path="/ai-coach" element={<Navigate to="/dashboard" replace />} />
+                    <Route path="/coach-history" element={<Navigate to="/dashboard" replace />} />
                     <Route path="/mock-tests" element={<ErrorBoundary><MockTestsPage /></ErrorBoundary>} />
                     <Route path="/mock-tests/result/:attemptId?" element={<ErrorBoundary><MockTestResultPage /></ErrorBoundary>} />
                     <Route path="/mock-tests/*" element={<ErrorBoundary><MockTestsPage /></ErrorBoundary>} />
-                    <Route path="/result/:attemptId?" element={<ErrorBoundary><MockTestResultPage /></ErrorBoundary>} />
-                    <Route path="/mock-test/result/:attemptId?" element={<ErrorBoundary><MockTestResultPage /></ErrorBoundary>} />
+                    <Route path="/result/:attemptId?" element={<Navigate to="/mock-tests" replace />} />
+                    <Route path="/mock-test/result/:attemptId?" element={<Navigate to="/mock-tests" replace />} />
                     <Route path="/neural-link" element={<Navigate to="/physics" replace />} />
                     <Route path="/neural-graph" element={<Navigate to="/physics" replace />} />
                     <Route path="/settings" element={<ErrorBoundary><SettingsPage /></ErrorBoundary>} />
@@ -279,7 +271,7 @@ function AppLayout() {
           </ErrorBoundary>
 
           {/* Bottom Dock Clearance Spacer ensuring content is never hidden behind FloatingDynamicDock */}
-          {!isStandalone && !location.pathname.startsWith('/planner') && !isAiCoach && (
+          {!isStandalone && !location.pathname.startsWith('/planner') && (
             <div className="h-[max(6.5rem,calc(env(safe-area-inset-bottom)+5.5rem))] w-full shrink-0 pointer-events-none" aria-hidden="true" />
           )}
         </main>

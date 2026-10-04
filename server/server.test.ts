@@ -775,7 +775,7 @@ Electron enters \\pi^* 2p_x or \\pi^* 2p_y orbital. Correct option is C.`;
 
       const res = await fetch(`${baseUrl}/api/mocktest/analyze-dpp-metadata`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...validAuthHeader },
         body: JSON.stringify({
           rawText: 'ALLEN CAREER INSTITUTE\nDaily Practice Problem (DPP)\nCourse: JEE (Advanced)\nTopic: Chemical Bonding\nDPP No. 03',
           fileName: 'Allen_DPP_03_Chemical_Bonding.pdf',
@@ -790,6 +790,20 @@ Electron enters \\pi^* 2p_x or \\pi^* 2p_y orbital. Correct option is C.`;
       expect(data.detectedInstitute).toBe('Allen');
       expect(data.recommendedDurationMinutes).toBe(45);
       expect(mockGenerateContent).toHaveBeenLastCalledWith(expect.objectContaining({ model: 'gemini-3.5-flash-lite' }));
+    });
+
+    it('rejects unauthenticated requests with 401 Unauthorized', async () => {
+      const res = await fetch(`${baseUrl}/api/mocktest/analyze-dpp-metadata`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          rawText: 'Sample text',
+          fileName: 'sample.pdf',
+          chapterNames: ['Sample']
+        })
+      });
+
+      expect(res.status).toBe(401);
     });
   });
 
