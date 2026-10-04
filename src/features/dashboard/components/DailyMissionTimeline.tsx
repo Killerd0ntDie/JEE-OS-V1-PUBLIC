@@ -45,6 +45,8 @@ const getSubjectBadgeStyle = (subj: SubjectId | string) => {
       return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
     case 'maths':
       return 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20';
+    case 'break':
+      return 'bg-amber-500/10 text-amber-400 border-amber-500/30';
     default:
       return 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20';
   }
@@ -134,7 +136,7 @@ export const DailyMissionTimeline = React.memo(function DailyMissionTimeline({
 
   const parseTimeVal = (val: string | undefined, fallback: number) => {
     const p = parseInt(val || '', 10);
-    return isNaN(p) ? fallback : p;
+    return Number.isNaN(p) ? fallback : p;
   };
   const startHourVal = parseTimeVal(dayStartTime.split(':')[0], 7);
 
@@ -409,11 +411,11 @@ export const DailyMissionTimeline = React.memo(function DailyMissionTimeline({
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 text-left items-start">
       
       {/* LEFT COLUMN: 65% width (~720px) — Clean Execution Stream */}
-      <div className="lg:col-span-7 xl:col-span-7 flex flex-col">
+      <div className="order-2 lg:order-1 lg:col-span-7 xl:col-span-7 flex flex-col">
         
         <div className="space-y-3">
           {/* Modern Execution Queue Header */}
-          <div className="flex items-center justify-between gap-3 border-b border-zinc-850 pb-2.5 px-0.5">
+          <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-2.5 px-0.5">
             {/* Left: Modern Title + Counter */}
             <div className="flex items-center gap-2">
               <h2 className="text-base font-tactical font-black text-white tracking-tight flex items-center gap-2 uppercase">
@@ -430,7 +432,7 @@ export const DailyMissionTimeline = React.memo(function DailyMissionTimeline({
                 whileTap={{ scale: 0.95 }}
                 transition={springs.snappy}
                 onClick={() => setIsHistoryModalOpen(true)}
-                className="px-2.5 py-1 text-zinc-400 hover:text-zinc-200 bg-zinc-900/60 hover:bg-zinc-800 border border-zinc-800 rounded-lg flex items-center gap-1.5 cursor-pointer transition-colors shadow-sm font-medium"
+                className="px-2.5 py-1 text-zinc-300 hover:text-white css-glass hover:bg-white/20 rounded-lg flex items-center gap-1.5 cursor-pointer transition-colors shadow-sm font-medium"
                 title="History"
               >
                 <History className="w-3.5 h-3.5" />
@@ -443,7 +445,7 @@ export const DailyMissionTimeline = React.memo(function DailyMissionTimeline({
                 whileTap={{ scale: 0.95 }}
                 transition={springs.snappy}
                 onClick={onOpenCustomMission}
-                className="px-2.5 py-1 text-zinc-200 hover:text-white bg-zinc-900 hover:bg-zinc-800 border border-zinc-750 rounded-lg flex items-center gap-1.5 font-medium cursor-pointer transition-colors shadow-sm"
+                className="px-2.5 py-1 text-zinc-200 hover:text-white css-glass hover:bg-white/20 rounded-lg flex items-center gap-1.5 font-medium cursor-pointer transition-colors shadow-sm"
               >
                 <Plus className="w-3.5 h-3.5 text-indigo-400" />
                 <span>Add Mission</span>
@@ -464,6 +466,35 @@ export const DailyMissionTimeline = React.memo(function DailyMissionTimeline({
               </motion.a>
             </div>
           </div>
+
+          {/* Schedule Telemetry Bar */}
+          {(() => {
+            const liveMission = visibleMissions.find(m => m.id === liveMissionId);
+            const isLiveBreak = Boolean(
+              liveMission && (
+                (liveMission.subject as string)?.toLowerCase() === 'break' ||
+                (liveMission.type as string)?.toLowerCase() === 'break' ||
+                liveMission.taskName?.toLowerCase().includes('break')
+              )
+            );
+            return (
+              <div className={`flex items-center justify-between flex-wrap gap-2 px-3.5 py-2 rounded-xl border text-xs font-mono transition-colors ${
+                isLiveBreak
+                  ? 'bg-amber-500/[0.05] border-amber-500/30 text-amber-200/80 shadow-xs'
+                  : 'bg-surface-2 border-border-subtle text-zinc-400'
+              }`}>
+                <div className="flex items-center gap-2">
+                  <Clock className={`w-3.5 h-3.5 shrink-0 ${isLiveBreak ? 'text-amber-400' : 'text-indigo-400'}`} />
+                  <span>Schedule: <strong className="text-zinc-200 font-medium">{dayStartTime} - {effectiveEndTime}</strong></span>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <span>Remaining: <strong className="text-zinc-200 font-medium">{estimatedRemainingHours}h</strong></span>
+                  <span className="text-zinc-600">•</span>
+                  <span>Target: <strong className={`font-medium ${isLiveBreak ? 'text-amber-400' : 'text-indigo-400'}`}>{targetFinishTime || '8:30 PM'}</strong></span>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Checklist Items */}
           <div className="space-y-2.5">
@@ -497,7 +528,7 @@ export const DailyMissionTimeline = React.memo(function DailyMissionTimeline({
                     
                     {/* Controlled Dropdown for extension on Mobile, iPad, and PC */}
                     {isExtendMenuOpen && (
-                      <div className="absolute top-full right-0 mt-1.5 w-44 bg-zinc-950/95 border border-white/10 rounded-xl shadow-2xl backdrop-blur-xl overflow-hidden flex flex-col z-50 font-mono text-xs animate-in fade-in zoom-in-95 duration-150">
+                      <div className="absolute top-full right-0 mt-1.5 w-44 css-glass rounded-xl shadow-2xl overflow-hidden flex flex-col z-50 font-mono text-xs animate-in fade-in zoom-in-95 duration-150">
                         <button 
                           type="button"
                           onClick={() => handleExtendSession(0.5, '30 mins')} 
@@ -700,7 +731,7 @@ export const DailyMissionTimeline = React.memo(function DailyMissionTimeline({
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 px-2 text-xs opacity-75 font-mono text-zinc-400 hover:text-zinc-300 uppercase"
+              className="h-6 px-2 text-xs font-mono text-zinc-400 hover:text-zinc-300 uppercase"
               onClick={handleResetSession}
             >
               RESET
@@ -752,7 +783,7 @@ export const DailyMissionTimeline = React.memo(function DailyMissionTimeline({
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               transition={springs.snappy}
-              className="max-w-md w-full p-6 rounded-3xl border border-amber-500/40 bg-zinc-950/95 shadow-2xl shadow-amber-500/20 text-center relative overflow-hidden flex flex-col items-center space-y-4"
+              className="max-w-md w-full p-6 rounded-3xl border border-amber-500/40 css-glass shadow-2xl shadow-amber-500/20 text-center relative overflow-hidden flex flex-col items-center space-y-4"
             >
               {/* Top ambient glow */}
               <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-amber-500/20 blur-3xl pointer-events-none" />

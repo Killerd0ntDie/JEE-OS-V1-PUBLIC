@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Target, X, Volume2, VolumeX, Sparkles, RotateCcw, Shield, Sliders, Check, Maximize2, Minimize2, Timer, Zap, Hourglass } from 'lucide-react';
+import { useState } from 'react';
+import { Target, X, Volume2, VolumeX, Sparkles, RotateCcw, Sliders, Check, Maximize2, Minimize2, Timer, Zap, Hourglass } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { audioEngine } from '@/utils/audioEngine';
 import { springs } from '@/constants/motion';
@@ -62,13 +62,7 @@ export function MissionHeader({
           whileHover={{ scale: 1.05, rotate: 5 }}
           whileTap={{ scale: 0.95 }}
           transition={springs.snappy}
-          style={{
-            background: 'rgba(10, 14, 23, 0.75)',
-            backdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255, 255, 255, 0.12)',
-            borderTop: '1.5px solid rgba(255, 255, 255, 0.22)',
-          }}
-          className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl shadow-md flex items-center justify-center shrink-0 cursor-default"
+          className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl css-glass flex items-center justify-center shrink-0 cursor-default"
         >
           <Target className="w-4.5 h-4.5 text-indigo-400" />
         </motion.div>
@@ -93,16 +87,9 @@ export function MissionHeader({
         />
       </div>
 
-      {/* Center: Mission Focus Mode Presets (Liquid Glass Pill) */}
+      {/* Center: Mission Focus Mode Presets (Frosted Glass Pill) */}
       <div 
-        style={{
-          background: 'rgba(10, 14, 23, 0.75)',
-          backdropFilter: 'blur(20px)',
-          border: '1px solid rgba(255, 255, 255, 0.10)',
-          borderTop: '1.5px solid rgba(255, 255, 255, 0.20)',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.15)'
-        }}
-        className="hidden md:flex items-center gap-1 p-1 rounded-2xl"
+        className="hidden md:flex items-center gap-1 p-1 rounded-2xl css-glass-subtle"
       >
         {[
           { id: 'deep60' as FocusPresetMode, label: `Deep ${targetDurationMins}m`, icon: Timer },
@@ -146,10 +133,11 @@ export function MissionHeader({
             onToggleZenMode?.();
           }}
           style={{
-            background: isZenMode ? 'rgba(245, 158, 11, 0.18)' : 'rgba(10, 14, 23, 0.75)',
-            backdropFilter: 'blur(20px)',
+            background: isZenMode ? 'rgba(245, 158, 11, 0.25)' : 'rgba(13, 16, 24, 0.72)',
+            backdropFilter: 'blur(5px)',
+            WebkitBackdropFilter: 'blur(5px)',
             border: isZenMode ? '1px solid rgba(245, 158, 11, 0.5)' : '1px solid rgba(255, 255, 255, 0.10)',
-            borderTop: isZenMode ? '1.5px solid rgba(245, 158, 11, 0.7)' : '1.5px solid rgba(255, 255, 255, 0.20)',
+            boxShadow: '0 4px 30px rgba(0, 0, 0, 0.25)',
           }}
           className={`px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-mono font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm ${
             isZenMode ? 'text-amber-300' : 'text-zinc-300 hover:text-white'
@@ -169,10 +157,11 @@ export function MissionHeader({
             transition={springs.snappy}
             onClick={() => setIsFxMenuOpen(!isFxMenuOpen)}
             style={{
-              background: isFxMenuOpen ? 'rgba(79, 70, 229, 0.35)' : 'rgba(10, 14, 23, 0.75)',
-              backdropFilter: 'blur(20px)',
+              background: isFxMenuOpen ? 'rgba(79, 70, 229, 0.35)' : 'rgba(13, 16, 24, 0.72)',
+              backdropFilter: 'blur(5px)',
+              WebkitBackdropFilter: 'blur(5px)',
               border: isFxMenuOpen ? '1px solid rgba(99, 102, 241, 0.6)' : '1px solid rgba(255, 255, 255, 0.10)',
-              borderTop: isFxMenuOpen ? '1.5px solid rgba(99, 102, 241, 0.8)' : '1.5px solid rgba(255, 255, 255, 0.20)',
+              boxShadow: '0 4px 30px rgba(0, 0, 0, 0.25)',
             }}
             className={`px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-mono font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm ${
               isFxMenuOpen ? 'text-white' : 'text-zinc-300 hover:text-white'
@@ -190,12 +179,7 @@ export function MissionHeader({
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: -10 }}
                 transition={springs.snappy}
-                className="absolute right-0 top-12 w-80 sm:w-96 rounded-2xl border border-zinc-700/80 p-4 shadow-2xl z-50 space-y-3.5"
-                style={{
-                  background: 'rgba(10, 14, 23, 0.95)',
-                  backdropFilter: 'blur(28px) saturate(200%)',
-                  boxShadow: '0 25px 50px rgba(0, 0, 0, 0.8), 0 0 40px rgba(99, 102, 241, 0.15)'
-                }}
+                className="absolute right-0 top-12 w-80 sm:w-96 rounded-2xl css-glass p-4 shadow-2xl z-50 space-y-3.5"
               >
                 <div className="flex items-center justify-between border-b border-zinc-800 pb-2.5">
                   <div className="flex items-center gap-2">
@@ -298,12 +282,13 @@ export function MissionHeader({
           transition={springs.snappy}
           onClick={toggleMute}
           style={{
-            background: 'rgba(10, 14, 23, 0.75)',
-            backdropFilter: 'blur(20px)',
+            background: 'rgba(13, 16, 24, 0.72)',
+            backdropFilter: 'blur(5px)',
+            WebkitBackdropFilter: 'blur(5px)',
             border: '1px solid rgba(255, 255, 255, 0.10)',
-            borderTop: '1.5px solid rgba(255, 255, 255, 0.20)',
+            boxShadow: '0 4px 30px rgba(0, 0, 0, 0.25)',
           }}
-          className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl text-zinc-400 hover:text-white transition-colors flex items-center justify-center cursor-pointer shadow-sm"
+          className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl text-zinc-300 hover:text-white transition-colors flex items-center justify-center cursor-pointer shadow-sm"
           title={isMuted ? "Unmute Audio" : "Mute Audio"}
         >
           {isMuted ? <VolumeX className="w-3.5 h-3.5 text-rose-400" /> : <Volume2 className="w-3.5 h-3.5 text-zinc-300" />}
@@ -317,12 +302,13 @@ export function MissionHeader({
           transition={springs.snappy}
           onClick={onExit}
           style={{
-            background: 'rgba(10, 14, 23, 0.75)',
-            backdropFilter: 'blur(20px)',
+            background: 'rgba(13, 16, 24, 0.72)',
+            backdropFilter: 'blur(5px)',
+            WebkitBackdropFilter: 'blur(5px)',
             border: '1px solid rgba(255, 255, 255, 0.10)',
-            borderTop: '1.5px solid rgba(255, 255, 255, 0.20)',
+            boxShadow: '0 4px 30px rgba(0, 0, 0, 0.25)',
           }}
-          className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl hover:bg-red-500/20 hover:border-red-500/40 text-zinc-400 hover:text-red-400 transition-colors flex items-center justify-center cursor-pointer shadow-sm"
+          className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl hover:bg-red-500/20 hover:border-red-500/40 text-zinc-300 hover:text-red-400 transition-colors flex items-center justify-center cursor-pointer shadow-sm"
           title="Exit Session (ESC)"
         >
           <X className="w-4 h-4" />

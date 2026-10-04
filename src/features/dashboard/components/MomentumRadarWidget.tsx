@@ -119,29 +119,29 @@ export const MomentumRadarWidget: React.FC<MomentumRadarWidgetProps> = ({
         </svg>
 
         {/* Floating Axis Labels */}
-        <div className="absolute top-1 text-center font-mono text-[10px] text-purple-300 font-bold bg-purple-950/60 border border-purple-500/30 px-2 py-0.5 rounded-md">
+        <div className="absolute top-1 text-center font-mono text-[10px] text-purple-300 font-bold css-glass-pill px-2 py-0.5">
           Retention: {metrics.retention.score}%
         </div>
-        <div className="absolute bottom-1 right-2 text-right font-mono text-[10px] text-cyan-300 font-bold bg-cyan-950/60 border border-cyan-500/30 px-2 py-0.5 rounded-md">
+        <div className="absolute bottom-1 right-2 text-right font-mono text-[10px] text-cyan-300 font-bold css-glass-pill px-2 py-0.5">
           Velocity: {metrics.velocity.score}%
         </div>
-        <div className="absolute bottom-1 left-2 text-left font-mono text-[10px] text-emerald-300 font-bold bg-emerald-950/60 border border-emerald-500/30 px-2 py-0.5 rounded-md">
+        <div className="absolute bottom-1 left-2 text-left font-mono text-[10px] text-emerald-300 font-bold css-glass-pill px-2 py-0.5">
           Depth: {metrics.depth.score}%
         </div>
       </div>
 
       {/* Footer Metrics Breakdown */}
-      <div className="grid grid-cols-3 gap-2 pt-3 border-t border-zinc-850/80 font-mono text-xs text-center">
-        <div className="p-1.5 rounded-lg bg-white/[0.02] border border-white/5">
-          <span className="text-[9px] text-zinc-500 block uppercase">RETENTION</span>
+      <div className="grid grid-cols-3 gap-2 pt-3 border-t border-white/10 font-mono text-xs text-center">
+        <div className="p-1.5 rounded-lg css-glass-subtle">
+          <span className="text-[9px] text-zinc-400 block uppercase">RETENTION</span>
           <span className="text-purple-300 font-bold">{metrics.retention.label}</span>
         </div>
-        <div className="p-1.5 rounded-lg bg-white/[0.02] border border-white/5">
-          <span className="text-[9px] text-zinc-500 block uppercase">VELOCITY</span>
+        <div className="p-1.5 rounded-lg css-glass-subtle">
+          <span className="text-[9px] text-zinc-400 block uppercase">VELOCITY</span>
           <span className="text-cyan-300 font-bold">{metrics.velocity.label}</span>
         </div>
-        <div className="p-1.5 rounded-lg bg-white/[0.02] border border-white/5">
-          <span className="text-[9px] text-zinc-500 block uppercase">DEPTH</span>
+        <div className="p-1.5 rounded-lg css-glass-subtle">
+          <span className="text-[9px] text-zinc-400 block uppercase">DEPTH</span>
           <span className="text-emerald-300 font-bold">{metrics.depth.label}</span>
         </div>
       </div>

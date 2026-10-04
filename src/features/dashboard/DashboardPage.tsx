@@ -28,7 +28,7 @@ function SessionRecoveryBanner({ session, onResume, onDiscard }: {
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -20, scale: 0.98 }}
       transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-      className="relative overflow-hidden rounded-xl border border-amber-500/30 bg-gradient-to-r from-amber-950/60 via-amber-900/30 to-zinc-900/60 backdrop-blur-sm shadow-lg shadow-amber-950/20"
+      className="relative overflow-hidden rounded-2xl border border-amber-500/40 css-glass shadow-xl"
     >
       {/* Animated glow accent */}
       <div className="absolute inset-0 bg-gradient-to-r from-amber-500/5 via-transparent to-amber-500/5 animate-pulse pointer-events-none" />
@@ -57,7 +57,7 @@ function SessionRecoveryBanner({ session, onResume, onDiscard }: {
           </button>
           <button
             onClick={onDiscard}
-            className="px-3 py-2 bg-zinc-800/80 hover:bg-zinc-700/80 text-zinc-400 hover:text-zinc-300 text-xs font-mono font-medium rounded-lg border border-zinc-700/50 transition-all cursor-pointer active:scale-95"
+            className="px-3 py-2 css-glass hover:bg-white/20 text-zinc-300 hover:text-white text-xs font-mono font-medium rounded-lg transition-all cursor-pointer active:scale-95"
           >
             Discard
           </button>
@@ -77,82 +77,77 @@ export function DashboardPage() {
   if (state.loading) return <DashboardSkeleton />;
 
   return (
-    <div className="w-full max-w-6xl mx-auto flex flex-col gap-6 px-4 font-sans text-zinc-400 relative pb-32 sm:pb-36">
-      
-      {/* SESSION RECOVERY BANNER */}
-      <AnimatePresence>
-        {recoverableSession && (
-          <SessionRecoveryBanner
-            session={recoverableSession}
-            onResume={handleResumeSession}
-            onDiscard={handleDiscardSession}
-          />
-        )}
-      </AnimatePresence>
+    <div className="w-full max-w-6xl mx-auto flex flex-col gap-6 px-4 font-sans text-zinc-400 relative pb-8 z-10">
+      <div className="flex flex-col gap-6">
+        {/* SESSION RECOVERY BANNER */}
+        <AnimatePresence>
+          {recoverableSession && (
+            <SessionRecoveryBanner
+              session={recoverableSession}
+              onResume={handleResumeSession}
+              onDiscard={handleDiscardSession}
+            />
+          )}
+        </AnimatePresence>
 
-      {/* DASHBOARD HEADER */}
-      <DashboardHeader
-        getGreeting={state.getGreeting}
-        userName={state.userName}
-        incompleteTasks={state.incompleteTasks}
-        estimatedRemainingHours={Number(state.estimatedRemainingHours) || 0}
-        nextTaskName={state.nextTaskName}
-        energyLevel={state.energyLevel}
-        setEnergyLevel={handlers.handleSetEnergyLevel}
-        chapters={state.chapters || []}
-        onOpenChapter={handlers.handleOpenChapter}
-        onSetDailyCapacity={handlers.handleNavigatePlanner}
-        isHeaderExpanded={state.isHeaderExpanded}
-        onToggleExpand={handlers.handleManualToggleHeader}
-      />
+        {/* DASHBOARD HEADER */}
+        <DashboardHeader
+          userName={state.userName}
+          incompleteTasks={state.incompleteTasks}
+          estimatedRemainingHours={Number(state.estimatedRemainingHours) || 0}
+          nextTaskName={state.nextTaskName}
+          energyLevel={state.energyLevel}
+          setEnergyLevel={handlers.handleSetEnergyLevel}
+        />
 
-      {/* EMBEDDED HERO DAILY CHECK-IN CARD */}
-      <DailyCheckinCard />
+        {/* EMBEDDED HERO DAILY CHECK-IN CARD */}
+        <DailyCheckinCard />
 
-      {/* TODAY'S MISSIONS HERO SECTION (65%/35% Split Layout) */}
-      <DailyMissionTimeline
-        sessionState={state.sessionState}
-        secondsElapsed={state.secondsElapsed}
-        expandedMission={state.expandedMission}
-        setExpandedMission={handlers.setExpandedMission}
-        handleStartSession={handlers.handleStartSession}
-        handleResetSession={handlers.handleResetSession}
-        formatTimer={handlers.formatTimer}
-        onEditMission={handlers.handleEditMission}
-        onOpenCustomMission={handlers.handleOpenCustomMission}
-        selectedMissionId={state.selectedMissionId}
-        setSelectedMissionId={handlers.setSelectedMissionId}
-      />
+        {/* TODAY'S MISSIONS HERO SECTION (65%/35% Split Layout) */}
+        <DailyMissionTimeline
+          sessionState={state.sessionState}
+          secondsElapsed={state.secondsElapsed}
+          expandedMission={state.expandedMission}
+          setExpandedMission={handlers.setExpandedMission}
+          handleStartSession={handlers.handleStartSession}
+          handleResetSession={handlers.handleResetSession}
+          formatTimer={handlers.formatTimer}
+          onEditMission={handlers.handleEditMission}
+          onOpenCustomMission={handlers.handleOpenCustomMission}
+          selectedMissionId={state.selectedMissionId}
+          setSelectedMissionId={handlers.setSelectedMissionId}
+        />
 
-      {/* SECONDARY DASHBOARD TABBED VIEWS (Focus & Queue vs Analytics & Readiness) */}
-      <DashboardFocusSection
-        activeTab={state.activeTab}
-        setActiveTab={handlers.setActiveTab}
-        revisionQueue={state.revisionQueue}
-        onLaunchRevision={handlers.setSelectedRevision}
-        targetYear={state.settings?.targetYear || '2026'}
-        syllabusProgress={state.syllabusProgress}
-        analytics={state.analytics}
-        settings={state.settings}
-        xp={state.xp}
-        studySessions={state.studySessions || []}
-        mentorProfile={state.mentorProfile}
-        chapters={state.chapters || []}
-        projectedReadiness={state.projectedReadiness}
-      />
+        {/* SECONDARY DASHBOARD TABBED VIEWS (Focus & Queue vs Analytics & Readiness) */}
+        <DashboardFocusSection
+          activeTab={state.activeTab}
+          setActiveTab={handlers.setActiveTab}
+          revisionQueue={state.revisionQueue}
+          onLaunchRevision={handlers.setSelectedRevision}
+          targetYear={state.settings?.targetYear || '2026'}
+          syllabusProgress={state.syllabusProgress}
+          analytics={state.analytics}
+          settings={state.settings}
+          xp={state.xp}
+          studySessions={state.studySessions || []}
+          mentorProfile={state.mentorProfile}
+          chapters={state.chapters || []}
+          projectedReadiness={state.projectedReadiness}
+        />
 
-      <CustomMissionModal 
-        isOpen={state.isCustomMissionModalOpen}
-        onClose={handlers.handleCloseCustomMission}
-        missionToEdit={state.missionToEdit}
-      />
+        <CustomMissionModal 
+          isOpen={state.isCustomMissionModalOpen}
+          onClose={handlers.handleCloseCustomMission}
+          missionToEdit={state.missionToEdit}
+        />
 
-      {/* ACTIVE BREAK MODAL */}
-      <BreakActiveModal
-        isOpen={!!state.activeBreakMissionId}
-        onClose={handlers.handleCloseActiveBreak}
-        breakMission={state.todayMissions?.find(m => m.id === state.activeBreakMissionId) || null}
-      />
+        {/* ACTIVE BREAK MODAL */}
+        <BreakActiveModal
+          isOpen={!!state.activeBreakMissionId}
+          onClose={handlers.handleCloseActiveBreak}
+          breakMission={state.todayMissions?.find(m => m.id === state.activeBreakMissionId) || null}
+        />
+      </div>
 
     </div>
   );

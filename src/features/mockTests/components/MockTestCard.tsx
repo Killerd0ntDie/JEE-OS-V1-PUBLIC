@@ -76,14 +76,14 @@ export function MockTestCard({
   const relativeTime = formatRelativeTime(test.createdAt);
 
   return (
-    <div className={`group rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all duration-200 shadow-md border relative w-full ${
+    <div className={`group rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all duration-200 shadow-lg border relative w-full ${
       isRecent
-        ? 'bg-zinc-900/50 border-cyan-500/40 hover:border-cyan-400/60 ring-1 ring-cyan-500/20 shadow-[0_0_20px_rgba(6,182,212,0.08)]'
+        ? 'surface-1 border-cyan-500/40 hover:border-cyan-400/60 ring-1 ring-cyan-500/20 shadow-[0_0_20px_rgba(6,182,212,0.12)]'
         : isAttempted 
-        ? 'bg-zinc-900/40 hover:bg-zinc-900/60 border-emerald-500/30 hover:border-emerald-500/50' 
+        ? 'surface-1 hover:border-emerald-500/40 border-emerald-500/25' 
         : isCustom
-        ? 'bg-zinc-900/40 hover:bg-zinc-900/60 border-indigo-500/30 hover:border-indigo-500/50'
-        : 'bg-zinc-900/40 hover:bg-zinc-900/60 border-zinc-800/80 hover:border-zinc-700'
+        ? 'surface-1 hover:border-indigo-500/40 border-indigo-500/25'
+        : 'surface-1 hover:border-white/10 border-white/5'
     }`}>
       {/* Left side: Badges, Title, Sections, and Telemetry */}
       <div className="flex-1 min-w-0 space-y-2">
@@ -91,7 +91,7 @@ export function MockTestCard({
         <div className="flex items-center gap-2 flex-wrap text-xs font-mono">
           {/* Pulsing "NEW" badge for newly created tests */}
           {isRecent && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-500/40 shadow-[0_0_10px_rgba(6,182,212,0.2)]">
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-[10px] font-mono font-bold bg-cyan-950/70 text-cyan-300 border border-cyan-500/40 shadow-[0_0_10px_rgba(6,182,212,0.2)]">
               <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
               <span>NEW</span>
             </span>
@@ -99,29 +99,29 @@ export function MockTestCard({
 
           {/* Distinct Source Pill - single prominent badge */}
           {isDpp ? (
-            <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-md bg-emerald-950/60 border border-emerald-700/50 text-emerald-300 flex items-center gap-1">
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-lg bg-emerald-950/70 border border-emerald-500/40 text-emerald-300 flex items-center gap-1">
               <FileText className="w-2.5 h-2.5 text-emerald-400" />
               <span>Coaching DPP</span>
             </span>
           ) : isDrill ? (
-            <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-md bg-indigo-950/60 border border-indigo-700/50 text-indigo-300 flex items-center gap-1">
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-lg bg-indigo-950/70 border border-indigo-500/40 text-indigo-300 flex items-center gap-1">
               <Zap className="w-2.5 h-2.5 text-indigo-400" />
               <span>Chapter Drill</span>
             </span>
           ) : isPyq ? (
-            <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-md bg-amber-950/60 border border-amber-700/50 text-amber-300 flex items-center gap-1">
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-lg bg-amber-950/70 border border-amber-500/40 text-amber-300 flex items-center gap-1">
               <GraduationCap className="w-2.5 h-2.5 text-amber-400" />
               <span>Official PYQ</span>
             </span>
           ) : (
-            <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-md bg-purple-950/60 border border-purple-700/50 text-purple-300 flex items-center gap-1">
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-lg bg-purple-950/70 border border-purple-500/40 text-purple-300 flex items-center gap-1">
               <Award className="w-2.5 h-2.5 text-purple-400" />
               <span>Grand Mock</span>
             </span>
           )}
 
-          {/* Clean Inline Typography with • dividers (No heavy bordered boxes) */}
-          <span className="text-zinc-300 font-semibold">{test.durationMinutes} Mins</span>
+          {/* Clean Inline Typography with • dividers */}
+          <span className="text-zinc-200 font-semibold">{test.durationMinutes} Mins</span>
           <span className="text-zinc-600">•</span>
           <span className="text-zinc-400">{totalQuestions} Qs • {test.totalMarks} M</span>
           <span className="text-zinc-600">•</span>
@@ -194,7 +194,7 @@ export function MockTestCard({
           <button
             type="button"
             onClick={() => onPrint(test)}
-            className="p-2 rounded-xl bg-zinc-900 hover:bg-zinc-850 text-zinc-400 hover:text-zinc-200 transition-colors border border-zinc-800 cursor-pointer"
+            className="p-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-850 text-zinc-400 hover:text-zinc-200 transition-colors border border-zinc-800 hover:border-zinc-700 cursor-pointer shadow-xs"
             title="Print test paper"
           >
             <Printer className="w-3.5 h-3.5" />
@@ -204,7 +204,7 @@ export function MockTestCard({
             <button
               type="button"
               onClick={() => navigate(`/mock-tests/result/${attemptStats.lastAttemptId}`)}
-              className="px-2.5 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 text-zinc-300 text-xs font-mono font-semibold border border-zinc-800 transition-colors cursor-pointer"
+              className="px-3 py-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-850 text-zinc-300 hover:text-white text-xs font-mono font-bold border border-zinc-750 hover:border-zinc-700 transition-colors cursor-pointer shadow-xs"
             >
               Autopsy
             </button>
@@ -214,7 +214,7 @@ export function MockTestCard({
             <button
               type="button"
               onClick={() => onDelete(test.id)}
-              className="p-2 rounded-xl bg-zinc-900 hover:bg-rose-950/40 text-zinc-500 hover:text-rose-400 transition-colors border border-zinc-800 hover:border-rose-800/50 cursor-pointer"
+              className="p-2 rounded-xl bg-zinc-900/90 hover:bg-rose-950/40 text-zinc-500 hover:text-rose-400 transition-colors border border-zinc-800 hover:border-rose-800/50 cursor-pointer shadow-xs"
               title="Delete test"
             >
               <Trash2 className="w-3.5 h-3.5" />
@@ -225,7 +225,7 @@ export function MockTestCard({
         <button
           type="button"
           onClick={() => onStart(test)}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-mono font-bold bg-indigo-600 hover:bg-indigo-500 text-white active:scale-[0.98] transition-all tracking-wider uppercase shadow-sm cursor-pointer"
+          className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-mono font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/25 border border-indigo-400/30 active:scale-[0.98] hover:scale-[1.02] transition-all tracking-wider uppercase cursor-pointer"
         >
           <Play className="w-3.5 h-3.5 fill-white" />
           <span>Start Test</span>

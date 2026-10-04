@@ -220,10 +220,19 @@ export class StorageAdapter {
 
   // Dock pinned preference
   getDockPinned(): boolean {
-    return this.getItem<boolean>('jeeos_dock_pinned') ?? false;
+    const key = 'jeeos_dock_pinned';
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const val = this.getItem<boolean>(key);
+      if (val === true && !this.getItem<boolean>('jeeos_dock_pinned_explicit')) {
+        this.removeItem(key);
+        return false;
+      }
+    }
+    return this.getItem<boolean>(key) ?? false;
   }
   setDockPinned(pinned: boolean): void {
     this.setItem('jeeos_dock_pinned', pinned);
+    this.setItem('jeeos_dock_pinned_explicit', true);
   }
 
   // Volume preferences

@@ -21,7 +21,7 @@ export const AudioAlertsSettingsSection: React.FC<AudioAlertsSettingsSectionProp
   onChange
 }) => {
   return (
-    <div className="bg-zinc-900/90 border border-white/15 rounded-3xl p-6 md:p-8 space-y-6 shadow-xl text-left">
+    <div className="css-glass rounded-3xl p-6 md:p-8 space-y-6 shadow-xl text-left">
       <div className="flex items-center gap-3 border-b border-white/10 pb-4">
         <div className="w-9 h-9 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-sm">
           <Volume2 className="w-4.5 h-4.5" />
@@ -38,7 +38,7 @@ export const AudioAlertsSettingsSection: React.FC<AudioAlertsSettingsSectionProp
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Sound Chimes */}
-        <div className="p-4.5 rounded-2xl bg-zinc-850/60 border border-white/10 space-y-3">
+        <div className="p-4.5 rounded-2xl css-glass-subtle space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <Volume2 className="w-4 h-4 text-emerald-400" />
@@ -67,7 +67,7 @@ export const AudioAlertsSettingsSection: React.FC<AudioAlertsSettingsSectionProp
               <button
                 type="button"
                 onClick={() => soundSystem.playSuccess()}
-                className="text-[10px] font-mono bg-zinc-900 hover:bg-zinc-850 border border-white/10 text-zinc-200 px-2.5 py-1 rounded-xl cursor-pointer shrink-0"
+                className="text-[10px] font-mono css-glass hover:bg-white/10 border border-white/20 text-zinc-200 px-2.5 py-1 rounded-xl cursor-pointer shrink-0"
               >
                 Test Chime
               </button>
@@ -76,7 +76,7 @@ export const AudioAlertsSettingsSection: React.FC<AudioAlertsSettingsSectionProp
         </div>
 
         {/* Desktop Notifications */}
-        <div className="flex items-center justify-between p-4.5 rounded-2xl bg-zinc-850/60 border border-white/10 gap-3">
+        <div className="flex items-center justify-between p-4.5 rounded-2xl css-glass-subtle gap-3">
           <div className="flex items-center gap-2.5">
             <Bell className="w-4 h-4 text-indigo-400" />
             <div>
@@ -95,7 +95,7 @@ export const AudioAlertsSettingsSection: React.FC<AudioAlertsSettingsSectionProp
         </div>
 
         {/* Cockpit Themes & Start Sound Volume */}
-        <div className="p-4.5 rounded-2xl bg-zinc-850/60 border border-white/10 space-y-3 md:col-span-2">
+        <div className="p-4.5 rounded-2xl css-glass-subtle space-y-3 md:col-span-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <Sparkles className="w-4 h-4 text-amber-400" />
@@ -122,14 +122,14 @@ export const AudioAlertsSettingsSection: React.FC<AudioAlertsSettingsSectionProp
               <button
                 type="button"
                 onClick={() => soundSystem.playAnimeLaserCharge('maths')}
-                className="text-[10px] font-mono bg-zinc-900 hover:bg-zinc-850 border border-white/10 text-zinc-200 px-2.5 py-1 rounded-xl cursor-pointer hover:border-amber-500/30 transition-colors"
+                className="text-[10px] font-mono css-glass hover:bg-white/10 border border-white/20 text-zinc-200 px-2.5 py-1 rounded-xl cursor-pointer hover:border-amber-500/30 transition-colors"
               >
                 Test Start Sound
               </button>
               <button
                 type="button"
                 onClick={() => soundSystem.playCruelAngelsThesisEntrance('maths')}
-                className="text-[10px] font-mono bg-zinc-900 hover:bg-zinc-850 border border-white/10 text-zinc-200 px-2.5 py-1 rounded-xl cursor-pointer hover:border-indigo-500/30 transition-colors"
+                className="text-[10px] font-mono css-glass hover:bg-white/10 border border-white/20 text-zinc-200 px-2.5 py-1 rounded-xl cursor-pointer hover:border-indigo-500/30 transition-colors"
               >
                 Test Theme Song
               </button>
@@ -138,7 +138,7 @@ export const AudioAlertsSettingsSection: React.FC<AudioAlertsSettingsSectionProp
         </div>
 
         {/* Pause on Tab Change */}
-        <div className="flex items-center justify-between p-4.5 rounded-2xl bg-zinc-850/60 border border-white/10 gap-3 md:col-span-2">
+        <div className="flex items-center justify-between p-4.5 rounded-2xl css-glass-subtle gap-3 md:col-span-2">
           <div className="flex items-center gap-2.5">
             <Laptop className="w-4 h-4 text-amber-400" />
             <div>

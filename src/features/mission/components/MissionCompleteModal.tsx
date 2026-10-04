@@ -40,13 +40,14 @@ export function MissionCompleteModal({
       onClose={onNextSubject} 
       zIndex={10001} 
       backdropClassName="bg-black/10 backdrop-blur-md"
-      className="max-w-xl w-full p-6 sm:p-8 space-y-6 text-center rounded-3xl relative overflow-hidden glass-panel"
+      className="max-w-xl w-full p-6 sm:p-8 space-y-6 text-center rounded-3xl relative overflow-hidden css-glass"
       style={{
-        background: 'rgba(10, 14, 23, 0.90)',
-        backdropFilter: 'blur(28px) saturate(190%) contrast(105%)',
+        background: 'rgba(13, 16, 24, 0.88)',
+        backdropFilter: 'blur(5px)',
+        WebkitBackdropFilter: 'blur(5px)',
         border: '1.5px solid rgba(239, 68, 68, 0.45)',
         borderTop: '2px solid rgba(239, 68, 68, 0.75)',
-        boxShadow: '0 30px 90px rgba(0, 0, 0, 0.85), 0 0 70px rgba(239, 68, 68, 0.2)'
+        boxShadow: '0 4px 30px rgba(0, 0, 0, 0.35), 0 0 40px rgba(239, 68, 68, 0.15)'
       }}
     >
       {/* Top Hazard Warning Tape Ribbon */}
@@ -106,7 +107,7 @@ export function MissionCompleteModal({
       </div>
 
       {/* 2. CORE PERFORMANCE ANALYTICS SUMMARY */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 text-left relative z-10 p-3.5 rounded-2xl bg-zinc-950/70 border border-white/10 shadow-inner">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 text-left relative z-10 p-3.5 rounded-2xl css-glass-subtle shadow-md">
         
         {/* Stat 1: Study duration */}
         <div className="space-y-0.5">

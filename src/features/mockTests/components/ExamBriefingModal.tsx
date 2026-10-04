@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -7,8 +7,6 @@ import {
   FileText, 
   Award, 
   ShieldAlert, 
-  CheckCircle, 
-  AlertCircle, 
   BarChart2,
   Maximize2,
   Layers,
@@ -96,14 +94,14 @@ export function ExamBriefingModal({
         <div className="flex-1 flex flex-col justify-between max-w-5xl mx-auto w-full px-5 py-4 gap-3 overflow-hidden">
           
           {/* 1. Test Title & Tags */}
-          <div className={`px-4 py-3 rounded-xl bg-zinc-900/50 border ${themeBorder} shrink-0`}>
+          <div className={`px-4 py-3 rounded-2xl surface-2 border ${themeBorder} shrink-0 shadow-lg`}>
             <div className="flex items-center gap-2 flex-wrap mb-1">
-              <span className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded border flex items-center gap-1 ${diffColors.bg} ${diffColors.border} ${diffColors.text}`}>
+              <span className={`text-[10px] font-mono font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-lg border flex items-center gap-1 ${diffColors.bg} ${diffColors.border} ${diffColors.text}`}>
                 <BarChart2 className="w-2.5 h-2.5" />
                 <span>{diffLabel}</span>
               </span>
               {test.sections.map((s, idx) => (
-                <span key={idx} className="text-[10px] font-mono uppercase text-zinc-300 bg-zinc-900 px-2 py-0.5 rounded border border-zinc-750">
+                <span key={idx} className="text-[10px] font-mono uppercase font-bold text-zinc-300 bg-white/5 px-2.5 py-0.5 rounded-lg border border-white/10">
                   {s.subject}
                 </span>
               ))}
@@ -116,39 +114,39 @@ export function ExamBriefingModal({
 
           {/* 2. Key Metrics & Marking Scheme Strip (Single Row) */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 shrink-0 font-mono">
-            <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl p-2.5 flex items-center gap-2.5">
+            <div className="surface-1 border border-white/5 rounded-2xl p-3 flex items-center gap-2.5 shadow-md">
               <Clock className="w-4 h-4 text-indigo-400 shrink-0" />
               <div>
                 <div className="text-xs sm:text-sm font-bold text-white">{test.durationMinutes} Mins</div>
-                <div className="text-[9px] text-zinc-400 uppercase">Duration</div>
+                <div className="text-[9px] text-zinc-400 uppercase tracking-wider font-semibold">Duration</div>
               </div>
             </div>
 
-            <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl p-2.5 flex items-center gap-2.5">
+            <div className="surface-1 border border-white/5 rounded-2xl p-3 flex items-center gap-2.5 shadow-md">
               <FileText className="w-4 h-4 text-sky-400 shrink-0" />
               <div>
                 <div className="text-xs sm:text-sm font-bold text-white">{totalQuestions} Qs</div>
-                <div className="text-[9px] text-zinc-400 uppercase">Questions</div>
+                <div className="text-[9px] text-zinc-400 uppercase tracking-wider font-semibold">Questions</div>
               </div>
             </div>
 
-            <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl p-2.5 flex items-center gap-2.5">
+            <div className="surface-1 border border-white/5 rounded-2xl p-3 flex items-center gap-2.5 shadow-md">
               <Award className="w-4 h-4 text-amber-400 shrink-0" />
               <div>
                 <div className="text-xs sm:text-sm font-bold text-white">{test.totalMarks} M</div>
-                <div className="text-[9px] text-zinc-400 uppercase">Max Marks</div>
+                <div className="text-[9px] text-zinc-400 uppercase tracking-wider font-semibold">Max Marks</div>
               </div>
             </div>
 
-            <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl p-2 flex items-center justify-around text-center">
+            <div className="surface-1 border border-white/5 rounded-2xl p-2.5 flex items-center justify-around text-center shadow-md">
               <div>
                 <div className="text-xs font-bold text-emerald-400">+4 Correct</div>
-                <div className="text-[9px] text-zinc-400">Right</div>
+                <div className="text-[9px] text-zinc-400 font-semibold">Right</div>
               </div>
-              <div className="h-6 w-[1px] bg-zinc-800" />
+              <div className="h-6 w-[1px] bg-white/10" />
               <div>
                 <div className="text-xs font-bold text-rose-400">-1 Wrong</div>
-                <div className="text-[9px] text-zinc-400">Penalty</div>
+                <div className="text-[9px] text-zinc-400 font-semibold">Penalty</div>
               </div>
             </div>
           </div>
@@ -157,8 +155,8 @@ export function ExamBriefingModal({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 min-h-0 flex-1">
             
             {/* Left Box: Section Breakdown */}
-            <div className="bg-zinc-900/40 border border-zinc-800/80 rounded-xl p-3 flex flex-col justify-between space-y-2 overflow-hidden">
-              <div className="text-xs font-mono font-bold text-zinc-300 flex items-center gap-2">
+            <div className="surface-1 border border-white/5 rounded-2xl p-4 flex flex-col justify-between space-y-2 overflow-hidden shadow-lg">
+              <div className="text-xs font-mono font-bold text-zinc-200 flex items-center gap-2">
                 <Layers className="w-3.5 h-3.5 text-sky-400" />
                 <span>Sections & Questions</span>
               </div>
@@ -171,7 +169,7 @@ export function ExamBriefingModal({
                   const isChem = (section.subject || '').toLowerCase().includes('chem');
 
                   return (
-                    <div key={idx} className="px-3 py-2 rounded-lg bg-zinc-900/80 border border-zinc-800/80 flex items-center justify-between text-xs font-mono">
+                    <div key={idx} className="px-3 py-2 rounded-xl bg-zinc-900/90 border border-zinc-800 flex items-center justify-between text-xs font-mono">
                       <div className="flex items-center gap-2">
                         <span className={`w-2 h-2 rounded-full ${
                           isPhys ? 'bg-sky-400' : isChem ? 'bg-emerald-400' : 'bg-indigo-400'
@@ -188,13 +186,13 @@ export function ExamBriefingModal({
                 })}
               </div>
 
-              <div className="p-2 rounded-lg bg-zinc-950/60 border border-zinc-850 text-[10px] font-mono text-zinc-400 leading-tight">
+              <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 text-[10px] font-mono text-zinc-400 leading-tight">
                 Section navigation is unrestricted. You may switch between sections at any time.
               </div>
             </div>
 
             {/* Right Box: Rules & Palette */}
-            <div className="bg-zinc-900/40 border border-zinc-800/80 rounded-xl p-3 flex flex-col justify-between space-y-2.5 overflow-hidden">
+            <div className="surface-1 border border-white/5 rounded-2xl p-4 flex flex-col justify-between space-y-2.5 overflow-hidden shadow-lg">
               {/* Proctoring Rules */}
               <div className="space-y-1.5">
                 <div className="text-xs font-mono font-bold text-amber-400 flex items-center gap-1.5">
@@ -209,25 +207,25 @@ export function ExamBriefingModal({
               </div>
 
               {/* Palette Legend */}
-              <div className="pt-2 border-t border-zinc-800/80 space-y-1.5">
+              <div className="pt-2 border-t border-white/5 space-y-1.5">
                 <div className="text-[11px] font-mono font-bold text-zinc-400 flex items-center gap-1.5">
                   <HelpCircle className="w-3 h-3 text-indigo-400" />
                   <span>Question Palette</span>
                 </div>
                 <div className="grid grid-cols-2 gap-1.5 text-[10px] font-mono">
-                  <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-zinc-900/80 border border-zinc-800">
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-900/90 border border-zinc-800">
                     <span className="w-3.5 h-3.5 rounded bg-emerald-600 text-white flex items-center justify-center font-bold text-[8.5px]">1</span>
                     <span className="text-emerald-300">Answered</span>
                   </div>
-                  <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-zinc-900/80 border border-zinc-800">
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-900/90 border border-zinc-800">
                     <span className="w-3.5 h-3.5 rounded bg-rose-600 text-white flex items-center justify-center font-bold text-[8.5px]">2</span>
                     <span className="text-rose-300">Not Answered</span>
                   </div>
-                  <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-zinc-900/80 border border-zinc-800">
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-900/90 border border-zinc-800">
                     <span className="w-3.5 h-3.5 rounded bg-purple-600 text-white flex items-center justify-center font-bold text-[8.5px]">3</span>
                     <span className="text-purple-300">Marked for Review</span>
                   </div>
-                  <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-zinc-900/80 border border-zinc-800">
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-900/90 border border-zinc-800">
                     <span className="w-3.5 h-3.5 rounded bg-zinc-800 text-zinc-400 flex items-center justify-center font-bold text-[8.5px]">4</span>
                     <span className="text-zinc-400">Not Visited</span>
                   </div>
@@ -247,7 +245,7 @@ export function ExamBriefingModal({
             <button
               type="button"
               onClick={onCancel}
-              className="px-4 py-2 rounded-xl text-xs font-mono font-medium text-zinc-300 hover:text-white bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 transition-colors cursor-pointer"
+              className="px-4 py-2 rounded-xl text-xs font-mono font-medium text-zinc-300 hover:text-white bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 transition-colors cursor-pointer shadow-xs"
             >
               Cancel
             </button>
@@ -255,7 +253,7 @@ export function ExamBriefingModal({
             <button
               type="button"
               onClick={() => onConfirm(test)}
-              className="flex items-center justify-center gap-2 px-6 py-2 rounded-xl text-xs font-mono font-bold bg-indigo-600 hover:bg-indigo-500 text-white active:scale-[0.98] transition-all tracking-wider uppercase shadow-md shadow-indigo-600/30 cursor-pointer"
+              className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-xs font-mono font-bold uppercase tracking-wider bg-indigo-600 hover:bg-indigo-500 text-white active:scale-[0.98] transition-all shadow-lg shadow-indigo-600/30 border border-indigo-400/40 cursor-pointer"
             >
               <Maximize2 className="w-3.5 h-3.5" />
               <span>Begin Examination</span>

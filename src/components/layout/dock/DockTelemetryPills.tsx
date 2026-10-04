@@ -26,6 +26,7 @@ export interface DockTelemetryPillsProps {
   isGodModeStreak: boolean;
   todayStudyMins: number;
   minStreakMins: number;
+  isTodayMet: boolean;
   todayHoursStr: string;
   settings: any;
   studySessions: any[];
@@ -47,6 +48,7 @@ export const DockTelemetryPills: React.FC<DockTelemetryPillsProps> = ({
   isGodModeStreak,
   todayStudyMins,
   minStreakMins,
+  isTodayMet,
   todayHoursStr,
   settings,
   studySessions,
@@ -77,31 +79,43 @@ export const DockTelemetryPills: React.FC<DockTelemetryPillsProps> = ({
           aria-expanded={activeMenu === 'streak'}
           className={`${isVertical ? 'w-9 h-9 p-0' : 'h-8 px-2 sm:px-3'} rounded-xl sm:rounded-full flex items-center justify-center gap-1.5 text-xs font-mono transition-colors cursor-pointer ${
             effectiveStreak > 0 
-              ? isGodModeStreak
-                ? 'bg-amber-500/15 border border-amber-500/40 text-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.25)]'
-                : 'bg-amber-500/10 border border-amber-500/30 text-amber-400'
+              ? isTodayMet
+                ? isGodModeStreak
+                  ? 'bg-amber-500/15 border border-amber-500/40 text-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.25)]'
+                  : 'bg-amber-500/10 border border-amber-500/30 text-amber-400'
+                : 'bg-amber-500/[0.06] border border-amber-500/20 text-amber-400/90'
               : 'bg-zinc-900/40 text-zinc-400 hover:text-zinc-200 border border-transparent'
           }`}
         >
           <div className="relative z-10 flex items-center justify-center">
             {isVertical ? (
               <div className="flex flex-col items-center justify-center leading-none">
-                <AnimatedStreakIcon streak={effectiveStreak} isHovered={hoveredItem === 'streak'} isGodMode={isGodModeStreak} />
-                <span className={`font-bold text-[8px] mt-0.5 ${effectiveStreak > 0 ? 'text-amber-300' : 'text-zinc-400'}`}>
+                <AnimatedStreakIcon streak={effectiveStreak} isHovered={hoveredItem === 'streak'} isGodMode={isGodModeStreak} isTodayMet={isTodayMet} />
+                <span className={`font-bold text-[8px] mt-0.5 ${effectiveStreak > 0 ? (isTodayMet ? 'text-amber-300' : 'text-amber-400/90') : 'text-zinc-400'}`}>
                   {effectiveStreak}
                 </span>
               </div>
             ) : (
               <div className="flex items-center gap-1">
-                <AnimatedStreakIcon streak={effectiveStreak} isHovered={hoveredItem === 'streak'} isGodMode={isGodModeStreak} />
-                <span className={`font-bold hidden sm:inline ${effectiveStreak > 0 ? 'text-amber-300' : 'text-zinc-400'}`}>
+                <AnimatedStreakIcon streak={effectiveStreak} isHovered={hoveredItem === 'streak'} isGodMode={isGodModeStreak} isTodayMet={isTodayMet} />
+                <span className={`font-bold hidden sm:inline ${effectiveStreak > 0 ? (isTodayMet ? 'text-amber-300' : 'text-amber-400/90') : 'text-zinc-400'}`}>
                   {effectiveStreak}
                 </span>
               </div>
             )}
           </div>
           {activeMenu !== 'streak' && (
-            <DockTooltip label={`${effectiveStreak}-Day Streak`} isAiCoach={isVertical} isVisible={hoveredItem === 'streak'} />
+            <DockTooltip 
+              label={
+                effectiveStreak > 0
+                  ? isTodayMet 
+                    ? `${effectiveStreak}-Day Streak` 
+                    : `${effectiveStreak}-Day Streak (Today Pending)`
+                  : '0-Day Streak'
+              } 
+              isAiCoach={isVertical} 
+              isVisible={hoveredItem === 'streak'} 
+            />
           )}
         </motion.button>
 
@@ -131,6 +145,7 @@ export const DockTelemetryPills: React.FC<DockTelemetryPillsProps> = ({
 
                 studySessions.forEach((s) => {
                   if (!s.startTime) return;
+                  if (s.type === 'Break' || (s.type as string)?.toLowerCase() === 'break' || s.title?.toLowerCase()?.includes('break')) return;
                   const d = new Date(s.startTime);
                   if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
                     const dayIndex = d.getDate() - 1;
@@ -146,7 +161,7 @@ export const DockTelemetryPills: React.FC<DockTelemetryPillsProps> = ({
                   if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
                     const dayIndex = d.getDate() - 1;
                     if (dayIndex >= 0 && dayIndex < daysInMonth) {
-                      if ((da.studyTime || 0) >= minStreakMins || (da.xpEarned || 0) > 0) {
+                      if ((da.studyTime || 0) >= minStreakMins) {
                         activeDaysSet.add(dayIndex);
                       }
                       if ((da.studyTime || 0) > 0 && monthlyHours[dayIndex] === 0) {
@@ -156,17 +171,10 @@ export const DockTelemetryPills: React.FC<DockTelemetryPillsProps> = ({
                   }
                 });
 
-                if (effectiveStreak > 0) {
-                  const todayMet = todayStudyMins >= minStreakMins;
-                  const startIndex = todayMet ? todayDate - 1 : todayDate - 2;
-                  for (let k = 0; k < effectiveStreak; k++) {
-                    const dayIdx = startIndex - k;
-                    if (dayIdx >= 0 && dayIdx < daysInMonth) {
-                      activeDaysSet.add(dayIdx);
-                      if (monthlyHours[dayIdx] === 0) {
-                        monthlyHours[dayIdx] = minStreakMins / 60;
-                      }
-                    }
+                // Also mark active if accumulated session hours meet the threshold
+                for (let dIdx = 0; dIdx < daysInMonth; dIdx++) {
+                  if (monthlyHours[dIdx] >= minStreakMins / 60) {
+                    activeDaysSet.add(dIdx);
                   }
                 }
 
@@ -174,9 +182,9 @@ export const DockTelemetryPills: React.FC<DockTelemetryPillsProps> = ({
                   <div>
                     <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-2.5 flex items-center justify-between font-mono">
                       <span>{currentMonthStr} Streak</span>
-                      <span className="text-amber-400 font-bold flex items-center gap-1">
-                        <Icon name="Flame" className="w-3 h-3 text-amber-400 fill-amber-400" />
-                        {effectiveStreak} Day Fire
+                      <span className={`${effectiveStreak > 0 ? (isTodayMet ? 'text-amber-400' : 'text-amber-400/90') : 'text-zinc-400'} font-bold flex items-center gap-1`}>
+                        <Icon name="Flame" className={`w-3 h-3 ${effectiveStreak > 0 ? 'text-amber-400 fill-amber-400' : 'text-zinc-500'}`} />
+                        {effectiveStreak > 0 ? `${effectiveStreak} Day Fire` : '0 Day Streak'}
                       </span>
                     </div>
 

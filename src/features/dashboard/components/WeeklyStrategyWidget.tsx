@@ -64,7 +64,7 @@ export function WeeklyStrategyWidget({ chapters, mentorProfile, projectedReadine
         </div>
 
         {/* Roomy Full-Width Monthly Objective Banner */}
-        <div className="p-3.5 rounded-xl bg-zinc-950/60 border border-white/10 space-y-1 my-1 relative z-10">
+        <div className="p-3.5 rounded-xl css-glass-subtle space-y-1 my-1 relative z-10">
           <div className="flex items-center justify-between text-[10px] font-mono text-zinc-400 font-bold uppercase tracking-wider">
             <span>Monthly Target</span>
             <span className="text-indigo-400 flex items-center gap-1">
@@ -79,7 +79,7 @@ export function WeeklyStrategyWidget({ chapters, mentorProfile, projectedReadine
 
         {/* 2 Telemetry Columns (Readiness & Daily Budget) */}
         <div className="grid grid-cols-2 gap-3 pt-0.5 relative z-10 font-mono">
-          <div className="p-3 rounded-xl bg-zinc-950/60 border border-white/10 flex items-center justify-between gap-2 shadow-sm">
+          <div className="p-3 rounded-xl css-glass-subtle flex items-center justify-between gap-2 shadow-sm">
             <div className="space-y-0.5">
               <span className="text-[10px] font-mono text-zinc-400 font-bold uppercase block">Target Readiness</span>
               <span className="text-sm font-bold font-mono text-sky-400">{typeof projectedReadiness === 'number' && !Number.isNaN(projectedReadiness) ? projectedReadiness : 0}% Projected</span>
@@ -89,7 +89,7 @@ export function WeeklyStrategyWidget({ chapters, mentorProfile, projectedReadine
             </div>
           </div>
 
-          <div className="p-3 rounded-xl bg-zinc-950/60 border border-white/10 flex items-center justify-between gap-2 shadow-sm">
+          <div className="p-3 rounded-xl css-glass-subtle flex items-center justify-between gap-2 shadow-sm">
             <div className="space-y-0.5">
               <span className="text-[10px] font-mono text-zinc-400 font-bold uppercase block">Study Budget</span>
               <span className="text-sm font-bold font-mono text-emerald-400">{dailyHours} hrs / day</span>
@@ -145,7 +145,7 @@ export function WeeklyStrategyWidget({ chapters, mentorProfile, projectedReadine
 
         {/* Roomy 3 Subject Mastery Breakdown Tiles */}
         <div className="grid grid-cols-3 gap-3 font-mono relative z-10">
-          <div className="p-3 rounded-xl bg-cyan-950/30 border border-cyan-500/30 flex flex-col justify-between space-y-2">
+          <div className="p-3 rounded-xl css-glass-subtle border-cyan-400/30 flex flex-col justify-between space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-cyan-400">Physics</span>
               <span className="text-[10px] text-cyan-300 font-bold">{subjectDistribution.physics.masteryPct}%</span>
@@ -158,7 +158,7 @@ export function WeeklyStrategyWidget({ chapters, mentorProfile, projectedReadine
             </div>
           </div>
 
-          <div className="p-3 rounded-xl bg-emerald-950/30 border border-emerald-500/30 flex flex-col justify-between space-y-2">
+          <div className="p-3 rounded-xl css-glass-subtle border-emerald-400/30 flex flex-col justify-between space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-emerald-400">Chemistry</span>
               <span className="text-[10px] text-emerald-300 font-bold">{subjectDistribution.chemistry.masteryPct}%</span>
@@ -171,7 +171,7 @@ export function WeeklyStrategyWidget({ chapters, mentorProfile, projectedReadine
             </div>
           </div>
 
-          <div className="p-3 rounded-xl bg-purple-950/30 border border-purple-500/30 flex flex-col justify-between space-y-2">
+          <div className="p-3 rounded-xl css-glass-subtle border-purple-400/30 flex flex-col justify-between space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-purple-400">Mathematics</span>
               <span className="text-[10px] text-purple-300 font-bold">{subjectDistribution.maths.masteryPct}%</span>

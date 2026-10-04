@@ -41,6 +41,88 @@ export interface TimelineMissionItemProps {
   handleResetSession: () => void;
 }
 
+interface LiveSubjectTheme {
+  background: string;
+  border: string;
+  borderTop: string;
+  boxShadow: string;
+  radialAtmosphere: string;
+  hazardRibbon: string;
+  checkboxBorder: string;
+  checkboxHover: string;
+  livePill: string;
+  livePillDot: string;
+  titleHover: string;
+  startButton: string;
+}
+
+function getLiveSubjectTheme(subject: string = ''): LiveSubjectTheme {
+  const norm = subject.toLowerCase().trim();
+  if (norm.includes('break')) {
+    return {
+      background: 'rgba(245, 158, 11, 0.16)',
+      border: '1px solid rgba(245, 158, 11, 0.35)',
+      borderTop: '2px solid rgba(251, 191, 36, 0.85)',
+      boxShadow: '0 8px 30px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(245, 158, 11, 0.15)',
+      radialAtmosphere: '',
+      hazardRibbon: 'repeating-linear-gradient(-45deg, #f59e0b 0px, #f59e0b 8px, transparent 8px, transparent 16px)',
+      checkboxBorder: 'border-amber-400',
+      checkboxHover: 'hover:text-amber-400/80',
+      livePill: 'bg-amber-500/15 text-amber-300 border border-amber-500/30',
+      livePillDot: 'bg-amber-400',
+      titleHover: 'group-hover:text-amber-300',
+      startButton: 'bg-amber-500 hover:bg-amber-400 text-zinc-950 shadow-md border border-amber-400/40',
+    };
+  }
+  if (norm.includes('phys')) {
+    return {
+      background: 'rgba(56, 189, 248, 0.14)',
+      border: '1px solid rgba(56, 189, 248, 0.35)',
+      borderTop: '2px solid rgba(56, 189, 248, 0.85)',
+      boxShadow: '0 8px 30px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(56, 189, 248, 0.15)',
+      radialAtmosphere: '',
+      hazardRibbon: '',
+      checkboxBorder: 'border-sky-400',
+      checkboxHover: 'hover:text-sky-400/80',
+      livePill: 'bg-sky-500/15 text-sky-300 border border-sky-500/30',
+      livePillDot: 'bg-sky-400',
+      titleHover: 'group-hover:text-sky-300',
+      startButton: 'bg-sky-600 hover:bg-sky-500 text-white shadow-md border border-sky-400/40',
+    };
+  }
+  if (norm.includes('chem')) {
+    return {
+      background: 'rgba(52, 211, 153, 0.14)',
+      border: '1px solid rgba(52, 211, 153, 0.35)',
+      borderTop: '2px solid rgba(52, 211, 153, 0.85)',
+      boxShadow: '0 8px 30px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(52, 211, 153, 0.15)',
+      radialAtmosphere: '',
+      hazardRibbon: '',
+      checkboxBorder: 'border-emerald-400',
+      checkboxHover: 'hover:text-emerald-400/80',
+      livePill: 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30',
+      livePillDot: 'bg-emerald-400',
+      titleHover: 'group-hover:text-emerald-300',
+      startButton: 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md border border-emerald-400/40',
+    };
+  }
+  // Default to Maths: Indigo / Purple
+  return {
+    background: 'rgba(129, 140, 248, 0.14)',
+    border: '1px solid rgba(129, 140, 248, 0.35)',
+    borderTop: '2px solid rgba(129, 140, 248, 0.85)',
+    boxShadow: '0 8px 30px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(129, 140, 248, 0.15)',
+    radialAtmosphere: '',
+    hazardRibbon: '',
+    checkboxBorder: 'border-indigo-400',
+    checkboxHover: 'hover:text-indigo-400/80',
+    livePill: 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/30',
+    livePillDot: 'bg-indigo-400',
+    titleHover: 'group-hover:text-indigo-300',
+    startButton: 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-md border border-indigo-400/40',
+  };
+}
+
 export const TimelineMissionItem = React.memo(function TimelineMissionItem({
   mission,
   chap,
@@ -65,7 +147,14 @@ export const TimelineMissionItem = React.memo(function TimelineMissionItem({
   onOpenChapterEditModal,
   handleResetSession
 }: TimelineMissionItemProps) {
-  const isBreak = (mission.subject as string) === 'break' || (mission.type as string) === 'BREAK' || mission.taskName?.toLowerCase().includes('break');
+  const isBreak = 
+    (mission.subject as string)?.toLowerCase() === 'break' || 
+    (mission.type as string)?.toUpperCase() === 'BREAK' || 
+    mission.taskName?.toLowerCase().includes('break') || 
+    (mission.chapter as string)?.toLowerCase().includes('break') ||
+    (mission.chapterName as string)?.toLowerCase().includes('break');
+
+  const liveTheme = getLiveSubjectTheme(mission.subject);
 
   if (isBreak) {
     return (
@@ -81,43 +170,18 @@ export const TimelineMissionItem = React.memo(function TimelineMissionItem({
           }
           onSelect();
         }}
-        style={{
-          background: isLive ? 'rgba(28, 18, 10, 0.92)' : 'rgba(20, 14, 10, 0.85)',
-          backdropFilter: 'blur(20px)',
-          border: isLive ? '1.5px solid rgba(245, 158, 11, 0.75)' : '1px solid rgba(245, 158, 11, 0.3)',
-          borderTop: isLive ? '2.5px solid rgba(245, 158, 11, 0.95)' : '1.5px solid rgba(245, 158, 11, 0.6)',
-          boxShadow: isLive
-            ? '0 0 35px rgba(245, 158, 11, 0.35), 0 0 70px rgba(245, 158, 11, 0.16), 0 16px 40px rgba(0, 0, 0, 0.8), inset 0 0 25px rgba(245, 158, 11, 0.12)'
-            : '0 8px 25px rgba(0, 0, 0, 0.5)'
-        }}
         className={`group transition-all duration-150 cursor-pointer focus:outline-none flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 px-4 py-3 rounded-2xl relative mb-3 overflow-hidden ${
           isDismissed
-            ? 'opacity-40 grayscale cursor-default'
+            ? 'bg-surface-1 border border-border-subtle opacity-40 grayscale cursor-default'
             : mission.completed
-            ? 'opacity-60'
-            : 'hover:border-amber-500/50'
+            ? 'bg-surface-1 border border-border-subtle opacity-60'
+            : isLive
+            ? 'bg-amber-500/[0.08] border-2 border-amber-500/70 shadow-lg shadow-amber-500/15'
+            : isSelected
+            ? 'bg-amber-500/[0.06] border border-amber-400 shadow-md shadow-amber-500/10'
+            : 'bg-amber-500/[0.03] border border-amber-500/30 hover:border-amber-500/60 hover:bg-amber-500/[0.06]'
         }`}
       >
-        {/* Live Break Radiant Atmosphere */}
-        {isLive && (
-          <div 
-            className="absolute inset-0 bg-radial from-amber-500/12 via-amber-500/4 to-transparent pointer-events-none" 
-          />
-        )}
-
-        {/* Top Amber Hazard Stripes Ribbon */}
-        <div 
-          className="absolute top-0 inset-x-0 h-1 opacity-75 pointer-events-none"
-          style={{
-            background: 'repeating-linear-gradient(-45deg, #f59e0b 0px, #f59e0b 8px, transparent 8px, transparent 16px)'
-          }}
-        />
-        {/* Caliper Crosshairs */}
-        <span className="absolute top-2 left-2 text-xs opacity-50 font-mono text-zinc-600 select-none pointer-events-none">+</span>
-        <span className="absolute top-2 right-2 text-xs opacity-50 font-mono text-zinc-600 select-none pointer-events-none">+</span>
-        <span className="absolute bottom-2 left-2 text-xs opacity-50 font-mono text-zinc-600 select-none pointer-events-none">+</span>
-        <span className="absolute bottom-2 right-2 text-xs opacity-50 font-mono text-zinc-600 select-none pointer-events-none">+</span>
-
         <div className="flex items-center gap-3 relative z-10">
           {!isDismissed && (
             <button
@@ -129,7 +193,11 @@ export const TimelineMissionItem = React.memo(function TimelineMissionItem({
               className={`rounded-full border flex items-center justify-center transition-all cursor-pointer ${
                 mission.completed
                   ? 'w-5 h-5 bg-amber-500 border-amber-400 text-zinc-950 font-bold'
-                  : 'w-5 h-5 border-zinc-700 bg-zinc-950/50 text-transparent hover:border-amber-500 hover:text-amber-500/60'
+                  : isLive
+                  ? 'w-5 h-5 border-2 border-amber-400 bg-amber-500/20 text-transparent hover:text-amber-400'
+                  : isSelected
+                  ? 'w-5 h-5 border border-amber-400 bg-amber-500/15 text-transparent hover:text-amber-400'
+                  : 'w-5 h-5 border-amber-500/40 bg-zinc-950/50 text-transparent hover:border-amber-400 hover:text-amber-500/60'
               }`}
             >
               <Check className="w-3 h-3 stroke-[3]" />
@@ -141,14 +209,24 @@ export const TimelineMissionItem = React.memo(function TimelineMissionItem({
             </div>
           )}
           
-          <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${isLive ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40' : mission.completed ? 'bg-amber-950/40 text-amber-600' : 'bg-zinc-900/80 text-zinc-400 border border-white/10'}`}>
+          <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
+            isLive
+              ? 'bg-amber-500/25 text-amber-300 border border-amber-500/50'
+              : isSelected
+              ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
+              : mission.completed
+              ? 'bg-amber-950/40 text-amber-600'
+              : 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+          }`}>
             <Coffee className="w-3.5 h-3.5 text-amber-400" />
           </div>
           <div className="flex flex-col">
-            <p className={`text-xs font-tactical font-bold tracking-tight uppercase ${isLive ? 'text-amber-300' : mission.completed ? 'text-zinc-500 line-through' : 'text-zinc-200'}`}>
+            <p className={`text-xs font-tactical font-bold tracking-tight uppercase ${
+              isLive || isSelected ? 'text-amber-300' : mission.completed ? 'text-zinc-500 line-through' : 'text-amber-200'
+            }`}>
               {mission.taskName}
             </p>
-            <div className="flex items-center gap-2 text-xs opacity-75 font-mono text-zinc-400 mt-0.5">
+            <div className="flex items-center gap-2 text-xs font-mono text-zinc-400 mt-0.5">
               {isLive && <span className="text-amber-400 font-bold tracking-wider animate-pulse">LIVE NOW</span>}
               {slotText && (
                 <span className="text-amber-400/80 flex items-center gap-1">
@@ -182,7 +260,7 @@ export const TimelineMissionItem = React.memo(function TimelineMissionItem({
                 e.stopPropagation();
                 onStartSession();
               }}
-              className="px-3.5 py-1 bg-amber-500 hover:bg-amber-400 text-zinc-950 shadow-[0_0_12px_rgba(245,158,11,0.4)] text-xs font-mono font-bold uppercase tracking-wider rounded-lg flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
+              className="px-3.5 py-1 bg-amber-500 hover:bg-amber-400 text-zinc-950 shadow-sm shadow-amber-500/30 text-xs font-mono font-bold uppercase tracking-wider rounded-lg flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 border border-amber-400/30"
             >
               <Play className="w-3 h-3 fill-current" /> START
             </button>
@@ -217,65 +295,18 @@ export const TimelineMissionItem = React.memo(function TimelineMissionItem({
         }
         onSelect();
       }}
-      style={{
-        background: isLive
-          ? 'rgba(8, 26, 18, 0.92)'
-          : isSelected
-          ? 'rgba(18, 14, 28, 0.88)'
-          : 'rgba(10, 14, 23, 0.80)',
-        backdropFilter: 'blur(24px) saturate(190%)',
-        border: isLive
-          ? '1.5px solid rgba(16, 185, 129, 0.75)'
-          : isSelected
-          ? '1.5px solid rgba(99, 102, 241, 0.5)'
-          : '1px solid rgba(255, 255, 255, 0.08)',
-        borderTop: isLive
-          ? '2.5px solid rgba(16, 185, 129, 0.95)'
-          : isSelected
-          ? '2px solid rgba(99, 102, 241, 0.75)'
-          : '1.5px solid rgba(255, 255, 255, 0.18)',
-        boxShadow: isLive
-          ? '0 0 35px rgba(16, 185, 129, 0.4), 0 0 70px rgba(16, 185, 129, 0.2), 0 20px 50px rgba(0, 0, 0, 0.8), inset 0 0 25px rgba(16, 185, 129, 0.12)'
-          : isSelected
-          ? '0 12px 30px rgba(0, 0, 0, 0.6), 0 0 20px rgba(99, 102, 241, 0.1)'
-          : '0 8px 24px rgba(0, 0, 0, 0.4)'
-      }}
-      className={`group transition-all duration-150 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 active:scale-[0.99] relative overflow-hidden ${
-        isLive
-          ? 'p-4.5 sm:p-5 rounded-2xl mb-3'
-          : isDismissed
-          ? 'p-3.5 rounded-2xl opacity-40 cursor-default'
+      className={`group transition-all duration-150 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 active:scale-[0.99] relative overflow-hidden rounded-2xl ${
+        isDismissed
+          ? 'p-3.5 bg-surface-1 border border-border-subtle opacity-40 cursor-default'
           : mission.completed
-          ? 'p-3.5 rounded-2xl opacity-60'
-          : 'p-4 rounded-2xl hover:border-indigo-500/40 mb-2.5'
+          ? 'p-3.5 bg-surface-1 border border-border-subtle opacity-60'
+          : isLive
+          ? 'p-4.5 sm:p-5 mb-3 bg-surface-2 border-2 border-indigo-500/60 shadow-lg shadow-indigo-500/10'
+          : isSelected
+          ? 'p-4 mb-2.5 bg-surface-2 border border-indigo-400/80 shadow-md'
+          : 'p-4 mb-2.5 bg-surface-1 hover:bg-surface-2 border border-border-subtle hover:border-zinc-700/60'
       }`}
     >
-      {/* Live Sortie Ambient Luminous Atmosphere */}
-      {isLive && (
-        <div 
-          className="absolute inset-0 bg-radial from-emerald-500/15 via-emerald-500/5 to-transparent pointer-events-none" 
-        />
-      )}
-
-      {/* Top Hazard Warning Stripes Ribbon for Live Sortie */}
-      {isLive && (
-        <div 
-          className="absolute top-0 inset-x-0 h-1 opacity-85 pointer-events-none"
-          style={{
-            background: mission.subject === 'maths' 
-              ? 'repeating-linear-gradient(-45deg, #a855f7 0px, #a855f7 8px, transparent 8px, transparent 16px)'
-              : mission.subject === 'physics'
-              ? 'repeating-linear-gradient(-45deg, #0ea5e9 0px, #0ea5e9 8px, transparent 8px, transparent 16px)'
-              : 'repeating-linear-gradient(-45deg, #10b981 0px, #10b981 8px, transparent 8px, transparent 16px)'
-          }}
-        />
-      )}
-
-      {/* Caliper Crosshairs */}
-      <span className="absolute top-2 left-2 text-xs opacity-50 font-mono text-zinc-600 select-none pointer-events-none">+</span>
-      <span className="absolute top-2 right-2 text-xs opacity-50 font-mono text-zinc-600 select-none pointer-events-none">+</span>
-      <span className="absolute bottom-2 left-2 text-xs opacity-50 font-mono text-zinc-600 select-none pointer-events-none">+</span>
-      <span className="absolute bottom-2 right-2 text-xs opacity-50 font-mono text-zinc-600 select-none pointer-events-none">+</span>
       <div className="flex items-start justify-between gap-4 relative z-10">
         
         {/* Circular Checkbox — hidden for dismissed missions */}
@@ -290,12 +321,12 @@ export const TimelineMissionItem = React.memo(function TimelineMissionItem({
               onToggleComplete();
             }}
             className={`rounded-full border flex items-center justify-center shrink-0 transition-colors cursor-pointer ${
-              isLive ? 'w-6 h-6 mt-0.5 border-2 border-emerald-400' : 'w-5 h-5'
+              isLive ? `w-6 h-6 mt-0.5 border-2 ${liveTheme.checkboxBorder}` : 'w-5 h-5'
             } ${
               mission.completed
                 ? 'bg-emerald-500 border-emerald-400 text-white shadow-[0_0_10px_rgba(16,185,129,0.3)]'
                 : isLive
-                ? 'border-emerald-400 bg-transparent text-transparent hover:text-emerald-400/60'
+                ? `${liveTheme.checkboxBorder} bg-transparent text-transparent ${liveTheme.checkboxHover}`
                 : 'border-zinc-700 hover:border-indigo-400 bg-transparent text-transparent hover:text-indigo-400/60'
             }`}
             title={mission.completed ? "Mark incomplete" : "Mark complete"}
@@ -314,24 +345,24 @@ export const TimelineMissionItem = React.memo(function TimelineMissionItem({
           {/* Consolidated Decluttered 1-Row Label Header with Merged Time */}
           <div className="flex items-center gap-2 flex-wrap text-xs leading-none">
             {isDismissed && (
-              <span className="font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border bg-red-950/30 text-red-400/70 border-red-900/30 text-xs opacity-75 shrink-0">
+              <span className="font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border bg-red-950/30 text-red-400/70 border-red-900/30 text-xs shrink-0">
                 Dismissed
               </span>
             )}
 
             {/* Subject Badge */}
-            <span className={`font-bold uppercase tracking-wider ${isLive ? 'px-2.5 py-0.5 text-xs opacity-90' : 'px-2 py-0.5 text-xs opacity-75'} rounded-md border shrink-0 ${badgeStyle}`}>
+            <span className={`font-bold uppercase tracking-wider ${isLive ? 'px-2.5 py-0.5 text-xs' : 'px-2 py-0.5 text-xs'} rounded-md border shrink-0 ${badgeStyle}`}>
               {mission.subject.toUpperCase()}
             </span>
 
             {/* Merged Status + Time Pill for Live & Next Up */}
             {isLive ? (
-              <span className="bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-bold px-2.5 py-0.5 rounded-md uppercase tracking-wider flex items-center gap-1.5 shadow-sm text-xs opacity-90 shrink-0">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className={`${liveTheme.livePill} font-bold px-2.5 py-0.5 rounded-md uppercase tracking-wider flex items-center gap-1.5 shadow-sm text-xs shrink-0`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${liveTheme.livePillDot} animate-pulse`} />
                 LIVE {slotText ? `· ${slotText}` : ''}
               </span>
             ) : isNextUp ? (
-              <span className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-bold px-2.5 py-0.5 rounded-md uppercase tracking-wider flex items-center gap-1.5 text-xs opacity-75 shrink-0">
+              <span className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-bold px-2.5 py-0.5 rounded-md uppercase tracking-wider flex items-center gap-1.5 text-xs shrink-0">
                 <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
                 NEXT UP {slotText ? `· ${slotText}` : ''}
               </span>
@@ -360,7 +391,7 @@ export const TimelineMissionItem = React.memo(function TimelineMissionItem({
             {/* Urgent Memory Decay Badge */}
             {retentionScore !== undefined && (retentionScore < 60 || mission.type === 'Revise Formulas' || mission.type === 'Review Mistakes') && (
               <span 
-                className={`px-1.5 py-0.5 rounded border flex items-center gap-1 font-mono text-xs opacity-75 font-bold ${
+                className={`px-1.5 py-0.5 rounded border flex items-center gap-1 font-mono text-xs font-bold ${
                   retentionScore < 50 
                     ? 'bg-rose-950/50 border-rose-500/40 text-rose-300 animate-pulse' 
                     : 'bg-amber-950/40 border-amber-500/40 text-amber-300'
@@ -373,7 +404,7 @@ export const TimelineMissionItem = React.memo(function TimelineMissionItem({
 
             {/* Bedtime badge */}
             {!mission.completed && !isDismissed && isOverBudget && (
-              <span className="text-amber-400 bg-amber-950/30 border border-amber-800/40 text-xs opacity-75 px-1.5 py-0.5 rounded flex items-center gap-1">
+              <span className="text-amber-400 bg-amber-950/30 border border-amber-800/40 text-xs px-1.5 py-0.5 rounded flex items-center gap-1">
                 <Moon className="w-2.5 h-2.5 text-amber-400" /> Bedtime
               </span>
             )}
@@ -382,7 +413,7 @@ export const TimelineMissionItem = React.memo(function TimelineMissionItem({
           {/* Title */}
           <p className={`tracking-tight transition-colors ${
               isLive
-                ? 'text-lg sm:text-xl font-tactical font-black text-white group-hover:text-emerald-300 leading-snug'
+                ? `text-lg sm:text-xl font-tactical font-black text-white ${liveTheme.titleHover} leading-snug`
                 : isDismissed ? 'text-xs md:text-sm font-tactical text-zinc-600 line-through' 
                 : mission.completed ? 'text-xs md:text-sm font-tactical text-zinc-400 line-through' 
                 : 'text-xs md:text-sm font-tactical font-bold text-zinc-100 group-hover:text-indigo-300'
@@ -399,7 +430,7 @@ export const TimelineMissionItem = React.memo(function TimelineMissionItem({
             {chap && (
               <>
                 <span className="text-zinc-600">•</span>
-                <div className="flex items-center gap-1.5 font-mono text-xs opacity-75 shrink-0">
+                <div className="flex items-center gap-1.5 font-mono text-xs shrink-0">
                   <span className="text-zinc-400">Lec {currentLec}/{totalLec}</span>
                   <div className={`${isLive ? 'w-20 h-1.5' : 'w-16 h-1.5'} bg-zinc-950 rounded-full overflow-hidden border border-white/10`}>
                     <div
@@ -425,9 +456,9 @@ export const TimelineMissionItem = React.memo(function TimelineMissionItem({
                   e.stopPropagation();
                   onStartSession();
                 }}
-                className="px-5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-mono text-xs font-bold uppercase tracking-wider rounded-xl flex items-center gap-1.5 cursor-pointer transition-all shadow-[0_0_15px_rgba(16,185,129,0.35)] border border-emerald-400/40 active:scale-95"
+                className={`px-5 py-2 ${liveTheme.startButton} font-mono text-xs font-bold uppercase tracking-wider rounded-xl flex items-center gap-1.5 cursor-pointer transition-all border active:scale-95`}
               >
-                <Play className="w-3.5 h-3.5 fill-white text-white" />
+                <Play className="w-3.5 h-3.5 fill-current" />
                 <span>{isResumable ? 'Resume Mission' : 'Start Mission'}</span>
               </motion.button>
             )}
@@ -522,7 +553,7 @@ export const TimelineMissionItem = React.memo(function TimelineMissionItem({
             className="overflow-hidden border-t border-zinc-900/60"
           >
             <div className="px-3 py-2.5 mt-2.5 bg-zinc-950/40 text-xs text-zinc-400 space-y-2 rounded-xl">
-              <div className="flex items-center justify-between text-zinc-300 font-mono text-xs opacity-75">
+              <div className="flex items-center justify-between text-zinc-300 font-mono text-xs">
                 <span>Estimated Time: <strong className="text-white">{mission.duration} mins</strong></span>
                 <span>XP Award: <strong className="text-indigo-400">+{mission.xp} XP</strong></span>
               </div>
@@ -534,7 +565,7 @@ export const TimelineMissionItem = React.memo(function TimelineMissionItem({
                     onToggleComplete();
                     onToggleExpand();
                   }}
-                  className={`text-xs opacity-75 font-bold py-1.5 px-3 rounded-md transition-all cursor-pointer border active:scale-[0.98] hover:scale-[1.02] ${
+                  className={`text-xs font-bold py-1.5 px-3 rounded-md transition-all cursor-pointer border active:scale-[0.98] hover:scale-[1.02] ${
                     mission.completed 
                       ? 'bg-emerald-950/40 text-emerald-400 border-emerald-900/60 hover:bg-emerald-950/60 hover:text-emerald-300' 
                       : 'bg-zinc-800 hover:bg-emerald-600/90 text-zinc-300 hover:text-white border-zinc-700 hover:border-emerald-500 shadow-sm'
@@ -548,7 +579,7 @@ export const TimelineMissionItem = React.memo(function TimelineMissionItem({
                     onDelete();
                     onToggleExpand();
                   }}
-                  className="bg-transparent hover:bg-red-950/40 text-zinc-400 hover:text-red-300 text-xs opacity-75 py-1.5 px-3 rounded-md transition-all active:scale-[0.98] hover:scale-[1.02] cursor-pointer border border-zinc-800 hover:border-red-900/60 flex items-center gap-1"
+                  className="bg-transparent hover:bg-red-950/40 text-zinc-400 hover:text-red-300 text-xs py-1.5 px-3 rounded-md transition-all active:scale-[0.98] hover:scale-[1.02] cursor-pointer border border-zinc-800 hover:border-red-900/60 flex items-center gap-1"
                 >
                   <Trash2 className="w-3 h-3" />
                   <span>Remove Mission</span>

@@ -218,11 +218,13 @@ export function AnimatedSearchIcon({ isHovered }: { isHovered: boolean }) {
 export function AnimatedStreakIcon({ 
   streak, 
   isHovered, 
-  isGodMode: _isGodMode 
+  isGodMode: _isGodMode,
+  isTodayMet = false
 }: { 
   streak: number; 
   isHovered: boolean; 
   isGodMode: boolean; 
+  isTodayMet?: boolean;
 }) {
   const hasStreak = streak > 0;
 
@@ -237,6 +239,24 @@ export function AnimatedStreakIcon({
           <Icon name="Flame" className="w-3.5 h-3.5" />
         </motion.div>
       </div>
+    );
+  }
+
+  if (!isTodayMet) {
+    return (
+      <motion.div
+        animate={isHovered ? { scale: 1.15, y: -1 } : { scale: 1, y: 0 }}
+        transition={springs.snappy}
+        className="relative w-4 h-4 flex items-center justify-center text-amber-400"
+      >
+        <motion.div
+          animate={{ scale: [1, 1.08, 1], opacity: [0.75, 0.95, 0.75] }}
+          transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+          className="flex items-center justify-center"
+        >
+          <Icon name="Flame" className="w-3.5 h-3.5 fill-amber-400/40 text-amber-400" />
+        </motion.div>
+      </motion.div>
     );
   }
 

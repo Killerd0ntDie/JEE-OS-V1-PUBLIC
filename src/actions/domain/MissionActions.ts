@@ -378,9 +378,18 @@ export class MissionActions extends BaseActions {
       updatedTodayMissions = currentDayBlocks.map(b => {
         const originalId = b.id.startsWith('today-') ? b.id.slice(6) : b.id;
         const original = cleanedMissions.find(m => m.id === originalId);
+        const mappedSubject: SubjectId | 'break' = 
+          b.subject === 'break' 
+            ? 'break' 
+            : (b.subject === 'physics' || b.subject === 'chemistry' || b.subject === 'maths')
+            ? b.subject as SubjectId
+            : (original?.subject && original.subject !== 'break')
+            ? original.subject
+            : (this.state.chapters?.find(c => c.id === b.chapterId || c.name === b.chapterName)?.subject || 'physics');
+
         return {
           id: originalId,
-          subject: b.subject,
+          subject: mappedSubject,
           chapter: b.chapterName,
           chapterId: b.chapterId,
           type: b.taskType,

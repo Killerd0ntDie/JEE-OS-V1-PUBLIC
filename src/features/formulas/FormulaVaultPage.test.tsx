@@ -40,28 +40,27 @@ describe('FormulaVaultPage Feature View (Magnitude 5.1)', { timeout: 40000 }, ()
     });
   });
 
-  it('renders Formula & Theorem Vault banner, search bar, and subject pills', () => {
+  it('renders Formula Vault header, search bar, and subject pills', () => {
     render(<FormulaVaultPage />);
 
-    expect(screen.getByText('JEE FORMULA REPOSITORY')).toBeInTheDocument();
-    expect(screen.getByText('Formula & Theorem Vault')).toBeInTheDocument();
+    expect(screen.getByText('Formula Vault')).toBeInTheDocument();
 
-    // Verify Subject filters
-    expect(screen.getByRole('button', { name: 'All' })).toBeInTheDocument();
+    // Verify Subject filters (strictly Physics, Chemistry, Maths; All removed)
+    expect(screen.queryByRole('button', { name: 'All' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Physics/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Chemistry/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Maths/i })).toBeInTheDocument();
 
     // Verify Search Input
     expect(
-      screen.getByPlaceholderText('Search formulas, concepts, theorems, or symbols...')
+      screen.getByPlaceholderText('Search formulas...')
     ).toBeInTheDocument();
   });
 
   it('filters formulas when typing in the search input', async () => {
     render(<FormulaVaultPage />);
 
-    const searchInput = screen.getByPlaceholderText('Search formulas, concepts, theorems, or symbols...');
+    const searchInput = screen.getByPlaceholderText('Search formulas...');
     fireEvent.change(searchInput, { target: { value: 'Kinematics' } });
 
     // Should display filtered results or chapter
@@ -69,24 +68,37 @@ describe('FormulaVaultPage Feature View (Magnitude 5.1)', { timeout: 40000 }, ()
 
     // Now search something nonexistent
     fireEvent.change(searchInput, { target: { value: 'xyzrandomnonexistentformula' } });
-    expect(screen.getByText('No Formulas Found')).toBeInTheDocument();
+    expect(screen.getByText(/No Formulas Found/i)).toBeInTheDocument();
 
     // Click Reset Filters
     const resetBtn = screen.getByRole('button', { name: 'Reset Filters' });
     fireEvent.click(resetBtn);
-    expect(screen.queryByText('No Formulas Found')).not.toBeInTheDocument();
+    expect(screen.queryByText(/No Formulas Found/i)).not.toBeInTheDocument();
   });
 
-  it('switches subject tabs to filter formula repository', () => {
+  it('switches subject tabs to filter formula repository and isolates chapters', () => {
     render(<FormulaVaultPage />);
 
-    const physicsBtn = screen.getByRole('button', { name: /Physics/i });
-    fireEvent.click(physicsBtn);
-    expect(screen.getByText(/Displaying/i)).toBeInTheDocument();
+    // Initially Physics: Units & Measurements should be rendered
+    expect(screen.getByRole('heading', { name: 'Units & Measurements' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Some Basic Concepts of Chemistry' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Sets, Relations & Functions' })).not.toBeInTheDocument();
 
+    // Switch to Chemistry
+    const chemistryBtn = screen.getByRole('button', { name: /Chemistry/i });
+    fireEvent.click(chemistryBtn);
+    expect(screen.getByText(/Displaying/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Some Basic Concepts of Chemistry' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Units & Measurements' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Sets, Relations & Functions' })).not.toBeInTheDocument();
+
+    // Switch to Maths
     const mathsBtn = screen.getByRole('button', { name: /Maths/i });
     fireEvent.click(mathsBtn);
     expect(screen.getByText(/Displaying/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Sets, Relations & Functions' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Units & Measurements' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Some Basic Concepts of Chemistry' })).not.toBeInTheDocument();
   });
 
   it('bookmarks a formula and toggles starred view', async () => {

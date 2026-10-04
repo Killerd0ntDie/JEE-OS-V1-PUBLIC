@@ -601,7 +601,10 @@ export function MockTestsPage({ onNavigate: _onNavigate, defaultView: _defaultVi
   }
 
   return (
-    <div className="w-full space-y-6 text-zinc-100 font-sans select-none">
+    <div className="w-full space-y-4 text-zinc-100 font-sans select-none relative pb-16">
+      {/* Ambient background glow accents */}
+      <div className="absolute top-10 left-1/4 w-96 h-48 bg-indigo-600/10 rounded-full filter blur-3xl pointer-events-none -z-10" />
+      <div className="absolute top-80 right-10 w-96 h-48 bg-purple-600/10 rounded-full filter blur-3xl pointer-events-none -z-10" />
       
       {/* 0. ACTIVE INTERRUPTED CBT SIMULATION BANNER */}
       <InterruptedSessionBanner
@@ -611,7 +614,7 @@ export function MockTestsPage({ onNavigate: _onNavigate, defaultView: _defaultVi
       />
 
       {/* 2-COLUMN MASTER-DETAIL LAYOUT */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 items-start">
         
         {/* LEFT COLUMN: NAVIGATION & ACTIONS DIRECTORY */}
         <MockDirectorySidebar

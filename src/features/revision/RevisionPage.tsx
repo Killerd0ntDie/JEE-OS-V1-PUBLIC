@@ -3,10 +3,10 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { FormulaVaultPage } from '@/features/formulas/FormulaVaultPage';
 import { RevisionSession } from './components/RevisionSession';
-import { RevisionCardItem } from '@jee-os/engines';
+import { RevisionCardItem, findMatchingBankChapter } from '@jee-os/engines';
 import { 
-  ArrowRight, ArrowLeft, BookOpen,
-  CheckCircle2, Clock, Calendar, Play
+  ArrowRight, BookOpen,
+  CheckCircle2, Clock, Calendar, Play, AlertTriangle
 } from 'lucide-react';
 
 function useOptionalLocation() {
@@ -100,7 +100,19 @@ export function RevisionPage() {
     cards: []
   }));
 
-  const dueCards = revisionTelemetry?.dueCards || urgentCards;
+  const mistakes = useStudyBrainStore(s => s.mistakes || []);
+
+  const dueCards = useMemo(() => {
+    if (dueChapters.length === 0) return [];
+    return revisionTelemetry?.dueCards || urgentCards || [];
+  }, [dueChapters.length, revisionTelemetry?.dueCards, urgentCards]);
+
+  const pendingMistakesCount = useMemo(() => {
+    if (typeof revisionTelemetry?.stats?.pendingMistakesCount === 'number') {
+      return revisionTelemetry.stats.pendingMistakesCount;
+    }
+    return mistakes.filter(m => m.revisionStatus !== 'Mastered').length;
+  }, [revisionTelemetry?.stats?.pendingMistakesCount, mistakes]);
 
   const [sessionCards, setSessionCards] = useState<RevisionCardItem[] | null>(null);
   const [sessionTitle, setSessionTitle] = useState<string | undefined>(undefined);
@@ -158,25 +170,14 @@ export function RevisionPage() {
   // Formula Vault browsing subview
   if (activeTab === 'formulas') {
     return (
-      <div className="space-y-6 max-w-6xl mx-auto text-left relative pb-32 sm:pb-36 font-sans">
-        <div className="flex items-center justify-between p-2 rounded-2xl bg-zinc-900/90 border border-zinc-800/80 backdrop-blur-xl shadow-xl">
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab('spaced_review');
-              if (navigate && location) {
-                navigate('/revision', { replace: true });
-              }
-            }}
-            className="px-4 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 hover:text-white font-mono text-xs font-bold flex items-center gap-2 cursor-pointer transition-colors shadow-sm"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Back to Spaced Revision</span>
-          </button>
-          <span className="font-mono text-xs text-zinc-400 pr-3 font-semibold">Formula Repository</span>
-        </div>
-        <FormulaVaultPage />
-      </div>
+      <FormulaVaultPage
+        onBack={() => {
+          setActiveTab('spaced_review');
+          if (navigate && location) {
+            navigate('/revision', { replace: true });
+          }
+        }}
+      />
     );
   }
 
@@ -242,6 +243,44 @@ export function RevisionPage() {
         </div>
       </div>
 
+      {/* PENDING MISTAKES REMINDER BANNER */}
+      {pendingMistakesCount > 0 && (
+        <div className="surface-2 rounded-2xl p-4 sm:p-5 border border-amber-500/30 bg-amber-500/[0.04] flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg">
+          <div className="flex items-start sm:items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shrink-0">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-bold text-white">
+                  {pendingMistakesCount} {pendingMistakesCount === 1 ? 'Mistake' : 'Mistakes'} Pending Review
+                </span>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-semibold">
+                  Mistake Vault
+                </span>
+              </div>
+              <p className="text-xs text-zinc-400 mt-0.5">
+                Past test mistakes are tracked in your dedicated Mistake Vault. Review and re-solve them to eliminate recurrence.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              if (navigate) {
+                navigate('/mistakes');
+              } else {
+                window.location.href = '/mistakes';
+              }
+            }}
+            className="px-4 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 hover:text-white font-mono text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shrink-0 self-start sm:self-auto shadow-sm"
+          >
+            <span>Review in Mistake Vault</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
       {/* 2. DUE TODAY: List of Chapters, Each with a Revise Button */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
@@ -268,9 +307,40 @@ export function RevisionPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
             {dueChapters.map(ch => {
-              const chCards = ch.cards && ch.cards.length > 0 
-                ? ch.cards 
-                : (cards.filter(c => c.chapterId === ch.chapterId));
+              const resolveCardsForChapter = (): RevisionCardItem[] => {
+                if (ch.cards && ch.cards.length > 0) return ch.cards;
+                const directMatches = cards.filter(c => 
+                  c.chapterId === ch.chapterId || 
+                  (c.chapterName && ch.chapterName && c.chapterName.toLowerCase() === ch.chapterName.toLowerCase())
+                );
+                if (directMatches.length > 0) return directMatches;
+
+                const matchedBank = findMatchingBankChapter({ id: ch.chapterId, name: ch.chapterName, subject: ch.subject } as any);
+                if (matchedBank && matchedBank.formulas.length > 0) {
+                  return matchedBank.formulas.map((f, idx) => ({
+                    id: `fb-${matchedBank.chapterId}-${idx}`,
+                    chapterId: ch.chapterId,
+                    chapterName: matchedBank.chapterName,
+                    subject: matchedBank.subject,
+                    title: f.title,
+                    concept: f.concept,
+                    formula: f.formula,
+                    examNote: f.examNote,
+                    questionPrompt: f.questionPrompt || `Key Concept: ${f.concept}. State the governing formula and conditions.`,
+                    subtopic: f.subtopic || 'Key Formulas',
+                    cardType: 'formula' as const,
+                    retentionConfidence: 'Medium' as const,
+                    retentionScore: 70,
+                    nextReviewDays: 1,
+                    intervalStage: '1d',
+                    recalledCount: 0,
+                    urgencyRank: 1
+                  }));
+                }
+                return [];
+              };
+
+              const chCards = resolveCardsForChapter();
               const cardCount = ch.totalCardsCount || chCards.length || 5;
 
               return (
@@ -318,11 +388,14 @@ export function RevisionPage() {
                   <button
                     type="button"
                     onClick={() => {
-                      setSessionCards(chCards.length > 0 ? chCards : cards.slice(0, 10));
-                      setSessionTitle(ch.chapterName);
-                      setSessionChapterId(ch.chapterId);
+                      if (chCards.length > 0) {
+                        setSessionCards(chCards);
+                        setSessionTitle(ch.chapterName);
+                        setSessionChapterId(ch.chapterId);
+                      }
                     }}
-                    className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-colors shadow-md shadow-indigo-950/50"
+                    disabled={chCards.length === 0}
+                    className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-colors shadow-md shadow-indigo-950/50"
                   >
                     <Play className="w-3.5 h-3.5 fill-white" />
                     <span>Revise</span>

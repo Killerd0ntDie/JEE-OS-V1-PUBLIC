@@ -8,6 +8,7 @@ export interface AnalyticsInput {
   mistakes: Mistake[];
   chapterTelemetryMap?: Record<string, ChapterTelemetry>;
   currentDate?: string;
+  minStreakMinutes?: number;
 }
 
 export interface AnalyticsOutput {

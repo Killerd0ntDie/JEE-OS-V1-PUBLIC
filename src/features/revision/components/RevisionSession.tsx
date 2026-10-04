@@ -79,10 +79,19 @@ export function RevisionSession({
           if (actions.gradeFlashcardsBatch && updatedGrades.length > 0) {
             await actions.gradeFlashcardsBatch(updatedGrades);
           }
-          if (chapterId && actions.completeRevision) {
-            const avgQuality = updatedGrades.reduce((sum, g) => sum + g.quality, 0) / updatedGrades.length;
-            const overallConf: 'High' | 'Medium' | 'Low' = avgQuality >= 4 ? 'High' : avgQuality >= 3 ? 'Medium' : 'Low';
-            await actions.completeRevision(chapterId, overallConf);
+          if (actions.completeRevision) {
+            const uniqueChapterIds = Array.from(new Set(updatedGrades.map(g => g.chapterId).filter(Boolean)));
+            if (chapterId && !uniqueChapterIds.includes(chapterId)) {
+              uniqueChapterIds.push(chapterId);
+            }
+            for (const chId of uniqueChapterIds) {
+              const chapGrades = updatedGrades.filter(g => g.chapterId === chId);
+              const avgQuality = chapGrades.length > 0
+                ? chapGrades.reduce((sum, g) => sum + g.quality, 0) / chapGrades.length
+                : 4;
+              const overallConf: 'High' | 'Medium' | 'Low' = avgQuality >= 4 ? 'High' : avgQuality >= 3 ? 'Medium' : 'Low';
+              await actions.completeRevision(chId, overallConf);
+            }
           }
         } catch (err) {
           console.error('[RevisionSession] Failed to persist review session:', err);
@@ -250,23 +259,31 @@ export function RevisionSession({
         >
           {/* Card Meta Badge */}
           <div className="flex items-center justify-between mb-4">
-            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-mono font-bold uppercase tracking-wider border ${
-              currentCard?.cardType === 'mistake'
-                ? 'bg-rose-950/50 text-rose-300 border-rose-500/30'
-                : 'bg-indigo-950/50 text-indigo-300 border-indigo-500/30'
-            }`}>
-              {currentCard?.cardType === 'mistake' ? (
-                <>
-                  <AlertCircle className="w-3.5 h-3.5 text-rose-400" />
-                  <span>Mistake Review</span>
-                </>
-              ) : (
-                <>
-                  <BookOpen className="w-3.5 h-3.5 text-indigo-400" />
-                  <span>Formula Concept</span>
-                </>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-mono font-bold uppercase tracking-wider border ${
+                currentCard?.cardType === 'mistake'
+                  ? 'bg-rose-950/50 text-rose-300 border-rose-500/30'
+                  : 'bg-indigo-950/50 text-indigo-300 border-indigo-500/30'
+              }`}>
+                {currentCard?.cardType === 'mistake' ? (
+                  <>
+                    <AlertCircle className="w-3.5 h-3.5 text-rose-400" />
+                    <span>Mistake Review</span>
+                  </>
+                ) : (
+                  <>
+                    <BookOpen className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>Active Recall</span>
+                  </>
+                )}
+              </span>
+
+              {currentCard?.subtopic && (
+                <span className="text-[10px] font-mono uppercase px-2.5 py-1 rounded-lg bg-zinc-800/80 border border-white/10 text-zinc-300 font-semibold tracking-wider">
+                  {currentCard.subtopic}
+                </span>
               )}
-            </span>
+            </div>
 
             <span className="font-mono text-[11px] text-zinc-500">
               Space = Flip
@@ -275,15 +292,18 @@ export function RevisionSession({
 
           {/* Question / Front Section */}
           <div className="space-y-4 my-auto">
-            <h3 className="text-lg sm:text-xl font-display font-bold text-white tracking-tight">
-              {currentCard?.title}
-            </h3>
+            <div className="space-y-1">
+              <span className="text-[11px] font-mono text-indigo-400 uppercase font-bold tracking-wider block">
+                {currentCard?.cardType === 'mistake' ? 'Unresolved Exam Error' : 'Conceptual Challenge'}
+              </span>
+              <h3 className="text-lg sm:text-xl font-display font-bold text-white tracking-tight">
+                {currentCard?.title}
+              </h3>
+            </div>
 
-            {currentCard?.concept && (
-              <div className="text-sm text-zinc-300 leading-relaxed font-sans bg-zinc-950/40 p-4 rounded-2xl border border-white/5">
-                {renderMathText(currentCard.concept)}
-              </div>
-            )}
+            <div className="text-sm sm:text-base text-zinc-200 leading-relaxed font-sans bg-zinc-950/60 p-5 rounded-2xl border border-white/10 shadow-inner">
+              {renderMathText(currentCard?.questionPrompt || currentCard?.concept)}
+            </div>
 
             {/* Answer / Back Section */}
             <AnimatePresence>
@@ -292,19 +312,26 @@ export function RevisionSession({
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
-                  className="pt-3 border-t border-zinc-800/80 space-y-3"
+                  className="pt-4 border-t border-zinc-800/80 space-y-3"
                 >
                   <span className="text-[10px] font-mono text-zinc-400 uppercase font-bold tracking-wider block">
-                    {currentCard?.cardType === 'mistake' ? 'Correct Method / Solution:' : 'Formula & Key Takeaway:'}
+                    {currentCard?.cardType === 'mistake' ? 'Correct Method / Solution:' : 'Governing Formula & Key Takeaway:'}
                   </span>
 
-                  <div className="p-4 rounded-2xl bg-indigo-950/30 border border-indigo-500/30 text-indigo-200 text-sm font-medium leading-relaxed">
+                  <div className="p-4 rounded-2xl bg-indigo-950/40 border border-indigo-500/30 text-indigo-100 text-sm font-medium leading-relaxed overflow-x-auto shadow-inner">
                     {renderMathText(currentCard?.formula)}
                   </div>
 
+                  {currentCard?.concept && currentCard?.questionPrompt && (
+                    <div className="text-xs text-zinc-300 leading-relaxed bg-zinc-900/60 border border-white/5 p-3 rounded-xl">
+                      <span className="font-semibold text-zinc-200">Rule/Principle: </span>
+                      {renderMathText(currentCard.concept)}
+                    </div>
+                  )}
+
                   {currentCard?.examNote && (
-                    <p className="text-xs text-amber-300/90 italic bg-amber-950/20 border border-amber-500/20 p-2.5 rounded-xl">
-                      Exam Tip: {currentCard.examNote}
+                    <p className="text-xs text-amber-300/90 italic bg-amber-950/25 border border-amber-500/30 p-2.5 rounded-xl">
+                      💡 <span className="font-semibold">JEE Exam Rule:</span> {currentCard.examNote}
                     </p>
                   )}
                 </motion.div>

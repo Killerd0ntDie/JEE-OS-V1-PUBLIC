@@ -12,7 +12,7 @@ export const ThemeVisualSettingsSection: React.FC<ThemeVisualSettingsSectionProp
   onToggleThemeMode
 }) => {
   return (
-    <div className="bg-zinc-900/90 border border-indigo-500/20 rounded-3xl p-6 md:p-8 space-y-6 shadow-xl relative overflow-hidden text-left">
+    <div className="css-glass rounded-3xl p-6 md:p-8 space-y-6 shadow-xl relative overflow-hidden text-left">
       <div className="flex items-center gap-3 border-b border-white/10 pb-4">
         <div className="w-9 h-9 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-sm">
           <SlidersHorizontal className="w-4.5 h-4.5" />
@@ -34,7 +34,7 @@ export const ThemeVisualSettingsSection: React.FC<ThemeVisualSettingsSectionProp
           className={`p-5 rounded-2xl border transition-all cursor-pointer select-none relative overflow-hidden flex flex-col justify-between space-y-3 ${
             themeMode !== 'modern'
               ? 'bg-indigo-950/40 border-indigo-500 shadow-[0_0_25px_rgba(99,102,241,0.25)] ring-1 ring-indigo-400'
-              : 'bg-zinc-850/40 border-white/10 hover:border-zinc-700'
+              : 'css-glass-subtle hover:border-white/30'
           }`}
         >
           <div className="space-y-1">
@@ -62,7 +62,7 @@ export const ThemeVisualSettingsSection: React.FC<ThemeVisualSettingsSectionProp
           className={`p-5 rounded-2xl border transition-all cursor-pointer select-none relative overflow-hidden flex flex-col justify-between space-y-3 ${
             themeMode === 'modern'
               ? 'bg-zinc-900 border-white/40 shadow-[0_0_25px_rgba(255,255,255,0.15)] ring-1 ring-white/60'
-              : 'bg-zinc-850/40 border-white/10 hover:border-zinc-700'
+              : 'css-glass-subtle hover:border-white/30'
           }`}
         >
           <div className="space-y-1">
@@ -86,7 +86,7 @@ export const ThemeVisualSettingsSection: React.FC<ThemeVisualSettingsSectionProp
       </div>
 
       {/* Quick Toggle Switch Bar */}
-      <div className="flex items-center justify-between p-4.5 rounded-2xl bg-zinc-850/60 border border-white/10 gap-4 shadow-sm">
+      <div className="flex items-center justify-between p-4.5 rounded-2xl css-glass-subtle gap-4 shadow-sm">
         <div className="space-y-0.5">
           <span className="text-sm font-mono font-bold text-white block">
             {themeMode === 'modern' ? 'Modern Minimalist Theme Active' : 'Tactical Evangelion Theme Active'}

@@ -1,6 +1,6 @@
-import React, { forwardRef } from 'react';
+import { forwardRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Zap, RotateCcw, Flame, Timer, Hourglass } from 'lucide-react';
+import { Zap, RotateCcw, Timer, Hourglass } from 'lucide-react';
 import { springs } from '@/constants/motion';
 import { FocusPresetMode } from './MissionHeader';
 
@@ -91,15 +91,16 @@ export const MissionTimerWidget = forwardRef<HTMLDivElement, MissionTimerWidgetP
       transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
       style={{
         ...theme.glowStyle,
-        background: isBerserk ? 'rgba(20, 10, 15, 0.85)' : 'rgba(10, 14, 23, 0.78)',
-        backdropFilter: 'blur(24px) saturate(190%) contrast(105%)',
+        background: isBerserk ? 'rgba(239, 68, 68, 0.25)' : 'rgba(13, 16, 24, 0.80)',
+        backdropFilter: 'blur(5px)',
+        WebkitBackdropFilter: 'blur(5px)',
+        boxShadow: '0 4px 30px rgba(0, 0, 0, 0.35)',
         border: isBerserk ? '1.5px solid rgba(239, 68, 68, 0.6)' : '1px solid rgba(255, 255, 255, 0.12)',
-        borderTop: isBerserk ? '2px solid rgba(239, 68, 68, 0.8)' : '1.5px solid rgba(255, 255, 255, 0.25)',
       }}
       className="relative w-56 h-56 sm:w-64 sm:h-64 lg:w-72 lg:h-72 flex items-center justify-center rounded-full shrink-0 group select-none transition-shadow duration-500 overflow-hidden cursor-pointer"
       title="Double-click to toggle Zen Stealth Focus Mode (Z)"
     >
-      {/* 1. AUDIO-REACTIVE LIQUID GLASS PULSE LAYER */}
+      {/* 1. AUDIO-REACTIVE FROSTED GLASS PULSE LAYER */}
       {stage === 'active' && (
         <motion.div
           initial={{ opacity: 0.35, scale: 1 }}
@@ -129,7 +130,7 @@ export const MissionTimerWidget = forwardRef<HTMLDivElement, MissionTimerWidgetP
         />
       )}
 
-      {/* Specular Liquid Glass Highlight Sheen */}
+      {/* Specular Frosted Glass Highlight Sheen */}
       <div 
         className="absolute inset-0 pointer-events-none opacity-40 rounded-full"
         style={{

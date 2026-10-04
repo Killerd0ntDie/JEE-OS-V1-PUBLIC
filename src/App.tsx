@@ -1,6 +1,7 @@
-import { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
+import { useShallow } from 'zustand/react/shallow';
 import { easings } from '@/constants/motion';
 import { FloatingDynamicDock } from './components/layout/FloatingDynamicDock';
 import { CommandPalette } from './components/shared/CommandPalette';
@@ -51,6 +52,11 @@ function AppLayout() {
   const themeMode = useStudyBrainStore(s => s.settings?.themeMode || 'evangelion');
   const { isOnline } = useNetworkStatus();
   
+  const { todayMissions, activeSubject } = useStudyBrainStore(useShallow(s => ({
+    todayMissions: s.todayMissions,
+    activeSubject: s.activeSubject
+  })));
+
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -58,6 +64,52 @@ function AppLayout() {
   const [isResetCacheConfirmOpen, setIsResetCacheConfirmOpen] = useState(false);
   const [isShortcutGuideOpen, setIsShortcutGuideOpen] = useState(false);
   const [levelUpCelebration, setLevelUpCelebration] = useState<{ oldLevel: number; newLevel: number } | null>(null);
+
+  const horizonGradient = useMemo(() => {
+    let subject = 'physics';
+    if (location.pathname.startsWith('/physics')) subject = 'physics';
+    else if (location.pathname.startsWith('/chemistry')) subject = 'chemistry';
+    else if (location.pathname.startsWith('/maths')) subject = 'maths';
+    else {
+      const searchParams = new URLSearchParams(location.search);
+      const subjParam = searchParams.get('subject');
+      if (subjParam) {
+        const norm = subjParam.toLowerCase();
+        if (norm.includes('phys')) subject = 'physics';
+        else if (norm.includes('chem')) subject = 'chemistry';
+        else if (norm.includes('math')) subject = 'maths';
+      } else {
+        const currentMission = todayMissions?.find(m => !m.completed);
+        if (currentMission) {
+          const normSubj = (currentMission.subject || '').toLowerCase();
+          const normType = (currentMission.type || '').toLowerCase();
+          const normTask = (currentMission.taskName || '').toLowerCase();
+          if (normSubj.includes('break') || normType.includes('break') || normTask.includes('break')) {
+            subject = 'break';
+          } else if (normSubj.includes('phys')) subject = 'physics';
+          else if (normSubj.includes('chem')) subject = 'chemistry';
+          else if (normSubj.includes('math')) subject = 'maths';
+        } else if (activeSubject && activeSubject !== 'all') {
+          const norm = activeSubject.toLowerCase();
+          if (norm.includes('break')) subject = 'break';
+          else if (norm.includes('phys')) subject = 'physics';
+          else if (norm.includes('chem')) subject = 'chemistry';
+          else if (norm.includes('math')) subject = 'maths';
+        }
+      }
+    }
+
+    if (subject === 'break') {
+      return 'radial-gradient(ellipse 95% 65% at 50% -12%, rgba(245, 158, 11, 0.25), rgba(245, 158, 11, 0.06) 50%, transparent 75%)';
+    }
+    if (subject === 'chemistry') {
+      return 'radial-gradient(ellipse 95% 65% at 50% -12%, rgba(52, 211, 153, 0.22), rgba(52, 211, 153, 0.05) 50%, transparent 75%)';
+    }
+    if (subject === 'maths') {
+      return 'radial-gradient(ellipse 95% 65% at 50% -12%, rgba(99, 102, 241, 0.22), rgba(99, 102, 241, 0.05) 50%, transparent 75%)';
+    }
+    return 'radial-gradient(ellipse 95% 65% at 50% -12%, rgba(56, 189, 248, 0.22), rgba(56, 189, 248, 0.05) 50%, transparent 75%)';
+  }, [location.pathname, location.search, todayMissions, activeSubject]);
 
   // Auto launch interview on first visit if profile is incomplete
   useEffect(() => {
@@ -189,10 +241,14 @@ function AppLayout() {
 
   return (
     <div className={`flex min-h-screen bg-zinc-950 text-zinc-400 font-sans antialiased overflow-x-hidden selection:bg-indigo-500/30 selection:text-zinc-100 relative ${themeClass}`}>
-      {/* Global Ambient Glow Orbs for Rich Frosted Glass Refraction */}
-      <div className="fixed top-[-10%] left-[-5%] w-[45vw] h-[45vw] rounded-full bg-indigo-600/10 blur-[120px] pointer-events-none -z-10" />
-      <div className="fixed bottom-[-10%] right-[-5%] w-[40vw] h-[40vw] rounded-full bg-emerald-600/5 blur-[140px] pointer-events-none -z-10" />
-      <div className="fixed top-[40%] right-[15%] w-[30vw] h-[30vw] rounded-full bg-purple-600/5 blur-[100px] pointer-events-none -z-10" />
+      {/* Dynamic Single-Hue Ambient Horizon Gradient (Smooth CSS crossfade = Zero Reload Flash) */}
+      <div 
+        className="fixed top-0 left-0 right-0 h-[520px] pointer-events-none z-0 transition-[background] duration-700 ease-in-out" 
+        aria-hidden="true"
+        style={{
+          background: horizonGradient
+        }}
+      />
 
       {/* Floating Dynamic Dock (macOS / Arc Style Unified Navigation & Telemetry) */}
       <FloatingDynamicDock
@@ -201,7 +257,7 @@ function AppLayout() {
       />
 
       {/* Main Workspace Frame - 100% Full-Bleed Edge-to-Edge Canvas */}
-      <div className={`w-full flex flex-col min-w-0 h-[100dvh] ${location.pathname.startsWith('/planner') || isFullBleed ? 'overflow-hidden' : 'overflow-y-auto scrollbar'} relative`}>
+      <div className={`w-full flex flex-col min-w-0 h-[100dvh] ${location.pathname.startsWith('/planner') || isFullBleed ? 'overflow-hidden' : 'overflow-y-auto scrollbar'} relative z-10`}>
         {/* Central Router Stage with Smooth Framer Motion Transition */}
         <main id="main-content" className={`flex-1 flex flex-col relative min-h-0 ${isFullBleed ? 'p-0 overflow-hidden' : isMockTests ? 'px-3 sm:px-6 lg:px-8 py-5 pb-32 sm:pb-36 max-w-[1600px] w-full mx-auto' : 'px-4 sm:px-8 md:px-12 lg:px-16 py-6 pb-32 sm:pb-36'}`}>
           {!isOnline && (
@@ -232,7 +288,7 @@ function AppLayout() {
               <motion.div
                 key={location.pathname}
                 initial={{ opacity: 0, y: 8, filter: 'blur(3px)' }}
-                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                animate={{ opacity: 1, y: 0, filter: 'none' }}
                 exit={{ opacity: 0, y: -8, filter: 'blur(3px)' }}
                 transition={{ duration: 0.18, ease: easings.expoOut }}
                 className="flex-1 flex flex-col min-h-0 h-full"

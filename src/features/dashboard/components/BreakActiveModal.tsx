@@ -102,15 +102,15 @@ export function BreakActiveModal({ isOpen, onClose, breakMission }: BreakActiveM
   return (
     <Modal 
       isOpen={isOpen} 
-      onClose={onClose}
+      onClose={onClose} 
       zIndex={120} 
-      className="max-w-lg w-full p-8 rounded-3xl border border-amber-500/30 text-white shadow-[0_0_50px_rgba(245,158,11,0.15)] text-center relative overflow-hidden glass-panel"
+      className="max-w-lg w-full p-8 rounded-3xl border border-white/20 text-white shadow-2xl text-center relative overflow-hidden css-glass"
     >
       {/* Background Ambient Aura */}
       <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-72 h-72 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
       {/* Top Header */}
-      <div className="flex items-center justify-between border-b border-zinc-800/80 pb-4 mb-6 relative z-10">
+      <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-6 relative z-10">
         <div className="flex items-center gap-2.5">
           <div className="p-2 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400">
             <Icon name="Coffee" className="w-5 h-5 animate-pulse" />
@@ -125,7 +125,7 @@ export function BreakActiveModal({ isOpen, onClose, breakMission }: BreakActiveM
         <button
           type="button"
           onClick={onClose}
-          className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/60 transition-colors cursor-pointer"
+          className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
           title="Minimize Break Modal"
         >
           <Icon name="X" className="w-4 h-4" />
@@ -169,7 +169,7 @@ export function BreakActiveModal({ isOpen, onClose, breakMission }: BreakActiveM
       </div>
 
       {/* Rotating Relaxation Tip */}
-      <div className="p-4 rounded-2xl bg-zinc-900/70 border border-zinc-800/80 text-left space-y-1.5 my-6">
+      <div className="p-4 rounded-2xl css-glass-subtle text-left space-y-1.5 my-6">
         <div className="flex items-center gap-2 text-xs font-mono font-bold text-amber-400 uppercase tracking-wider">
           <Icon name={activeTip.icon as any} className="w-4 h-4 text-amber-400 shrink-0" />
           <span>{activeTip.title}</span>
@@ -185,7 +185,7 @@ export function BreakActiveModal({ isOpen, onClose, breakMission }: BreakActiveM
           <button
             type="button"
             onClick={handleTogglePause}
-            className="flex-1 py-3 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-850 text-zinc-200 font-mono text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-95"
+            className="flex-1 py-3 rounded-xl css-glass hover:bg-white/20 text-zinc-200 font-mono text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-95"
           >
             <Icon name={fsmState === 'paused' ? 'Play' : 'Pause'} className="w-4 h-4" />
             <span>{fsmState === 'paused' ? 'Resume' : 'Pause'}</span>

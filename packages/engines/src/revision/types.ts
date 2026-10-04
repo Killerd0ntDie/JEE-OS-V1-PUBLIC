@@ -102,6 +102,7 @@ export interface RevisionPlanOutput {
     totalNotStartedChapters: number;
     reviewedTodayCount: number;
     avgRetentionScore: number;
+    pendingMistakesCount: number;
   };
 }
 
@@ -126,6 +127,7 @@ export interface RevisionEngineOutput {
     totalNotStarted: number;
     avgRetentionScore: number;
     reviewedTodayCount: number;
+    pendingMistakesCount?: number;
   };
 }
 

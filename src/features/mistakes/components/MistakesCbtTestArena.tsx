@@ -6,7 +6,8 @@ import {
 } from 'lucide-react';
 import { Mistake, SubjectId } from '@/types/index';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
-import { RichTextRenderer } from '@/components/MathRenderer';
+import { RichTextRenderer, ExplanationRenderer } from '@/components/MathRenderer';
+import { modalVariants } from '@/constants/motion';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useFocusTrap } from '@/hooks/useFocusTrap';

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { ClipboardCheck, Check, ChevronRight } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -46,13 +46,14 @@ export function MissionDebriefModal({ isOpen, onSubmit, onSkip }: MissionDebrief
       isOpen={isOpen}
       zIndex={10002}
       backdropClassName="bg-black/10 backdrop-blur-md"
-      className="max-w-lg w-full p-6 sm:p-8 flex flex-col items-center text-center space-y-6 rounded-3xl relative overflow-hidden glass-panel"
+      className="max-w-lg w-full p-6 sm:p-8 flex flex-col items-center text-center space-y-6 rounded-3xl relative overflow-hidden css-glass"
       style={{
-        background: 'rgba(10, 14, 23, 0.90)',
-        backdropFilter: 'blur(28px) saturate(190%) contrast(105%)',
+        background: 'rgba(13, 16, 24, 0.88)',
+        backdropFilter: 'blur(5px)',
+        WebkitBackdropFilter: 'blur(5px)',
         border: '1.5px solid rgba(99, 102, 241, 0.45)',
         borderTop: '2px solid rgba(99, 102, 241, 0.75)',
-        boxShadow: '0 30px 90px rgba(0, 0, 0, 0.85), 0 0 60px rgba(99, 102, 241, 0.2)'
+        boxShadow: '0 4px 30px rgba(0, 0, 0, 0.35), 0 0 40px rgba(99, 102, 241, 0.15)'
       }}
     >
       {/* Top Hazard Warning Tape Ribbon */}
@@ -171,7 +172,7 @@ export function MissionDebriefModal({ isOpen, onSubmit, onSkip }: MissionDebrief
                 type="number"
                 min="0"
                 value={questions === 0 ? '' : questions} placeholder="0"
-                onChange={(e) => handleQuestionsChange(Math.max(0, parseInt(e.target.value) || 0))}
+                onChange={(e) => handleQuestionsChange(Math.max(0, parseInt(e.target.value, 10) || 0))}
                 className="flex-1 bg-zinc-950/80 border border-white/10 rounded-xl px-4 py-2.5 text-white font-mono font-bold text-center text-base focus:border-indigo-500 outline-none transition-all"
               />
               <button 
@@ -202,7 +203,7 @@ export function MissionDebriefModal({ isOpen, onSubmit, onSkip }: MissionDebrief
                 min="0"
                 max={questions}
                 value={correct === 0 ? '' : correct} placeholder="0"
-                onChange={(e) => handleCorrectChange(Math.max(0, parseInt(e.target.value) || 0))}
+                onChange={(e) => handleCorrectChange(Math.max(0, parseInt(e.target.value, 10) || 0))}
                 className="flex-1 bg-zinc-950/80 border border-white/10 rounded-xl px-4 py-2.5 text-white font-mono font-bold text-center text-base focus:border-emerald-500 outline-none transition-all"
               />
               <button 

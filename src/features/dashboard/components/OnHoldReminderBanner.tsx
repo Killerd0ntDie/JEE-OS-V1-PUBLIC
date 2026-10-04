@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { PauseCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Chapter } from '@/types';
@@ -41,8 +41,8 @@ export function OnHoldReminderBanner({
             transition={{ duration: 0.2 }}
             className="w-full mt-1.5 overflow-hidden"
           >
-            <div className="w-full p-2.5 rounded-xl bg-[#090a0f] border border-amber-500/40 shadow-2xl space-y-2 text-xs font-mono">
-          <div className="text-[10px] font-bold text-amber-400 uppercase tracking-wider flex items-center justify-between border-b border-zinc-800 pb-1.5">
+            <div className="w-full p-2.5 rounded-xl css-glass border border-amber-500/40 shadow-2xl space-y-2 text-xs font-mono">
+          <div className="text-[10px] font-bold text-amber-400 uppercase tracking-wider flex items-center justify-between border-b border-white/10 pb-1.5">
             <span>On-Hold Chapters ({onHoldChapters.length})</span>
             <span className="text-zinc-400 text-[11px]">Click to inspect</span>
           </div>
@@ -55,7 +55,7 @@ export function OnHoldReminderBanner({
                   setIsExpanded(false);
                   onOpenChapter(c.id);
                 }}
-                className="w-full text-left p-2 rounded-lg bg-amber-950/30 hover:bg-amber-900/50 border border-amber-900/40 text-amber-200 hover:text-white transition-colors flex items-center justify-between text-[11px]"
+                className="w-full text-left p-2 rounded-lg css-glass-subtle hover:bg-amber-500/20 border border-amber-500/30 text-amber-200 hover:text-white transition-colors flex items-center justify-between text-[11px]"
               >
                 <span className="truncate font-semibold">{c.name}</span>
                 <span className="text-[11px] opacity-75 shrink-0 ml-2">

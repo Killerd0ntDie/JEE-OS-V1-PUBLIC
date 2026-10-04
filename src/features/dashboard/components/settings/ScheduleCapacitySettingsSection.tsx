@@ -27,7 +27,7 @@ export const ScheduleCapacitySettingsSection: React.FC<ScheduleCapacitySettingsS
   onChange
 }) => {
   return (
-    <div className="bg-zinc-900/90 border border-white/15 rounded-3xl p-6 md:p-8 space-y-6 shadow-xl text-left relative z-20 overflow-visible">
+    <div className="css-glass rounded-3xl p-6 md:p-8 space-y-6 shadow-xl text-left relative z-20 overflow-visible">
       <div className="flex items-center gap-3 border-b border-white/10 pb-4">
         <div className="w-9 h-9 rounded-2xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 shadow-sm">
           <Clock className="w-4.5 h-4.5" />
@@ -45,7 +45,7 @@ export const ScheduleCapacitySettingsSection: React.FC<ScheduleCapacitySettingsS
       <div className="space-y-6">
         
         {/* Daily Quota Slider with Fluid Progress */}
-        <div className="bg-zinc-855/60 bg-zinc-800/40 border border-white/10 rounded-2xl p-5 space-y-3 shadow-inner">
+        <div className="css-glass-subtle rounded-2xl p-5 space-y-3 shadow-sm">
           <div className="flex items-center justify-between">
             <label className="text-xs font-mono font-bold text-zinc-200">
               Daily Available Study Capacity
@@ -87,7 +87,7 @@ export const ScheduleCapacitySettingsSection: React.FC<ScheduleCapacitySettingsS
             Subject Rotation Strategy
           </label>
           
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 p-1.5 rounded-2xl bg-zinc-950/70 border border-white/10">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 p-1.5 rounded-2xl css-glass-subtle">
             {[
               { id: '3_a_day', title: '3 Subjects Daily', desc: 'Balanced Coverage' },
               { id: '2_a_day_alternating', title: '2 Subjects Alternating', desc: 'Deeper Focus' },
@@ -124,7 +124,7 @@ export const ScheduleCapacitySettingsSection: React.FC<ScheduleCapacitySettingsS
             Prerequisite Enforcement
           </label>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 p-1.5 rounded-2xl bg-zinc-950/70 border border-white/10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 p-1.5 rounded-2xl css-glass-subtle">
             {[
               { id: 'parallel', title: 'Parallel Execution', desc: 'Bypass & Learn Foundations Simultaneously' },
               { id: 'strict', title: 'Strict Hierarchy', desc: 'Enforce Foundations Before Advancing' }

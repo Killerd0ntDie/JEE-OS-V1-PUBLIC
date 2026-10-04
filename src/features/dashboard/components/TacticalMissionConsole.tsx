@@ -34,6 +34,8 @@ const getSubjectBadgeStyle = (subj: SubjectId | string) => {
       return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
     case 'maths':
       return 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20';
+    case 'break':
+      return 'bg-amber-500/10 text-amber-400 border-amber-500/30';
     default:
       return 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20';
   }
@@ -63,21 +65,23 @@ export const TacticalMissionConsole = React.memo(function TacticalMissionConsole
   );
 
   return (
-    <div className="lg:col-span-5 xl:col-span-5 self-start sticky top-4 max-h-[calc(100vh-2rem)] overflow-y-auto custom-scrollbar">
+    <div className="order-1 lg:order-2 lg:col-span-5 xl:col-span-5 self-start lg:sticky lg:top-4 max-h-[calc(100vh-2rem)] overflow-y-auto custom-scrollbar">
       <div 
-        className="p-4 md:p-5 rounded-2xl space-y-3.5 bg-surface-1 border border-border-subtle hover:border-border-muted shadow-2xl relative overflow-hidden text-left font-sans"
+        className={`p-4 md:p-5 rounded-2xl space-y-3.5 surface-1 border relative overflow-hidden text-left font-sans transition-all shadow-xl ${
+          isBreak ? 'border-amber-500/40 shadow-amber-500/10' : 'border-border-subtle'
+        }`}
       >
         <div className="space-y-4 relative z-10">
           
           {/* Compact Header Radar */}
-          <div className="flex items-center justify-between border-b border-border-subtle pb-2.5">
+          <div className="flex items-center justify-between border-b border-white/20 pb-2.5">
             <div className="flex items-center gap-2.5">
               <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${isBreak ? 'bg-amber-400' : 'bg-cyan-400'} opacity-75`}></span>
+                <span className={`relative inline-flex rounded-full h-2 w-2 ${isBreak ? 'bg-amber-500' : 'bg-cyan-500'}`}></span>
               </span>
-              <h3 className="text-sm font-bold font-mono text-white tracking-wide uppercase">
-                STRATEGY RADAR
+              <h3 className={`text-sm font-bold font-mono tracking-wide uppercase ${isBreak ? 'text-amber-300' : 'text-white'}`}>
+                {isBreak ? 'RECOVERY RADAR' : 'STRATEGY RADAR'}
               </h3>
             </div>
             
@@ -91,7 +95,7 @@ export const TacticalMissionConsole = React.memo(function TacticalMissionConsole
                   audioEngine.playRadioRelayClick().catch(() => {});
                   onOpenChapterEditModal(activeChap.id);
                 }}
-                className="text-xs font-mono font-bold text-zinc-300 hover:text-white bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-700/60 px-2.5 py-1 rounded-xl cursor-pointer transition-colors select-none flex items-center gap-1.5 shadow-sm uppercase tracking-wider"
+                className="text-xs font-mono font-bold text-zinc-200 hover:text-white css-glass-pill hover:bg-white/20 px-2.5 py-1 rounded-xl cursor-pointer transition-colors select-none flex items-center gap-1.5 shadow-sm uppercase tracking-wider"
               >
                 <SlidersHorizontal className="w-3 h-3 text-indigo-400" />
                 <span>Configure</span>
@@ -137,7 +141,7 @@ export const TacticalMissionConsole = React.memo(function TacticalMissionConsole
 
               {/* Chapter Vitals or Break Guidance */}
               {isBreak ? (
-                <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-xs text-amber-200/90 flex items-center gap-3">
+                <div className="p-3.5 rounded-xl bg-amber-500/[0.08] backdrop-blur-md border border-amber-500/25 text-xs text-amber-200/90 flex items-center gap-3">
                   <div className="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/30 flex items-center justify-center shrink-0 text-amber-400">
                     <Coffee className="w-4 h-4" />
                   </div>
@@ -152,11 +156,11 @@ export const TacticalMissionConsole = React.memo(function TacticalMissionConsole
                     Chapter Vitals
                   </span>
                   <div className="grid grid-cols-2 gap-2.5">
-                    <div className="p-3 rounded-xl bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 transition-colors flex flex-col gap-1.5">
-                      <span className="text-xs text-zinc-400 font-medium">Completion</span>
+                    <div className="p-3 rounded-xl css-glass-subtle flex flex-col gap-1.5">
+                      <span className="text-xs text-zinc-300 font-medium">Completion</span>
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold text-white font-mono">{activeChap.completion}%</span>
-                        <div className="w-16 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                        <div className="w-16 h-1.5 bg-zinc-800/80 rounded-full overflow-hidden">
                           <motion.div 
                             initial={{ width: 0 }}
                             animate={{ width: `${activeChap.completion}%` }}
@@ -166,11 +170,11 @@ export const TacticalMissionConsole = React.memo(function TacticalMissionConsole
                         </div>
                       </div>
                     </div>
-                    <div className="p-3 rounded-xl bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 transition-colors flex flex-col gap-1.5">
-                      <span className="text-xs text-zinc-400 font-medium">Confidence</span>
+                    <div className="p-3 rounded-xl css-glass-subtle flex flex-col gap-1.5">
+                      <span className="text-xs text-zinc-300 font-medium">Confidence</span>
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold text-white font-mono">{activeChap.confidence}%</span>
-                        <div className="w-16 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                        <div className="w-16 h-1.5 bg-zinc-800/80 rounded-full overflow-hidden">
                           <motion.div 
                             initial={{ width: 0 }}
                             animate={{ width: `${activeChap.confidence}%` }}
@@ -180,30 +184,30 @@ export const TacticalMissionConsole = React.memo(function TacticalMissionConsole
                         </div>
                       </div>
                     </div>
-                    <div className="p-3 rounded-xl bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 transition-colors flex flex-col gap-1">
-                      <span className="text-xs text-zinc-400 font-medium">Difficulty</span>
+                    <div className="p-3 rounded-xl css-glass-subtle flex flex-col gap-1">
+                      <span className="text-xs text-zinc-300 font-medium">Difficulty</span>
                       <span className={`text-xs font-semibold ${activeChap.difficulty === 'Hard' ? 'text-rose-400' : activeChap.difficulty === 'Medium' ? 'text-amber-400' : 'text-emerald-400'}`}>{activeChap.difficulty}</span>
                     </div>
-                    <div className="p-3 rounded-xl bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 transition-colors flex flex-col gap-1">
-                      <span className="text-xs text-zinc-400 font-medium">Lectures</span>
+                    <div className="p-3 rounded-xl css-glass-subtle flex flex-col gap-1">
+                      <span className="text-xs text-zinc-300 font-medium">Lectures</span>
                       <span className="text-xs font-bold text-white font-mono">{activeChap.currentLecture} / {activeChap.totalLectures}</span>
                     </div>
                   </div>
                 </div>
               ) : (
-                <div className="p-3 rounded-xl bg-zinc-900/40 border border-zinc-800 text-xs text-zinc-400">
+                <div className="p-3 rounded-xl css-glass-subtle text-xs text-zinc-300">
                   Custom task selected — chapter telemetry unavailable.
                 </div>
               )}
 
               {/* Performance Metrics: Clean 3-Box Row */}
               <div className="grid grid-cols-3 gap-2.5 pt-1">
-                <div className="p-3 rounded-xl bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 transition-colors text-center flex flex-col justify-center">
-                  <span className="text-xs text-zinc-400 font-medium">{isBreak ? 'Duration' : 'Est. Time'}</span>
+                <div className="p-3 rounded-xl css-glass-subtle text-center flex flex-col justify-center">
+                  <span className="text-xs text-zinc-300 font-medium">{isBreak ? 'Duration' : 'Est. Time'}</span>
                   <span className="text-sm font-bold text-white font-mono mt-0.5">{isBreak ? `${activeMission?.duration || 15}m` : `${strategyRadar.estimatedMinutes || activeMission?.duration || 45}m`}</span>
                 </div>
-                <div className="p-3 rounded-xl bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 transition-colors text-center flex flex-col justify-center">
-                  <span className="text-xs text-zinc-400 font-medium">{isBreak ? 'Focus Boost' : 'Target PYQs'}</span>
+                <div className="p-3 rounded-xl css-glass-subtle text-center flex flex-col justify-center">
+                  <span className="text-xs text-zinc-300 font-medium">{isBreak ? 'Focus Boost' : 'Target PYQs'}</span>
                   <span className={`text-sm font-bold font-mono mt-0.5 ${isBreak ? 'text-amber-400' : 'text-indigo-400'}`}>
                     {isBreak
                       ? '+High'
@@ -212,8 +216,8 @@ export const TacticalMissionConsole = React.memo(function TacticalMissionConsole
                       : `${strategyRadar.recommendedPYQs || targetPYQs || 15} Qs`}
                   </span>
                 </div>
-                <div className="p-3 rounded-xl bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 transition-colors text-center flex flex-col justify-center">
-                  <span className="text-xs text-zinc-400 font-medium">{isBreak ? 'Status' : 'XP Reward'}</span>
+                <div className="p-3 rounded-xl css-glass-subtle text-center flex flex-col justify-center">
+                  <span className="text-xs text-zinc-300 font-medium">{isBreak ? 'Status' : 'XP Reward'}</span>
                   <span className="text-sm font-bold text-emerald-400 font-mono mt-0.5">
                     {isBreak
                       ? (activeMission.completed ? 'Done' : 'Ready')
@@ -224,7 +228,7 @@ export const TacticalMissionConsole = React.memo(function TacticalMissionConsole
 
             </motion.div>
           ) : (
-            <div className="p-8 rounded-2xl bg-zinc-900/30 border border-zinc-800 text-center space-y-3">
+            <div className="p-8 rounded-2xl css-glass text-center space-y-3">
               <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center mx-auto text-indigo-400 shadow-sm">
                 <Activity className="w-5 h-5" />
               </div>

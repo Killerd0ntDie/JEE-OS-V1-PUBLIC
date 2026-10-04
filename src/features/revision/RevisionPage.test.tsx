@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { RevisionPage } from './RevisionPage';
+import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 
 // Mock Toast
 const mockToast = vi.fn();
@@ -12,10 +13,15 @@ vi.mock('@/components/ui/ToastProvider', () => ({
 
 // Mock FormulaVaultPage to isolate RevisionPage Formula browsing
 vi.mock('@/features/formulas/FormulaVaultPage', () => ({
-  FormulaVaultPage: () => (
+  FormulaVaultPage: ({ onBack }: any) => (
     <div data-testid="formula-vault-page">
       <div>JEE FORMULA REPOSITORY</div>
       <div>Formula & Theorem Vault</div>
+      {onBack && (
+        <button type="button" onClick={onBack}>
+          Back to Spaced Revision
+        </button>
+      )}
     </div>
   )
 }));
@@ -107,49 +113,45 @@ const mockUpcomingChapter = {
   cards: [mockCards[0]]
 };
 
+const defaultStoreState = {
+  actions: {
+    gradeFlashcard: vi.fn(),
+    recordStudySession: vi.fn(),
+    openChapterEditModal: vi.fn(),
+    gradeFlashcardsBatch: vi.fn().mockResolvedValue(undefined),
+    completeRevision: vi.fn().mockResolvedValue(undefined)
+  },
+  studySessions: [],
+  mistakes: [],
+  revisionTelemetry: {
+    cards: mockCards,
+    urgentCards: [mockCards[1]],
+    overdueChapters: [],
+    upcomingChapters: [],
+    masteredChapters: [],
+    notStartedChapters: [],
+    dueChapters: [mockDueChapter],
+    dueCards: [mockCards[1]],
+    upcomingDueChapters: [mockUpcomingChapter],
+    stats: {
+      totalOverdue: 1,
+      totalUpcoming: 1,
+      totalMastered: 1,
+      totalNotStarted: 0,
+      avgRetentionScore: 78,
+      reviewedTodayCount: 1
+    }
+  }
+};
+
+const mockStore = vi.fn((selector: any) => selector(defaultStoreState));
+
 vi.mock('@/store/useStudyBrainStore', () => ({
   useStudyBrainStore: Object.assign(
-    (selector: any) => {
-      const state = {
-        actions: {
-          gradeFlashcard: vi.fn(),
-          recordStudySession: vi.fn(),
-          openChapterEditModal: vi.fn(),
-          gradeFlashcardsBatch: vi.fn().mockResolvedValue(undefined),
-          completeRevision: vi.fn().mockResolvedValue(undefined)
-        },
-        studySessions: [],
-        revisionTelemetry: {
-          cards: mockCards,
-          urgentCards: [mockCards[1]],
-          overdueChapters: [],
-          upcomingChapters: [],
-          masteredChapters: [],
-          notStartedChapters: [],
-          dueChapters: [mockDueChapter],
-          dueCards: [mockCards[1]],
-          upcomingDueChapters: [mockUpcomingChapter],
-          stats: {
-            totalOverdue: 1,
-            totalUpcoming: 1,
-            totalMastered: 1,
-            totalNotStarted: 0,
-            avgRetentionScore: 78,
-            reviewedTodayCount: 1
-          }
-        }
-      };
-      return selector(state);
-    },
+    (selector: any) => mockStore(selector),
     {
-      getState: () => ({
-        actions: {
-          gradeFlashcard: vi.fn(),
-          recordStudySession: vi.fn(),
-          gradeFlashcardsBatch: vi.fn().mockResolvedValue(undefined),
-          completeRevision: vi.fn().mockResolvedValue(undefined)
-        }
-      })
+      mockImplementationOnce: (impl: any) => mockStore.mockImplementationOnce(impl),
+      getState: () => defaultStoreState
     }
   )
 }));
@@ -228,4 +230,49 @@ describe('RevisionPage Overhauled View (Magnitude 5.1)', () => {
       expect(screen.getByText(/Today: 1 chapter · 1 card · ~5 min/i)).toBeInTheDocument();
     });
   });
+
+  it('renders pending mistakes reminder banner when unmastered mistakes exist', () => {
+    (useStudyBrainStore as any).mockImplementationOnce((selector: any) => {
+      const state = {
+        actions: {
+          gradeFlashcard: vi.fn(),
+          recordStudySession: vi.fn(),
+          openChapterEditModal: vi.fn(),
+          gradeFlashcardsBatch: vi.fn().mockResolvedValue(undefined),
+          completeRevision: vi.fn().mockResolvedValue(undefined)
+        },
+        studySessions: [],
+        mistakes: [
+          { id: 'm1', revisionStatus: 'New', topic: 'Friction' }
+        ],
+        revisionTelemetry: {
+          cards: [],
+          urgentCards: [],
+          overdueChapters: [],
+          upcomingChapters: [],
+          masteredChapters: [],
+          notStartedChapters: [],
+          dueChapters: [],
+          dueCards: [],
+          upcomingDueChapters: [],
+          stats: {
+            totalOverdue: 0,
+            totalUpcoming: 0,
+            totalMastered: 1,
+            totalNotStarted: 0,
+            avgRetentionScore: 85,
+            reviewedTodayCount: 0,
+            pendingMistakesCount: 1
+          }
+        }
+      };
+      return selector(state);
+    });
+
+    render(<RevisionPage />);
+    expect(screen.getByText(/1 Mistake Pending Review/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Review in Mistake Vault/i })).toBeInTheDocument();
+    expect(screen.getByText('All Caught Up for Today!')).toBeInTheDocument();
+  });
 });
+

@@ -26,7 +26,7 @@ export const EmptyOrbitStandby = React.memo(function EmptyOrbitStandby({
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleEngage = (chapter: Chapter | null, fallbackName: string) => {
+  const handleEngage = (chapter: Chapter | null, _fallbackName: string) => {
     audioEngine.playMechanicalKey('clack').catch(() => {});
     audioEngine.playTacticalBeep(1200).catch(() => {});
     if (chapter) {
@@ -202,7 +202,7 @@ export const EmptyOrbitStandby = React.memo(function EmptyOrbitStandby({
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-      className="p-6 sm:p-8 flex flex-col items-center text-center rounded-3xl border border-white/10 glass-panel shadow-2xl relative overflow-hidden space-y-6"
+      className="p-6 sm:p-8 flex flex-col items-center text-center rounded-3xl css-glass shadow-2xl relative overflow-hidden space-y-6"
     >
       {/* Ambient Glows */}
       <div className="absolute -top-12 -right-12 w-56 h-56 rounded-full bg-indigo-600/10 blur-3xl pointer-events-none" />
@@ -211,11 +211,11 @@ export const EmptyOrbitStandby = React.memo(function EmptyOrbitStandby({
       {/* Radar Icon & Telemetry Header */}
       <div className="flex flex-col items-center space-y-2 relative z-10">
         <div className="w-12 h-12 rounded-2xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-[0_0_25px_rgba(99,102,241,0.3)] mb-1">
-          <Compass className="w-6 h-6 animate-pulse" />
+          <Compass className="w-6 h-6" />
         </div>
         <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-indigo-950/50 border border-indigo-500/30 text-indigo-300 text-[10px] font-mono font-bold uppercase tracking-widest">
-          <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping" />
-          <span>作戦待機 // EXECUTION QUEUE STANDBY</span>
+          <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
+          <span><span className="eva-japanese-badge">作戦待機 // </span>EXECUTION QUEUE STANDBY</span>
         </div>
         <h3 className="text-lg sm:text-xl font-display font-bold text-white tracking-tight">
           No Missions in Active Orbit
@@ -357,7 +357,7 @@ export const EmptyOrbitStandby = React.memo(function EmptyOrbitStandby({
             {scheduledTasks.map((task) => (
               <div 
                 key={task.id} 
-                className="p-3.5 rounded-2xl border border-white/10 bg-zinc-950/70 hover:border-indigo-500/40 transition-all flex flex-col justify-between space-y-2.5 shadow-md shadow-black/40 group"
+                className="p-3.5 rounded-2xl css-glass-subtle hover:border-indigo-400/50 transition-all flex flex-col justify-between space-y-2.5 shadow-md group"
               >
                 <div>
                   <div className="flex items-center justify-between text-[10px]">
@@ -378,7 +378,7 @@ export const EmptyOrbitStandby = React.memo(function EmptyOrbitStandby({
 
                 <button
                   type="button"
-                  onClick={() => onAdvanceScheduleTask && onAdvanceScheduleTask(task)}
+                  onClick={() => onAdvanceScheduleTask?.(task)}
                   className="w-full py-1.5 px-2 bg-indigo-600/25 hover:bg-indigo-600 text-indigo-200 hover:text-white border border-indigo-500/40 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
                 >
                   <Zap className="w-3 h-3 text-amber-400" />
@@ -391,14 +391,14 @@ export const EmptyOrbitStandby = React.memo(function EmptyOrbitStandby({
       )}
 
       {/* Bottom Quick Links / Alternative Sprints */}
-      <div className="flex flex-wrap items-center justify-center gap-3 pt-2 relative z-10 border-t border-white/5 w-full">
+      <div className="flex flex-wrap items-center justify-center gap-3 pt-2 relative z-10 border-t border-white/10 w-full">
         <button
           type="button"
           onClick={() => {
             audioEngine.playMechanicalKey('click').catch(() => {});
             navigate('/planner');
           }}
-          className="px-4 py-2 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.08] hover:border-indigo-500/40 text-zinc-300 hover:text-white text-xs font-mono transition-colors flex items-center gap-2 cursor-pointer shadow-sm"
+          className="px-4 py-2 rounded-xl css-glass text-zinc-200 hover:text-white hover:bg-white/20 text-xs font-mono transition-colors flex items-center gap-2 cursor-pointer shadow-sm"
         >
           <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
           <span>Open Master Schedule</span>
@@ -411,7 +411,7 @@ export const EmptyOrbitStandby = React.memo(function EmptyOrbitStandby({
               audioEngine.playMechanicalKey('click').catch(() => {});
               onOpenCustomMission();
             }}
-            className="px-4 py-2 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.08] hover:border-zinc-400 text-zinc-400 hover:text-zinc-200 text-xs font-mono transition-colors flex items-center gap-2 cursor-pointer shadow-sm"
+            className="px-4 py-2 rounded-xl css-glass text-zinc-300 hover:text-white hover:bg-white/20 text-xs font-mono transition-colors flex items-center gap-2 cursor-pointer shadow-sm"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Custom Mission</span>

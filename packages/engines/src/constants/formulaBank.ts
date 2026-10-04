@@ -3,6 +3,8 @@ export interface FormulaEntry {
   concept: string;
   formula: string;    // Valid KaTeX LaTeX string
   examNote?: string;  // Familiar JEE shortcuts, conditions, or constraints
+  questionPrompt?: string; // Active recall conceptual question
+  subtopic?: string;  // Topic category for interactive cheatsheets
 }
 
 export interface ChapterFormulas {
@@ -59,32 +61,42 @@ export const PHYSICS_FORMULA_BANK: ChapterFormulas[] = [
       {
         title: 'Equations of Motion (Constant Acceleration)',
         concept: 'Uniform acceleration relationships for velocity, displacement, and time',
+        questionPrompt: 'What are the kinematic equations under constant acceleration, and how do you calculate displacement specifically in the nth second?',
         formula: 'v = u + at,\\quad s = ut + \\frac{1}{2}at^2,\\quad v^2 = u^2 + 2as,\\quad s_n = u + \\frac{a}{2}(2n - 1)',
-        examNote: 'Applies ONLY when acceleration a is strictly constant. For variable a, integrate: v = ds/dt, a = v(dv/ds).'
+        examNote: 'Applies ONLY when acceleration a is strictly constant. For variable a, integrate: v = ds/dt, a = v(dv/ds).',
+        subtopic: 'Rectilinear Motion'
       },
       {
         title: 'Ground-to-Ground Projectile Motion',
         concept: 'Time of flight, maximum height, and horizontal range',
+        questionPrompt: 'For standard 2D projectile motion, what are the expressions for Time of Flight, Maximum Height, and Horizontal Range, and how are R and H_max interrelated?',
         formula: 'T = \\frac{2u\\sin\\theta}{g},\\quad H_{\\max} = \\frac{u^2\\sin^2\\theta}{2g},\\quad R = \\frac{u^2\\sin 2\\theta}{g}',
-        examNote: 'Complementary angles θ and (90° - θ) yield identical range R. Relation: R \\tan\\theta = 4H_{\\max}.'
+        examNote: 'Complementary angles θ and (90° - θ) yield identical range R. Relation: R \\tan\\theta = 4H_{\\max}.',
+        subtopic: '2D Projectile Motion'
       },
       {
         title: 'Trajectory Equation of Projectile',
         concept: 'Path equation in terms of horizontal and vertical coordinates',
+        questionPrompt: 'State the parabolic trajectory equation in terms of projection angle θ and horizontal range R.',
         formula: 'y = x\\tan\\theta - \\frac{gx^2}{2u^2\\cos^2\\theta} = x\\tan\\theta\\left(1 - \\frac{x}{R}\\right)',
-        examNote: 'y = x\\tanθ(1 - x/R) is the ultimate high-speed shortcut when coordinates and range R are given.'
+        examNote: 'y = x\\tanθ(1 - x/R) is the ultimate high-speed shortcut when coordinates and range R are given.',
+        subtopic: '2D Projectile Motion'
       },
       {
         title: 'Projectile on Inclined Plane',
         concept: 'Range and time of flight up an inclined plane of inclination β',
+        questionPrompt: 'What is the projection angle condition that maximizes projectile range up an inclined plane of inclination β?',
         formula: 'T = \\frac{2u\\sin(\\alpha - \\beta)}{g\\cos\\beta},\\quad R_{\\text{up}} = \\frac{u^2}{g\\cos^2\\beta}[\\sin(2\\alpha - \\beta) - \\sin\\beta]',
-        examNote: 'Maximum range up the plane occurs at angle α = π/4 + β/2, yielding R_max = u² / [g(1 + sin β)].'
+        examNote: 'Maximum range up the plane occurs at angle α = π/4 + β/2, yielding R_max = u² / [g(1 + sin β)].',
+        subtopic: 'Inclined Projectiles'
       },
       {
         title: 'Relative Velocity & River-Swimmer Problem',
         concept: 'Shortest path vs shortest time across flowing river',
+        questionPrompt: 'In the river-swimmer problem, what direction must the swimmer head for (1) crossing in minimum time vs (2) crossing along the shortest path with zero drift?',
         formula: 't_{\\min} = \\frac{d}{v_{\\text{mr}}}\\ (\\text{direct across}),\\quad \\sin\\theta = \\frac{v_r}{v_{\\text{mr}}}\\ (\\text{zero drift if } v_{\\text{mr}} > v_r)',
-        examNote: 'Drift x = (v_r - v_mr \\sin θ)t. If v_mr < v_r, minimum drift occurs when sin θ = v_mr / v_r.'
+        examNote: 'Drift x = (v_r - v_mr \\sin θ)t. If v_mr < v_r, minimum drift occurs when sin θ = v_mr / v_r.',
+        subtopic: 'Relative Motion'
       }
     ]
   },
@@ -201,32 +213,42 @@ export const PHYSICS_FORMULA_BANK: ChapterFormulas[] = [
       {
         title: 'Parallel & Perpendicular Axis Theorems',
         concept: 'Moments of inertia transformations across parallel and perpendicular axes',
+        questionPrompt: 'State the conditions and mathematical formulations for the Parallel Axis and Perpendicular Axis theorems of rotational inertia.',
         formula: 'I = I_{\\text{cm}} + Md^2\\ (\\text{Parallel}),\\quad I_z = I_x + I_y\\ (\\text{Perpendicular, 2D planar body})',
-        examNote: 'Perpendicular axis theorem applies strictly to planar 2D laminar objects only.'
+        examNote: 'Perpendicular axis theorem applies strictly to planar 2D laminar objects only.',
+        subtopic: 'Moment of Inertia'
       },
       {
         title: 'Standard Moments of Inertia',
         concept: 'Geometric moments of inertia about centroidal symmetry axes',
+        questionPrompt: 'What are the moments of inertia about central symmetry axes for a ring, uniform disc, solid sphere, and hollow sphere of radius R?',
         formula: 'I_{\\text{ring}} = MR^2,\\quad I_{\\text{disc}} = \\frac{1}{2}MR^2,\\quad I_{\\text{solid sphere}} = \\frac{2}{5}MR^2,\\quad I_{\\text{hollow sphere}} = \\frac{2}{3}MR^2',
-        examNote: 'Thin rod about center: ML²/12; about end: ML²/3. Solid cylinder: MR²/2.'
+        examNote: 'Thin rod about center: ML²/12; about end: ML²/3. Solid cylinder: MR²/2.',
+        subtopic: 'Moment of Inertia'
       },
       {
         title: 'Pure Rolling Motion Condition & Kinetic Energy',
         concept: 'Kinematics at instantaneous contact point and total kinetic energy',
+        questionPrompt: 'What is the kinematic constraint at the ground contact point in pure rolling, and how is the total kinetic energy partitioned between translation and rotation?',
         formula: 'v_{\\text{cm}} = R\\omega,\\quad a_{\\text{cm}} = R\\alpha,\\quad K_{\\text{total}} = \\frac{1}{2}Mv_{\\text{cm}}^2\\left(1 + \\frac{k^2}{R^2}\\right)',
-        examNote: 'In pure rolling on stationary ground, contact point has v = 0 and friction does zero work.'
+        examNote: 'In pure rolling on stationary ground, contact point has v = 0 and friction does zero work.',
+        subtopic: 'Rolling Dynamics'
       },
       {
         title: 'Acceleration on Rough Inclined Plane',
         concept: 'Linear acceleration of rolling body down an incline of angle θ',
+        questionPrompt: 'How does linear acceleration down a rough incline depend on radius of gyration k, and what is the relative arrival order for a solid sphere, disc, hollow sphere, and ring?',
         formula: 'a = \\frac{g\\sin\\theta}{1 + \\frac{k^2}{R^2}},\\quad f = \\frac{mg\\sin\\theta}{1 + \\frac{R^2}{k^2}} \\le \\mu_s mg\\cos\\theta',
-        examNote: 'Order of acceleration: Solid sphere (k²/R² = 2/5) > Disc (1/2) > Hollow sphere (2/3) > Ring (1).'
+        examNote: 'Order of acceleration: Solid sphere (k²/R² = 2/5) > Disc (1/2) > Hollow sphere (2/3) > Ring (1).',
+        subtopic: 'Rolling Dynamics'
       },
       {
         title: 'Angular Momentum & Torque',
         concept: 'Torque as rate of change of angular momentum and conservation rule',
+        questionPrompt: 'How is total angular momentum decomposed for a rigid body in combined translation and rotation, and when is angular momentum strictly conserved?',
         formula: '\\vec{\\tau} = \\vec{r}\\times\\vec{F} = I\\vec{\\alpha} = \\frac{d\\vec{L}}{dt},\\quad \\vec{L} = \\vec{r}_{\\text{cm}}\\times M\\vec{v}_{\\text{cm}} + I_{\\text{cm}}\\vec{\\omega}',
-        examNote: 'If net external torque is zero about an axis, angular momentum about that axis is conserved: I₁ω₁ = I₂ω₂.'
+        examNote: 'If net external torque is zero about an axis, angular momentum about that axis is conserved: I₁ω₁ = I₂ω₂.',
+        subtopic: 'Angular Momentum & Torque'
       }
     ]
   },
@@ -934,26 +956,34 @@ export const CHEMISTRY_FORMULA_BANK: ChapterFormulas[] = [
       {
         title: 'Planck\'s Quantum Energy & Photoelectric Equation',
         concept: 'Photon energy in electron-volts and photoelectric work function',
+        questionPrompt: 'What is Einstein\'s photoelectric equation relating threshold frequency, work function, and maximum kinetic energy of emitted photoelectrons?',
         formula: 'E = h\\nu = \\frac{hc}{\\lambda},\\quad hc \\approx 12400\\text{ eV}\\cdot\\text{\\AA},\\quad h\\nu = \\Phi_0 + K_{\\max}',
-        examNote: 'Use hc ≈ 12400 eV·Å for instant photon energy conversion from wavelength in Angstroms.'
+        examNote: 'Use hc ≈ 12400 eV·Å for instant photon energy conversion from wavelength in Angstroms.',
+        subtopic: 'Photoelectric Effect'
       },
       {
         title: 'Bohr\'s Postulates for Single Electron Ions',
         concept: 'Quantized angular momentum, radii, and energy levels',
+        questionPrompt: 'State Bohr\'s quantization condition for angular momentum and the scaling of orbit radius and orbital energy with principal quantum number n and atomic number Z.',
         formula: 'm_e v r = \\frac{nh}{2\\pi},\\quad r_n = 0.529\\frac{n^2}{Z}\\text{ \\AA},\\quad E_n = -13.6\\frac{Z^2}{n^2}\\text{ eV}',
-        examNote: 'Energy gap decreases as n increases: (E₂ - E₁) > (E₃ - E₂) > (E₄ - E₃).'
+        examNote: 'Energy gap decreases as n increases: (E₂ - E₁) > (E₃ - E₂) > (E₄ - E₃).',
+        subtopic: 'Bohr Model'
       },
       {
         title: 'de Broglie Wavelength & Heisenberg Principle',
         concept: 'Wave-particle duality and position-momentum uncertainty bounds',
+        questionPrompt: 'How do you calculate the de Broglie wavelength of a matter wave, and what is the exact minimum uncertainty relation for conjugate position and momentum?',
         formula: '\\lambda = \\frac{h}{p} = \\frac{h}{mv},\\quad \\Delta x \\cdot \\Delta p \\ge \\frac{h}{4\\pi} = \\frac{\\hbar}{2}',
-        examNote: 'Circumference of n-th orbit equals n de Broglie wavelengths: 2π r_n = nλ.'
+        examNote: 'Circumference of n-th orbit equals n de Broglie wavelengths: 2π r_n = nλ.',
+        subtopic: 'Quantum Duality'
       },
       {
         title: 'Radial & Angular Nodes Count',
         concept: 'Topological node count of atomic orbital wavefunctions',
+        questionPrompt: 'How do you compute the number of radial nodes, angular nodes (nodal planes), and total nodes for any given atomic orbital (n, l)?',
         formula: '\\text{Radial Nodes} = n - l - 1,\\quad \\text{Angular Nodes} = l,\\quad \\text{Total Nodes} = n - 1',
-        examNote: 'For 3p orbital (n=3, l=1): radial nodes = 1, angular nodes = 1, total nodes = 2.'
+        examNote: 'For 3p orbital (n=3, l=1): radial nodes = 1, angular nodes = 1, total nodes = 2.',
+        subtopic: 'Orbital Wavefunctions'
       }
     ]
   },
@@ -965,26 +995,34 @@ export const CHEMISTRY_FORMULA_BANK: ChapterFormulas[] = [
       {
         title: 'Effective Nuclear Charge (Slater\'s Rules)',
         concept: 'Net positive nuclear charge felt by valence electrons after screening',
+        questionPrompt: 'How does effective nuclear charge (Z*) change across a period and down a group, and how do you calculate screening constant σ using Slater\'s rules?',
         formula: 'Z^* = Z - \\sigma',
-        examNote: 'Valence ns/np electrons shield 0.35 each; (n-1) shell shields 0.85 each; inner shells shield 1.0.'
+        examNote: 'Valence ns/np electrons shield 0.35 each; (n-1) shell shields 0.85 each; inner shells shield 1.0.',
+        subtopic: 'Periodic Trends'
       },
       {
         title: 'Ionization Enthalpy Anomalies',
         concept: 'Subshell stability exceptions in IE trends',
+        questionPrompt: 'Why is the first ionization enthalpy of Be greater than B, and why is nitrogen greater than oxygen despite increasing nuclear charge?',
         formula: '\\text{IE}_1(\\text{Be}) > \\text{IE}_1(\\text{B}),\\quad \\text{IE}_1(\\text{N}) > \\text{IE}_1(\\text{O})',
-        examNote: 'Be (2s² fully-filled) > B (2p¹); N (2p³ half-filled stable) > O (2p⁴ pairing repulsion).'
+        examNote: 'Be (2s² fully-filled) > B (2p¹); N (2p³ half-filled stable) > O (2p⁴ pairing repulsion).',
+        subtopic: 'Ionization Enthalpy'
       },
       {
         title: 'Electron Gain Enthalpy Exceptions',
         concept: 'Inter-electronic repulsion in compact second-period atoms',
+        questionPrompt: 'Why is the magnitude of electron gain enthalpy for chlorine more exothermic than fluorine, and sulfur more exothermic than oxygen?',
         formula: '|\\Delta_{\\text{eg}}H(\\text{Cl})| > |\\Delta_{\\text{eg}}H(\\text{F})|,\\quad |\\Delta_{\\text{eg}}H(\\text{S})| > |\\Delta_{\\text{eg}}H(\\text{O})|',
-        examNote: 'Chlorine has the highest electron gain enthalpy in the periodic table due to compact 2p in fluorine.'
+        examNote: 'Chlorine has the highest electron gain enthalpy in the periodic table due to compact 2p in fluorine.',
+        subtopic: 'Electron Affinity'
       },
       {
         title: 'Electronegativity Scales (Pauling & Mulliken)',
         concept: 'Empirical electronegativity definitions from bond energies and ionization potential',
+        questionPrompt: 'What is the relationship between Pauling and Mulliken electronegativity scales, and how is bond polarity determined from electronegativity difference?',
         formula: '|\\chi_A - \\chi_B| = 0.208\\sqrt{\\Delta}\\ (\\text{kcal/mol}),\\quad \\chi_{\\text{Pauling}} \\approx \\frac{\\chi_{\\text{Mulliken}}}{2.8} = \\frac{\\text{IE} + \\text{EA}}{5.6}\\ (\\text{eV})',
-        examNote: 'Fluorine is the most electronegative element (4.0 on Pauling scale).'
+        examNote: 'Fluorine is the most electronegative element (4.0 on Pauling scale).',
+        subtopic: 'Electronegativity'
       }
     ]
   },
@@ -994,34 +1032,52 @@ export const CHEMISTRY_FORMULA_BANK: ChapterFormulas[] = [
     subject: 'chemistry',
     formulas: [
       {
-        title: 'Bond Order (Molecular Orbital Theory)',
-        concept: 'Diatomic bond stability indicator from bonding and antibonding occupancy',
-        formula: '\\text{Bond Order} = \\frac{N_b - N_a}{2}',
-        examNote: 'If electron count ≤ 14, π2p orbitals fill before σ2p_z. Bond order > 0 implies stable molecule.'
+        title: 'Bond Order & MOT Magnetism',
+        concept: 'Diatomic bond stability and paramagnetic/diamagnetic nature from bonding and antibonding occupancy',
+        questionPrompt: 'How does Molecular Orbital Theory determine Bond Order, bond length, and magnetism for O₂ and O₂⁺?',
+        formula: '\\text{Bond Order} = \\frac{N_b - N_a}{2},\\quad \\text{Bond Strength} \\propto \\text{BO} \\propto \\frac{1}{\\text{Bond Length}}',
+        examNote: 'If total e⁻ ≤ 14 (e.g. N₂), π2p_x = π2p_y fill before σ2p_z. O₂ (16e⁻) has 2 unpaired electrons in π*2p (paramagnetic). O₂⁺ (15e⁻) has BO = 2.5.',
+        subtopic: 'Molecular Orbital Theory'
       },
       {
         title: 'Dipole Moment & Percentage Ionic Character',
-        concept: 'Magnitude of charge separation in polar covalent bonds',
+        concept: 'Magnitude of charge separation in polar covalent bonds and molecular symmetry cancellation',
+        questionPrompt: 'What determines the net Dipole Moment of polyatomic molecules, and why is μ = 0 for CO₂ and BF₃ but μ ≠ 0 for NH₃ and NF₃?',
         formula: '\\mu = q \\times d,\\quad \\% \\text{ Ionic Character} = \\frac{\\mu_{\\text{observed}}}{\\mu_{\\text{theoretical}}} \\times 100\\%',
-        examNote: '1 Debye (D) = 3.33564 × 10⁻³⁰ C·m. Symmetrical molecules (CO₂, BF₃, CH₄) have net μ = 0.'
+        examNote: '1 Debye = 3.33564 × 10⁻³⁰ C·m. In NH₃, lone pair dipole reinforces N-H bond dipoles; in NF₃, highly electronegative F pulls in opposite direction, so μ(NH₃) > μ(NF₃).',
+        subtopic: 'Molecular Polarity'
       },
       {
-        title: 'Steric Number & Hybridization State',
-        concept: 'VSEPR geometry prediction from bonding and non-bonding electron pairs',
-        formula: '\\text{Steric Number (SN)} = \\sigma\\text{-bonds} + \\text{Lone pairs}',
-        examNote: 'SN=2 (sp), SN=3 (sp²), SN=4 (sp³), SN=5 (sp³d, TBP), SN=6 (sp³d², Octahedral).'
+        title: 'Steric Number & VSEPR Geometry Prediction',
+        concept: 'VSEPR spatial geometry and bond angle distortion from bonding and non-bonding electron pairs',
+        questionPrompt: 'How do you calculate Steric Number (SN) to predict hybridization, electron geometry, and molecular shape for XeF₄, SF₄, and NH₃?',
+        formula: '\\text{Steric Number (SN)} = \\sigma\\text{-bonds} + \\text{Lone pairs} = \\frac{1}{2}[V + M - C + A]',
+        examNote: 'V = central valence e⁻, M = monovalent atoms, C = cation charge, A = anion charge. XeF₄ has SN = 6 (sp³d², square planar with 2 axial lone pairs). SF₄ has SN = 5 (sp³d, see-saw with 1 equatorial lone pair).',
+        subtopic: 'VSEPR Theory & Hybridization'
       },
       {
-        title: 'Formal Charge on Atom in Lewis Structure',
-        concept: 'Apparent electronic charge assignment in resonance structures',
+        title: 'Formal Charge on Lewis Structures',
+        concept: 'Apparent electronic charge assignment to identify the most stable resonance structure',
+        questionPrompt: 'How is Formal Charge (FC) calculated on each atom in a Lewis structure to find the lowest-energy resonance contributor?',
         formula: '\\text{FC} = V - L - \\frac{1}{2}S',
-        examNote: 'V = valence electrons, L = lone pair electrons, S = shared bonding electrons.'
+        examNote: 'V = valence electrons, L = non-bonding lone pair electrons, S = shared bonding electrons. Most stable structure minimizes formal charges and places negative charge on the most electronegative atom.',
+        subtopic: 'Lewis Structures'
       },
       {
-        title: 'Fajan\'s Rules for Covalent Character',
-        concept: 'Polarizing power and polarizability driving covalency in ionic bonds',
-        formula: '\\text{Covalency} \\propto \\frac{\\text{Cation Charge}}{\\text{Cation Size}} \\times (\\text{Anion Radius})',
-        examNote: 'Small cation, large anion, and pseudo-noble gas configuration (18e⁻ outer shell) maximize covalency.'
+        title: 'Fajan\'s Rules for Covalent Character in Ionic Bonds',
+        concept: 'Cation polarizing power and anion polarizability driving covalency, lattice energy, and melting point trends',
+        questionPrompt: 'What factors under Fajan\'s Rules maximize polarization and covalent character in ionic compounds (e.g. comparing AgCl vs NaCl)?',
+        formula: '\\text{Polarizing Power} \\propto \\frac{\\text{Cation Charge}}{(\\text{Cation Radius})^2},\\quad \\text{Covalency} \\propto \\frac{\\text{Charge}}{\\text{Size}}',
+        examNote: 'High covalency favored by: (1) Small cation, (2) Large anion, (3) High charge, (4) Pseudo-noble gas configuration (ns²np⁶nd¹⁰, e.g. Ag⁺, Cu⁺ has greater polarizing power than Na⁺).',
+        subtopic: 'Ionic vs Covalent Nature'
+      },
+      {
+        title: 'Hydrogen Bonding & Boiling Point Anomalies',
+        concept: 'Intermolecular vs intramolecular H-bonding effects on boiling point, volatility, and water solubility',
+        questionPrompt: 'What conditions are required for Hydrogen Bonding, and how does it explain anomalous boiling points of H₂O, HF, NH₃ and isomer properties?',
+        formula: '\\text{Strength: } \\text{Covalent} > \\text{H-bond} (10\\text{–}40\\text{ kJ/mol}) > \\text{Dipole-Dipole} > \\text{London Dispersion}',
+        examNote: 'H must be covalently bonded to F, O, or N. Intermolecular H-bonding increases boiling point (H₂O > HF > NH₃). Intramolecular H-bonding (e.g. o-nitrophenol) lowers boiling point and steam distills compared to p-nitrophenol.',
+        subtopic: 'Intermolecular Forces'
       }
     ]
   },
@@ -2509,26 +2565,34 @@ export const MATHS_FORMULA_BANK: ChapterFormulas[] = [
       {
         title: 'King\'s Property of Definite Integrals',
         concept: 'Invariance under reflection of domain across midpoint',
+        questionPrompt: 'What is King\'s property of definite integrals, and how do you evaluate integrals like ∫₀^(π/2) sin^n(x) / [sin^n(x) + cos^n(x)] dx using it?',
         formula: '\\int_a^b f(x)\\,dx = \\int_a^b f(a + b - x)\\,dx,\\quad \\int_0^a f(x)\\,dx = \\int_0^a f(a - x)\\,dx',
-        examNote: 'The single most utilized property in JEE! Adding original I and King\'s I eliminates complex denominators.'
+        examNote: 'The single most utilized property in JEE! Adding original I and King\'s I eliminates complex denominators.',
+        subtopic: 'Integral Properties'
       },
       {
         title: 'Even-Odd & Periodic Integral Properties',
         concept: 'Symmetry simplification over symmetric intervals and periodic cycles',
+        questionPrompt: 'State the symmetry reduction properties for even and odd functions over [-a, a], and the periodic property for integrals of period T.',
         formula: '\\int_{-a}^a f(x)\\,dx = 2\\int_0^a f(x)\\,dx\\ (f\\text{ even}),\\quad = 0\\ (f\\text{ odd});\\quad \\int_0^{nT} f(x)\\,dx = n\\int_0^T f(x)\\,dx',
-        examNote: 'If f(2a - x) = f(x): ∫₀²ᵃ f(x) dx = 2∫₀ᵃ f(x) dx; if f(2a - x) = -f(x), integral equals 0.'
+        examNote: 'If f(2a - x) = f(x): ∫₀²ᵃ f(x) dx = 2∫₀ᵃ f(x) dx; if f(2a - x) = -f(x), integral equals 0.',
+        subtopic: 'Symmetry & Periodicity'
       },
       {
         title: 'Leibniz Integral Rule for Differentiation Under Integral Sign',
         concept: 'Derivative of definite integral with variable limits',
+        questionPrompt: 'How do you differentiate a definite integral with variable integration limits u(x) and v(x) using the Leibniz rule?',
         formula: '\\frac{d}{dx}\\int_{u(x)}^{v(x)} f(t)\\,dt = f(v(x)) v\'(x) - f(u(x)) u\'(x)',
-        examNote: 'Indispensable when evaluating 0/0 limits containing definite integrals via L\'Hôpital\'s rule.'
+        examNote: 'Indispensable when evaluating 0/0 limits containing definite integrals via L\'Hôpital\'s rule.',
+        subtopic: 'Leibniz Rule'
       },
       {
         title: 'Definite Integral as Limit of a Sum',
         concept: 'Riemann sum conversion to definite integral',
+        questionPrompt: 'How do you convert and evaluate a limit of the form lim(n→∞) (1/n) Σ f(r/n) as a Riemann definite integral?',
         formula: '\\lim_{n\\to\\infty}\\frac{1}{n}\\sum_{r=1}^n f\\left(\\frac{r}{n}\\right) = \\int_0^1 f(x)\\,dx',
-        examNote: 'Replace r/n with x, 1/n with dx, and lim Σ with ∫₀¹.'
+        examNote: 'Replace r/n with x, 1/n with dx, and lim Σ with ∫₀¹.',
+        subtopic: 'Limit of a Sum'
       }
     ]
   },

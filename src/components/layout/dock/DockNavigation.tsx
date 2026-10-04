@@ -43,6 +43,10 @@ export const DockNavigation: React.FC<DockNavigationProps> = ({
   onNavigateHome,
   onSelectNav,
 }) => {
+  const [isMounted, setIsMounted] = React.useState(false);
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
   return (
     <>
       {/* 1. App Logo / Home */}
@@ -90,7 +94,7 @@ export const DockNavigation: React.FC<DockNavigationProps> = ({
             >
               {isActive && (
                 <motion.div
-                  layoutId={activePillLayoutId}
+                  layoutId={isMounted ? activePillLayoutId : undefined}
                   transition={springs.fluid}
                   className="absolute inset-0 rounded-xl sm:rounded-full bg-indigo-500/18 -z-0 pointer-events-none"
                 />
@@ -124,7 +128,7 @@ export const DockNavigation: React.FC<DockNavigationProps> = ({
             >
               {isActive && (
                 <motion.div
-                  layoutId={activePillLayoutId}
+                  layoutId={isMounted ? activePillLayoutId : undefined}
                   transition={springs.fluid}
                   className="absolute inset-0 rounded-xl sm:rounded-full bg-cyan-500/18 -z-0 pointer-events-none"
                 />
@@ -158,7 +162,7 @@ export const DockNavigation: React.FC<DockNavigationProps> = ({
             >
               {isActive && (
                 <motion.div
-                  layoutId={activePillLayoutId}
+                  layoutId={isMounted ? activePillLayoutId : undefined}
                   transition={springs.fluid}
                   className="absolute inset-0 rounded-xl sm:rounded-full bg-indigo-500/18 -z-0 pointer-events-none"
                 />
@@ -192,7 +196,7 @@ export const DockNavigation: React.FC<DockNavigationProps> = ({
             >
               {isActive && (
                 <motion.div
-                  layoutId={activePillLayoutId}
+                  layoutId={isMounted ? activePillLayoutId : undefined}
                   transition={springs.fluid}
                   className="absolute inset-0 rounded-xl sm:rounded-full bg-emerald-500/18 -z-0 pointer-events-none"
                 />

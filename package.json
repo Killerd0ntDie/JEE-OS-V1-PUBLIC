@@ -17,6 +17,7 @@
     "typecheck": "tsc --noEmit",
     "start": "node dist/server.cjs",
     "test": "vitest run",
+    "test:run": "vitest run",
     "prepare": "husky"
   },
   "lint-staged": {

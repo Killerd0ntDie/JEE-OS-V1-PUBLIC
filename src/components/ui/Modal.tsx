@@ -75,7 +75,7 @@ export function Modal({
             animate="animate"
             exit="exit"
             style={style}
-            className={`relative flex flex-col overflow-hidden shadow-2xl ${hasExplicitBg ? '' : 'glass-panel'} ${fullScreen ? 'w-full h-full rounded-none' : 'rounded-2xl'} ${className}`}
+            className={`relative flex flex-col overflow-hidden shadow-2xl ${hasExplicitBg ? '' : 'css-glass'} ${fullScreen ? 'w-full h-full rounded-none' : 'rounded-2xl'} ${className}`}
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"

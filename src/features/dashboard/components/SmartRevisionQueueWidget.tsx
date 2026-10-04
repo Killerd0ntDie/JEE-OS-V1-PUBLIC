@@ -64,6 +64,8 @@ export function DailyChapterReviewWidget({
         concept: f.concept,
         formula: f.formula,
         examNote: f.examNote,
+        questionPrompt: f.questionPrompt || `Key Concept: ${f.concept}. State the governing formula and conditions.`,
+        subtopic: f.subtopic || 'Key Formulas',
         nextReviewDays: 1,
         intervalStage: '1d',
         recalledCount: 0,
@@ -88,18 +90,15 @@ export function DailyChapterReviewWidget({
 
   // Determine chapters due for review (strictly using canonical dueChapters if available, or fall back to studiedChapters)
   const dueChapters = useMemo(() => {
-    if (revisionTelemetry?.dueChapters && revisionTelemetry.dueChapters.length > 0) {
+    if (revisionTelemetry?.dueChapters) {
       const canonicalIds = new Set(revisionTelemetry.dueChapters.map(d => d.chapterId));
-      const matched = chapters
+      return chapters
         .filter(c => canonicalIds.has(c.id) && !markedDoneIds.has(c.id))
         .sort((a, b) => {
           const idxA = revisionTelemetry.dueChapters!.findIndex(d => d.chapterId === a.id);
           const idxB = revisionTelemetry.dueChapters!.findIndex(d => d.chapterId === b.id);
           return idxA - idxB;
         });
-      if (matched.length > 0) {
-        return matched;
-      }
     }
 
     return studiedChapters.filter(c => {
@@ -209,7 +208,7 @@ export function DailyChapterReviewWidget({
         </div>
 
         {/* Subject Filter Tabs */}
-        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-zinc-950/80 border border-white/5 font-mono text-xs">
+        <div className="flex items-center gap-1.5 p-1 rounded-xl css-glass-subtle font-mono text-xs">
           {(['all', 'physics', 'chemistry', 'maths'] as const).map(tab => {
             const count = subjectCounts[tab];
             const isSelected = selectedSubject === tab;
@@ -233,7 +232,7 @@ export function DailyChapterReviewWidget({
         {/* Chapter Task List or Empty State */}
         <div className="flex-1 flex flex-col justify-center">
           {filteredDueChapters.length === 0 ? (
-            <div className="p-5 rounded-2xl border border-white/10 bg-zinc-950/60 text-center space-y-3 flex flex-col items-center justify-center my-auto">
+            <div className="p-5 rounded-2xl css-glass-subtle text-center space-y-3 flex flex-col items-center justify-center my-auto">
               <div className="w-10 h-10 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center shadow-sm">
                 <CheckCircle2 className="w-5 h-5 text-emerald-400" />
               </div>
@@ -283,7 +282,7 @@ export function DailyChapterReviewWidget({
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.95 }}
                       transition={springs.snappy}
-                      className="p-3.5 rounded-xl bg-zinc-950/70 border border-white/10 hover:border-indigo-500/40 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm text-left"
+                      className="p-3.5 rounded-xl css-glass-subtle hover:border-indigo-400/50 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm text-left"
                     >
                       <div className="space-y-1 min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
@@ -307,9 +306,9 @@ export function DailyChapterReviewWidget({
                           {chap.name}
                         </h4>
 
-                        <div className="flex items-center gap-3 text-[11px] text-zinc-400 font-mono flex-wrap">
+                        <div className="flex items-center gap-3 text-[11px] text-zinc-300 font-mono flex-wrap">
                           <span className="flex items-center gap-1">
-                            <Clock className="w-3 h-3 text-zinc-500" />
+                            <Clock className="w-3 h-3 text-zinc-400" />
                             {daysAgo !== undefined && daysAgo > 0 ? `Revised ${daysAgo}d ago` : 'Never reviewed'}
                           </span>
                           <span>•</span>
@@ -328,7 +327,7 @@ export function DailyChapterReviewWidget({
                         <button
                           type="button"
                           onClick={() => handleReviewChapter(chap)}
-                          className="px-2.5 py-1.5 text-xs font-mono font-semibold rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-700 transition-colors flex items-center gap-1 cursor-pointer"
+                          className="px-2.5 py-1.5 text-xs font-mono font-semibold rounded-lg css-glass hover:bg-white/20 text-zinc-200 hover:text-white transition-colors flex items-center gap-1 cursor-pointer"
                           title="Open chapter active recall session"
                         >
                           <BookOpen className="w-3 h-3 text-indigo-400" />
@@ -357,7 +356,7 @@ export function DailyChapterReviewWidget({
       <div className="pt-3 border-t border-white/10 flex justify-between gap-2.5 mt-3 relative z-10 font-mono">
         <button 
           type="button"
-          className="flex-1 text-xs font-mono font-bold h-8 border border-white/10 bg-zinc-950/60 text-zinc-300 hover:text-white hover:bg-zinc-900 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-1.5 uppercase"
+          className="flex-1 text-xs font-mono font-bold h-8 css-glass text-zinc-200 hover:text-white hover:bg-white/20 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-1.5 uppercase"
           onClick={() => {
             audioEngine.playRadioRelayClick().catch(() => {});
             navigate('/formulas');
@@ -368,7 +367,7 @@ export function DailyChapterReviewWidget({
         </button>
         <button 
           type="button"
-          className="flex-1 text-xs font-mono font-bold h-8 border border-white/10 bg-zinc-950/60 text-zinc-300 hover:text-white hover:bg-zinc-900 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-1.5 uppercase"
+          className="flex-1 text-xs font-mono font-bold h-8 css-glass text-zinc-200 hover:text-white hover:bg-white/20 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-1.5 uppercase"
           onClick={() => {
             audioEngine.playRadioRelayClick().catch(() => {});
             navigate('/mistakes');
@@ -379,7 +378,7 @@ export function DailyChapterReviewWidget({
         </button>
         <button 
           type="button"
-          className="flex-1 text-xs font-mono font-bold h-8 border border-white/10 bg-zinc-950/60 text-zinc-300 hover:text-white hover:bg-zinc-900 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-1.5 uppercase"
+          className="flex-1 text-xs font-mono font-bold h-8 css-glass text-zinc-200 hover:text-white hover:bg-white/20 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-1.5 uppercase"
           onClick={() => {
             audioEngine.playRadioRelayClick().catch(() => {});
             navigate('/planner');

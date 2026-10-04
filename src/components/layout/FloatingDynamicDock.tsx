@@ -7,7 +7,7 @@ import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { useShallow } from 'zustand/react/shallow';
 import { ChapterTelemetry } from '@jee-os/engines';
 import { storageAdapter } from '@/services/StorageAdapter';
-import { getTodayStudyMinutes } from '@/utils/streakCalculations';
+import { getTodayStudyMinutes, calculateCurrentStreak } from '@/utils/streakCalculations';
 import { calculateLevelFromXP, getTitleAndColor } from '@/utils/levelingCalculations';
 import {
   DockNavigation,
@@ -55,9 +55,16 @@ export function FloatingDynamicDock({
   })));
 
   // Telemetry Calculations - Canonical Single Source of Truth
-  const effectiveStreak = xp?.streak ?? 0;
   const minStreakMins = Math.round((settings?.minStreakHours ?? 0.5) * 60);
   const todayStudyMins = useMemo(() => getTodayStudyMinutes(studySessions), [studySessions]);
+  const isTodayMet = todayStudyMins >= minStreakMins;
+  const effectiveStreak = useMemo(() => {
+    const calculated = calculateCurrentStreak(studySessions, minStreakMins, analytics?.dailyAnalytics || []);
+    if (studySessions.length === 0 && (!analytics?.dailyAnalytics || analytics.dailyAnalytics.length === 0) && xp?.streak) {
+      return xp.streak;
+    }
+    return calculated;
+  }, [studySessions, minStreakMins, analytics?.dailyAnalytics, xp?.streak]);
   
   const formatStudyTime = (hours: number): string => {
     if (!hours) return '0m';
@@ -280,6 +287,7 @@ export function FloatingDynamicDock({
         isGodModeStreak={isGodModeStreak}
         todayStudyMins={todayStudyMins}
         minStreakMins={minStreakMins}
+        isTodayMet={isTodayMet}
         todayHoursStr={todayHoursStr}
         settings={settings}
         studySessions={studySessions}
@@ -373,7 +381,7 @@ export function FloatingDynamicDock({
               handleItemHover(null);
               if (!activeMenu) scheduleHide(350);
             }}
-            className="relative surface-elevated rounded-2xl sm:rounded-full p-1 sm:p-1.5 ring-1 ring-white/10 flex flex-row items-center gap-0.5 sm:gap-1.5 select-none overflow-x-auto sm:overflow-visible hide-scrollbar shadow-2xl backdrop-blur-2xl"
+            className="relative surface-elevated rounded-2xl sm:rounded-full p-1 sm:p-1.5 ring-1 ring-white/10 flex flex-row items-center gap-0.5 sm:gap-1.5 select-none overflow-x-auto sm:overflow-visible hide-scrollbar shadow-2xl"
           >
             {renderDockItems(false)}
           </div>

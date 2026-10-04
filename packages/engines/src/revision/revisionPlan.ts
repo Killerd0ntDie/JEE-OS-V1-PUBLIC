@@ -88,11 +88,41 @@ export function buildRevisionPlan(input: BuildRevisionPlanInput): RevisionPlanOu
       elapsedDays = chap.lastRevisionDaysAgo;
     }
 
+    // Check if chapter was already revised today
+    let isRevisedToday = false;
+    if (chap.lastRevisedAt) {
+      const parsedTime = new Date(chap.lastRevisedAt).getTime();
+      if (!Number.isNaN(parsedTime)) {
+        isRevisedToday = new Date(parsedTime).toDateString() === new Date(nowMs).toDateString();
+      }
+    }
+
+    // Determine which mistakes are actually due for review today
+    const dueMistakes = chapMistakes.filter(m => {
+      if (m.revisionStatus === 'Mastered') return false;
+      const cardId = m.id.startsWith('m-') ? m.id : `m-${m.id}`;
+      const dbState = chap.flashcardStates?.[cardId];
+      if (dbState?.nextReviewDate) {
+        const nextMs = new Date(dbState.nextReviewDate).getTime();
+        if (!Number.isNaN(nextMs)) {
+          return nextMs <= nowMs;
+        }
+      }
+      return true;
+    });
+
+    const hasDueMistakes = dueMistakes.length > 0;
+    const activeMistakesDueTodayCount = dueMistakes.length;
+
     // Determine due status
     let isDue = false;
     let daysOverdue = 0;
 
-    if (chap.status === 'Revision Due') {
+    if (isRevisedToday) {
+      // If chapter was already revised today, it is not due today
+      isDue = false;
+      daysOverdue = 0;
+    } else if (chap.status === 'Revision Due') {
       isDue = true;
       daysOverdue = Math.max(1, elapsedDays);
     } else if (chap.nextRevisionDueAt) {
@@ -113,8 +143,7 @@ export function buildRevisionPlan(input: BuildRevisionPlanInput): RevisionPlanOu
     } else {
       // Unrevised chapter (revisionCount === 0 or undefined)
       const isEligible = chap.theoryComplete || chap.dppComplete || (typeof chap.completion === 'number' && chap.completion >= 50);
-      const hasActiveMistakes = chapMistakes.some(m => m.revisionStatus !== 'Mastered');
-      if (isEligible || hasActiveMistakes) {
+      if (isEligible || hasDueMistakes) {
         isDue = true;
         daysOverdue = 0;
       }
@@ -126,11 +155,10 @@ export function buildRevisionPlan(input: BuildRevisionPlanInput): RevisionPlanOu
 
     // Context-aware plain English due reason
     let dueReason = 'Scheduled SM-2 review';
-    const activeMistakesCount = chapMistakes.filter(m => m.revisionStatus !== 'Mastered').length;
     if (daysOverdue > 0) {
       dueReason = `Overdue by ${daysOverdue} day${daysOverdue > 1 ? 's' : ''}`;
-    } else if (activeMistakesCount > 0) {
-      dueReason = `${activeMistakesCount} active mistake${activeMistakesCount > 1 ? 's' : ''} to resolve`;
+    } else if (activeMistakesDueTodayCount > 0) {
+      dueReason = `${activeMistakesDueTodayCount} active mistake${activeMistakesDueTodayCount > 1 ? 's' : ''} to resolve`;
     } else if (!chap.revisionCount || chap.revisionCount === 0) {
       dueReason = 'First review milestone';
     } else if (chap.status === 'Revision Due') {
@@ -168,6 +196,8 @@ export function buildRevisionPlan(input: BuildRevisionPlanInput): RevisionPlanOu
         concept: f.concept,
         formula: f.formula,
         examNote: f.examNote,
+        questionPrompt: f.questionPrompt || `Key Concept: ${f.concept}. State the governing formula and conditions.`,
+        subtopic: f.subtopic || 'Key Formulas',
         lastReviewedDate: dbState?.lastReviewDate || chap.lastRevisedAt,
         nextReviewDays: sm2State.interval,
         intervalStage: `${sm2State.interval}d`,
@@ -178,12 +208,12 @@ export function buildRevisionPlan(input: BuildRevisionPlanInput): RevisionPlanOu
 
       chapterCards.push(cardItem);
       allCards.push(cardItem);
-      if (cardIsDue) {
+      if (isDue && cardIsDue) {
         dueCards.push(cardItem);
       }
     });
 
-    // 2. Mistake Cards
+    // 2. Mistake Cards (Preserved in chapterCards/allCards, but decoupled from Spaced Revision queue)
     chapMistakes.forEach(m => {
       const cardId = m.id.startsWith('m-') ? m.id : `m-${m.id}`;
       const dbState = chap.flashcardStates?.[cardId];
@@ -208,7 +238,9 @@ export function buildRevisionPlan(input: BuildRevisionPlanInput): RevisionPlanOu
         retentionScore: m.recoveryScore || 50,
         title: m.topic ? `Error: ${m.topic}` : `Mistake: ${chap.name}`,
         concept: m.questionText || (m.studentMethod ? `Student Attempt: ${m.studentMethod}` : `Analysis of error in ${chap.name}`),
+        questionPrompt: m.questionText ? `Exam Problem (${chap.name}): How do you correctly solve this?` : `How do you resolve this common error in ${chap.name}?`,
         formula: m.correctSolution || m.correctMethod || m.aiAdvice || 'Review core principle to avoid recurrence.',
+        subtopic: 'Student Mistake Recovery',
         lastReviewedDate: dbState?.lastReviewDate || m.dateLogged,
         nextReviewDays: sm2State.interval,
         intervalStage: `${sm2State.interval}d`,
@@ -219,9 +251,7 @@ export function buildRevisionPlan(input: BuildRevisionPlanInput): RevisionPlanOu
 
       chapterCards.push(cardItem);
       allCards.push(cardItem);
-      if (cardIsDue) {
-        dueCards.push(cardItem);
-      }
+      // NOTE: Mistakes are reviewed in the Mistake Vault / CBT arena, not in the Spaced Revision dueCards queue.
     });
 
     const totalCardsCount = chapterCards.length;
@@ -299,6 +329,9 @@ export function buildRevisionPlan(input: BuildRevisionPlanInput): RevisionPlanOu
     return new Date(timestamp).toDateString() === todayStr;
   }).length;
 
+  // Total active unmastered mistakes across all chapters
+  const pendingMistakesCount = mistakes.filter(m => m.revisionStatus !== 'Mastered').length;
+
   return {
     dueChapters,
     upcomingChapters,
@@ -314,7 +347,8 @@ export function buildRevisionPlan(input: BuildRevisionPlanInput): RevisionPlanOu
       totalMasteredChapters: masteredChapters.length,
       totalNotStartedChapters: notStartedChapters.length,
       reviewedTodayCount,
-      avgRetentionScore: 75
+      avgRetentionScore: 75,
+      pendingMistakesCount
     }
   };
 }

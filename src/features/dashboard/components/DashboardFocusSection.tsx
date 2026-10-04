@@ -98,16 +98,9 @@ export const DashboardFocusSection = React.memo(function DashboardFocusSection({
   return (
     <div className="space-y-4 pt-2 font-sans">
       {/* Tab Toggle Navigation */}
-      <div className="flex items-center justify-between border-b border-zinc-800/80 pb-3 flex-wrap gap-3">
+      <div className="flex items-center justify-between border-b border-white/10 pb-3 flex-wrap gap-3">
         <div 
-          style={{
-            background: 'rgba(10, 14, 23, 0.78)',
-            backdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255, 255, 255, 0.10)',
-            borderTop: '1.5px solid rgba(255, 255, 255, 0.20)',
-            boxShadow: '0 8px 30px rgba(0, 0, 0, 0.5)'
-          }}
-          className="flex items-center gap-1.5 p-1 rounded-2xl relative select-none w-full sm:w-auto shadow-inner"
+          className="flex items-center gap-1.5 p-1 rounded-2xl relative select-none w-full sm:w-auto bg-black/40 border border-white/12 shadow-inner"
         >
           {tabs.map(tab => {
             const isActive = activeTab === tab.id;
@@ -116,7 +109,7 @@ export const DashboardFocusSection = React.memo(function DashboardFocusSection({
               <motion.button
                 key={tab.id}
                 type="button"
-                whileTap={{ scale: 0.96 }}
+                whileTap={{ scale: 1.04 }}
                 onClick={(e) => {
                   e.preventDefault();
                   handleTabChange(tab.id as 'focus' | 'analytics');
@@ -128,7 +121,14 @@ export const DashboardFocusSection = React.memo(function DashboardFocusSection({
                 {isActive && (
                   <motion.div
                     layoutId="dashboardFocusTabSlider"
-                    className="absolute inset-0 bg-indigo-600/40 border border-indigo-400/60 rounded-xl shadow-md -z-10"
+                    className="absolute inset-0 rounded-xl -z-10"
+                    style={{
+                      background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.20) 0%, rgba(99, 102, 241, 0.20) 100%)',
+                      border: '1px solid rgba(255, 255, 255, 0.35)',
+                      WebkitBackdropFilter: 'blur(6px)',
+                      backdropFilter: 'blur(6px)',
+                      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15), 0 0 15px rgba(99, 102, 241, 0.30), inset 0 1px 1px 0 rgba(255, 255, 255, 0.50)'
+                    }}
                     transition={springs.snappy}
                   />
                 )}
@@ -192,9 +192,10 @@ export const DashboardFocusSection = React.memo(function DashboardFocusSection({
               <div className="flex flex-col gap-3 h-full justify-between">
                 {/* Subtab Switcher */}
                 <div className="flex items-center justify-between font-mono text-xs">
-                  <div className="flex items-center gap-1 p-1 rounded-xl bg-zinc-950/80 border border-white/10 relative select-none">
-                    <button
+                  <div className="flex items-center gap-1 p-1 rounded-xl css-glass-subtle relative select-none">
+                    <motion.button
                       type="button"
+                      whileTap={{ scale: 1.05 }}
                       onClick={() => {
                         audioEngine.playRadioRelayClick().catch(() => {});
                         setAnalyticsSubTab('radar');
@@ -207,13 +208,19 @@ export const DashboardFocusSection = React.memo(function DashboardFocusSection({
                         <motion.div
                           layoutId="dashboardTelemetrySubTabGlider"
                           className="absolute inset-0 bg-cyan-500/20 border border-cyan-400/40 rounded-lg shadow-sm -z-10"
+                          style={{
+                            WebkitBackdropFilter: 'blur(10px)',
+                            backdropFilter: 'blur(10px)',
+                            boxShadow: '0 4px 16px rgba(6, 182, 212, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.20)'
+                          }}
                           transition={springs.fluid}
                         />
                       )}
                       Tri-Axis Radar
-                    </button>
-                    <button
+                    </motion.button>
+                    <motion.button
                       type="button"
+                      whileTap={{ scale: 1.05 }}
                       onClick={() => {
                         audioEngine.playRadioRelayClick().catch(() => {});
                         setAnalyticsSubTab('strategy');
@@ -226,11 +233,16 @@ export const DashboardFocusSection = React.memo(function DashboardFocusSection({
                         <motion.div
                           layoutId="dashboardTelemetrySubTabGlider"
                           className="absolute inset-0 bg-indigo-500/20 border border-indigo-400/40 rounded-lg shadow-sm -z-10"
+                          style={{
+                            WebkitBackdropFilter: 'blur(10px)',
+                            backdropFilter: 'blur(10px)',
+                            boxShadow: '0 4px 16px rgba(99, 102, 241, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.20)'
+                          }}
                           transition={springs.fluid}
                         />
                       )}
                       Weekly Strategy
-                    </button>
+                    </motion.button>
                   </div>
                   <span className="text-[10px] text-zinc-500 uppercase tracking-widest hidden sm:inline">TELEMETRY MATRIX</span>
                 </div>

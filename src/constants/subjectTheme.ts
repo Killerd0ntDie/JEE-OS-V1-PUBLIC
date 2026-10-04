@@ -58,12 +58,28 @@ export const SUBJECT_THEMES: Record<'physics' | 'chemistry' | 'maths', SubjectTh
   },
 };
 
+export const RECOVERY_THEME: SubjectTheme = {
+  id: 'physics', // fallback ID compatible with 3 subjects
+  name: 'Break & Recovery',
+  text: 'text-amber-400',
+  bg: 'bg-amber-950/20',
+  border: 'border-amber-900/50',
+  badge: 'bg-amber-950/40 text-amber-400 border border-amber-900/50',
+  badgeBg: 'bg-amber-950/40',
+  badgeBorder: 'border-amber-900/50',
+  badgeText: 'text-amber-400',
+  glow: 'from-amber-500/20',
+  gradient: 'from-amber-500/20 via-amber-500/5 to-transparent',
+  iconColor: 'text-amber-400',
+};
+
 /**
  * Normalizes any subject string ('physics', 'PHYSICS', 'Physics', etc.)
  * and returns its single source of truth SubjectTheme.
  */
 export function getSubjectTheme(subject?: string | null): SubjectTheme {
   const normalized = (subject || '').toLowerCase().trim();
+  if (normalized.includes('break')) return RECOVERY_THEME;
   if (normalized.includes('phys')) return SUBJECT_THEMES.physics;
   if (normalized.includes('chem')) return SUBJECT_THEMES.chemistry;
   return SUBJECT_THEMES.maths; // Default to maths / indigo

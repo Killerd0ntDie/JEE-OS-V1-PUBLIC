@@ -11,7 +11,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
       'surface-1': 'bg-surface-1 border border-border-subtle',
       'surface-2': 'bg-surface-2 border border-border-muted',
       elevated: 'bg-surface-elevated border border-border-strong shadow-2xl shadow-black/80',
-      glass: 'glass-panel border border-border-muted',
+      glass: 'css-glass',
     };
 
     return (

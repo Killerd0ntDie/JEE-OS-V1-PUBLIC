@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { Trophy, Zap, Sparkles, Hexagon, ArrowUpRight } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { motion, } from 'motion/react';
+import { Trophy, ArrowUpRight } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { getTitleAndColor } from '@/utils/levelingCalculations';
 import { audioEngine } from '@/utils/audioEngine';
@@ -108,7 +108,7 @@ export function LevelUpCelebration({ isOpen, oldLevel, newLevel, onClose }: Leve
         {/* Japanese Header Tag */}
         <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-indigo-950/60 border border-indigo-500/30 text-indigo-300 text-[10px] font-mono font-bold uppercase tracking-widest">
           <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping" />
-          <span>レベル昇格 // SYNAPSE OVERCLOCK</span>
+          <span><span className="eva-japanese-badge">レベル昇格 // </span>SYNAPSE OVERCLOCK</span>
         </div>
 
         {/* Central Hexagonal Core Badge */}

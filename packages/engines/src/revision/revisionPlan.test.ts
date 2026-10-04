@@ -136,8 +136,10 @@ describe('buildRevisionPlan (Canonical Spaced Repetition Due Engine)', () => {
 
     expect(plan.dueChapters[0].mistakeCardsCount).toBe(1);
     expect(plan.dueChapters[0].formulaCardsCount).toBeGreaterThan(0);
-    expect(plan.dueCards.some(c => c.cardType === 'mistake' && c.mistakeId === 'm1')).toBe(true);
+    expect(plan.allCards.some(c => c.cardType === 'mistake' && c.mistakeId === 'm1')).toBe(true);
     expect(plan.dueCards.some(c => c.cardType === 'formula')).toBe(true);
+    expect(plan.dueCards.some(c => c.cardType === 'mistake')).toBe(false);
+    expect(plan.stats.pendingMistakesCount).toBe(1);
   });
 
   it('respects wall-clock time elapsed when lastRevisedAt is present without explicit nextRevisionDueAt', () => {
@@ -195,5 +197,69 @@ describe('buildRevisionPlan (Canonical Spaced Repetition Due Engine)', () => {
     });
 
     expect(plan.stats.reviewedTodayCount).toBe(1);
+  });
+
+  it('excludes chapters revised today from dueChapters and schedules them in upcomingChapters', () => {
+    const now = '2026-03-05T12:00:00.000Z';
+    const revisedTodayChapter: Chapter = {
+      ...baseChapter,
+      id: 'c-chem-bonding',
+      name: 'Chemical Bonding',
+      subject: 'chemistry',
+      status: 'Revision Due', // Even if status was previously 'Revision Due'
+      lastRevisedAt: '2026-03-05T09:00:00.000Z',
+      nextRevisionDueAt: '2026-03-08T09:00:00.000Z',
+      revisionCount: 2
+    } as any;
+
+    const plan = buildRevisionPlan({
+      chapters: [revisedTodayChapter],
+      now
+    });
+
+    expect(plan.dueChapters).toHaveLength(0);
+    expect(plan.upcomingChapters).toHaveLength(1);
+    expect(plan.upcomingChapters[0].chapterId).toBe('c-chem-bonding');
+    expect(plan.stats.totalDueChapters).toBe(0);
+  });
+
+  it('does not mark a chapter due if its unmastered mistakes are scheduled for future review dates', () => {
+    const now = '2026-03-05T12:00:00.000Z';
+    const chapterWithFutureMistake: Chapter = {
+      ...baseChapter,
+      id: 'c-bonding-future',
+      name: 'Chemical Bonding',
+      subject: 'chemistry',
+      lastRevisedAt: '2026-03-05T09:00:00.000Z',
+      nextRevisionDueAt: '2026-03-08T09:00:00.000Z',
+      revisionCount: 1,
+      flashcardStates: {
+        'm-mistake-1': {
+          repetitions: 1,
+          easeFactor: 2.5,
+          interval: 3,
+          nextReviewDate: '2026-03-08T09:00:00.000Z',
+          lastReviewDate: '2026-03-05T09:00:00.000Z'
+        }
+      }
+    } as any;
+
+    const mistake: Mistake = {
+      id: 'mistake-1',
+      chapterId: 'c-bonding-future',
+      chapter: 'Chemical Bonding',
+      subject: 'chemistry',
+      revisionStatus: 'Reviewed',
+      questionText: 'Bond angle in ClF3'
+    } as any;
+
+    const plan = buildRevisionPlan({
+      chapters: [chapterWithFutureMistake],
+      mistakes: [mistake],
+      now
+    });
+
+    expect(plan.dueChapters).toHaveLength(0);
+    expect(plan.stats.totalDueChapters).toBe(0);
   });
 });

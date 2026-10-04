@@ -62,15 +62,17 @@ export class AnalyticsEngine {
     const studyVelocity = studyHoursPastWeek.reduce((a, b) => a + b, 0) / 7;
     const consistencyScore = Math.round((activeDaysInLast30.size / 30) * 100);
     
-    // Calculate Streak using calendar days
+    // Calculate Streak using calendar days and quota threshold
+    const minStreakMins = input.minStreakMinutes ?? 30;
     let currentStreak = 0;
     for (let i = 0; i < 365; i++) {
       const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
       const dateStr = getLocalDateKey(d);
-      if (dailyStudyMins[dateStr] > 0) {
+      const mins = dailyStudyMins[dateStr] || 0;
+      if (mins >= minStreakMins) {
         currentStreak++;
       } else {
-        if (i === 0) continue; // Allow today to be 0 and keep streak from yesterday
+        if (i === 0) continue; // Allow today to be incomplete without breaking yesterday's streak
         break;
       }
     }

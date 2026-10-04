@@ -9,7 +9,7 @@ export function getDailyMinutesMap(studySessions: StudySession[] = []): Map<stri
     if (!session.startTime) return;
     if (session.type === 'Break' as any) return;
     const d = new Date(session.startTime);
-    if (isNaN(d.getTime())) return;
+    if (Number.isNaN(d.getTime())) return;
     const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     const existing = map.get(dateKey) || 0;
     map.set(dateKey, existing + (session.duration || 0));
@@ -32,15 +32,30 @@ export function getTodayStudyMinutes(studySessions: StudySession[] = []): number
  * Only counts days where total study time meets or exceeds minStreakMinutes.
  * Resets to 0 if neither today nor yesterday met the minimum threshold.
  */
-export function calculateCurrentStreak(studySessions: StudySession[] = [], minStreakMinutes: number = 30): number {
+export function calculateCurrentStreak(
+  studySessions: StudySession[] = [], 
+  minStreakMinutes: number = 30,
+  dailyAnalytics: Array<{ date?: string; studyTime?: number }> = []
+): number {
   const effectiveThreshold = Math.max(1, Number(minStreakMinutes) || 30);
   const map = getDailyMinutesMap(studySessions);
+
+  (dailyAnalytics || []).forEach(da => {
+    if (!da.date) return;
+    const d = new Date(da.date);
+    const dateKey = Number.isNaN(d.getTime()) 
+      ? da.date 
+      : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const existing = map.get(dateKey) || 0;
+    map.set(dateKey, Math.max(existing, da.studyTime || 0));
+  });
+
   const now = new Date();
   const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const todayKey = `${todayDate.getFullYear()}-${String(todayDate.getMonth() + 1).padStart(2, '0')}-${String(todayDate.getDate()).padStart(2, '0')}`;
 
   const todayMins = map.get(todayKey) || 0;
-  let checkDate = new Date(todayDate);
+  const checkDate = new Date(todayDate);
 
   if (todayMins < effectiveThreshold) {
     checkDate.setDate(checkDate.getDate() - 1);

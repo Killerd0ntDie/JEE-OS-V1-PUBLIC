@@ -77,21 +77,14 @@ export function DailyCheckinCard() {
         initial={{ opacity: 0, height: 0 }}
         animate={{ opacity: 1, height: 'auto' }}
         exit={{ opacity: 0, height: 0 }}
-        style={{
-          background: 'rgba(10, 14, 23, 0.78)',
-          backdropFilter: 'blur(20px)',
-          border: '1px solid rgba(255, 255, 255, 0.10)',
-          borderTop: '1.5px solid rgba(255, 255, 255, 0.20)',
-          boxShadow: '0 8px 30px rgba(0, 0, 0, 0.5)'
-        }}
-        className="w-full hover:border-indigo-500/40 rounded-2xl px-4 py-3 shadow-sm text-left transition-all duration-200"
+        className="w-full surface-1 hover:border-indigo-400/40 rounded-2xl px-4 py-3 shadow-lg text-left transition-all duration-200"
       >
         <div className="flex items-center justify-between gap-3 text-xs">
           {/* Left: Info Chip & Summary */}
           <div className="flex items-center gap-2.5 min-w-0">
             <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg font-mono font-bold text-[10px] bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 shrink-0 uppercase tracking-wider">
-              <Zap className="w-2.5 h-2.5 text-indigo-400 animate-pulse" />
-              日次同期 // DAILY SYNC
+              <Zap className="w-2.5 h-2.5 text-indigo-400" />
+              <span className="eva-japanese-badge">日次同期 //</span> DAILY SYNC
             </span>
             <span className="text-zinc-400 font-mono text-xs truncate">
               Target: <strong className="text-white font-bold">{hours}h</strong> • Energy: <strong className="text-indigo-300 font-bold">{energy}</strong>
@@ -148,8 +141,8 @@ export function DailyCheckinCard() {
             exit={{ opacity: 0, height: 0 }}
             className="mt-3 pt-3 border-t border-zinc-800/60 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-mono"
           >
-            <div className="flex items-center justify-between gap-3 bg-zinc-950/40 px-3 py-2 rounded-lg border border-zinc-850">
-              <span className="text-zinc-400">Study Hours:</span>
+            <div className="flex items-center justify-between gap-3 css-glass-subtle px-3 py-2 rounded-xl border border-white/20">
+              <span className="text-zinc-300 font-semibold">Study Hours:</span>
               <div className="flex items-center gap-2">
                 <input
                   type="range"
@@ -164,8 +157,8 @@ export function DailyCheckinCard() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between gap-2 bg-zinc-950/40 px-3 py-2 rounded-lg border border-zinc-850">
-              <span className="text-zinc-400">Energy:</span>
+            <div className="flex items-center justify-between gap-2 css-glass-subtle px-3 py-2 rounded-xl border border-white/20">
+              <span className="text-zinc-300 font-semibold">Energy:</span>
               <div className="flex items-center gap-1">
                 {(['Low', 'Medium', 'High'] as const).map(l => (
                   <button

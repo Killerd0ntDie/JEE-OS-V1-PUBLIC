@@ -1,7 +1,8 @@
 import { toLocalDateString } from '@/utils/dateUtils';
+import { calculateCurrentStreak } from '@/utils/streakCalculations';
 import { 
   Chapter, TodayMission, TimelineBlock, Note, StudySession, MockResult, 
-  Mistake, XPState, SessionAnalytics, SubjectId, MentorProfile
+  Mistake, XPState, SessionAnalytics, SubjectId, MentorProfile, RevisionSettings
 } from '../types/index';
 import { MockTest } from '@/types/mockTest';
 import { mockTest1 } from '@/data/mockTests/jeeMain2024Shift1';
@@ -559,7 +560,8 @@ export class StudyBrainRuntime {
         sessions: this.state.studySessions,
         mocks: this.state.mocks,
         mistakes: this.state.mistakes,
-        chapterTelemetryMap
+        chapterTelemetryMap,
+        minStreakMinutes: Math.round((this.state.settings?.minStreakHours ?? 0.5) * 60)
       };
       analyticsSummary = this.analyticsEngine!.generateAnalytics(analyticsInput);
       engineTimes.AnalyticsEngine = performance.now() - aStart;
@@ -828,9 +830,22 @@ export class StudyBrainRuntime {
       engineExecutionTimes: engineTimes
     };
 
+    // Reconcile consistency streak from canonical study sessions
+    const minStreakMins = Math.round((this.state.settings?.minStreakHours ?? 0.5) * 60);
+    const calculatedStreak = calculateCurrentStreak(
+      this.state.studySessions,
+      minStreakMins,
+      this.state.analytics?.dailyAnalytics || []
+    );
+    let updatedXp = this.state.xp;
+    if (updatedXp && updatedXp.streak !== calculatedStreak) {
+      updatedXp = { ...updatedXp, streak: calculatedStreak };
+    }
+
     // Atomic assignment of all computed derived state merged with latest state
     this.state = {
       ...this.state,
+      xp: updatedXp,
       chapterTelemetryMap,
       revisionTelemetry,
       knowledgeGraph,

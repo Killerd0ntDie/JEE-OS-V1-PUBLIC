@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { Swords, Ghost, Zap, Trophy, Flame, TrendingUp, Clock, Target, AlertTriangle, Sparkles } from 'lucide-react';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
 import { StudyBrainService } from '@/services/studyBrainService';
@@ -156,11 +156,12 @@ export function MonthlyCampaignBanner() {
   return (
     <div
       style={{
-        background: 'rgba(25, 10, 15, 0.88)',
-        backdropFilter: 'blur(20px)',
-        border: '1px solid rgba(239, 68, 68, 0.35)',
+        background: 'rgba(13, 16, 24, 0.75)',
+        backdropFilter: 'blur(5px)',
+        WebkitBackdropFilter: 'blur(5px)',
+        border: '1px solid rgba(239, 68, 68, 0.40)',
         borderTop: '1.5px solid rgba(239, 68, 68, 0.75)',
-        boxShadow: '0 8px 30px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+        boxShadow: '0 4px 30px rgba(0, 0, 0, 0.25), 0 0 20px rgba(239, 68, 68, 0.15)'
       }}
       className="px-4 sm:px-5 py-4 rounded-2xl flex flex-col gap-3.5 relative overflow-hidden shadow-lg text-left"
     >

@@ -224,8 +224,13 @@ export class ChapterActions extends BaseActions {
         interval: chapter.sm2Interval ?? 0,
       });
 
+      const nextStatus = chapter.status === 'Revision Due'
+        ? (chapter.theoryComplete ? 'Theory Complete' : 'Learning')
+        : chapter.status;
+
       const updatedChapter: Chapter = { 
         ...chapter, 
+        status: nextStatus,
         revisionCount: sm2Result.repetitions,
         confidence: confScore,
         lastRevisionDaysAgo: 0,
@@ -345,8 +350,15 @@ export class ChapterActions extends BaseActions {
         }
       });
 
+      const nextStatus = chapter.status === 'Revision Due'
+        ? (chapter.theoryComplete ? 'Theory Complete' : 'Learning')
+        : chapter.status;
+
       modifiedChaptersMap.set(chapterId, {
         ...chapter,
+        status: nextStatus,
+        lastRevisedAt: new Date().toISOString(),
+        lastRevisionDaysAgo: 0,
         flashcardStates: currentFlashcardStates
       });
     });

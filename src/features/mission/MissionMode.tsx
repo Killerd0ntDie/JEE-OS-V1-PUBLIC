@@ -281,10 +281,11 @@ export function MissionMode(props: MissionModeProps) {
           >
             <div 
               style={{
-                background: 'rgba(10, 14, 23, 0.90)',
-                backdropFilter: 'blur(28px)',
-                border: '1.5px solid rgba(99, 102, 241, 0.5)',
-                boxShadow: '0 10px 40px rgba(0, 0, 0, 0.8), 0 0 30px rgba(99, 102, 241, 0.25)'
+                background: 'rgba(13, 16, 24, 0.85)',
+                backdropFilter: 'blur(5px)',
+                WebkitBackdropFilter: 'blur(5px)',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                boxShadow: '0 4px 30px rgba(0, 0, 0, 0.35)'
               }}
               className="px-5 py-2 rounded-2xl flex items-center gap-2.5 text-xs font-mono font-bold uppercase tracking-wider text-white"
             >
@@ -307,10 +308,11 @@ export function MissionMode(props: MissionModeProps) {
           >
             <div 
               style={{
-                background: 'rgba(10, 14, 23, 0.92)',
-                backdropFilter: 'blur(30px)',
+                background: 'rgba(13, 16, 24, 0.90)',
+                backdropFilter: 'blur(5px)',
+                WebkitBackdropFilter: 'blur(5px)',
                 border: '1.5px solid rgba(56, 189, 248, 0.4)',
-                boxShadow: '0 0 80px rgba(56, 189, 248, 0.2)'
+                boxShadow: '0 4px 30px rgba(0, 0, 0, 0.35), 0 0 50px rgba(56, 189, 248, 0.2)'
               }}
               className="max-w-md w-full rounded-3xl p-8 text-center space-y-6 relative overflow-hidden"
             >
@@ -360,10 +362,11 @@ export function MissionMode(props: MissionModeProps) {
           >
             <div 
               style={{
-                background: 'rgba(10, 14, 23, 0.88)',
-                backdropFilter: 'blur(20px)',
-                border: '1px solid rgba(245, 158, 11, 0.45)',
-                boxShadow: '0 10px 40px rgba(0, 0, 0, 0.8), 0 0 25px rgba(245, 158, 11, 0.15)'
+                background: 'rgba(16, 20, 30, 0.85)',
+                backdropFilter: 'blur(5px)',
+                WebkitBackdropFilter: 'blur(5px)',
+                border: '1px solid rgba(245, 158, 11, 0.4)',
+                boxShadow: '0 4px 30px rgba(0, 0, 0, 0.35), 0 0 25px rgba(245, 158, 11, 0.15)'
               }}
               className="px-4 sm:px-5 py-2 rounded-full flex items-center gap-2 text-[10.5px] sm:text-xs font-mono font-bold uppercase tracking-wider text-amber-300 shadow-xl"
             >
@@ -374,7 +377,7 @@ export function MissionMode(props: MissionModeProps) {
         )}
       </AnimatePresence>
 
-      {/* 2. LIQUID GLASS COCKPIT HUD CONTAINER */}
+      {/* 2. FROSTED GLASS COCKPIT HUD CONTAINER */}
       <motion.div
         style={{
           clipPath: !isRevealed
@@ -504,11 +507,11 @@ export function MissionMode(props: MissionModeProps) {
                 exit={{ opacity: 0, scale: 0.95, x: 25 }}
                 transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
                 style={{
-                  background: 'rgba(10, 14, 23, 0.85)',
-                  backdropFilter: 'blur(24px) saturate(190%) contrast(105%)',
-                  border: '1px solid rgba(255, 255, 255, 0.12)',
-                  borderTop: '1.5px solid rgba(255, 255, 255, 0.28)',
-                  boxShadow: '0 25px 60px rgba(0, 0, 0, 0.8), inset 0 1px 1px rgba(255, 255, 255, 0.15)'
+                  background: 'rgba(13, 16, 24, 0.75)',
+                  backdropFilter: 'blur(5px)',
+                  WebkitBackdropFilter: 'blur(5px)',
+                  border: '1px solid rgba(255, 255, 255, 0.10)',
+                  boxShadow: '0 4px 30px rgba(0, 0, 0, 0.25)'
                 }}
                 className="flex-1 w-full max-w-xl mx-auto flex flex-col h-full rounded-3xl overflow-hidden shadow-2xl relative"
               >

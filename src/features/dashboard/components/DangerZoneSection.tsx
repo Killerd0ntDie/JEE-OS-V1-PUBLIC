@@ -17,7 +17,7 @@ export const DangerZoneSection: React.FC<DangerZoneSectionProps> = ({
   onUndoMissionBug,
 }) => {
   return (
-    <div className="bg-red-950/20 border border-red-900/40 rounded-2xl p-6 backdrop-blur-xl shadow-xl space-y-4">
+    <div className="css-glass border border-red-500/30 rounded-2xl p-6 shadow-xl space-y-4">
       <div className="flex items-center gap-3 border-b border-red-900/40 pb-4">
         <div className="p-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400">
           <AlertTriangle className="w-5 h-5" />
@@ -32,7 +32,7 @@ export const DangerZoneSection: React.FC<DangerZoneSectionProps> = ({
         <button
           type="button"
           onClick={onOpenResetXP}
-          className="p-4 rounded-xl bg-zinc-900/80 border border-zinc-800 hover:border-red-800/50 hover:bg-red-950/30 text-left transition-all group cursor-pointer"
+          className="p-4 rounded-xl css-glass-subtle hover:border-red-500/50 hover:bg-red-950/30 text-left transition-all group cursor-pointer"
         >
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-mono font-bold text-white group-hover:text-red-300">Reset XP & Streak</span>
@@ -44,7 +44,7 @@ export const DangerZoneSection: React.FC<DangerZoneSectionProps> = ({
         <button
           type="button"
           onClick={onOpenResetMissions}
-          className="p-4 rounded-xl bg-zinc-900/80 border border-zinc-800 hover:border-red-800/50 hover:bg-red-950/30 text-left transition-all group cursor-pointer"
+          className="p-4 rounded-xl css-glass-subtle hover:border-red-500/50 hover:bg-red-950/30 text-left transition-all group cursor-pointer"
         >
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-mono font-bold text-white group-hover:text-red-300">Reset Custom Missions</span>
@@ -56,7 +56,7 @@ export const DangerZoneSection: React.FC<DangerZoneSectionProps> = ({
         <button
           type="button"
           onClick={onOpenResetHidden}
-          className="p-4 rounded-xl bg-zinc-900/80 border border-zinc-800 hover:border-red-800/50 hover:bg-red-950/30 text-left transition-all group cursor-pointer"
+          className="p-4 rounded-xl css-glass-subtle hover:border-red-500/50 hover:bg-red-950/30 text-left transition-all group cursor-pointer"
         >
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-mono font-bold text-white group-hover:text-red-300">Reset Hidden Missions</span>
@@ -68,7 +68,7 @@ export const DangerZoneSection: React.FC<DangerZoneSectionProps> = ({
         <button
           type="button"
           onClick={onOpenPurgeWorkspace}
-          className="p-4 rounded-xl bg-red-950/40 border border-red-800/50 hover:bg-red-900/50 text-left transition-all group cursor-pointer"
+          className="p-4 rounded-xl css-glass-subtle border-red-500/40 hover:bg-red-900/30 text-left transition-all group cursor-pointer"
         >
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-mono font-bold text-red-300">Purge Workspace</span>
@@ -80,13 +80,13 @@ export const DangerZoneSection: React.FC<DangerZoneSectionProps> = ({
         <button
           type="button"
           onClick={onUndoMissionBug}
-          className="p-4 rounded-xl bg-orange-950/40 border border-orange-800/50 hover:bg-orange-900/50 text-left transition-all group cursor-pointer"
+          className="p-4 rounded-xl css-glass-subtle border-amber-500/40 hover:bg-amber-900/30 text-left transition-all group cursor-pointer"
         >
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-mono font-bold text-orange-300">Fix Time/Score Bug</span>
-            <RotateCcw className="w-4 h-4 text-orange-400" />
+            <span className="text-xs font-mono font-bold text-amber-300">Fix Time/Score Bug</span>
+            <RotateCcw className="w-4 h-4 text-amber-400" />
           </div>
-          <p className="text-[10px] text-orange-300/70 leading-relaxed">Decreases total time by 75m and score by 50 XP (1 mission) to fix the permanent increase.</p>
+          <p className="text-[10px] text-amber-300/70 leading-relaxed">Decreases total time by 75m and score by 50 XP (1 mission) to fix the permanent increase.</p>
         </button>
       </div>
     </div>

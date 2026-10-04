@@ -18,9 +18,10 @@ vi.mock('@/features/auth', () => ({
 }));
 
 // Mock Zustand Store
+let customStoreState: any = null;
 vi.mock('@/store/useStudyBrainStore', () => ({
   useStudyBrainStore: (selector: any) => {
-    const state = {
+    const defaultState = {
       chapterTelemetryMap: {},
       todayMissions: [{ id: 'm1', completed: false, title: 'Mission 1' }],
       settings: { minStreakHours: 0.5, targetYear: '2026' },
@@ -29,7 +30,7 @@ vi.mock('@/store/useStudyBrainStore', () => ({
       studySessions: [{ startTime: Date.now() - 3600000, duration: 90 }],
       actions: { clearSyncError: vi.fn() }
     };
-    return selector(state);
+    return selector(customStoreState || defaultState);
   }
 }));
 
@@ -46,6 +47,7 @@ vi.mock('@/components/ui/ToastProvider', () => ({
 describe('FloatingDynamicDock (Radical Zero-Chrome Navigation)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    customStoreState = null;
   });
 
   it('renders all 5 high-yield pillars and home logo', () => {
@@ -232,6 +234,33 @@ describe('FloatingDynamicDock (Radical Zero-Chrome Navigation)', () => {
     expect(screen.getByText(/Streak/i)).toBeInTheDocument();
     expect(screen.getByText(/Day Fire/i)).toBeInTheDocument();
     expect(screen.getByText(/Daily Quota:/i)).toBeInTheDocument();
+  });
+
+  it('displays 0 streak and pending quota correctly when 0 minutes are logged', () => {
+    customStoreState = {
+      chapterTelemetryMap: {},
+      todayMissions: [{ id: 'm1', completed: false, title: 'Mission 1' }],
+      settings: { minStreakHours: 0.5, targetYear: '2026' },
+      xp: { level: 1, total: 0, streak: 0 },
+      analytics: { dailyAnalytics: [] },
+      studySessions: [],
+      actions: { clearSyncError: vi.fn() }
+    };
+
+    render(
+      <MemoryRouter initialEntries={['/dashboard']}>
+        <FloatingDynamicDock onOpenCommandPalette={vi.fn()} />
+      </MemoryRouter>
+    );
+
+    const streakBtn = screen.getByLabelText('Consistency Streak');
+    expect(streakBtn).toHaveTextContent('0');
+
+    fireEvent.click(streakBtn);
+
+    // Verify popover displays 0 Day Streak and quota remaining
+    expect(screen.getByText('0 Day Streak')).toBeInTheDocument();
+    expect(screen.getByText('30m Left')).toBeInTheDocument();
   });
 
   it('opens monthly study time log grid when clicking study time pill', () => {

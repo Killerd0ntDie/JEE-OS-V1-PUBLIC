@@ -62,7 +62,6 @@ export function useDashboardState() {
   const [isCustomMissionModalOpen, setIsCustomMissionModalOpen] = useState(false);
   const [missionToEdit, setMissionToEdit] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'focus' | 'analytics'>('focus');
-  const [isMonthlyObjectiveModalOpen, setIsMonthlyObjectiveModalOpen] = useState(false);
   const [selectedMissionId, setSelectedMissionIdState] = useState<string | null>(
     () => storageAdapter.getSession<string>('jeeos_selected_mission_id')
   );
@@ -76,16 +75,6 @@ export function useDashboardState() {
       storageAdapter.removeSession('jeeos_selected_mission_id');
     }
   };
-
-  // Header cards smart expand/collapse state
-  const [isHeaderExpanded, setIsHeaderExpanded] = useState<boolean>(false);
-
-  const hasBottleneckAlert = useMemo(() => {
-    const list = Object.values(chapterTelemetryMap || {}).filter(
-      t => t?.isBottleneck && t.bottleneckReason
-    );
-    return list.length > 0;
-  }, [chapterTelemetryMap]);
 
   const [recoverableSession, setRecoverableSession] = useState<any | null>(null);
 
@@ -135,37 +124,6 @@ export function useDashboardState() {
     storageAdapter.removeItem(`jeeos_mission_state_${recoverableSession.missionId}`);
     setRecoverableSession(null);
   }, [recoverableSession]);
-
-  useEffect(() => {
-    // 1. Check if user already manually toggled the panel in this session
-    const sessionOverride = storageAdapter.getSession<string>('jeeos_command_center_override');
-    if (sessionOverride) {
-      setIsHeaderExpanded(sessionOverride === 'expanded');
-      return;
-    }
-
-    // 2. Check if this is the first visit of the day or has bottleneck alert
-    const todayStr = new Date().toLocaleDateString('en-CA');
-    const lastVisitDate = storageAdapter.getItem<string>('jeeos_last_dashboard_expand_date');
-    const isFirstVisitOfDay = lastVisitDate !== todayStr;
-
-    if (isFirstVisitOfDay || hasBottleneckAlert) {
-      setIsHeaderExpanded(true);
-      if (isFirstVisitOfDay) {
-        storageAdapter.setItem('jeeos_last_dashboard_expand_date', todayStr);
-      }
-    } else {
-      setIsHeaderExpanded(false);
-    }
-  }, [hasBottleneckAlert]);
-
-  const handleManualToggleHeader = useCallback(() => {
-    setIsHeaderExpanded(prev => {
-      const next = !prev;
-      storageAdapter.setSession('jeeos_command_center_override', next ? 'expanded' : 'collapsed');
-      return next;
-    });
-  }, []);
 
   // Focus session timer is now strictly handled by MissionMode.tsx
   // Dashboard only holds the static paused value to prevent massive unneeded re-renders.
@@ -223,12 +181,6 @@ export function useDashboardState() {
   const incompleteTasks = useMemo(() => todayMissions.filter(m => !m.completed), [todayMissions]);
   const nextTaskName = incompleteTasks[0]?.taskName || 'All daily tasks complete';
 
-  // Routine Break Modal state
-  const [isRoutineBreakModalOpen, setIsRoutineBreakModalOpen] = useState(false);
-
-  const handleOpenRoutineBreak = useCallback(() => setIsRoutineBreakModalOpen(true), []);
-  const handleCloseRoutineBreak = useCallback(() => setIsRoutineBreakModalOpen(false), []);
-
   const handleSetEnergyLevel = useCallback((level: 'High' | 'Medium' | 'Low') => {
     actions.setEnergyLevel(level);
   }, [actions]);
@@ -236,14 +188,6 @@ export function useDashboardState() {
   const handleOpenChapter = useCallback((chapterId: string) => {
     actions.openChapterEditModal(chapterId);
   }, [actions]);
-
-  const handleOpenMonthlyObjective = useCallback(() => {
-    setIsMonthlyObjectiveModalOpen(true);
-  }, []);
-
-  const handleCloseMonthlyObjective = useCallback(() => {
-    setIsMonthlyObjectiveModalOpen(false);
-  }, []);
 
   const handleNavigatePlanner = useCallback(() => {
     navigate('/planner');
@@ -279,8 +223,6 @@ export function useDashboardState() {
     setIsCustomMissionModalOpen,
     setMissionToEdit,
     setActiveTab,
-    setIsMonthlyObjectiveModalOpen,
-    handleManualToggleHeader,
     handleStartSession,
     handleResetSession,
     formatTimer,
@@ -291,11 +233,7 @@ export function useDashboardState() {
     handleResumeSession,
     handleDiscardSession,
     handleSetEnergyLevel,
-    handleOpenRoutineBreak,
-    handleCloseRoutineBreak,
     handleOpenChapter,
-    handleOpenMonthlyObjective,
-    handleCloseMonthlyObjective,
     handleNavigatePlanner,
     handleEditMission,
     handleOpenCustomMission,
@@ -303,18 +241,13 @@ export function useDashboardState() {
     handleCloseActiveBreak,
     handleQuickRevisionAction,
   }), [
-    handleManualToggleHeader,
     handleStartSession,
     handleResetSession,
     formatTimer,
     handleResumeSession,
     handleDiscardSession,
     handleSetEnergyLevel,
-    handleOpenRoutineBreak,
-    handleCloseRoutineBreak,
     handleOpenChapter,
-    handleOpenMonthlyObjective,
-    handleCloseMonthlyObjective,
     handleNavigatePlanner,
     handleEditMission,
     handleOpenCustomMission,
@@ -333,9 +266,6 @@ export function useDashboardState() {
       isCustomMissionModalOpen,
       missionToEdit,
       activeTab,
-      isMonthlyObjectiveModalOpen,
-      isRoutineBreakModalOpen,
-      isHeaderExpanded,
       userName,
       getGreeting,
       incompleteTasks,

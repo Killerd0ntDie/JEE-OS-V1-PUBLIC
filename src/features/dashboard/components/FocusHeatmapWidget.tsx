@@ -153,10 +153,10 @@ export const FocusHeatmapWidget: React.FC<FocusHeatmapWidgetProps> = ({ studySes
                     transition={springs.snappy}
                     className={`absolute bottom-full mb-2 flex flex-col pointer-events-none z-50 ${alignmentClass}`}
                   >
-                    <div className="bg-zinc-900/95 border border-zinc-700 text-zinc-200 px-2.5 py-1 rounded-xl text-[11px] font-mono whitespace-nowrap shadow-2xl backdrop-blur-md">
+                    <div className="css-glass text-zinc-100 px-2.5 py-1 rounded-xl text-[11px] font-mono whitespace-nowrap shadow-2xl">
                       <span className="font-bold text-white">{formatDateLabel(day)}</span>: {hrs} hrs ({mins} mins)
                     </div>
-                    <div className={`w-1.5 h-1.5 bg-zinc-900 border-b border-r border-zinc-700 rotate-45 -mt-1 ${arrowAlignmentClass}`} />
+                    <div className={`w-1.5 h-1.5 bg-white/20 border-b border-r border-white/30 rotate-45 -mt-1 ${arrowAlignmentClass}`} />
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -193,7 +193,7 @@ export const FocusHeatmapWidget: React.FC<FocusHeatmapWidgetProps> = ({ studySes
             </div>
 
             {selectedDaySessions.length === 0 ? (
-              <div className="p-3 rounded-xl bg-zinc-900/40 border border-zinc-850 text-center text-xs font-mono text-zinc-500">
+              <div className="p-3 rounded-xl css-glass-subtle text-center text-xs font-mono text-zinc-400">
                 No active focus sessions logged on this date.
               </div>
             ) : (
@@ -201,7 +201,7 @@ export const FocusHeatmapWidget: React.FC<FocusHeatmapWidgetProps> = ({ studySes
                 {selectedDaySessions.map((session, idx) => (
                   <div 
                     key={session.id || idx}
-                    className="p-2 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-between text-xs font-mono"
+                    className="p-2 rounded-xl css-glass-subtle flex items-center justify-between text-xs font-mono"
                   >
                     <div className="flex items-center gap-2 truncate">
                       <Clock className="w-3 h-3 text-indigo-400 shrink-0" />
@@ -217,7 +217,7 @@ export const FocusHeatmapWidget: React.FC<FocusHeatmapWidgetProps> = ({ studySes
         )}
       </AnimatePresence>
 
-      <div className="flex items-center justify-between text-[11px] font-mono text-zinc-400 pt-3 border-t border-zinc-850/80 mt-3">
+      <div className="flex items-center justify-between text-[11px] font-mono text-zinc-400 pt-3 border-t border-white/10 mt-3">
         <span>Less active</span>
         <div className="flex items-center gap-1">
           <span className="w-2.5 h-2.5 rounded bg-zinc-900 border border-zinc-800" />

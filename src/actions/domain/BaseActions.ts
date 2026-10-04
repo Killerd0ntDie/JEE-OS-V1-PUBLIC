@@ -3,6 +3,7 @@ import { db } from '@/firebase';
 import { StudyBrainRuntime, StudyBrainState } from '@/runtime/StudyBrainRuntime';
 import { StudySession, XPState } from '@/types/index';
 import { toLocalDateString } from '@/utils/dateUtils';
+import { calculateCurrentStreak } from '@/utils/streakCalculations';
 
 export class BaseActions {
   public runtime: StudyBrainRuntime;
@@ -71,7 +72,7 @@ export class BaseActions {
     }
   }
 
-  public async safeDbCall<T>(operation: () => Promise<T>, actionName: string): Promise<T | void> {
+  public async safeDbCall<T>(operation: () => Promise<T>, actionName: string): Promise<T | undefined> {
     if (this.isGuestUser()) {
       return undefined;
     }
@@ -129,24 +130,15 @@ export class BaseActions {
       .filter(s => toLocalDateString(new Date(s.startTime)) === today)
       .reduce((sum, s) => sum + (typeof s.duration === 'number' ? s.duration : 0), 0);
 
+    const calculatedStreak = calculateCurrentStreak(
+      updatedSessions,
+      minThresholdMins,
+      this.state.analytics?.dailyAnalytics || []
+    );
+    xp.streak = calculatedStreak;
+
     if (todayMinutes >= minThresholdMins) {
-      const prevDate = xp.lastActiveDate;
-      if (prevDate !== today) {
-        if (prevDate) {
-          const last = new Date(`${prevDate}T00:00:00`);
-          const curr = new Date(`${today}T00:00:00`);
-          const diffDays = Math.round((curr.getTime() - last.getTime()) / (1000 * 60 * 60 * 24));
-          if (diffDays === 1) {
-            xp.streak = (xp.streak || 0) + 1;
-          } else {
-            xp.streak = 1;
-          }
-        } else {
-          xp.streak = 1;
-        }
-        xp.lastActiveDate = today;
-      }
-      if (!xp.streak) xp.streak = 1;
+      xp.lastActiveDate = today;
     }
     return xp;
   }

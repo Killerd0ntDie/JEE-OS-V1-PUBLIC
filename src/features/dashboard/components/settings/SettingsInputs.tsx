@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { motion } from 'motion/react';
 import { Clock } from 'lucide-react';
 import { springs } from '@/constants/motion';
@@ -54,7 +54,7 @@ export function ModernTimeInput({
           type="time"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full bg-zinc-900/90 hover:bg-zinc-850 border border-white/15 hover:border-white/30 text-white rounded-2xl pl-10 pr-4 py-3 text-xs font-mono focus:outline-none focus:border-indigo-500 cursor-pointer shadow-inner [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-inner-spin-button]:hidden [&::-webkit-clear-button]:hidden [&::-ms-clear]:hidden"
+          className="w-full css-glass hover:border-white/40 text-white rounded-2xl pl-10 pr-4 py-3 text-xs font-mono focus:outline-none focus:border-indigo-500 cursor-pointer shadow-sm [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-inner-spin-button]:hidden [&::-webkit-clear-button]:hidden [&::-ms-clear]:hidden"
         />
       </div>
       {presets && (
@@ -67,7 +67,7 @@ export function ModernTimeInput({
               className={`text-[10px] font-mono px-2 py-0.5 rounded-lg border transition-all cursor-pointer ${
                 value === p 
                   ? 'bg-indigo-600/40 border-indigo-400 text-white font-bold' 
-                  : 'bg-zinc-900/60 border-white/10 text-zinc-400 hover:text-zinc-200'
+                  : 'css-glass-pill text-zinc-300 hover:text-white'
               }`}
             >
               {p}

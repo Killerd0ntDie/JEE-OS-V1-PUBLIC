@@ -60,53 +60,91 @@ export function isChapterKnownOrRunning(
   return false;
 }
 
+function normalizeTitle(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/&/g, 'and')
+    .replace(/[^a-z0-9]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+const CHAPTER_ALIASES: Record<string, string[]> = {
+  'chemical bonding': ['chemical bonding and molecular structure', 'bonding', 'chemical bonding & molecular structure'],
+  'chemical bonding and molecular structure': ['chemical bonding', 'chemical bonding & molecular structure'],
+  'structure of atom': ['atomic structure', 'structure of atom', 'atom structure'],
+  'atomic structure': ['structure of atom', 'atomic structure'],
+  'classification of elements and periodicity in properties': ['periodic table', 'periodicity', 'periodic table and periodicity', 'periodic properties'],
+  'periodic table and periodicity': ['classification of elements', 'periodic table', 'periodic table & periodicity', 'classification of elements and periodicity in properties'],
+  'chemical thermodynamics': ['thermodynamics', 'chemical thermodynamics and energetics'],
+  'thermodynamics': ['chemical thermodynamics', 'thermodynamics'],
+  'equilibrium': ['chemical equilibrium', 'ionic equilibrium', 'chemical and ionic equilibrium'],
+  'redox reactions': ['redox', 'redox reactions and electrochemistry'],
+  'solutions': ['liquid solutions', 'solutions and colligative properties'],
+  'states of matter': ['gaseous state', 'states of matter gases and liquids'],
+  'rotational motion': ['system of particles and rotational motion', 'rotational dynamics', 'rotational mechanics'],
+  'work energy and power': ['work power energy', 'work power and energy', 'work energy power'],
+  'work power and energy': ['work energy and power', 'work energy power'],
+  'oscillations': ['oscillations and simple harmonic motion', 'simple harmonic motion', 'shm'],
+  'semiconductors': ['semiconductor electronics', 'semiconductor devices', 'semiconductor electronics materials devices and simple circuits']
+};
+
 /**
  * Resolves a syllabus chapter to its corresponding entry in FORMULA_BANK,
- * supporting exact ID match, exact title match, substring match, and token-level fuzzy match
- * (e.g. matching "Rotational Dynamics" / "p-rotation" with "Rotational Motion" / "p6").
+ * strictly prioritizing normalized subject + chapter title and alias mappings
+ * before considering secondary fuzzy token matches.
  */
 export function findMatchingBankChapter(chap: Chapter) {
-  const chapIdLower = (chap.id || '').toLowerCase().trim();
-  const chapNameLower = (chap.name || '').toLowerCase().trim();
+  const chapNameNorm = normalizeTitle(chap.name || '');
   const chapSubject = (chap.subject || '').toLowerCase().trim();
 
-  // 1. Direct ID match
-  const directId = FORMULA_BANK.find(fb => fb.chapterId.toLowerCase() === chapIdLower);
-  if (directId) return directId;
-
-  // 2. Direct name match
+  // 1. Direct normalized name match within same subject
   const directName = FORMULA_BANK.find(fb => 
     (!chapSubject || fb.subject === chapSubject) && 
-    fb.chapterName.toLowerCase() === chapNameLower
+    normalizeTitle(fb.chapterName) === chapNameNorm
   );
   if (directName) return directName;
 
-  // 3. Substring / inclusion match (e.g. 'Kinematics' in 'Kinematics (Motion in 1D & 2D)')
+  // 2. Alias mapping match
+  const aliases = CHAPTER_ALIASES[chapNameNorm] || [];
+  if (aliases.length > 0) {
+    const aliasMatch = FORMULA_BANK.find(fb => {
+      if (chapSubject && fb.subject !== chapSubject) return false;
+      const fbNorm = normalizeTitle(fb.chapterName);
+      return aliases.some(a => fbNorm === a || fbNorm.includes(a) || a.includes(fbNorm));
+    });
+    if (aliasMatch) return aliasMatch;
+  }
+
+  // 3. Substring inclusion match (e.g. 'Kinematics' in 'Kinematics (Motion in 1D & 2D)')
   const inclusionMatch = FORMULA_BANK.find(fb => {
     if (chapSubject && fb.subject !== chapSubject) return false;
-    const fbLower = fb.chapterName.toLowerCase();
-    return fbLower.includes(chapNameLower) || chapNameLower.includes(fbLower);
+    const fbNorm = normalizeTitle(fb.chapterName);
+    return fbNorm.includes(chapNameNorm) || chapNameNorm.includes(fbNorm);
   });
   if (inclusionMatch) return inclusionMatch;
 
-  // 4. Token overlap match (e.g. ['rotational', 'dynamics'] and ['rotational', 'motion'] share 'rotational')
-  const chapTokens = chapNameLower.replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(t => t.length >= 4);
+  // 4. Token overlap match (at least one substantial token >= 4 chars matches)
+  const chapTokens = chapNameNorm.split(' ').filter(t => t.length >= 4);
   const tokenMatch = FORMULA_BANK.find(fb => {
     if (chapSubject && fb.subject !== chapSubject) return false;
-    const fbTokens = fb.chapterName.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(t => t.length >= 4);
+    const fbTokens = normalizeTitle(fb.chapterName).split(' ').filter(t => t.length >= 4);
     return chapTokens.some(ct => fbTokens.includes(ct));
   });
   if (tokenMatch) return tokenMatch;
 
-  // 5. Fallback ID token (e.g. 'p-rotation' matches 'p6' with 'rotation')
-  const idTokens = chapIdLower.replace(/[^a-z0-9]/g, ' ').split(/\s+/).filter(t => t.length >= 4);
-  if (idTokens.length > 0) {
-    const idTokenMatch = FORMULA_BANK.find(fb => {
-      if (chapSubject && fb.subject !== chapSubject) return false;
-      const fbTokens = fb.chapterName.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(t => t.length >= 4);
-      return idTokens.some(it => fbTokens.some(fbt => fbt.includes(it) || it.includes(fbt)));
-    });
-    if (idTokenMatch) return idTokenMatch;
+  // 5. Strict verified ID fallback ONLY if subject matches AND names are compatible
+  const chapIdLower = (chap.id || '').toLowerCase().trim();
+  const directId = FORMULA_BANK.find(fb => 
+    (!chapSubject || fb.subject === chapSubject) && 
+    fb.chapterId.toLowerCase() === chapIdLower
+  );
+  if (directId) {
+    // Only return directId if names are not completely divergent
+    const fbNorm = normalizeTitle(directId.chapterName);
+    const fbTokens = fbNorm.split(' ').filter(t => t.length >= 4);
+    const hasOverlap = chapTokens.length === 0 || chapTokens.some(t => fbTokens.includes(t));
+    if (hasOverlap) return directId;
   }
 
   return undefined;
@@ -456,7 +494,8 @@ export class RevisionEngine {
           const timestamp = s.startTime || s.endTime;
           if (!timestamp) return false;
           return new Date(timestamp).toDateString() === new Date().toDateString();
-        }).length
+        }).length,
+        pendingMistakesCount: plan.stats.pendingMistakesCount
       }
     };
 

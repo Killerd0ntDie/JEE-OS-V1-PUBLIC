@@ -46,69 +46,73 @@ export function MockDirectorySidebar({
   onNavigateToFormulas
 }: MockDirectorySidebarProps) {
   return (
-    <aside className="w-full lg:col-span-4 xl:col-span-3 space-y-2.5 lg:sticky lg:top-5 self-start">
-      {/* Header & Brand */}
-      <div className="flex items-center justify-between gap-2 pb-0.5">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="w-7 h-7 rounded-lg bg-indigo-600/90 border border-indigo-500/40 flex items-center justify-center text-white shrink-0 shadow-sm">
-            <Trophy className="w-3.5 h-3.5" />
+    <aside className="w-full lg:col-span-4 xl:col-span-3 lg:sticky lg:top-4 self-start lg:h-[calc(100dvh-2.5rem)] flex flex-col justify-between overflow-y-auto no-scrollbar">
+      {/* 1. Header & Brand + Quick Actions */}
+      <div className="space-y-2">
+        {/* Header & Brand */}
+        <div className="flex items-center justify-between gap-1.5 pb-0.5">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-indigo-600/90 border border-indigo-400/30 flex items-center justify-center text-white shrink-0 shadow-sm shadow-indigo-600/25">
+              <Trophy className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-xs sm:text-sm font-bold text-white font-display leading-tight truncate">
+                Mock Test Engine
+              </h1>
+              <span className="text-[10px] font-mono text-zinc-400 block leading-tight">
+                CBT Simulation
+              </span>
+            </div>
           </div>
-          <div className="min-w-0">
-            <h1 className="text-sm font-bold text-white font-display leading-tight whitespace-nowrap">
-              Mock Test Engine
-            </h1>
-            <span className="text-[10px] font-mono text-zinc-500 block leading-tight">
-              CBT Simulation
-            </span>
-          </div>
+          <span className="shrink-0 text-[9px] sm:text-[10px] font-mono font-bold uppercase tracking-wider text-indigo-300 bg-indigo-950/70 border border-indigo-500/40 px-2 py-0.5 rounded-lg whitespace-nowrap">
+            Available Tests
+          </span>
         </div>
-        <span className="shrink-0 text-[10px] font-mono font-medium text-zinc-400 bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded-md whitespace-nowrap">
-          Available Tests
-        </span>
-      </div>
 
-      {/* Quick Actions */}
-      <div className="space-y-1.5">
-        <motion.button
-          whileHover={{ scale: 1.01 }}
-          whileTap={{ scale: 0.98 }}
-          transition={springs.snappy}
-          onClick={onOpenStudio}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-mono font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm transition-colors cursor-pointer"
-        >
-          <Sparkles className="w-3.5 h-3.5 text-indigo-200" />
-          <span>AI Mock Generator</span>
-        </motion.button>
-
-        <div className="grid grid-cols-2 gap-1.5">
+        {/* Quick Actions */}
+        <div className="space-y-1.5">
           <motion.button
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.98 }}
             transition={springs.snappy}
-            onClick={onOpenPyqUpload}
-            className="flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-[11px] font-mono font-medium bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 hover:text-white transition-colors cursor-pointer"
-            title="Upload PYQ"
+            onClick={onOpenStudio}
+            className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/25 border border-indigo-400/40 transition-all cursor-pointer"
           >
-            <FileUp className="w-3.5 h-3.5 text-sky-400 shrink-0" />
-            <span className="truncate">Upload PYQ</span>
+            <Sparkles className="w-3.5 h-3.5 text-indigo-200" />
+            <span>AI Mock Generator</span>
           </motion.button>
 
-          <motion.button
-            whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.98 }}
-            transition={springs.snappy}
-            onClick={onOpenDppUpload}
-            className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-mono font-medium bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 hover:text-white transition-colors cursor-pointer"
-          >
-            <Target className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Upload DPP</span>
-          </motion.button>
+          <div className="grid grid-cols-2 gap-1.5">
+            <motion.button
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.98 }}
+              transition={springs.snappy}
+              onClick={onOpenPyqUpload}
+              className="flex items-center justify-center gap-1 px-2 py-1.5 rounded-xl text-xs font-mono font-semibold surface-1 hover:bg-zinc-800/80 text-zinc-300 hover:text-white border border-white/5 hover:border-white/10 transition-all cursor-pointer shadow-xs"
+              title="Upload PYQ"
+            >
+              <FileUp className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+              <span className="truncate">Upload PYQ</span>
+            </motion.button>
+
+            <motion.button
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.98 }}
+              transition={springs.snappy}
+              onClick={onOpenDppUpload}
+              className="flex items-center justify-center gap-1 px-2 py-1.5 rounded-xl text-xs font-mono font-semibold surface-1 hover:bg-zinc-800/80 text-zinc-300 hover:text-white border border-white/5 hover:border-white/10 transition-all cursor-pointer shadow-xs"
+              title="Upload DPP"
+            >
+              <Target className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span className="truncate">Upload DPP</span>
+            </motion.button>
+          </div>
         </div>
       </div>
 
-      {/* Section 1: Full Syllabus Simulations */}
-      <div className="space-y-1 pt-0.5">
-        <div className="px-1 text-[10px] font-mono font-semibold uppercase tracking-wider text-zinc-500">
+      {/* 2. Section 1: Full Syllabus Simulations */}
+      <div className="space-y-1 pt-1.5 border-t border-white/5">
+        <div className="px-1 text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-500">
           Full Papers & PYQs
         </div>
 
@@ -116,35 +120,35 @@ export function MockDirectorySidebar({
         <motion.button
           whileTap={{ scale: 0.985 }}
           onClick={() => onSelectNav('full_tests')}
-          className={`relative w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-left cursor-pointer transition-colors group ${
+          className={`relative w-full flex items-center justify-between px-2.5 py-1.5 sm:py-2 rounded-xl text-left cursor-pointer transition-colors group ${
             activeNav === 'full_tests'
-              ? 'bg-zinc-800/90 text-white shadow-xs'
-              : 'bg-transparent hover:bg-white/[0.06] text-zinc-400 hover:text-zinc-200'
+              ? 'surface-2 text-white shadow-sm border border-white/10'
+              : 'bg-transparent hover:bg-white/[0.04] text-zinc-400 hover:text-zinc-200 border border-transparent'
           }`}
         >
           {activeNav === 'full_tests' && (
             <motion.div
               layoutId="activeNavHighlight"
-              className="absolute inset-0 bg-zinc-800/90 border-l-2 border-l-amber-500 rounded-xl"
+              className="absolute inset-0 bg-white/[0.06] border-l-2 border-l-amber-400 rounded-xl"
               transition={springs.fluid}
             />
           )}
-          <div className="relative z-10 flex items-center gap-2.5 min-w-0">
-            <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
+          <div className="relative z-10 flex items-center gap-2 min-w-0">
+            <div className={`w-6.5 h-6.5 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
               activeNav === 'full_tests'
-                ? 'bg-amber-950/70 text-amber-300'
-                : 'bg-amber-950/40 text-amber-400/80 group-hover:text-amber-400'
+                ? 'bg-amber-950/70 text-amber-300 border border-amber-500/40'
+                : 'bg-amber-950/40 text-amber-400/80 border border-amber-500/20 group-hover:text-amber-300'
             }`}>
               <Trophy className="w-3.5 h-3.5" />
             </div>
-            <span className={`text-xs font-semibold font-display truncate ${activeNav === 'full_tests' ? 'text-white' : 'text-zinc-200 group-hover:text-white'}`}>
+            <span className={`text-xs font-semibold font-display truncate ${activeNav === 'full_tests' ? 'text-white' : 'text-zinc-300 group-hover:text-white'}`}>
               Full JEE CBT Mocks
             </span>
           </div>
-          <span className={`relative z-10 shrink-0 text-[10px] font-mono font-medium px-2 py-0.5 rounded transition-colors ${
+          <span className={`relative z-10 shrink-0 text-[10px] font-mono font-bold px-2 py-0.5 rounded-lg border transition-colors ${
             activeNav === 'full_tests'
-              ? 'bg-zinc-700/80 text-zinc-200'
-              : 'bg-zinc-850/80 text-zinc-400'
+              ? 'bg-amber-950/70 border-amber-500/40 text-amber-300'
+              : 'bg-white/5 border-white/10 text-zinc-400'
           }`}>
             {fullTestsCount}
           </span>
@@ -154,44 +158,44 @@ export function MockDirectorySidebar({
         <motion.button
           whileTap={{ scale: 0.985 }}
           onClick={() => onSelectNav('pyq')}
-          className={`relative w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-left cursor-pointer transition-colors group ${
+          className={`relative w-full flex items-center justify-between px-2.5 py-1.5 sm:py-2 rounded-xl text-left cursor-pointer transition-colors group ${
             activeNav === 'pyq'
-              ? 'bg-zinc-800/90 text-white shadow-xs'
-              : 'bg-transparent hover:bg-white/[0.06] text-zinc-400 hover:text-zinc-200'
+              ? 'surface-2 text-white shadow-sm border border-white/10'
+              : 'bg-transparent hover:bg-white/[0.04] text-zinc-400 hover:text-zinc-200 border border-transparent'
           }`}
         >
           {activeNav === 'pyq' && (
             <motion.div
               layoutId="activeNavHighlight"
-              className="absolute inset-0 bg-zinc-800/90 border-l-2 border-l-sky-500 rounded-xl"
+              className="absolute inset-0 bg-white/[0.06] border-l-2 border-l-sky-400 rounded-xl"
               transition={springs.fluid}
             />
           )}
-          <div className="relative z-10 flex items-center gap-2.5 min-w-0">
-            <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
+          <div className="relative z-10 flex items-center gap-2 min-w-0">
+            <div className={`w-6.5 h-6.5 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
               activeNav === 'pyq'
-                ? 'bg-sky-950/70 text-sky-300'
-                : 'bg-sky-950/40 text-sky-400/80 group-hover:text-sky-400'
+                ? 'bg-sky-950/70 text-sky-300 border border-sky-500/40'
+                : 'bg-sky-950/40 text-sky-400/80 border border-sky-500/20 group-hover:text-sky-300'
             }`}>
               <FileText className="w-3.5 h-3.5" />
             </div>
-            <span className={`text-xs font-semibold font-display truncate ${activeNav === 'pyq' ? 'text-white' : 'text-zinc-200 group-hover:text-white'}`}>
+            <span className={`text-xs font-semibold font-display truncate ${activeNav === 'pyq' ? 'text-white' : 'text-zinc-300 group-hover:text-white'}`}>
               PYQ Papers
             </span>
           </div>
-          <span className={`relative z-10 shrink-0 text-[10px] font-mono font-medium px-2 py-0.5 rounded transition-colors ${
+          <span className={`relative z-10 shrink-0 text-[10px] font-mono font-bold px-2 py-0.5 rounded-lg border transition-colors ${
             activeNav === 'pyq'
-              ? 'bg-zinc-700/80 text-zinc-200'
-              : 'bg-zinc-850/80 text-zinc-400'
+              ? 'bg-sky-950/70 border-sky-500/40 text-sky-300'
+              : 'bg-white/5 border-white/10 text-zinc-400'
           }`}>
             {pyqTestsCount}
           </span>
         </motion.button>
       </div>
 
-      {/* Section 2: Subject Chapters */}
-      <div className="space-y-1 pt-1.5 border-t border-zinc-850">
-        <div className="px-1 text-[10px] font-mono font-semibold uppercase tracking-wider text-zinc-500">
+      {/* 3. Section 2: Subject Chapters */}
+      <div className="space-y-1 pt-1.5 border-t border-white/5">
+        <div className="px-1 text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-500">
           Subject Chapters
         </div>
 
@@ -199,35 +203,35 @@ export function MockDirectorySidebar({
         <motion.button
           whileTap={{ scale: 0.985 }}
           onClick={() => onSelectNav('physics')}
-          className={`relative w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-left cursor-pointer transition-colors group ${
+          className={`relative w-full flex items-center justify-between px-2.5 py-1.5 sm:py-2 rounded-xl text-left cursor-pointer transition-colors group ${
             activeNav === 'physics'
-              ? 'bg-zinc-800/90 text-white shadow-xs'
-              : 'bg-transparent hover:bg-white/[0.06] text-zinc-400 hover:text-zinc-200'
+              ? 'surface-2 text-white shadow-sm border border-white/10'
+              : 'bg-transparent hover:bg-white/[0.04] text-zinc-400 hover:text-zinc-200 border border-transparent'
           }`}
         >
           {activeNav === 'physics' && (
             <motion.div
               layoutId="activeNavHighlight"
-              className="absolute inset-0 bg-zinc-800/90 border-l-2 border-l-sky-500 rounded-xl"
+              className="absolute inset-0 bg-white/[0.06] border-l-2 border-l-sky-400 rounded-xl"
               transition={springs.fluid}
             />
           )}
-          <div className="relative z-10 flex items-center gap-2.5 min-w-0">
-            <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
+          <div className="relative z-10 flex items-center gap-2 min-w-0">
+            <div className={`w-6.5 h-6.5 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
               activeNav === 'physics'
-                ? 'bg-sky-950/70 text-sky-300'
-                : 'bg-sky-950/40 text-sky-400/80 group-hover:text-sky-400'
+                ? 'bg-sky-950/70 text-sky-300 border border-sky-500/40'
+                : 'bg-sky-950/40 text-sky-400/80 border border-sky-500/20 group-hover:text-sky-300'
             }`}>
               <Atom className="w-3.5 h-3.5" />
             </div>
-            <span className={`text-xs font-semibold font-display truncate ${activeNav === 'physics' ? 'text-white' : 'text-zinc-200 group-hover:text-white'}`}>
+            <span className={`text-xs font-semibold font-display truncate ${activeNav === 'physics' ? 'text-white' : 'text-zinc-300 group-hover:text-white'}`}>
               Physics
             </span>
           </div>
-          <span className={`relative z-10 shrink-0 text-[10px] font-mono font-medium px-2 py-0.5 rounded transition-colors ${
+          <span className={`relative z-10 shrink-0 text-[10px] font-mono font-bold px-2 py-0.5 rounded-lg border transition-colors ${
             activeNav === 'physics'
-              ? 'bg-sky-950/80 text-sky-300'
-              : 'bg-sky-950/40 text-sky-400/90'
+              ? 'bg-sky-950/70 border-sky-500/40 text-sky-300'
+              : 'bg-sky-950/30 border-sky-500/20 text-sky-400'
           }`}>
             {physicsChaptersCount} Ch
           </span>
@@ -237,35 +241,35 @@ export function MockDirectorySidebar({
         <motion.button
           whileTap={{ scale: 0.985 }}
           onClick={() => onSelectNav('chemistry')}
-          className={`relative w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-left cursor-pointer transition-colors group ${
+          className={`relative w-full flex items-center justify-between px-2.5 py-1.5 sm:py-2 rounded-xl text-left cursor-pointer transition-colors group ${
             activeNav === 'chemistry'
-              ? 'bg-zinc-800/90 text-white shadow-xs'
-              : 'bg-transparent hover:bg-white/[0.06] text-zinc-400 hover:text-zinc-200'
+              ? 'surface-2 text-white shadow-sm border border-white/10'
+              : 'bg-transparent hover:bg-white/[0.04] text-zinc-400 hover:text-zinc-200 border border-transparent'
           }`}
         >
           {activeNav === 'chemistry' && (
             <motion.div
               layoutId="activeNavHighlight"
-              className="absolute inset-0 bg-zinc-800/90 border-l-2 border-l-emerald-500 rounded-xl"
+              className="absolute inset-0 bg-white/[0.06] border-l-2 border-l-emerald-400 rounded-xl"
               transition={springs.fluid}
             />
           )}
-          <div className="relative z-10 flex items-center gap-2.5 min-w-0">
-            <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
+          <div className="relative z-10 flex items-center gap-2 min-w-0">
+            <div className={`w-6.5 h-6.5 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
               activeNav === 'chemistry'
-                ? 'bg-emerald-950/70 text-emerald-300'
-                : 'bg-emerald-950/40 text-emerald-400/80 group-hover:text-emerald-400'
+                ? 'bg-emerald-950/70 text-emerald-300 border border-emerald-500/40'
+                : 'bg-emerald-950/40 text-emerald-400/80 border border-emerald-500/20 group-hover:text-emerald-300'
             }`}>
               <FlaskConical className="w-3.5 h-3.5" />
             </div>
-            <span className={`text-xs font-semibold font-display truncate ${activeNav === 'chemistry' ? 'text-white' : 'text-zinc-200 group-hover:text-white'}`}>
+            <span className={`text-xs font-semibold font-display truncate ${activeNav === 'chemistry' ? 'text-white' : 'text-zinc-300 group-hover:text-white'}`}>
               Chemistry
             </span>
           </div>
-          <span className={`relative z-10 shrink-0 text-[10px] font-mono font-medium px-2 py-0.5 rounded transition-colors ${
+          <span className={`relative z-10 shrink-0 text-[10px] font-mono font-bold px-2 py-0.5 rounded-lg border transition-colors ${
             activeNav === 'chemistry'
-              ? 'bg-emerald-950/80 text-emerald-300'
-              : 'bg-emerald-950/40 text-emerald-400/90'
+              ? 'bg-emerald-950/70 border-emerald-500/40 text-emerald-300'
+              : 'bg-emerald-950/30 border-emerald-500/20 text-emerald-400'
           }`}>
             {chemistryChaptersCount} Ch
           </span>
@@ -275,48 +279,48 @@ export function MockDirectorySidebar({
         <motion.button
           whileTap={{ scale: 0.985 }}
           onClick={() => onSelectNav('maths')}
-          className={`relative w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-left cursor-pointer transition-colors group ${
+          className={`relative w-full flex items-center justify-between px-2.5 py-1.5 sm:py-2 rounded-xl text-left cursor-pointer transition-colors group ${
             activeNav === 'maths'
-              ? 'bg-zinc-800/90 text-white shadow-xs'
-              : 'bg-transparent hover:bg-white/[0.06] text-zinc-400 hover:text-zinc-200'
+              ? 'surface-2 text-white shadow-sm border border-white/10'
+              : 'bg-transparent hover:bg-white/[0.04] text-zinc-400 hover:text-zinc-200 border border-transparent'
           }`}
         >
           {activeNav === 'maths' && (
             <motion.div
               layoutId="activeNavHighlight"
-              className="absolute inset-0 bg-zinc-800/90 border-l-2 border-l-indigo-500 rounded-xl"
+              className="absolute inset-0 bg-white/[0.06] border-l-2 border-l-indigo-400 rounded-xl"
               transition={springs.fluid}
             />
           )}
-          <div className="relative z-10 flex items-center gap-2.5 min-w-0">
-            <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
+          <div className="relative z-10 flex items-center gap-2 min-w-0">
+            <div className={`w-6.5 h-6.5 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
               activeNav === 'maths'
-                ? 'bg-indigo-950/70 text-indigo-300'
-                : 'bg-indigo-950/40 text-indigo-400/80 group-hover:text-indigo-400'
+                ? 'bg-indigo-950/70 text-indigo-300 border border-indigo-500/40'
+                : 'bg-indigo-950/40 text-indigo-400/80 border border-indigo-500/20 group-hover:text-indigo-300'
             }`}>
               <Calculator className="w-3.5 h-3.5" />
             </div>
-            <span className={`text-xs font-semibold font-display truncate ${activeNav === 'maths' ? 'text-white' : 'text-zinc-200 group-hover:text-white'}`}>
+            <span className={`text-xs font-semibold font-display truncate ${activeNav === 'maths' ? 'text-white' : 'text-zinc-300 group-hover:text-white'}`}>
               Mathematics
             </span>
           </div>
-          <span className={`relative z-10 shrink-0 text-[10px] font-mono font-medium px-2 py-0.5 rounded transition-colors ${
+          <span className={`relative z-10 shrink-0 text-[10px] font-mono font-bold px-2 py-0.5 rounded-lg border transition-colors ${
             activeNav === 'maths'
-              ? 'bg-indigo-950/80 text-indigo-300'
-              : 'bg-indigo-950/40 text-indigo-400/90'
+              ? 'bg-indigo-950/70 border-indigo-500/40 text-indigo-300'
+              : 'bg-indigo-950/30 border-indigo-500/20 text-indigo-400'
           }`}>
             {mathsChaptersCount} Ch
           </span>
         </motion.button>
       </div>
 
-      {/* Section 3: History & Analytics */}
-      <div className="space-y-1.5 pt-1.5 border-t border-zinc-850">
+      {/* 4. Section 3: History & Analytics */}
+      <div className="space-y-1 pt-1.5 border-t border-white/5">
         <div className="flex items-center justify-between px-1">
-          <div className="text-[10px] font-mono font-semibold uppercase tracking-wider text-zinc-500">
+          <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-500">
             History & Analytics
           </div>
-          <span className="text-[9px] font-mono text-indigo-400 bg-indigo-950/60 px-2 py-0.5 rounded">
+          <span className="text-[9px] font-mono font-bold text-indigo-300 bg-indigo-950/70 border border-indigo-500/40 px-2 py-0.5 rounded-md">
             Target: 99%ile
           </span>
         </div>
@@ -325,59 +329,61 @@ export function MockDirectorySidebar({
           role="button"
           whileTap={{ scale: 0.985 }}
           onClick={() => onSelectNav('history')}
-          className={`relative w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-left cursor-pointer transition-colors group ${
+          className={`relative w-full flex items-center justify-between px-2.5 py-1.5 sm:py-2 rounded-xl text-left cursor-pointer transition-colors group ${
             activeNav === 'history'
-              ? 'bg-zinc-800/90 text-white shadow-xs'
-              : 'bg-transparent hover:bg-white/[0.06] text-zinc-400 hover:text-zinc-200'
+              ? 'surface-2 text-white shadow-sm border border-white/10'
+              : 'bg-transparent hover:bg-white/[0.04] text-zinc-400 hover:text-zinc-200 border border-transparent'
           }`}
         >
           {activeNav === 'history' && (
             <motion.div
               layoutId="activeNavHighlight"
-              className="absolute inset-0 bg-zinc-800/90 border-l-2 border-l-rose-500 rounded-xl"
+              className="absolute inset-0 bg-white/[0.06] border-l-2 border-l-rose-400 rounded-xl"
               transition={springs.fluid}
             />
           )}
-          <div className="relative z-10 flex items-center gap-2.5 min-w-0">
-            <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
+          <div className="relative z-10 flex items-center gap-2 min-w-0">
+            <div className={`w-6.5 h-6.5 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
               activeNav === 'history'
-                ? 'bg-rose-950/70 text-rose-300'
-                : 'bg-rose-950/40 text-rose-400/80 group-hover:text-rose-400'
+                ? 'bg-rose-950/70 text-rose-300 border border-rose-500/40'
+                : 'bg-rose-950/40 text-rose-400/80 border border-rose-500/20 group-hover:text-rose-300'
             }`}>
               <History className="w-3.5 h-3.5" />
             </div>
-            <span className={`text-xs font-semibold font-display truncate ${activeNav === 'history' ? 'text-white' : 'text-zinc-200 group-hover:text-rose-200'}`}>
+            <span className={`text-xs font-semibold font-display truncate ${activeNav === 'history' ? 'text-white' : 'text-zinc-300 group-hover:text-rose-200'}`}>
               Past Attempts
             </span>
           </div>
-          <span className={`relative z-10 shrink-0 text-[10px] font-mono font-medium px-2 py-0.5 rounded transition-colors ${
+          <span className={`relative z-10 shrink-0 text-[10px] font-mono font-bold px-2 py-0.5 rounded-lg border transition-colors ${
             activeNav === 'history'
-              ? 'bg-rose-950/80 text-rose-300'
-              : 'bg-zinc-850/80 text-zinc-400'
+              ? 'bg-rose-950/70 border-rose-500/40 text-rose-300'
+              : 'bg-white/5 border-white/10 text-zinc-400'
           }`}>
             {pastAttemptsCount}
           </span>
         </motion.button>
+      </div>
 
-        {/* Readiness Card */}
-        <div className="bg-zinc-900/60 border border-zinc-850 rounded-xl p-2.5 space-y-2">
+      {/* 5. Bottom Pinned Area: Readiness Telemetry Card */}
+      <div className="pt-1.5 border-t border-white/5">
+        <div className="surface-2 border border-zinc-800/80 rounded-2xl p-2.5 sm:p-3 space-y-2 sm:space-y-2.5 shadow-md">
           {/* Micro Telemetry Metrics */}
           <div className="grid grid-cols-3 gap-1.5 text-center">
-            <div className="bg-zinc-850/60 rounded-lg py-1 px-1">
-              <div className="text-[9px] font-mono uppercase text-zinc-400 font-medium">Mocks</div>
-              <div className="text-xs font-bold font-mono text-zinc-100 mt-0.5">
+            <div className="bg-white/[0.03] border border-white/5 rounded-xl py-1.5 px-1">
+              <div className="text-[9px] font-mono uppercase tracking-wider text-zinc-400 font-semibold">Mocks</div>
+              <div className="text-xs sm:text-sm font-bold font-mono text-zinc-100 mt-0.5">
                 {mockStats.totalAttempts}
               </div>
             </div>
-            <div className="bg-zinc-850/60 rounded-lg py-1 px-1">
-              <div className="text-[9px] font-mono uppercase text-zinc-400 font-medium">Avg Score</div>
-              <div className="text-xs font-bold font-mono text-amber-400 mt-0.5">
+            <div className="bg-white/[0.03] border border-white/5 rounded-xl py-1.5 px-1">
+              <div className="text-[9px] font-mono uppercase tracking-wider text-zinc-400 font-semibold">Avg Score</div>
+              <div className="text-xs sm:text-sm font-bold font-mono text-amber-400 mt-0.5">
                 {mockStats.avgScore}<span className="text-[9px] text-zinc-500 font-normal">/300</span>
               </div>
             </div>
-            <div className="bg-zinc-850/60 rounded-lg py-1 px-1">
-              <div className="text-[9px] font-mono uppercase text-zinc-400 font-medium">Accuracy</div>
-              <div className="text-xs font-bold font-mono text-emerald-400 mt-0.5">
+            <div className="bg-white/[0.03] border border-white/5 rounded-xl py-1.5 px-1">
+              <div className="text-[9px] font-mono uppercase tracking-wider text-zinc-400 font-semibold">Accuracy</div>
+              <div className="text-xs sm:text-sm font-bold font-mono text-emerald-400 mt-0.5">
                 {mockStats.avgAccuracy}%
               </div>
             </div>
@@ -386,19 +392,21 @@ export function MockDirectorySidebar({
           {/* Prep Shortcuts */}
           <div className="grid grid-cols-2 gap-1.5">
             <button
+              type="button"
               onClick={onNavigateToMistakes}
-              className="flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg bg-zinc-850/80 hover:bg-zinc-800 text-[10px] font-mono text-zinc-300 hover:text-white transition-colors cursor-pointer"
+              className="flex items-center justify-center gap-1.5 px-2 py-1.5 sm:py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/5 text-[11px] sm:text-xs font-mono font-semibold text-zinc-300 hover:text-white transition-colors cursor-pointer"
             >
-              <AlertTriangle className="w-3 h-3 text-rose-400" />
-              <span>Mistake Vault</span>
+              <AlertTriangle className="w-3 h-3 text-rose-400 shrink-0" />
+              <span className="truncate">Mistake Vault</span>
             </button>
 
             <button
+              type="button"
               onClick={onNavigateToFormulas}
-              className="flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg bg-zinc-850/80 hover:bg-zinc-800 text-[10px] font-mono text-zinc-300 hover:text-white transition-colors cursor-pointer"
+              className="flex items-center justify-center gap-1.5 px-2 py-1.5 sm:py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/5 text-[11px] sm:text-xs font-mono font-semibold text-zinc-300 hover:text-white transition-colors cursor-pointer"
             >
-              <Zap className="w-3 h-3 text-amber-400" />
-              <span>Speed Drills</span>
+              <Zap className="w-3 h-3 text-amber-400 shrink-0" />
+              <span className="truncate">Speed Drills</span>
             </button>
           </div>
         </div>

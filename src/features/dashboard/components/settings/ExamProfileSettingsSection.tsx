@@ -22,7 +22,7 @@ export const ExamProfileSettingsSection: React.FC<ExamProfileSettingsSectionProp
   onChange
 }) => {
   return (
-    <div className="bg-zinc-900/90 border border-white/15 rounded-3xl p-6 md:p-8 space-y-6 shadow-xl text-left relative z-30 overflow-visible">
+    <div className="css-glass rounded-3xl p-6 md:p-8 space-y-6 shadow-xl text-left relative z-30 overflow-visible">
       <div className="flex items-center gap-3 border-b border-white/10 pb-4">
         <div className="w-9 h-9 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-sm">
           <Target className="w-4.5 h-4.5" />

@@ -369,7 +369,7 @@ export function SettingsPage() {
       </form>
 
       {/* SECTION 6: CLOUD SYNC & AUTHENTICATION */}
-      <div className="bg-zinc-900/90 border border-white/15 rounded-3xl p-6 md:p-8 space-y-6 shadow-xl text-left">
+      <div className="css-glass rounded-3xl p-6 md:p-8 space-y-6 shadow-xl text-left">
         <div className="flex items-center justify-between border-b border-white/10 pb-4">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shadow-sm">

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Modal } from '@/components/ui/Modal';
 import { Pause, Play, LogOut, Clock, Gauge, Zap, AlertTriangle, ShieldAlert } from 'lucide-react';
@@ -42,13 +42,14 @@ export function MissionPauseOverlay({
       onClose={() => setIsPaused(false)}
       zIndex={10000}
       backdropClassName="bg-black/10 backdrop-blur-md"
-      className="max-w-lg w-full p-6 sm:p-8 space-y-6 text-center rounded-3xl relative overflow-hidden glass-panel"
+      className="max-w-lg w-full p-6 sm:p-8 space-y-6 text-center rounded-3xl relative overflow-hidden css-glass"
       style={{
-        background: 'rgba(10, 14, 23, 0.90)',
-        backdropFilter: 'blur(28px) saturate(190%) contrast(105%)',
+        background: 'rgba(13, 16, 24, 0.88)',
+        backdropFilter: 'blur(5px)',
+        WebkitBackdropFilter: 'blur(5px)',
         border: '1.5px solid rgba(245, 158, 11, 0.4)',
         borderTop: '2px solid rgba(245, 158, 11, 0.7)',
-        boxShadow: '0 30px 90px rgba(0, 0, 0, 0.85), 0 0 60px rgba(245, 158, 11, 0.18)'
+        boxShadow: '0 4px 30px rgba(0, 0, 0, 0.35), 0 0 40px rgba(245, 158, 11, 0.18)'
       }}
     >
       {/* Top Hazard Warning Tape Ribbon */}
@@ -94,7 +95,7 @@ export function MissionPauseOverlay({
       </div>
 
       {/* 4-Cell Sci-Fi Metric Telemetry Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3.5 rounded-2xl bg-zinc-950/70 border border-white/10 text-left shadow-inner">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3.5 rounded-2xl css-glass-subtle text-left shadow-md">
         
         {/* Cell 1: Active Time */}
         <div className="space-y-0.5">
@@ -173,7 +174,7 @@ export function MissionPauseOverlay({
             audioEngine.playRadioRelayClick().catch(() => {});
             onExit();
           }}
-          className="w-full sm:w-auto py-3.5 px-6 rounded-2xl bg-zinc-900/80 hover:bg-red-500/20 border border-white/10 hover:border-red-500/40 text-zinc-400 hover:text-red-300 font-mono font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer"
+          className="w-full sm:w-auto py-3.5 px-6 rounded-2xl css-glass hover:bg-red-500/20 border border-white/20 hover:border-red-500/40 text-zinc-300 hover:text-red-300 font-mono font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer"
         >
           <LogOut className="w-3.5 h-3.5" />
           <span>End Session</span>

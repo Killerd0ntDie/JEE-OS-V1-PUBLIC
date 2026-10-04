@@ -12,7 +12,7 @@ export const GamificationSettingsSection: React.FC<GamificationSettingsSectionPr
   onChange
 }) => {
   return (
-    <div className="bg-zinc-900/90 border border-amber-500/20 rounded-3xl p-6 md:p-8 space-y-6 shadow-xl relative overflow-hidden text-left">
+    <div className="css-glass rounded-3xl p-6 md:p-8 space-y-6 shadow-xl relative overflow-hidden text-left">
       <div className="flex items-center gap-3 border-b border-white/10 pb-4">
         <div className="w-9 h-9 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-sm">
           <Sparkles className="w-4.5 h-4.5" />
@@ -29,7 +29,7 @@ export const GamificationSettingsSection: React.FC<GamificationSettingsSectionPr
 
       <div className="grid grid-cols-1 gap-4">
         {/* God Mode Toggle Switch */}
-        <div className="flex items-center justify-between p-4.5 rounded-2xl bg-zinc-850/60 border border-white/10 gap-4 shadow-sm">
+        <div className="flex items-center justify-between p-4.5 rounded-2xl css-glass-subtle gap-4 shadow-sm">
           <div className="space-y-1 pr-2">
             <div className="text-sm font-mono font-bold text-white flex items-center gap-2">
               <span>Enable God Mode</span>
