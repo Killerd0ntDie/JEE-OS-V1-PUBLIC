@@ -77,22 +77,12 @@ export const DashboardFocusSection = React.memo(function DashboardFocusSection({
   const tabs = [
     { 
       id: 'focus', 
-      label: (
-        <span>
-          <span className="eva-japanese-badge">焦点復習 {'// '}</span>
-          <span>Focus & Revision</span>
-        </span>
-      ), 
+      label: 'Focus & Chapter Review', 
       icon: Target 
     },
     { 
       id: 'analytics', 
-      label: (
-        <span>
-          <span className="eva-japanese-badge">分析評価 {'// '}</span>
-          <span>Analytics & Trajectory</span>
-        </span>
-      ), 
+      label: 'Analytics & Trajectory', 
       icon: BarChart3 
     },
   ];
@@ -150,8 +140,7 @@ export const DashboardFocusSection = React.memo(function DashboardFocusSection({
         </div>
 
         <span className="text-xs text-zinc-400 font-mono hidden sm:inline-block">
-          <span className="eva-japanese-badge">MAGI {'// '}</span>
-          <span>{activeTab === 'focus' ? 'ACTIVE REVISION QUEUE' : 'SYLLABUS TRAJECTORY MATRIX'}</span>
+          <span>{activeTab === 'focus' ? 'DAILY CHAPTER REVIEW & READINESS' : 'SYLLABUS TRAJECTORY MATRIX'}</span>
         </span>
       </div>
 

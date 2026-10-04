@@ -1,10 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
-import { SmartRevisionQueueWidget } from './SmartRevisionQueueWidget';
+import { DailyChapterReviewWidget, SmartRevisionQueueWidget } from './SmartRevisionQueueWidget';
 import { Chapter } from '@/types/index';
-import { RevisionCard } from '@/services/revisionEngineService';
 
 // Mock audio engine
 vi.mock('@/utils/audioEngine', () => ({
@@ -20,7 +18,7 @@ vi.mock('@/store/useStudyBrainStore', () => ({
   useStudyBrainStore: (selector: any) => selector(mockStoreState)
 }));
 
-describe('SmartRevisionQueueWidget - Vault Telemetry & Doomsday Synergy', () => {
+describe('DailyChapterReviewWidget (Clean Chapter Review Task List)', () => {
   const mockChapters = [
     {
       id: 'phy-1',
@@ -31,6 +29,9 @@ describe('SmartRevisionQueueWidget - Vault Telemetry & Doomsday Synergy', () => 
       confidence: 85,
       theoryComplete: true,
       dppComplete: true,
+      lastRevisionDaysAgo: 2,
+      revisionCount: 2,
+      solvedQuestions: 45
     },
     {
       id: 'chem-1',
@@ -41,6 +42,9 @@ describe('SmartRevisionQueueWidget - Vault Telemetry & Doomsday Synergy', () => 
       confidence: 90,
       theoryComplete: true,
       dppComplete: true,
+      lastRevisionDaysAgo: 1,
+      revisionCount: 3,
+      solvedQuestions: 60
     },
     {
       id: 'math-1',
@@ -51,88 +55,108 @@ describe('SmartRevisionQueueWidget - Vault Telemetry & Doomsday Synergy', () => 
       confidence: 70,
       theoryComplete: true,
       dppComplete: false,
+      lastRevisionDaysAgo: 9,
+      revisionCount: 1,
+      weaknessScore: 48,
+      solvedQuestions: 20
     }
   ] as unknown as Chapter[];
+
+  const mockActions = {
+    openChapterEditModal: vi.fn(),
+    completeRevision: vi.fn().mockResolvedValue(undefined)
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
     mockStoreState = {
       chapters: mockChapters,
-      settings: {
-        dayStartTime: '07:00'
-      }
+      actions: mockActions
     };
   });
 
-  it('renders Vault Telemetry and Doomsday Velocity Safeguard when queue is 0 DUE', () => {
+  it('renders Daily Chapter Review header, subject filters, and due review items', () => {
     render(
       <MemoryRouter>
-        <SmartRevisionQueueWidget
-          revisionQueue={[]}
-          onLaunchRevision={vi.fn()}
-        />
+        <DailyChapterReviewWidget />
       </MemoryRouter>
     );
 
-    // Verify 0 DUE and Memory Vault Secure
-    expect(screen.getByText('0 DUE')).toBeInTheDocument();
-    expect(screen.getByText('MEMORY VAULT SECURE')).toBeInTheDocument();
-
-    // Verify Vault Health telemetry with chapters locked
-    expect(screen.getByText(/3 locked/i)).toBeInTheDocument();
-    expect(screen.getByText(/Vault Health/i)).toBeInTheDocument();
-
-    // Verify Doomsday Velocity Safeguard Callout
-    expect(screen.getByText(/DOOMSDAY VELOCITY SAFEGUARD/i)).toBeInTheDocument();
-    expect(screen.getByText(/3 in Vault/i)).toBeInTheDocument();
-    expect(screen.getByText(/protects your 3 studied chapters against Ebbinghaus decay/i)).toBeInTheDocument();
-
-    // Verify Proactive Drill CTA
-    expect(screen.getByText(/Proactive Speed Recall Drill/i)).toBeInTheDocument();
-
-    // Verify Revision Hub bottom button
-    expect(screen.getByText('Revision Hub')).toBeInTheDocument();
-  });
-
-  it('renders Decay Risk alert banner and overdue items when queue has due items', () => {
-    const mockDueQueue: RevisionCard[] = [
-      {
-        chapterId: 'phy-1',
-        chapterName: 'Rotational Motion',
-        healthScore: 45,
-        priorityScore: 92,
-        estimatedTime: 20,
-        reason: 'Interval Overdue by 4 days',
-        retentionStatus: 'Fading',
-        isCritical: true,
-      } as any
-    ];
-
-    const onLaunch = vi.fn();
-
-    render(
-      <MemoryRouter>
-        <SmartRevisionQueueWidget
-          revisionQueue={mockDueQueue}
-          onLaunchRevision={onLaunch}
-        />
-      </MemoryRouter>
-    );
-
-    // Verify badge
+    // Verify title and badge
+    expect(screen.getByText('Daily Chapter Review')).toBeInTheDocument();
     expect(screen.getByText('1 DUE')).toBeInTheDocument();
 
-    // Verify Decay Risk banner linking to Doomsday Pace
-    expect(screen.getByText(/1 Chapter in Decay Risk/i)).toBeInTheDocument();
-    expect(screen.getByText(/Protect Velocity/i)).toBeInTheDocument();
+    // Verify subject tabs
+    expect(screen.getByRole('button', { name: /^all/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^physics/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^chemistry/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^maths/i })).toBeInTheDocument();
 
-    // Verify chapter card
-    expect(screen.getByText('Rotational Motion')).toBeInTheDocument();
-    expect(screen.getByText('Interval Overdue by 4 days')).toBeInTheDocument();
+    // Verify chapter card details
+    expect(screen.getByText('Differential Equations')).toBeInTheDocument();
+    expect(screen.getByText('Revision Due')).toBeInTheDocument();
+    expect(screen.getByText(/Revised 9d ago/i)).toBeInTheDocument();
+    expect(screen.getByText(/48% Weakness/i)).toBeInTheDocument();
 
-    // Click revise
-    const reviseBtn = screen.getByText('Revise');
-    fireEvent.click(reviseBtn);
-    expect(onLaunch).toHaveBeenCalledWith(mockDueQueue[0]);
+    // Verify footer links
+    expect(screen.getByText('Formulas')).toBeInTheDocument();
+    expect(screen.getByText('Mistakes')).toBeInTheDocument();
+    expect(screen.getByText('Planner')).toBeInTheDocument();
+  });
+
+  it('triggers openChapterEditModal when clicking Review button', () => {
+    render(
+      <MemoryRouter>
+        <SmartRevisionQueueWidget />
+      </MemoryRouter>
+    );
+
+    const reviewBtn = screen.getByRole('button', { name: /review/i });
+    fireEvent.click(reviewBtn);
+
+    expect(mockActions.openChapterEditModal).toHaveBeenCalledWith('math-1');
+  });
+
+  it('marks chapter reviewed and triggers completeRevision when clicking Done button', async () => {
+    render(
+      <MemoryRouter>
+        <DailyChapterReviewWidget />
+      </MemoryRouter>
+    );
+
+    const doneBtn = screen.getByRole('button', { name: /done/i });
+    fireEvent.click(doneBtn);
+
+    expect(mockActions.completeRevision).toHaveBeenCalledWith('math-1', 'High');
+  });
+
+  it('displays clean All Reviewed empty state when no chapters are overdue', () => {
+    // Set all chapters to recently reviewed
+    mockStoreState = {
+      chapters: [
+        {
+          id: 'phy-1',
+          name: 'Kinematics',
+          subject: 'physics',
+          status: 'Mastered',
+          completion: 100,
+          theoryComplete: true,
+          lastRevisionDaysAgo: 2,
+          revisionCount: 2
+        }
+      ],
+      actions: mockActions
+    };
+
+    render(
+      <MemoryRouter>
+        <DailyChapterReviewWidget />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText('ALL REVIEWED')).toBeInTheDocument();
+    expect(screen.getByText('All Studied Chapters Reviewed')).toBeInTheDocument();
+    expect(screen.getByText('Review Formulas')).toBeInTheDocument();
+    expect(screen.getByText('Review Mistakes')).toBeInTheDocument();
   });
 });

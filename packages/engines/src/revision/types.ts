@@ -49,6 +49,62 @@ export interface RevisionEngineInput {
   notes?: Note[];
 }
 
+export interface DueChapterItem {
+  chapterId: string;
+  chapterName: string;
+  subject: SubjectId;
+  status: string;
+  completion: number;
+  revisionCount: number;
+  lastRevisedAt?: string;
+  nextRevisionDueAt?: string;
+  daysOverdue: number;
+  urgency: 'overdue' | 'due_today' | 'upcoming';
+  dueReason: string;
+  formulaCardsCount: number;
+  mistakeCardsCount: number;
+  totalCardsCount: number;
+  cards: RevisionCardItem[];
+}
+
+export interface RevisionCard {
+  chapterId: string;
+  subject: SubjectId;
+  chapterName: string;
+  reason: string;
+  estimatedTime: number; // in minutes
+  priority: 'High' | 'Medium' | 'Low';
+  priorityScore: number;
+  confidence: number;
+  difficulty: 'Easy' | 'Medium' | 'Hard';
+  lastRevised: string; // e.g. "3 days ago"
+  currentStage: string;
+  healthScore: number;
+  retentionScore: number;
+  retentionStatus: 'Fresh' | 'Stable' | 'Fading' | 'Forgotten';
+  isCritical: boolean;
+  daysOverdue: number;
+}
+
+export interface RevisionPlanOutput {
+  dueChapters: DueChapterItem[];
+  upcomingChapters: DueChapterItem[];
+  masteredChapters: ChapterRevisionSummary[];
+  notStartedChapters: ChapterRevisionSummary[];
+  dueCards: RevisionCardItem[];
+  allCards: RevisionCardItem[];
+  revisionQueue: RevisionCard[];
+  stats: {
+    totalDueChapters: number;
+    totalDueCards: number;
+    totalUpcomingChapters: number;
+    totalMasteredChapters: number;
+    totalNotStartedChapters: number;
+    reviewedTodayCount: number;
+    avgRetentionScore: number;
+  };
+}
+
 export interface RevisionEngineOutput {
   overdueChapters: ChapterRevisionSummary[];
   upcomingChapters: ChapterRevisionSummary[];
@@ -59,6 +115,9 @@ export interface RevisionEngineOutput {
   notStartedChapters: ChapterRevisionSummary[];
   cards: RevisionCardItem[];
   urgentCards: RevisionCardItem[]; // Top 6 urgent cards for compact display
+  dueChapters?: DueChapterItem[];
+  dueCards?: RevisionCardItem[];
+  revisionQueue?: RevisionCard[];
   stats: {
     totalOverdue: number;
     totalUpcoming: number;
@@ -68,3 +127,4 @@ export interface RevisionEngineOutput {
     reviewedTodayCount: number;
   };
 }
+

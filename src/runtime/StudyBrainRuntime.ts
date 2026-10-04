@@ -792,7 +792,7 @@ export class StudyBrainRuntime {
     let revisionQueue = this.state.revisionQueue;
     if (reason === 'INIT' || stateChanged.mistakes || stateChanged.chapters || stateChanged.settings) {
       const rStart = performance.now();
-      revisionQueue = StudyBrainService.getRevisionQueue(
+      revisionQueue = revisionTelemetry?.revisionQueue || StudyBrainService.getRevisionQueue(
         this.state.chapters, 
         this.state.mistakes, 
         this.state.settings.revisionSettings

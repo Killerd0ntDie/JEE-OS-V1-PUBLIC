@@ -3,6 +3,7 @@ import { FORMULA_BANK } from '../constants/formulaBank';
 import { SpacedRepetitionEngine } from './SpacedRepetitionEngine';
 import { Chapter } from '../types/index';
 import { ChapterTelemetry } from '../chapterInfo/types';
+import { buildRevisionPlan } from './revisionPlan';
 
 /**
  * Determines whether a syllabus chapter is running (in progress) or completed/mastered,
@@ -122,6 +123,13 @@ export class RevisionEngine {
     }
 
     const { chapters, chapterTelemetryMap, sessions, mistakes = [], notes = [] } = input;
+    const plan = buildRevisionPlan({
+      chapters,
+      mistakes,
+      notes,
+      sessions
+    });
+
     const allTelemetry = Object.values(chapterTelemetryMap || {});
 
     const overdueChapters: ChapterRevisionSummary[] = [];
@@ -154,14 +162,14 @@ export class RevisionEngine {
       const hasActiveWork = isChapterKnownOrRunning(chap, telemetry, chapMistakes.length);
 
       // BUGFIX: chapters that haven't been started have no memory to have decayed —
-      // labeling them 'High'/95% retention is actively misleading (it previously made
-      // the Retention Matrix show untouched chapters as if they were well-retained).
-      // Give them an honest, distinct 'Not Started' state with no fabricated score.
+      // labeling them 'High'/95% retention is actively misleading.
+      const isDueInPlan = plan.dueChapters.some(d => d.chapterId === chap.id);
+      const rawRetentionConfidence = telemetry?.retentionConfidence || (chapMistakes.some(m => m.revisionStatus === 'New') ? 'Low' : 'High');
       const retentionConfidence: ChapterRevisionSummary['retentionConfidence'] = hasActiveWork
-        ? (telemetry?.retentionConfidence || (chapMistakes.some(m => m.revisionStatus === 'New') ? 'Low' : 'High'))
+        ? (isDueInPlan ? 'Low' : rawRetentionConfidence)
         : 'Not Started';
       const retentionScore: number | undefined = hasActiveWork
-        ? (telemetry?.strategyRadar?.retentionConfidenceScore ?? (chapMistakes.length > 0 ? 50 : 70))
+        ? (telemetry?.strategyRadar?.retentionConfidenceScore ?? (isDueInPlan ? 45 : chapMistakes.length > 0 ? 50 : 70))
         : undefined;
 
       // Find matching formulas from FORMULA_BANK
@@ -433,6 +441,9 @@ export class RevisionEngine {
       notStartedChapters,
       cards: allCards,
       urgentCards,
+      dueChapters: plan.dueChapters,
+      dueCards: plan.dueCards,
+      revisionQueue: plan.revisionQueue,
       stats: {
         totalOverdue,
         totalUpcoming,
@@ -454,7 +465,9 @@ export class RevisionEngine {
   }
 
   private computeHash(input: RevisionEngineInput): string {
-    const chapSig = input.chapters.map(c => `${c.id}:${c.status}:${c.completion}:${c.chapterOnHold}:${c.revisionOnHold}`).sort().join('|');
+    const chapSig = input.chapters.map(c => 
+      `${c.id}:${c.status}:${c.completion}:${c.chapterOnHold}:${c.revisionOnHold}:${c.revisionCount || 0}:${c.nextRevisionDueAt || ''}:${c.lastRevisedAt || ''}:${Object.keys(c.flashcardStates || {}).length}`
+    ).sort().join('|');
     const sessionCount = input.sessions.reduce((acc, s) => acc + (s.duration || 0), 0);
     const mistakeCount = (input.mistakes || []).map(m => `${m.id}:${(m as any).status}:${m.revisionStatus}`).sort().join('|');
     const noteCount = (input.notes || []).length;

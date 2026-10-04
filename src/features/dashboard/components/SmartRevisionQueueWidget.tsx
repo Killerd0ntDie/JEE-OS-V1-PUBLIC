@@ -1,56 +1,129 @@
-import { useMemo } from 'react';
-import { RevisionCard, RevisionEngineService } from '@/services/revisionEngineService';
+import { useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShieldCheck, Sparkles, Clock, Layers, Play, FlaskConical, Atom, Calculator, Calendar, Zap, AlertTriangle } from 'lucide-react';
-import { motion } from 'motion/react';
+import { 
+  CheckCircle2, 
+  Clock, 
+  FlaskConical, 
+  Atom, 
+  Calculator, 
+  BookOpen, 
+  Check, 
+  Sigma, 
+  ShieldAlert, 
+  Calendar,
+  Layers
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { springs } from '@/constants/motion';
 import { audioEngine } from '@/utils/audioEngine';
 import { useStudyBrainStore } from '@/store/useStudyBrainStore';
+import { useShallow } from 'zustand/react/shallow';
+import { Chapter } from '@/types/index';
+import { RevisionCard } from '@/services/revisionEngineService';
+import { findMatchingBankChapter } from '@jee-os/engines';
+import { RevisionSession } from '@/features/revision/components/RevisionSession';
 
-interface SmartRevisionQueueWidgetProps {
-  revisionQueue: RevisionCard[];
-  onLaunchRevision: (rev: RevisionCard | null) => void;
+export interface SmartRevisionQueueWidgetProps {
+  revisionQueue?: RevisionCard[];
+  onLaunchRevision?: (rev: RevisionCard | null) => void;
 }
 
-export function SmartRevisionQueueWidget({
+type SubjectFilter = 'all' | 'physics' | 'chemistry' | 'maths';
+
+export function DailyChapterReviewWidget({
   revisionQueue = [],
   onLaunchRevision
 }: SmartRevisionQueueWidgetProps) {
   const navigate = useNavigate();
-  const dayStartTime = useStudyBrainStore(state => state.settings?.dayStartTime) || '07:00';
-  const chapters = useStudyBrainStore(state => state.chapters) || [];
-  const queue = revisionQueue || [];
+  const [selectedSubject, setSelectedSubject] = useState<SubjectFilter>('all');
+  const [markedDoneIds, setMarkedDoneIds] = useState<Set<string>>(new Set());
+  const [reviewingChapter, setReviewingChapter] = useState<Chapter | null>(null);
 
-  // Calculate Memory Vault stats from candidate's studied syllabus
-  const vaultChapters = useMemo(() => {
+  const { chapters, revisionTelemetry, actions } = useStudyBrainStore(
+    useShallow(state => ({
+      chapters: state.chapters || [],
+      revisionTelemetry: state.revisionTelemetry,
+      actions: state.actions
+    }))
+  );
+
+  const getChapterCards = useCallback((chap: Chapter) => {
+    const fromTelemetry = (revisionTelemetry?.cards || []).filter(c => c.chapterId === chap.id);
+    if (fromTelemetry.length > 0) return fromTelemetry;
+    const bank = findMatchingBankChapter(chap);
+    if (bank) {
+      return bank.formulas.map((f, idx) => ({
+        id: `${chap.id}-f${idx}`,
+        chapterId: chap.id,
+        chapterName: chap.name,
+        subject: chap.subject,
+        cardType: 'formula' as const,
+        retentionConfidence: 'Medium' as const,
+        retentionScore: 60,
+        title: f.title,
+        concept: f.concept,
+        formula: f.formula,
+        examNote: f.examNote,
+        nextReviewDays: 1,
+        intervalStage: '1d',
+        recalledCount: 0,
+        urgencyRank: 50
+      }));
+    }
+    return [];
+  }, [revisionTelemetry]);
+
+  // Studied chapters eligible for daily review
+  const studiedChapters = useMemo(() => {
     return chapters.filter(c => 
       !c.chapterOnHold &&
-      (c.status === 'Mastered' || c.status === 'Revision Due' || c.status === 'Theory Complete' || c.syllabusStage === 'Revision' || c.theoryComplete || c.dppComplete || (c.completion && c.completion >= 50))
+      (c.status === 'Revision Due' || c.status === 'Mastered' || c.theoryComplete || (c.completion && c.completion >= 50))
     );
   }, [chapters]);
 
-  const avgRetention = useMemo(() => {
-    if (vaultChapters.length === 0) return 100;
-    const total = vaultChapters.reduce((acc, c) => {
-      const { retention } = RevisionEngineService.estimateRetention(c);
-      return acc + retention;
-    }, 0);
-    return Math.round(total / vaultChapters.length);
-  }, [vaultChapters]);
+  // Incorporate any explicit queue items passed in
+  const queueChapterIds = useMemo(() => {
+    return new Set(revisionQueue.map(r => r.chapterId).filter(Boolean));
+  }, [revisionQueue]);
 
-  const formatScheduleTime = (timeStr: string) => {
-    const [hStr, mStr] = timeStr.split(':');
-    let h = parseInt(hStr, 10) || 7;
-    const m = mStr || '00';
-    const ampm = h >= 12 ? 'PM' : 'AM';
-    if (h > 12) h -= 12;
-    if (h === 0) h = 12;
-    return `${h.toString().padStart(2, '0')}:${m} ${ampm}`;
-  };
+  // Determine chapters due for review (explicitly due, in queue, or not reviewed in 7+ days)
+  const dueChapters = useMemo(() => {
+    return studiedChapters.filter(c => {
+      if (markedDoneIds.has(c.id)) return false;
+      return (
+        c.status === 'Revision Due' || 
+        queueChapterIds.has(c.id) ||
+        (typeof c.lastRevisionDaysAgo === 'number' && c.lastRevisionDaysAgo >= 7) ||
+        (c.revisionCount === 0 && (c.theoryComplete || (c.completion && c.completion >= 80)))
+      );
+    }).sort((a, b) => {
+      // Prioritize explicit 'Revision Due' or in queue, then longest since last revision
+      const aIsDue = a.status === 'Revision Due' || queueChapterIds.has(a.id);
+      const bIsDue = b.status === 'Revision Due' || queueChapterIds.has(b.id);
+      if (aIsDue && !bIsDue) return -1;
+      if (bIsDue && !aIsDue) return 1;
+      return (b.lastRevisionDaysAgo || 0) - (a.lastRevisionDaysAgo || 0);
+    });
+  }, [studiedChapters, markedDoneIds, queueChapterIds]);
 
-  const getSubjectBadge = (subjName?: string) => {
-    const s = (subjName || '').toLowerCase();
-    if (s.includes('chem') || s.includes('organic') || s.includes('bonding') || s.includes('block') || s.includes('acid') || s.includes('equilibrium')) {
+  // Filtered by selected subject
+  const filteredDueChapters = useMemo(() => {
+    if (selectedSubject === 'all') return dueChapters;
+    return dueChapters.filter(c => c.subject?.toLowerCase() === selectedSubject);
+  }, [dueChapters, selectedSubject]);
+
+  const subjectCounts = useMemo(() => {
+    return {
+      all: dueChapters.length,
+      physics: dueChapters.filter(c => c.subject?.toLowerCase() === 'physics').length,
+      chemistry: dueChapters.filter(c => c.subject?.toLowerCase() === 'chemistry').length,
+      maths: dueChapters.filter(c => c.subject?.toLowerCase() === 'maths').length
+    };
+  }, [dueChapters]);
+
+  const getSubjectMeta = (subj?: string) => {
+    const s = (subj || '').toLowerCase();
+    if (s.includes('chem')) {
       return {
         label: 'Chemistry',
         badgeClass: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
@@ -58,7 +131,7 @@ export function SmartRevisionQueueWidget({
         iconColor: 'text-emerald-400'
       };
     }
-    if (s.includes('math') || s.includes('calculus') || s.includes('algebra') || s.includes('trig') || s.includes('vector') || s.includes('coordinate')) {
+    if (s.includes('math')) {
       return {
         label: 'Maths',
         badgeClass: 'bg-purple-500/15 text-purple-300 border-purple-500/30',
@@ -74,202 +147,252 @@ export function SmartRevisionQueueWidget({
     };
   };
 
+  const handleMarkChapterReviewed = async (chapter: Chapter) => {
+    audioEngine.playPowerUp().catch(() => {});
+    setMarkedDoneIds(prev => new Set([...prev, chapter.id]));
+    if (actions?.completeRevision) {
+      await actions.completeRevision(chapter.id, 'High');
+    }
+  };
+
+  const handleReviewChapter = (chap: Chapter) => {
+    audioEngine.playRadioRelayClick().catch(() => {});
+    if (onLaunchRevision) {
+      onLaunchRevision(null);
+    }
+    if (actions?.openChapterEditModal) {
+      actions.openChapterEditModal(chap.id);
+    }
+    setReviewingChapter(chap);
+  };
+
   return (
-    <div 
-      className="rounded-2xl p-5 md:p-6 h-full flex flex-col justify-between shadow-xl relative overflow-hidden text-left font-mono bg-surface-1 border border-border-subtle hover:border-border-muted"
-    >
-      <div className="space-y-3.5 relative z-10">
-        {/* Header with Glowing Icon */}
-        <div className="flex items-center justify-between">
+    <div className="rounded-2xl p-5 md:p-6 h-full flex flex-col justify-between shadow-xl relative overflow-hidden text-left font-sans bg-surface-1 border border-border-subtle hover:border-border-muted">
+      <div className="space-y-4 relative z-10 flex-1 flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 flex items-center justify-center shadow-sm">
+            <div className="w-8 h-8 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 flex items-center justify-center shadow-sm">
               <Layers className="w-4 h-4" />
             </div>
             <div>
               <h3 className="text-sm font-bold font-mono text-white tracking-tight uppercase">
-                <span className="eva-japanese-badge">記憶同期 // </span>REVISION QUEUE
+                Daily Chapter Review
               </h3>
-              <p className="text-[10px] text-zinc-400 font-mono">
-                SM-2 Spaced Repetition Engine
+              <p className="text-[11px] text-zinc-400">
+                Actionable concept, formula, and mistake review tasks
               </p>
             </div>
           </div>
+
           <span className={`text-xs font-mono font-bold px-2.5 py-1 rounded-xl border shadow-sm uppercase ${
-            queue.length > 0
-              ? 'bg-rose-950/60 border-rose-500/40 text-rose-300 animate-pulse'
+            dueChapters.length > 0
+              ? 'bg-amber-950/60 border-amber-500/40 text-amber-300'
               : 'bg-emerald-950/60 border-emerald-500/40 text-emerald-300'
           }`}>
-            {queue.length} DUE
+            {dueChapters.length > 0 ? `${dueChapters.length} DUE` : 'ALL REVIEWED'}
           </span>
         </div>
 
-        {queue.length === 0 ? (
-          <div className="p-4 sm:p-5 rounded-2xl border border-white/10 bg-zinc-950/60 text-center space-y-3 flex flex-col items-center justify-center my-auto font-mono">
-            <motion.div 
-              animate={{ y: [0, -4, 0] }}
-              transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
-              className="w-11 h-11 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center shadow-sm"
-            >
-              <ShieldCheck className="w-6 h-6 text-emerald-400" />
-            </motion.div>
-            
-            <div className="space-y-1">
-              <h4 className="text-sm font-bold text-white tracking-tight uppercase">MEMORY VAULT SECURE</h4>
-              <p className="text-xs text-zinc-400 leading-relaxed font-sans max-w-sm">
-                All studied chapters are retainable and locked in long-term memory. Spaced repetition engine schedules the next recall cycle for tomorrow.
-              </p>
-            </div>
+        {/* Subject Filter Tabs */}
+        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-zinc-950/80 border border-white/5 font-mono text-xs">
+          {(['all', 'physics', 'chemistry', 'maths'] as const).map(tab => {
+            const count = subjectCounts[tab];
+            const isSelected = selectedSubject === tab;
+            return (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setSelectedSubject(tab)}
+                className={`flex-1 py-1 px-2 rounded-lg font-bold text-center transition-colors cursor-pointer capitalize ${
+                  isSelected
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                {tab} {count > 0 && <span className="text-[10px] opacity-80">({count})</span>}
+              </button>
+            );
+          })}
+        </div>
 
-            {/* Live Vault Telemetry */}
-            <div className="grid grid-cols-2 gap-2 w-full pt-1">
-              <div className="p-2 rounded-xl bg-zinc-900/60 border border-white/10 text-left">
-                <span className="text-[10px] text-zinc-400 font-medium block">Vault Health</span>
-                <span className="text-xs font-semibold text-emerald-400 flex items-center gap-1 mt-0.5 font-mono">
-                  <Sparkles className="w-3 h-3" /> {avgRetention}% Retained ({vaultChapters.length} locked)
-                </span>
+        {/* Chapter Task List or Empty State */}
+        <div className="flex-1 flex flex-col justify-center">
+          {filteredDueChapters.length === 0 ? (
+            <div className="p-5 rounded-2xl border border-white/10 bg-zinc-950/60 text-center space-y-3 flex flex-col items-center justify-center my-auto">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center shadow-sm">
+                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
               </div>
-              <div className="p-2 rounded-xl bg-zinc-900/60 border border-white/10 text-left">
-                <span className="text-[10px] text-zinc-400 font-medium block">Next Recall</span>
-                <span className="text-xs font-semibold text-indigo-300 flex items-center gap-1 mt-0.5 font-mono">
-                  <Clock className="w-3 h-3" /> {formatScheduleTime(dayStartTime)}
-                </span>
+              <div className="space-y-1">
+                <h4 className="text-xs font-mono font-bold text-white uppercase tracking-wider">
+                  All Studied Chapters Reviewed
+                </h4>
+                <p className="text-xs text-zinc-400 leading-relaxed max-w-sm">
+                  {selectedSubject === 'all'
+                    ? 'No chapters are currently overdue for review. Keep your memory sharp by testing bookmarked formulas or re-solving recent mistakes.'
+                    : `No ${selectedSubject} chapters are overdue for review today.`}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 pt-1 flex-wrap justify-center">
+                <button
+                  type="button"
+                  onClick={() => navigate('/formulas')}
+                  className="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-700 font-mono text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Sigma className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>Review Formulas</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate('/mistakes')}
+                  className="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-700 font-mono text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer"
+                >
+                  <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
+                  <span>Review Mistakes</span>
+                </button>
               </div>
             </div>
+          ) : (
+            <div className="space-y-2.5 max-h-[290px] overflow-y-auto custom-scrollbar pr-1">
+              <AnimatePresence initial={false}>
+                {filteredDueChapters.map(chap => {
+                  const meta = getSubjectMeta(chap.subject);
+                  const SubjIcon = meta.icon;
+                  const daysAgo = chap.lastRevisionDaysAgo;
 
-            {/* DOOMSDAY PACE SAFEGUARD CALLOUT */}
-            <div className="p-3 rounded-xl bg-gradient-to-r from-emerald-950/40 via-zinc-900/60 to-cyan-950/30 border border-emerald-500/20 text-left font-mono text-[11px] space-y-1 w-full">
-              <div className="flex items-center justify-between">
-                <span className="text-emerald-400 font-bold flex items-center gap-1 text-[10px] uppercase">
-                  <Zap className="w-3 h-3 text-emerald-400" /> DOOMSDAY VELOCITY SAFEGUARD
-                </span>
-                <span className="text-[10px] text-zinc-400 font-mono font-semibold">{vaultChapters.length} in Vault</span>
-              </div>
-              <p className="text-zinc-300 font-sans leading-relaxed text-[11px]">
-                SM-2 consolidation protects your {vaultChapters.length} studied chapters against Ebbinghaus decay. Preventing knowledge loss saves ~{Math.max(1, vaultChapters.length * 3)}h of relearning, keeping your daily pace on target.
-              </p>
-            </div>
-
-            {/* PROACTIVE DRILL CTA */}
-            <button
-              type="button"
-              onClick={() => {
-                audioEngine.playPowerUp().catch(() => {});
-                navigate('/revision');
-              }}
-              className="w-full py-2 px-3 bg-cyan-600/20 hover:bg-cyan-600/35 text-cyan-300 hover:text-white border border-cyan-500/40 rounded-xl text-xs font-mono font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-95"
-            >
-              <Zap className="w-3.5 h-3.5 text-amber-400" />
-              <span>Proactive Speed Recall Drill</span>
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-2.5 font-mono">
-            {/* Decay Alert Callout linking to Doomsday Pace */}
-            <div className="p-2.5 rounded-xl bg-rose-950/50 border border-rose-500/40 text-left text-xs font-mono flex items-center justify-between gap-2 shadow-sm">
-              <div className="flex items-center gap-2 text-rose-300 font-semibold">
-                <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400 animate-pulse" />
-                <span>{queue.length} Chapter{queue.length > 1 ? 's' : ''} in Decay Risk</span>
-              </div>
-              <span className="text-[10px] text-rose-400/80 font-bold uppercase">Protect Velocity</span>
-            </div>
-
-            <div className="space-y-2 max-h-[250px] overflow-y-auto custom-scrollbar pr-1">
-              {queue.map((rev, idx) => {
-                const subj = getSubjectBadge(rev.chapterName);
-                const SubjIcon = subj.icon;
-
-                return (
-                  <motion.div
-                    key={rev.chapterId || idx}
-                    whileHover={{ x: 2 }}
-                    transition={springs.snappy}
-                    className="p-3.5 rounded-xl bg-zinc-950/60 border border-white/10 hover:border-indigo-500/40 transition-colors flex items-center justify-between gap-3 shadow-sm group"
-                  >
-                    <div className="space-y-1.5 min-w-0 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className={`text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-lg border flex items-center gap-1 ${subj.badgeClass}`}>
-                          <SubjIcon className={`w-3 h-3 ${subj.iconColor}`} />
-                          {subj.label}
-                        </span>
-                        {rev.healthScore !== undefined && (
-                          <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
-                            rev.healthScore >= 75 ? 'text-emerald-400 bg-emerald-950/40 border border-emerald-500/20' :
-                            rev.healthScore >= 50 ? 'text-amber-400 bg-amber-950/40 border border-amber-500/20' :
-                            'text-red-400 bg-red-950/40 border border-red-500/20'
-                          }`}>
-                            Health: {rev.healthScore}%
-                          </span>
-                        )}
-                      </div>
-
-                      <h4 className="text-xs font-bold text-white group-hover:text-cyan-300 transition-colors truncate" title={rev.chapterName}>
-                        {rev.chapterName}
-                      </h4>
-
-                      <div className="flex items-center gap-3 text-[11px] text-zinc-400 flex-wrap">
-                        <span className="text-cyan-300 font-medium">{rev.reason || 'Recall Due'}</span>
-                        {rev.estimatedTime && (
-                          <span className="flex items-center gap-1 text-zinc-400">
-                            <Clock className="w-3 h-3 text-zinc-400" />
-                            {rev.estimatedTime}m
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    <motion.button
-                      type="button"
-                      whileHover={{ scale: 1.04 }}
-                      whileTap={{ scale: 0.94 }}
+                  return (
+                    <motion.div
+                      key={chap.id}
+                      layout
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
                       transition={springs.snappy}
-                      onClick={() => {
-                        audioEngine.playRadioRelayClick().catch(() => {});
-                        onLaunchRevision(rev);
-                      }}
-                      className="px-3 py-1.5 text-xs font-mono font-bold uppercase tracking-wider border border-indigo-400/40 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white transition-all shrink-0 rounded-xl cursor-pointer shadow-md shadow-indigo-600/25 flex items-center gap-1.5"
+                      className="p-3.5 rounded-xl bg-zinc-950/70 border border-white/10 hover:border-indigo-500/40 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm text-left"
                     >
-                      <Play className="w-3 h-3 fill-current" />
-                      <span>Revise</span>
-                    </motion.button>
-                  </motion.div>
-                );
-              })}
+                      <div className="space-y-1 min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-lg border flex items-center gap-1 ${meta.badgeClass}`}>
+                            <SubjIcon className={`w-3 h-3 ${meta.iconColor}`} />
+                            {meta.label}
+                          </span>
+                          {chap.status === 'Revision Due' && (
+                            <span className="text-[10px] font-mono font-bold text-amber-300 bg-amber-950/40 border border-amber-500/30 px-1.5 py-0.5 rounded">
+                              Revision Due
+                            </span>
+                          )}
+                          {chap.weaknessScore > 35 && (
+                            <span className="text-[10px] font-mono font-bold text-rose-300 bg-rose-950/40 border border-rose-500/30 px-1.5 py-0.5 rounded">
+                              {chap.weaknessScore}% Weakness
+                            </span>
+                          )}
+                        </div>
+
+                        <h4 className="text-xs font-bold text-white truncate" title={chap.name}>
+                          {chap.name}
+                        </h4>
+
+                        <div className="flex items-center gap-3 text-[11px] text-zinc-400 font-mono flex-wrap">
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-3 h-3 text-zinc-500" />
+                            {daysAgo !== undefined && daysAgo > 0 ? `Revised ${daysAgo}d ago` : 'Never reviewed'}
+                          </span>
+                          <span>•</span>
+                          <span>{chap.revisionCount || 0} reviews</span>
+                          {chap.solvedQuestions > 0 && (
+                            <>
+                              <span>•</span>
+                              <span>{chap.solvedQuestions} Qs</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Action buttons */}
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleReviewChapter(chap)}
+                          className="px-2.5 py-1.5 text-xs font-mono font-semibold rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-700 transition-colors flex items-center gap-1 cursor-pointer"
+                          title="Open chapter active recall session"
+                        >
+                          <BookOpen className="w-3 h-3 text-indigo-400" />
+                          <span>Review</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleMarkChapterReviewed(chap)}
+                          className="px-2.5 py-1.5 text-xs font-mono font-bold rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition-colors flex items-center gap-1 cursor-pointer shadow-sm shadow-emerald-600/25"
+                          title="Mark this chapter reviewed today (+60 XP)"
+                        >
+                          <Check className="w-3 h-3" />
+                          <span>Done</span>
+                        </button>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
-      {/* Navigation links at bottom */}
-      <div className="pt-3 border-t border-white/10 flex justify-between gap-3 mt-3 relative z-10 font-mono">
-        <motion.button 
+      {/* Footer Quick Links */}
+      <div className="pt-3 border-t border-white/10 flex justify-between gap-2.5 mt-3 relative z-10 font-mono">
+        <button 
           type="button"
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.96 }}
-          transition={springs.snappy}
-          className="flex-1 text-xs font-mono font-bold h-9 border border-cyan-500/30 bg-cyan-950/30 text-cyan-300 hover:text-white hover:bg-cyan-900/50 rounded-xl transition-colors select-none cursor-pointer flex items-center justify-center gap-1.5 shadow-sm uppercase tracking-wider"
+          className="flex-1 text-xs font-mono font-bold h-8 border border-white/10 bg-zinc-950/60 text-zinc-300 hover:text-white hover:bg-zinc-900 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-1.5 uppercase"
           onClick={() => {
             audioEngine.playRadioRelayClick().catch(() => {});
-            navigate('/revision');
+            navigate('/formulas');
           }}
         >
-          <Layers className="w-3.5 h-3.5 text-cyan-400" />
-          <span>Revision Hub</span>
-        </motion.button>
-        <motion.button 
+          <Sigma className="w-3 h-3 text-indigo-400" />
+          <span>Formulas</span>
+        </button>
+        <button 
           type="button"
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.96 }}
-          transition={springs.snappy}
-          className="flex-1 text-xs font-mono font-bold h-9 border border-white/10 bg-zinc-950/60 text-zinc-300 hover:text-white hover:bg-zinc-900 rounded-xl transition-colors select-none cursor-pointer flex items-center justify-center gap-1.5 shadow-sm uppercase tracking-wider"
+          className="flex-1 text-xs font-mono font-bold h-8 border border-white/10 bg-zinc-950/60 text-zinc-300 hover:text-white hover:bg-zinc-900 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-1.5 uppercase"
+          onClick={() => {
+            audioEngine.playRadioRelayClick().catch(() => {});
+            navigate('/mistakes');
+          }}
+        >
+          <ShieldAlert className="w-3 h-3 text-rose-400" />
+          <span>Mistakes</span>
+        </button>
+        <button 
+          type="button"
+          className="flex-1 text-xs font-mono font-bold h-8 border border-white/10 bg-zinc-950/60 text-zinc-300 hover:text-white hover:bg-zinc-900 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-1.5 uppercase"
           onClick={() => {
             audioEngine.playRadioRelayClick().catch(() => {});
             navigate('/planner');
           }}
         >
-          <Calendar className="w-3.5 h-3.5 text-indigo-400" />
+          <Calendar className="w-3 h-3 text-cyan-400" />
           <span>Planner</span>
-        </motion.button>
+        </button>
       </div>
+
+      {reviewingChapter && (
+        <RevisionSession
+          cards={getChapterCards(reviewingChapter)}
+          chapterTitle={reviewingChapter.name}
+          chapterId={reviewingChapter.id}
+          onClose={() => setReviewingChapter(null)}
+          onFinish={() => {
+            if (reviewingChapter) {
+              setMarkedDoneIds(prev => new Set([...prev, reviewingChapter.id]));
+            }
+            setReviewingChapter(null);
+          }}
+        />
+      )}
     </div>
   );
 }
+
+// Backward compatibility export alias
+export const SmartRevisionQueueWidget = DailyChapterReviewWidget;

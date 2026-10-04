@@ -1,6 +1,6 @@
 import { StudySession, Chapter, SubjectId, Mistake, TodayMission } from '@/types/index';
 import { calculateLevelFromXP, getTitleAndColor } from '@/utils/levelingCalculations';
-import { KnowledgeEngine, SyllabusNode, calculateMastery } from '@jee-os/engines';
+import { KnowledgeEngine, SyllabusNode, calculateMastery, buildRevisionPlan } from '@jee-os/engines';
 import { PlannerEngine, PlannerInput } from '@jee-os/engines';
 import { OptimizationEngine, OptimizationInput } from '@jee-os/engines';
 import { RevisionEngineService } from './revisionEngineService';
@@ -418,8 +418,9 @@ export const StudyBrainService = {
     return await engine.getAnalysis(input);
   },
 
-  getRevisionQueue(chapters: Chapter[], mistakes: Mistake[], settings: any): any[] {
-    return RevisionEngineService.generateRevisionQueue(chapters, mistakes, settings);
+  getRevisionQueue(chapters: Chapter[], mistakes: Mistake[], _settings?: any): any[] {
+    const plan = buildRevisionPlan({ chapters, mistakes });
+    return plan.revisionQueue;
   },
 
   // Remaining utility functions that were already there

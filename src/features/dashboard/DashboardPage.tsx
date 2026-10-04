@@ -1,6 +1,5 @@
 
 import { motion, AnimatePresence } from 'motion/react';
-import { QuickRevisionModal } from '@/components/ui/QuickRevisionModal';
 import { DailyMissionTimeline } from './components/DailyMissionTimeline';
 import { CustomMissionModal } from '@/features/mission/components/CustomMissionModal';
 import { DailyCheckinCard } from '@/components/mentor/DailyCheckinCard';
@@ -141,16 +140,6 @@ export function DashboardPage() {
         chapters={state.chapters || []}
         projectedReadiness={state.projectedReadiness}
       />
-
-      {/* QUICK REVISION MODAL */}
-      {state.selectedRevision && (
-        <QuickRevisionModal
-          isOpen={!!state.selectedRevision}
-          revision={state.selectedRevision}
-          onClose={() => handlers.setSelectedRevision(null)}
-          onAction={handlers.handleQuickRevisionAction}
-        />
-      )}
 
       <CustomMissionModal 
         isOpen={state.isCustomMissionModalOpen}

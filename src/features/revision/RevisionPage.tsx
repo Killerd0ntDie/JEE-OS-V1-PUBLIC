@@ -11,9 +11,12 @@ import { DailyDoseCommandQueue } from './components/DailyDoseCommandQueue';
 import { DailyDoseSessionStage } from './components/DailyDoseSessionStage';
 import { EbbinghausDecayCurve } from './components/EbbinghausDecayCurve';
 import { FormulaVaultPage } from '@/features/formulas/FormulaVaultPage';
+import { RevisionSession } from './components/RevisionSession';
+import { RevisionCardItem } from '@jee-os/engines';
 import { 
   Flame, Sparkles, ShieldCheck, 
-  Zap, ArrowRight, BookOpen
+  Zap, ArrowRight, BookOpen,
+  CheckCircle2, Clock, Layers, Play
 } from 'lucide-react';
 
 function useOptionalLocation() {
@@ -121,6 +124,28 @@ export function RevisionPage() {
 
   const cards = revisionData?.cards || [];
   const urgentCards = revisionData?.urgentCards || [];
+
+  const [sessionCards, setSessionCards] = useState<RevisionCardItem[] | null>(null);
+  const [sessionTitle, setSessionTitle] = useState<string | undefined>(undefined);
+  const [sessionChapterId, setSessionChapterId] = useState<string | undefined>(undefined);
+
+  const dueChapters = revisionData?.dueChapters || overdueChapters.map(o => ({
+    chapterId: o.chapterId,
+    chapterName: o.chapterName,
+    subject: o.subject,
+    status: 'Revision Due',
+    completion: 60,
+    revisionCount: 1,
+    daysOverdue: 1,
+    urgency: 'overdue' as const,
+    dueReason: 'Overdue for review',
+    formulaCardsCount: 5,
+    mistakeCardsCount: 0,
+    totalCardsCount: o.totalCardsCount || 5,
+    cards: []
+  }));
+
+  const dueCards = revisionData?.dueCards || urgentCards;
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto text-left relative pb-32 sm:pb-36 font-sans select-none">
@@ -257,6 +282,106 @@ export function RevisionPage() {
                   <span className="text-sm font-bold text-indigo-300 font-display">{stats.avgRetentionScore}%</span>
                 </div>
               </div>
+            </div>
+
+            {/* 1.5. TODAY'S DUE REVIEWS TASK LIST */}
+            <div className="surface-2 rounded-3xl p-5 md:p-6 border border-zinc-800/80 shadow-xl space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2.5 py-0.5 rounded-lg bg-indigo-950/70 border border-indigo-500/40 text-indigo-300 font-mono text-[10px] uppercase font-bold tracking-wider flex items-center gap-1.5 shadow-sm">
+                      <Layers className="w-3 h-3 text-indigo-400" />
+                      <span>Daily Spaced Review Queue</span>
+                    </span>
+                    <span className="px-2 py-0.5 rounded-lg bg-zinc-900 border border-white/10 text-zinc-300 font-mono text-[10px] font-bold">
+                      {dueChapters.length} Due Today
+                    </span>
+                  </div>
+                  <h2 className="text-lg md:text-xl font-display font-bold text-white tracking-tight">
+                    Chapters Due for Review
+                  </h2>
+                  <p className="text-xs text-zinc-400 max-w-xl font-sans leading-relaxed">
+                    SM-2 scheduled reviews based on your study history and past mistakes. Reviewing resets interval degradation.
+                  </p>
+                </div>
+
+                {dueChapters.length > 0 && (
+                  <motion.button
+                    type="button"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.96 }}
+                    onClick={() => {
+                      const cardsToReview = dueCards.length > 0 ? dueCards : cards.slice(0, 15);
+                      setSessionCards(cardsToReview);
+                      setSessionTitle("Today's Spaced Review Queue");
+                      setSessionChapterId(undefined);
+                    }}
+                    className="px-5 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-mono text-xs font-bold uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-indigo-600/30 border border-indigo-400/40 cursor-pointer shrink-0"
+                  >
+                    <Play className="w-4 h-4 fill-white" />
+                    <span>Start Today's Review ({dueCards.length} Cards)</span>
+                  </motion.button>
+                )}
+              </div>
+
+              {dueChapters.length === 0 ? (
+                <div className="p-6 rounded-2xl bg-zinc-950/50 border border-white/5 text-center space-y-2 flex flex-col items-center justify-center">
+                  <div className="w-10 h-10 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                    <CheckCircle2 className="w-5 h-5" />
+                  </div>
+                  <h4 className="text-sm font-bold text-white">All Caught Up!</h4>
+                  <p className="text-xs text-zinc-400 max-w-md">
+                    No chapters are currently due for review. You can practice active recall on any chapter in the Flashcard Vault or run a 30s Speed Drill below.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {dueChapters.map(ch => {
+                    const chCards = cards.filter(c => c.chapterId === ch.chapterId);
+                    const cardCount = ch.totalCardsCount || chCards.length || 5;
+
+                    return (
+                      <div
+                        key={ch.chapterId}
+                        className="p-4 rounded-2xl bg-zinc-950/60 border border-zinc-800/80 hover:border-indigo-500/40 transition-colors flex flex-col justify-between space-y-3 shadow-md text-left"
+                      >
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded-lg bg-zinc-900 border border-white/10 text-zinc-300">
+                              {ch.subject}
+                            </span>
+                            <span className="text-[10px] font-mono text-amber-400 bg-amber-950/40 border border-amber-500/30 px-1.5 py-0.5 rounded">
+                              {ch.dueReason || 'Review Due'}
+                            </span>
+                          </div>
+
+                          <h4 className="text-sm font-bold text-white truncate" title={ch.chapterName}>
+                            {ch.chapterName}
+                          </h4>
+
+                          <div className="flex items-center gap-2 text-[11px] font-mono text-zinc-400">
+                            <Clock className="w-3 h-3 text-zinc-500" />
+                            <span>{cardCount} Cards to Review</span>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSessionCards(chCards.length > 0 ? chCards : cards.slice(0, 10));
+                            setSessionTitle(ch.chapterName);
+                            setSessionChapterId(ch.chapterId);
+                          }}
+                          className="w-full py-2.5 rounded-xl bg-indigo-600/30 hover:bg-indigo-600/40 border border-indigo-500/40 text-indigo-200 font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                        >
+                          <BookOpen className="w-3.5 h-3.5 text-indigo-400" />
+                          <span>Review Chapter</span>
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             {/* 2. NTA-CALIBRATED DAILY DOSE COMMAND QUEUE */}
@@ -493,6 +618,25 @@ export function RevisionPage() {
         chapterId={aiPracticeConfig?.chapterId || null}
         subject={aiPracticeConfig?.subject || 'physics'}
       />
+
+      {/* Real Active Recall Session Modal */}
+      {sessionCards && (
+        <RevisionSession
+          cards={sessionCards}
+          chapterTitle={sessionTitle}
+          chapterId={sessionChapterId}
+          onClose={() => {
+            setSessionCards(null);
+            setSessionTitle(undefined);
+            setSessionChapterId(undefined);
+          }}
+          onFinish={() => {
+            setSessionCards(null);
+            setSessionTitle(undefined);
+            setSessionChapterId(undefined);
+          }}
+        />
+      )}
 
     </div>
   );
