@@ -268,4 +268,64 @@ describe('PlannerEngine', () => {
     const mistakeTask = output.todaysMission.find(t => t.chapterId === 'c1' && t.type === 'Review Mistakes');
     expect(mistakeTask).toBeUndefined();
   });
+
+  it('does not reschedule Solve DPP or Solve PYQs if already completed today', () => {
+    const knowledgeEngine = new KnowledgeEngine(MOCK_SYLLABUS);
+    const planner = new PlannerEngine(knowledgeEngine);
+
+    const input: PlannerInput = {
+      studyHours: 4,
+      chapters: [
+        {
+          id: 'c1',
+          name: 'Chapter 1',
+          subject: 'physics',
+          unit: 'Mechanics',
+          status: 'Theory Complete',
+          completion: 60,
+          currentLecture: 5,
+          totalLectures: 5,
+          theoryComplete: true,
+          dppComplete: false,
+          pyqsComplete: false,
+          difficulty: 'Easy',
+          confidence: 70
+        } as any
+      ],
+      todayMissions: [
+        {
+          id: 'dpp-c1-today',
+          subject: 'physics',
+          chapter: 'Chapter 1',
+          chapterId: 'c1',
+          type: 'Solve DPP',
+          taskName: 'Solve DPP: Chapter 1',
+          duration: 45,
+          completed: true,
+          xp: 40,
+          unlocked: true
+        },
+        {
+          id: 'pyq-c1-today',
+          subject: 'physics',
+          chapter: 'Chapter 1',
+          chapterId: 'c1',
+          type: 'Solve PYQs',
+          taskName: 'Solve PYQs: Chapter 1',
+          duration: 60,
+          completed: true,
+          xp: 50,
+          unlocked: true
+        }
+      ],
+      revisionBacklog: [],
+      currentDate: '2024-01-01T12:00:00.000Z'
+    };
+
+    const output = planner.generateDailyPlan(input);
+    const dppTask = output.todaysMission.find(t => t.chapterId === 'c1' && t.type === 'Solve DPP');
+    const pyqTask = output.todaysMission.find(t => t.chapterId === 'c1' && t.type === 'Solve PYQs');
+    expect(dppTask).toBeUndefined();
+    expect(pyqTask).toBeUndefined();
+  });
 });

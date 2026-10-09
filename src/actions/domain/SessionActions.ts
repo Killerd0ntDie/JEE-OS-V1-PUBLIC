@@ -1,7 +1,7 @@
 import { BaseActions } from './BaseActions';
-import { StudySession, SubjectId } from '@/types/index';
-import { StudySessionRepository } from '@/repositories/studySessionRepository';
+import { StudySession, SubjectId, TodayMission } from '@/types/index';
 import { UserRepository } from '@/repositories/userRepository';
+import { CustomMissionRepository } from '@/repositories/customMissionRepository';
 import { calculateLevelFromXP } from '@/utils/levelingCalculations';
 import { sanitizeForFirestore } from '@/utils/firestoreSanitizer';
 import { doc } from 'firebase/firestore';
@@ -160,12 +160,53 @@ export class SessionActions extends BaseActions {
     
     const originalSnapshot = {
       xp: { ...this.state.xp },
-      studySessions: [...(this.state.studySessions || [])]
+      studySessions: [...(this.state.studySessions || [])],
+      todayMissions: this.state.todayMissions,
+      completedPlannerMissionIds: this.state.completedPlannerMissionIds
     };
 
     const newSessions = latestSession ? (this.state.studySessions || []).filter(s => s.id !== latestSession.id) : (this.state.studySessions || []);
 
-    this.runtime.updateStateOptimistic({ xp: newXp, studySessions: newSessions });
+    // Revert associated mission in todayMissions & completedPlannerMissionIds
+    const updatedMissions = [...(this.state.todayMissions || [])];
+    let updatedCompletedPlannerMissionIds = [...(this.state.completedPlannerMissionIds || [])];
+    let revertedMission: TodayMission | null = null;
+
+    if (latestSession) {
+      // 1. Try to find mission by direct linkedSessionId
+      let missionIdx = updatedMissions.findIndex(m => m.linkedSessionId === latestSession.id);
+      
+      // 2. Fallback: find latest completed mission matching session chapter/type
+      if (missionIdx === -1) {
+        missionIdx = updatedMissions.findIndex(m => {
+          if (!m.completed) return false;
+          if (latestSession.chapterId && m.chapterId === latestSession.chapterId) return true;
+          if (latestSession.type === 'Mock' && m.type === 'Solve Mock') return true;
+          if (latestSession.type === 'Revision' && (m.type === 'Revise Formulas' || m.type === 'Review Mistakes')) return true;
+          if (latestSession.type === 'Lecture' && m.type === 'Watch Lecture') return true;
+          if (latestSession.type === 'Practice' && (m.type === 'Solve DPP' || m.type === 'Solve PYQs')) return true;
+          return false;
+        });
+      }
+
+      if (missionIdx !== -1) {
+        revertedMission = {
+          ...updatedMissions[missionIdx],
+          completed: false,
+          completedAt: undefined,
+          linkedSessionId: undefined
+        };
+        updatedMissions[missionIdx] = revertedMission;
+        updatedCompletedPlannerMissionIds = updatedCompletedPlannerMissionIds.filter(id => id !== revertedMission!.id);
+      }
+    }
+
+    this.runtime.updateStateOptimistic({
+      xp: newXp,
+      studySessions: newSessions,
+      todayMissions: updatedMissions,
+      completedPlannerMissionIds: updatedCompletedPlannerMissionIds
+    });
 
     if (this.isGuestUser()) {
       this.triggerToast('Mission Undone', `Deducted ${deductXp} XP and removed latest session`, 'success');
@@ -178,12 +219,32 @@ export class SessionActions extends BaseActions {
           const sessionDoc = doc(db, 'users', this.userId, 'studySessions', latestSession.id);
           batch.delete(sessionDoc);
           const userDoc = doc(db, 'users', this.userId);
-          batch.set(userDoc, sanitizeForFirestore({ xp: newXp }), { merge: true });
+          batch.set(userDoc, sanitizeForFirestore({ 
+            xp: newXp,
+            completedPlannerMissionIds: updatedCompletedPlannerMissionIds 
+          }), { merge: true });
         }, 'undoLatestMission');
+
+        if (revertedMission?.isCustom) {
+          try {
+            await CustomMissionRepository.saveMission(this.userId, revertedMission);
+          } catch (e) {
+            console.warn("Failed to persist reverted custom mission:", e);
+          }
+        }
       } else {
-        await this.safeDbCall(() => UserRepository.updateUserProfile(this.userId, { xp: newXp }), 'updateUserProfile');
+        await this.safeDbCall(() => UserRepository.updateUserProfile(this.userId, { 
+          xp: newXp,
+          completedPlannerMissionIds: updatedCompletedPlannerMissionIds 
+        }), 'updateUserProfile');
       }
-      await this.runtime.refresh('INIT', { xp: newXp, studySessions: newSessions, lastSyncError: null });
+      await this.runtime.refresh('INIT', { 
+        xp: newXp, 
+        studySessions: newSessions, 
+        todayMissions: updatedMissions,
+        completedPlannerMissionIds: updatedCompletedPlannerMissionIds,
+        lastSyncError: null 
+      });
       this.triggerToast('Mission Undone', `Deducted ${deductXp} XP and removed latest session`, 'success');
     } catch (err) {
       this.runtime.updateStateOptimistic(originalSnapshot);
@@ -191,7 +252,7 @@ export class SessionActions extends BaseActions {
     }
   }
 
-  async runCoachAnalysis(question?: string) {
+  async runCoachAnalysis(_question?: string) {
     return { ...this.state };
   }
 }

@@ -349,7 +349,12 @@ export function generateCandidateTasks(
       const hasStarted = prog.currentLecture > 0 || prog.completion >= 50 || prog.isMastered;
       
       if (hasStarted) {
-        if (!prog.dppComplete && !chapterMeta?.dppOnHold) {
+        const hasCompletedDppToday = input.todayMissions?.some(m =>
+          (m.chapterId === node.id || m.chapter?.toLowerCase() === node.name.toLowerCase()) &&
+          m.type === 'Solve DPP' &&
+          m.completed
+        );
+        if (!prog.dppComplete && !chapterMeta?.dppOnHold && !hasCompletedDppToday) {
           candidates.push(generateTask(
             'Solve DPP',
             node,
@@ -359,7 +364,13 @@ export function generateCandidateTasks(
             `Solve DPP: ${node.name}`
           ));
         }
-        if (!prog.pyqsComplete && !chapterMeta?.pyqOnHold) {
+
+        const hasCompletedPyqsToday = input.todayMissions?.some(m =>
+          (m.chapterId === node.id || m.chapter?.toLowerCase() === node.name.toLowerCase()) &&
+          m.type === 'Solve PYQs' &&
+          m.completed
+        );
+        if (!prog.pyqsComplete && !chapterMeta?.pyqOnHold && !hasCompletedPyqsToday) {
           candidates.push(generateTask(
             'Solve PYQs',
             node,

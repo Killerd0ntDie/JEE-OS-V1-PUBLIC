@@ -186,6 +186,8 @@ export function normalizeChapter(chapter: Chapter): Chapter {
   
   if (isMastered) {
     syllabusStage = 'Mastered';
+  } else if (chapter.status === 'Revision Due' || chapter.syllabusStage === 'Revision') {
+    syllabusStage = 'Revision';
   } else if (isUnstarted) {
     syllabusStage = 'Not Started';
   } else if (chapter.pyqsComplete) {
@@ -201,8 +203,14 @@ export function normalizeChapter(chapter: Chapter): Chapter {
 
   const mappedStatus: Chapter['status'] = 
     syllabusStage === 'Mastered' ? 'Mastered' :
-    syllabusStage === 'Revision' ? 'Revision Due' :
-    (syllabusStage === 'Not Started' && chapter.status !== 'Learning') ? 'Not Started' : 'Learning';
+    syllabusStage === 'Revision' || chapter.status === 'Revision Due' ? 'Revision Due' :
+    (syllabusStage === 'Not Started' && chapter.status !== 'Learning') ? 'Not Started' :
+    chapter.status === 'Theory Complete' ? 'Theory Complete' :
+    chapter.status === 'DPP Pending' ? 'DPP Pending' :
+    chapter.status === 'PYQ Pending' ? 'PYQ Pending' :
+    (chapter.theoryComplete && !chapter.dppComplete) ? 'Theory Complete' :
+    (chapter.theoryComplete && chapter.dppComplete && !chapter.pyqsComplete) ? 'PYQ Pending' :
+    'Learning';
 
   const acad = getAcademicState({ ...chapter, syllabusStage, status: mappedStatus });
   const safeOverallCompletion = typeof acad.overallCompletion === 'number' && !Number.isNaN(acad.overallCompletion)

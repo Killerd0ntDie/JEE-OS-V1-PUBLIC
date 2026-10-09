@@ -1,8 +1,9 @@
 import { BaseActions } from './BaseActions';
-import { MockResult, StudySession } from '@/types/index';
+import { MockResult, StudySession, TodayMission } from '@/types/index';
 import { MockTest } from '@/types/mockTest';
 import { MockResultRepository } from '@/repositories/mockResultRepository';
 import { MockTestRepository } from '@/repositories/mockTestRepository';
+import { CustomMissionRepository } from '@/repositories/customMissionRepository';
 import { calculateLevelFromXP } from '@/utils/levelingCalculations';
 import { calculateMockScorePercent } from '@/utils/mockScoring';
 import { sanitizeForFirestore } from '@/utils/firestoreSanitizer';
@@ -85,11 +86,32 @@ export class MockTestActions extends BaseActions {
 
     this.evaluateAndUpdateStreak(newXp, updatedSessions);
 
-    const originalSnapshot = {
+    // Bidirectional sync: find active 'Solve Mock' mission in todayMissions
+    const updatedTodayMissions: TodayMission[] = [...(this.state.todayMissions || [])];
+    const updatedCompletedMissionIds: string[] = [...(this.state.completedPlannerMissionIds || [])];
+    const mockMissionIdx = updatedTodayMissions.findIndex(m => m.type === 'Solve Mock' && !m.completed);
+    let matchedMission: TodayMission | null = null;
+
+    if (mockMissionIdx !== -1) {
+      matchedMission = {
+        ...updatedTodayMissions[mockMissionIdx],
+        completed: true,
+        completedAt: new Date().toISOString(),
+        linkedSessionId: studySession.id
+      };
+      updatedTodayMissions[mockMissionIdx] = matchedMission;
+      if (!updatedCompletedMissionIds.includes(matchedMission.id)) {
+        updatedCompletedMissionIds.push(matchedMission.id);
+      }
+    }
+
+    const _originalSnapshot = {
       mocks: this.state.mocks,
       studySessions: this.state.studySessions,
       analytics: this.state.analytics,
-      xp: this.state.xp
+      xp: this.state.xp,
+      todayMissions: this.state.todayMissions,
+      completedPlannerMissionIds: this.state.completedPlannerMissionIds
     };
 
     const updatedMocks = [...this.state.mocks, newMockResult];
@@ -100,6 +122,8 @@ export class MockTestActions extends BaseActions {
       studySessions: updatedSessions,
       analytics: updatedAnalytics,
       xp: newXp,
+      todayMissions: updatedTodayMissions,
+      completedPlannerMissionIds: updatedCompletedMissionIds,
       ...(levelUpData ? { levelUpData } : {})
     });
 
@@ -136,14 +160,28 @@ export class MockTestActions extends BaseActions {
         const sessionDoc = doc(db, 'users', this.userId, 'studySessions', studySession.id);
         batch.set(sessionDoc, sanitizeForFirestore(studySession), { merge: true });
         const userDoc = doc(db, 'users', this.userId);
-        batch.set(userDoc, sanitizeForFirestore({ analytics: updatedAnalytics, xp: newXp }), { merge: true });
+        batch.set(userDoc, sanitizeForFirestore({ 
+          analytics: updatedAnalytics, 
+          xp: newXp,
+          completedPlannerMissionIds: updatedCompletedMissionIds
+        }), { merge: true });
       }, 'addMockResult');
+
+      if (matchedMission?.isCustom) {
+        try {
+          await CustomMissionRepository.saveMission(this.userId, matchedMission);
+        } catch (e) {
+          console.warn("Failed to persist custom mock mission status:", e);
+        }
+      }
 
       await this.runtime.refresh('MOCK_UPDATE', {
         mocks: updatedMocks,
         studySessions: updatedSessions,
         analytics: updatedAnalytics,
         xp: newXp,
+        todayMissions: updatedTodayMissions,
+        completedPlannerMissionIds: updatedCompletedMissionIds,
         lastSyncError: null,
         levelUpData
       });
@@ -155,6 +193,8 @@ export class MockTestActions extends BaseActions {
         studySessions: updatedSessions,
         analytics: updatedAnalytics,
         xp: newXp,
+        todayMissions: updatedTodayMissions,
+        completedPlannerMissionIds: updatedCompletedMissionIds,
         lastSyncError: null,
         levelUpData
       });

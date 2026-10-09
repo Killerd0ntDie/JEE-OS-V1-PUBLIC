@@ -1,5 +1,5 @@
 import { BaseActions } from './BaseActions';
-import { Chapter, SubjectId, Mistake, StudySession } from '@/types/index';
+import { Chapter, SubjectId, Mistake, StudySession, TodayMission } from '@/types/index';
 import { ChapterRepository } from '@/repositories/chapterRepository';
 import { UserRepository } from '@/repositories/userRepository';
 import { MistakeRepository } from '@/repositories/mistakeRepository';
@@ -14,6 +14,62 @@ import { db } from '@/firebase';
 
 export class ChapterActions extends BaseActions {
   private sm2Engine = new SpacedRepetitionEngine();
+
+  private syncChapterMilestonesToTimeline(previous: Chapter, updated: Chapter): {
+    updatedMissions: TodayMission[];
+    updatedCompletedIds: string[];
+    completedCustomMissions: TodayMission[];
+    hasChanges: boolean;
+  } {
+    let hasChanges = false;
+    const updatedMissions = [...(this.state.todayMissions || [])];
+    const updatedCompletedIds = [...(this.state.completedPlannerMissionIds || [])];
+    const completedCustomMissions: TodayMission[] = [];
+
+    const markMatchingMissionComplete = (missionType: TodayMission['type']) => {
+      for (let i = 0; i < updatedMissions.length; i++) {
+        const m = updatedMissions[i];
+        if (m.chapterId === updated.id && m.type === missionType && !m.completed) {
+          const completedMission: TodayMission = {
+            ...m,
+            completed: true,
+            completedAt: new Date().toISOString()
+          };
+          updatedMissions[i] = completedMission;
+          if (!updatedCompletedIds.includes(completedMission.id)) {
+            updatedCompletedIds.push(completedMission.id);
+          }
+          if (completedMission.isCustom) {
+            completedCustomMissions.push(completedMission);
+          }
+          hasChanges = true;
+        }
+      }
+    };
+
+    // 1. Lecture / Theory milestone reached
+    const prevLecDone = Boolean(previous.theoryComplete || (previous.totalLectures && previous.currentLecture >= previous.totalLectures));
+    const nowLecDone = Boolean(updated.theoryComplete || (updated.totalLectures && updated.currentLecture >= updated.totalLectures));
+    if (!prevLecDone && nowLecDone) {
+      markMatchingMissionComplete('Watch Lecture');
+    }
+
+    // 2. DPP milestone reached
+    const prevDppDone = Boolean(previous.dppComplete);
+    const nowDppDone = Boolean(updated.dppComplete);
+    if (!prevDppDone && nowDppDone) {
+      markMatchingMissionComplete('Solve DPP');
+    }
+
+    // 3. PYQs milestone reached
+    const prevPyqDone = Boolean(previous.pyqsComplete);
+    const nowPyqDone = Boolean(updated.pyqsComplete);
+    if (!prevPyqDone && nowPyqDone) {
+      markMatchingMissionComplete('Solve PYQs');
+    }
+
+    return { updatedMissions, updatedCompletedIds, completedCustomMissions, hasChanges };
+  }
 
   async updateChapter(chapterIdOrObject: string | Chapter, updates?: Partial<Chapter>): Promise<void> {
     this.checkWriteBlock();
@@ -44,15 +100,48 @@ export class ChapterActions extends BaseActions {
     const updatedChapter = normalizeChapter(merged);
     const updatedChapters = this.state.chapters.map(c => (c.id === chapter.id ? updatedChapter : c));
 
+    const syncResult = this.syncChapterMilestonesToTimeline(chapter, updatedChapter);
+    const updatedMissions = syncResult.hasChanges ? syncResult.updatedMissions : this.state.todayMissions;
+    const updatedCompletedIds = syncResult.hasChanges ? syncResult.updatedCompletedIds : this.state.completedPlannerMissionIds;
+
+    const originalSnapshot = {
+      chapters: this.state.chapters,
+      todayMissions: this.state.todayMissions,
+      completedPlannerMissionIds: this.state.completedPlannerMissionIds
+    };
+
     this.runtime.updateStateOptimistic({
-      chapters: updatedChapters
+      chapters: updatedChapters,
+      ...(syncResult.hasChanges ? {
+        todayMissions: updatedMissions,
+        completedPlannerMissionIds: updatedCompletedIds
+      } : {})
     });
 
     try {
       await ChapterRepository.saveChapter(this.userId, updatedChapter);
-      await this.runtime.refresh('CHAPTER_UPDATE', { chapters: updatedChapters, lastSyncError: null });
+      if (syncResult.hasChanges) {
+        await this.safeDbCall(
+          () => UserRepository.updateUserProfile(this.userId, { completedPlannerMissionIds: updatedCompletedIds }),
+          'updateUserProfile'
+        );
+        for (const customMission of syncResult.completedCustomMissions) {
+          await this.safeDbCall(
+            () => CustomMissionRepository.saveMission(this.userId, customMission),
+            'saveMission'
+          );
+        }
+      }
+      await this.runtime.refresh('CHAPTER_UPDATE', {
+        chapters: updatedChapters,
+        ...(syncResult.hasChanges ? {
+          todayMissions: updatedMissions,
+          completedPlannerMissionIds: updatedCompletedIds
+        } : {}),
+        lastSyncError: null
+      });
     } catch (err) {
-      this.runtime.rollbackChapter(chapter.id, chapter);
+      this.runtime.updateStateOptimistic(originalSnapshot);
       await this.handleWriteError(err, 'updateChapter');
     }
   }
@@ -172,15 +261,48 @@ export class ChapterActions extends BaseActions {
 
     const updatedChapters = this.state.chapters.map(c => (c.id === chapter.id ? updatedChapter : c));
 
+    const syncResult = this.syncChapterMilestonesToTimeline(chapter, updatedChapter);
+    const updatedMissions = syncResult.hasChanges ? syncResult.updatedMissions : this.state.todayMissions;
+    const updatedCompletedIds = syncResult.hasChanges ? syncResult.updatedCompletedIds : this.state.completedPlannerMissionIds;
+
+    const originalSnapshot = {
+      chapters: this.state.chapters,
+      todayMissions: this.state.todayMissions,
+      completedPlannerMissionIds: this.state.completedPlannerMissionIds
+    };
+
     this.runtime.updateStateOptimistic({
-      chapters: updatedChapters
+      chapters: updatedChapters,
+      ...(syncResult.hasChanges ? {
+        todayMissions: updatedMissions,
+        completedPlannerMissionIds: updatedCompletedIds
+      } : {})
     });
 
     try {
       await ChapterRepository.saveChapter(this.userId, updatedChapter);
-      await this.runtime.refresh('CHAPTER_UPDATE', { chapters: updatedChapters, lastSyncError: null });
+      if (syncResult.hasChanges) {
+        await this.safeDbCall(
+          () => UserRepository.updateUserProfile(this.userId, { completedPlannerMissionIds: updatedCompletedIds }),
+          'updateUserProfile'
+        );
+        for (const customMission of syncResult.completedCustomMissions) {
+          await this.safeDbCall(
+            () => CustomMissionRepository.saveMission(this.userId, customMission),
+            'saveMission'
+          );
+        }
+      }
+      await this.runtime.refresh('CHAPTER_UPDATE', {
+        chapters: updatedChapters,
+        ...(syncResult.hasChanges ? {
+          todayMissions: updatedMissions,
+          completedPlannerMissionIds: updatedCompletedIds
+        } : {}),
+        lastSyncError: null
+      });
     } catch (err) {
-      this.runtime.rollbackChapter(chapter.id, chapter);
+      this.runtime.updateStateOptimistic(originalSnapshot);
       await this.handleWriteError(err, 'updateChapterProgress');
     }
   }

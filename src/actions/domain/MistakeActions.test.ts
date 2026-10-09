@@ -154,4 +154,99 @@ describe('MistakeActions Domain Logic', () => {
       expect(state.mistakes.find(m => m.id === 'm1')).toBeUndefined();
     });
   });
+
+  describe('Bidirectional Timeline Sync', () => {
+    it('marks active Review Mistakes mission completed when all mistakes for the chapter are reviewed/resolved', async () => {
+      const actions = new MistakeActions(runtime, 'user-123');
+      // Mock runAtomicBatch
+      (actions as any).runAtomicBatch = vi.fn().mockImplementation(async (callback) => {
+        const mockBatch = { set: vi.fn(), update: vi.fn(), delete: vi.fn() };
+        await callback(mockBatch);
+      });
+
+      runtime.updateStateOptimistic({
+        mistakes: [
+          {
+            id: 'm-kin-1',
+            chapterId: 'chap-kinematics',
+            subject: 'physics',
+            topic: 'Projectiles',
+            questionText: 'Angle calculation error',
+            revisionStatus: 'Pending',
+            difficulty: 'Medium',
+            dateLogged: '2026-09-01T00:00:00Z',
+            timeTaken: 3,
+            recoveryScore: 10
+          } as Mistake
+        ],
+        todayMissions: [
+          {
+            id: 'mission-mistake-kin',
+            chapterId: 'chap-kinematics',
+            subject: 'physics',
+            type: 'Review Mistakes',
+            taskName: 'Review Kinematics Errors',
+            duration: 20,
+            completed: false,
+            xp: 50,
+            unlocked: true
+          }
+        ],
+        completedPlannerMissionIds: []
+      });
+
+      await actions.updateMistakeStatus('m-kin-1', 'Solved Again');
+
+      const state = runtime.getState();
+      const mission = state.todayMissions.find(m => m.id === 'mission-mistake-kin');
+      expect(mission?.completed).toBe(true);
+      expect(state.completedPlannerMissionIds).toContain('mission-mistake-kin');
+    });
+
+    it('marks active Review Mistakes mission completed when re-test is passed and no pending mistakes remain', async () => {
+      const actions = new MistakeActions(runtime, 'user-123');
+      (actions as any).runAtomicBatch = vi.fn().mockImplementation(async (callback) => {
+        const mockBatch = { set: vi.fn(), update: vi.fn(), delete: vi.fn() };
+        await callback(mockBatch);
+      });
+
+      runtime.updateStateOptimistic({
+        mistakes: [
+          {
+            id: 'm-chem-1',
+            chapterId: 'chap-atomic',
+            subject: 'chemistry',
+            topic: 'Bohr Model',
+            questionText: 'Radius formula mismatch',
+            revisionStatus: 'Pending',
+            difficulty: 'Hard',
+            dateLogged: '2026-09-01T00:00:00Z',
+            timeTaken: 5,
+            recoveryScore: 20
+          } as Mistake
+        ],
+        todayMissions: [
+          {
+            id: 'mission-mistake-chem',
+            chapterId: 'chap-atomic',
+            subject: 'chemistry',
+            type: 'Review Mistakes',
+            taskName: 'Review Atomic Mistakes',
+            duration: 20,
+            completed: false,
+            xp: 50,
+            unlocked: true
+          }
+        ],
+        completedPlannerMissionIds: []
+      });
+
+      await actions.updateMistakeTestResult('m-chem-1', true);
+
+      const state = runtime.getState();
+      const mission = state.todayMissions.find(m => m.id === 'mission-mistake-chem');
+      expect(mission?.completed).toBe(true);
+      expect(state.completedPlannerMissionIds).toContain('mission-mistake-chem');
+    });
+  });
 });

@@ -1,7 +1,6 @@
 import { BaseActions } from './BaseActions';
-import { Mistake } from '@/types/index';
+import { Mistake, TodayMission } from '@/types/index';
 import { MistakeRepository } from '@/repositories/mistakeRepository';
-import { UserRepository } from '@/repositories/userRepository';
 import { uploadBase64Image } from '@/utils/imageUploadUtils';
 import { calculateLevelFromXP } from '@/utils/levelingCalculations';
 import { sanitizeForFirestore } from '@/utils/firestoreSanitizer';
@@ -28,10 +27,10 @@ export class MistakeActions extends BaseActions {
     let correctSolutionImage = mistake.correctSolutionImage;
     
     try {
-      if (wrongSolutionImage && wrongSolutionImage.startsWith('data:image')) {
+      if (wrongSolutionImage?.startsWith('data:image')) {
         wrongSolutionImage = await uploadBase64Image(this.userId, wrongSolutionImage, 'mistakes');
       }
-      if (correctSolutionImage && correctSolutionImage.startsWith('data:image')) {
+      if (correctSolutionImage?.startsWith('data:image')) {
         correctSolutionImage = await uploadBase64Image(this.userId, correctSolutionImage, 'mistakes');
       }
     } catch (e) {
@@ -119,6 +118,55 @@ export class MistakeActions extends BaseActions {
     }
   }
 
+  private syncMistakeReviewToTimeline(chapterId?: string, resolvedMistakeId?: string): {
+    updatedMissions: TodayMission[];
+    updatedCompletedIds: string[];
+    hasChanges: boolean;
+  } {
+    if (!chapterId) {
+      return {
+        updatedMissions: this.state.todayMissions,
+        updatedCompletedIds: this.state.completedPlannerMissionIds,
+        hasChanges: false
+      };
+    }
+
+    // Check if other pending mistakes exist for this chapter
+    const otherPending = this.state.mistakes.some(
+      m => m.id !== resolvedMistakeId && m.chapterId === chapterId && (m.revisionStatus === 'Pending' || !m.revisionStatus)
+    );
+
+    // If other pending mistakes still exist for this chapter, do not auto-complete the mission yet
+    if (otherPending) {
+      return {
+        updatedMissions: this.state.todayMissions,
+        updatedCompletedIds: this.state.completedPlannerMissionIds,
+        hasChanges: false
+      };
+    }
+
+    const updatedMissions = [...(this.state.todayMissions || [])];
+    const updatedCompletedIds = [...(this.state.completedPlannerMissionIds || [])];
+    let hasChanges = false;
+
+    for (let i = 0; i < updatedMissions.length; i++) {
+      const m = updatedMissions[i];
+      if (m.type === 'Review Mistakes' && m.chapterId === chapterId && !m.completed) {
+        updatedMissions[i] = {
+          ...m,
+          completed: true,
+          completedAt: new Date().toISOString()
+        };
+        if (!updatedCompletedIds.includes(m.id)) {
+          updatedCompletedIds.push(m.id);
+        }
+        hasChanges = true;
+      }
+    }
+
+    return { updatedMissions, updatedCompletedIds, hasChanges };
+  }
+
   async updateMistakeStatus(mistakeId: string, status: Mistake['revisionStatus']) {
     this.checkWriteBlock();
     const mistake = this.state.mistakes.find(m => m.id === mistakeId);
@@ -155,30 +203,50 @@ export class MistakeActions extends BaseActions {
       this.evaluateAndUpdateStreak(newXp, this.state.studySessions);
     }
 
+    const syncResult = (status === 'Reviewed' || status === 'Solved Again' || status === 'Mastered')
+      ? this.syncMistakeReviewToTimeline(mistake.chapterId, mistake.id)
+      : { updatedMissions: this.state.todayMissions, updatedCompletedIds: this.state.completedPlannerMissionIds, hasChanges: false };
+
+    const updatedMissions = syncResult.hasChanges ? syncResult.updatedMissions : this.state.todayMissions;
+    const updatedCompletedIds = syncResult.hasChanges ? syncResult.updatedCompletedIds : this.state.completedPlannerMissionIds;
+
     const originalSnapshot = {
       mistakes: this.state.mistakes,
-      xp: { ...this.state.xp }
+      xp: { ...this.state.xp },
+      todayMissions: this.state.todayMissions,
+      completedPlannerMissionIds: this.state.completedPlannerMissionIds
     };
 
     const updatedMistakes = this.state.mistakes.map(m => m.id === mistakeId ? updatedMistake : m);
     this.runtime.updateStateOptimistic({
       mistakes: updatedMistakes,
-      xp: newXp
+      xp: newXp,
+      ...(syncResult.hasChanges ? {
+        todayMissions: updatedMissions,
+        completedPlannerMissionIds: updatedCompletedIds
+      } : {})
     });
 
     try {
       await this.runAtomicBatch((batch) => {
         const mistakeDoc = doc(db, 'users', this.userId, 'mistakes', updatedMistake.id);
         batch.set(mistakeDoc, sanitizeForFirestore(updatedMistake), { merge: true });
-        if (deltaXp !== 0) {
+        if (deltaXp !== 0 || syncResult.hasChanges) {
           const userDoc = doc(db, 'users', this.userId);
-          batch.set(userDoc, sanitizeForFirestore({ xp: newXp }), { merge: true });
+          batch.set(userDoc, sanitizeForFirestore({ 
+            xp: newXp,
+            ...(syncResult.hasChanges ? { completedPlannerMissionIds: updatedCompletedIds } : {})
+          }), { merge: true });
         }
       }, 'updateMistakeStatus');
 
       await this.runtime.refresh('MISTAKE_UPDATE', { 
         mistakes: updatedMistakes, 
         xp: newXp, 
+        ...(syncResult.hasChanges ? {
+          todayMissions: updatedMissions,
+          completedPlannerMissionIds: updatedCompletedIds
+        } : {}),
         lastSyncError: null 
       });
     } catch (err) {
@@ -285,38 +353,55 @@ export class MistakeActions extends BaseActions {
       revisionStatus: newRevisionStatus
     };
 
+    const syncResult = (newRevisionStatus === 'Reviewed' || newRevisionStatus === 'Solved Again' || newRevisionStatus === 'Mastered')
+      ? this.syncMistakeReviewToTimeline(mistake.chapterId, mistake.id)
+      : { updatedMissions: this.state.todayMissions, updatedCompletedIds: this.state.completedPlannerMissionIds, hasChanges: false };
+
+    const updatedMissions = syncResult.hasChanges ? syncResult.updatedMissions : this.state.todayMissions;
+    const updatedCompletedIds = syncResult.hasChanges ? syncResult.updatedCompletedIds : this.state.completedPlannerMissionIds;
+
     const originalSnapshot = {
       mistakes: this.state.mistakes,
-      xp: { ...this.state.xp }
+      xp: { ...this.state.xp },
+      todayMissions: this.state.todayMissions,
+      completedPlannerMissionIds: this.state.completedPlannerMissionIds
     };
 
     const updatedMistakes = this.state.mistakes.map(m => m.id === mistakeId ? updatedMistake : m);
 
     this.runtime.updateStateOptimistic({
       mistakes: updatedMistakes,
-      xp: newXp
+      xp: newXp,
+      ...(syncResult.hasChanges ? {
+        todayMissions: updatedMissions,
+        completedPlannerMissionIds: updatedCompletedIds
+      } : {})
     });
 
     try {
       await this.runAtomicBatch((batch) => {
         const mistakeDoc = doc(db, 'users', this.userId, 'mistakes', updatedMistake.id);
         batch.set(mistakeDoc, sanitizeForFirestore(updatedMistake), { merge: true });
-        if (deltaXp !== 0) {
+        if (deltaXp !== 0 || syncResult.hasChanges) {
           const userDoc = doc(db, 'users', this.userId);
-          batch.set(userDoc, sanitizeForFirestore({ xp: newXp }), { merge: true });
+          batch.set(userDoc, sanitizeForFirestore({ 
+            xp: newXp,
+            ...(syncResult.hasChanges ? { completedPlannerMissionIds: updatedCompletedIds } : {})
+          }), { merge: true });
         }
       }, 'updateMistakeTestResult');
 
       await this.runtime.refresh('MISTAKE_UPDATE', { 
         mistakes: updatedMistakes, 
         xp: newXp,
+        ...(syncResult.hasChanges ? {
+          todayMissions: updatedMissions,
+          completedPlannerMissionIds: updatedCompletedIds
+        } : {}),
         lastSyncError: null 
       });
     } catch (err) {
-      this.runtime.updateStateOptimistic({
-        mistakes: originalSnapshot.mistakes,
-        xp: originalSnapshot.xp
-      });
+      this.runtime.updateStateOptimistic(originalSnapshot);
       await this.handleWriteError(err, 'updateMistakeTestResult');
     }
   }
