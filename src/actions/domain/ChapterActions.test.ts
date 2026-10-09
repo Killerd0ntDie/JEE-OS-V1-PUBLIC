@@ -26,6 +26,19 @@ vi.mock('@/repositories/userRepository', () => ({
   }
 }));
 
+vi.mock('@/repositories/studySessionRepository', () => ({
+  StudySessionRepository: {
+    saveStudySession: vi.fn().mockResolvedValue(undefined),
+    deleteStudySession: vi.fn().mockResolvedValue(undefined)
+  }
+}));
+
+vi.mock('@/repositories/customMissionRepository', () => ({
+  CustomMissionRepository: {
+    saveMission: vi.fn().mockResolvedValue(undefined)
+  }
+}));
+
 describe('ChapterActions SM-2 Integration', () => {
   let runtime: StudyBrainRuntime;
   let actions: ChapterActions;
@@ -125,5 +138,66 @@ describe('ChapterActions SM-2 Integration', () => {
     const updated = runtime.getState().chapters.find(c => c.id === 'chap-kinematics')!;
     expect(updated.revisionCount).toBe(2);
     expect(updated.sm2Interval).toBe(6);
+  });
+
+  it('marks matching revision todayMissions completed and updates completedPlannerMissionIds on completeRevision', async () => {
+    runtime.updateStateOptimistic({
+      todayMissions: [
+        {
+          id: 'mission-rev-kinematics',
+          subject: 'physics',
+          chapter: 'Kinematics',
+          chapterId: 'chap-kinematics',
+          type: 'Revise Formulas',
+          taskName: 'Revise Kinematics',
+          duration: 30,
+          completed: false,
+          xp: 50,
+          unlocked: true
+        }
+      ],
+      completedPlannerMissionIds: []
+    });
+
+    await actions.completeRevision('chap-kinematics', 'High');
+
+    const m = runtime.getState().todayMissions.find(x => x.id === 'mission-rev-kinematics');
+    expect(m?.completed).toBe(true);
+    expect(runtime.getState().completedPlannerMissionIds).toContain('mission-rev-kinematics');
+  });
+
+  it('grades flashcards batch, updates chapter SM-2 interval, and completes matching todayMissions', async () => {
+    runtime.updateStateOptimistic({
+      todayMissions: [
+        {
+          id: 'mission-batch-rev',
+          subject: 'physics',
+          chapter: 'Kinematics',
+          chapterId: 'chap-kinematics',
+          type: 'Revise Formulas',
+          taskName: 'Revise Kinematics Formulas',
+          duration: 30,
+          completed: false,
+          xp: 50,
+          unlocked: true
+        }
+      ],
+      completedPlannerMissionIds: []
+    });
+
+    await actions.gradeFlashcardsBatch([
+      { cardId: 'chap-kinematics-f0', chapterId: 'chap-kinematics', quality: 5 },
+      { cardId: 'chap-kinematics-f1', chapterId: 'chap-kinematics', quality: 4 }
+    ]);
+
+    const updatedChap = runtime.getState().chapters.find(c => c.id === 'chap-kinematics')!;
+    expect(updatedChap.revisionCount).toBe(1);
+    expect(updatedChap.sm2Interval).toBe(1);
+    expect(updatedChap.nextRevisionDueAt).toBeDefined();
+    expect(updatedChap.lastRevisedAt).toBeDefined();
+
+    const m = runtime.getState().todayMissions.find(x => x.id === 'mission-batch-rev');
+    expect(m?.completed).toBe(true);
+    expect(runtime.getState().completedPlannerMissionIds).toContain('mission-batch-rev');
   });
 });

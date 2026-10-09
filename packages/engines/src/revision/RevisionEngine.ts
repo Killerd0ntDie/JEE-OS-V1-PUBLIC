@@ -199,21 +199,6 @@ export class RevisionEngine {
 
       const hasActiveWork = isChapterKnownOrRunning(chap, telemetry, chapMistakes.length);
 
-      // BUGFIX: chapters that haven't been started have no memory to have decayed —
-      // labeling them 'High'/95% retention is actively misleading.
-      const isDueInPlan = plan.dueChapters.some(d => d.chapterId === chap.id);
-      const rawRetentionConfidence = telemetry?.retentionConfidence || (chapMistakes.some(m => m.revisionStatus === 'New') ? 'Low' : 'High');
-      const retentionConfidence: ChapterRevisionSummary['retentionConfidence'] = hasActiveWork
-        ? (isDueInPlan ? 'Low' : rawRetentionConfidence)
-        : 'Not Started';
-      const retentionScore: number | undefined = hasActiveWork
-        ? (telemetry?.strategyRadar?.retentionConfidenceScore ?? (isDueInPlan ? 45 : chapMistakes.length > 0 ? 50 : 70))
-        : undefined;
-
-      // Find matching formulas from FORMULA_BANK
-      const bankEntry = findMatchingBankChapter(chap);
-      const formulas = bankEntry?.formulas || [];
-
       // Find last study session for chapter (BUG-10: match strictly by chapter id/name to avoid subject bleed)
       const chapSessions = sessions.filter(s => 
         (s.chapterId && s.chapterId === chap.id) || 
@@ -225,6 +210,29 @@ export class RevisionEngine {
         const sorted = [...chapSessions].sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
         lastSession = sorted[sorted.length - 1].startTime;
       }
+      const canonicalLastRev = chap.lastRevisedAt || chap.revisionProgress?.lastRevisedAt || lastSession;
+      const isRevisedToday = Boolean(
+        (canonicalLastRev && new Date(canonicalLastRev).toDateString() === new Date().toDateString()) ||
+        chap.lastRevisionDaysAgo === 0 ||
+        chap.revisionProgress?.lastRevisedDaysAgo === 0
+      );
+
+      // BUGFIX: chapters that haven't been started have no memory to have decayed —
+      // labeling them 'High'/95% retention is actively misleading.
+      const isDueInPlan = plan.dueChapters.some(d => d.chapterId === chap.id);
+      const rawRetentionConfidence = isRevisedToday
+        ? 'High'
+        : (telemetry?.retentionConfidence || (chapMistakes.some(m => m.revisionStatus === 'New') ? 'Low' : 'High'));
+      const retentionConfidence: ChapterRevisionSummary['retentionConfidence'] = hasActiveWork
+        ? (isRevisedToday ? 'High' : isDueInPlan ? 'Low' : (rawRetentionConfidence === 'Low' ? 'Medium' : rawRetentionConfidence))
+        : 'Not Started';
+      const retentionScore: number | undefined = hasActiveWork
+        ? (isRevisedToday ? 90 : (telemetry?.strategyRadar?.retentionConfidenceScore ?? (isDueInPlan ? 45 : chapMistakes.length > 0 ? 50 : 70)))
+        : undefined;
+
+      // Find matching formulas from FORMULA_BANK
+      const bankEntry = findMatchingBankChapter(chap);
+      const formulas = bankEntry?.formulas || [];
 
       const totalCards = formulas.length + chapMistakes.length + chapNotes.length;
 
@@ -236,7 +244,7 @@ export class RevisionEngine {
         retentionScore,
         overdueCardsCount: (hasActiveWork && retentionConfidence === 'Low') ? totalCards : 0,
         totalCardsCount: hasActiveWork ? totalCards : 0,
-        lastRevisionDate: lastSession
+        lastRevisionDate: canonicalLastRev
       };
 
       if (!hasActiveWork) {
@@ -267,7 +275,7 @@ export class RevisionEngine {
         let urgencyRank = retentionConfidence === 'Low' ? 100 - (retentionScore ?? 0) : retentionConfidence === 'Medium' ? 60 - (retentionScore ?? 0) : 20 - (retentionScore ?? 0);
         let dynamicRetentionConfidence = retentionConfidence as 'High' | 'Medium' | 'Low';
         
-        if (dbState) {
+        if (dbState && !isRevisedToday) {
           // Override confidence based on interval
           if (dbState.interval < 3) {
             dynamicRetentionConfidence = 'Low';
@@ -289,6 +297,9 @@ export class RevisionEngine {
               urgencyRank += Math.min(50, overdueDays * 5); // Add up to 50 points for being overdue
             }
           }
+        } else if (isRevisedToday) {
+          dynamicRetentionConfidence = 'High';
+          urgencyRank = 20;
         }
         
         const intervalStage = `${sm2State.interval}d`;
@@ -336,7 +347,7 @@ export class RevisionEngine {
         if (m.masteryImpact === 'High') urgencyRank += 10;
         if (m.revisionStatus === 'New') urgencyRank += 10;
 
-        if (dbState) {
+        if (dbState && !isRevisedToday) {
           if (dbState.interval < 3) {
             dynamicRetentionConfidence = 'Low';
             urgencyRank = 100 - Math.min(100, Math.max(0, (dbState.easeFactor - 1.3) * 50));
@@ -356,6 +367,9 @@ export class RevisionEngine {
               urgencyRank += Math.min(50, overdueDays * 5);
             }
           }
+        } else if (isRevisedToday) {
+          dynamicRetentionConfidence = m.revisionStatus === 'Mastered' ? 'High' : 'Medium';
+          urgencyRank = 25;
         }
 
         const intervalStage = `${sm2State.interval}d`;

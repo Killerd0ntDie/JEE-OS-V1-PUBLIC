@@ -159,4 +159,113 @@ describe('PlannerEngine', () => {
     expect(task?.reasoning?.dependentChapters).not.toContain('c2');
     expect(task?.reasoning?.longTermImpact).toContain('Chapter 2');
   });
+
+  it('does not schedule revision for a chapter revised today or with future due date', () => {
+    const knowledgeEngine = new KnowledgeEngine(MOCK_SYLLABUS);
+    const planner = new PlannerEngine(knowledgeEngine);
+
+    const input: PlannerInput = {
+      studyHours: 4,
+      chapters: [
+        {
+          id: 'c1',
+          name: 'Chapter 1',
+          subject: 'physics',
+          unit: 'Mechanics',
+          status: 'Revision Due',
+          completion: 100,
+          currentLecture: 5,
+          totalLectures: 5,
+          theoryComplete: true,
+          dppComplete: true,
+          pyqsComplete: true,
+          revisionCount: 1,
+          difficulty: 'Easy',
+          confidence: 80,
+          priority: 1,
+          dependencies: [],
+          weaknessScore: 0,
+          solvedQuestions: 50,
+          lastRevisionDaysAgo: 0,
+          lastRevisedAt: '2024-01-01T08:00:00.000Z',
+          nextRevisionDueAt: '2024-01-04T00:00:00.000Z'
+        } as any
+      ],
+      revisionBacklog: [
+        { chapterId: 'c1', daysOverdue: 2, retentionScore: 40 }
+      ],
+      userPreferences: { targetYear: '2025' },
+      remainingDaysUntilJEE: 300,
+      currentDate: '2024-01-01T12:00:00.000Z'
+    };
+
+    const output = planner.generateDailyPlan(input);
+    const revTask = output.todaysMission.find(t => t.chapterId === 'c1' && (t.type === 'Revise Formulas' || t.taskName.includes('Revise')));
+    expect(revTask).toBeUndefined();
+  });
+
+  it('does not schedule Review Mistakes if already completed today or revised today', () => {
+    const knowledgeEngine = new KnowledgeEngine(MOCK_SYLLABUS);
+    const planner = new PlannerEngine(knowledgeEngine);
+
+    const input: PlannerInput = {
+      studyHours: 4,
+      chapters: [
+        {
+          id: 'c1',
+          name: 'Chapter 1',
+          subject: 'physics',
+          unit: 'Mechanics',
+          status: 'Theory Complete',
+          completion: 100,
+          currentLecture: 5,
+          totalLectures: 5,
+          theoryComplete: true,
+          dppComplete: true,
+          pyqsComplete: true,
+          revisionCount: 1,
+          difficulty: 'Easy',
+          confidence: 80,
+          priority: 1,
+          dependencies: [],
+          weaknessScore: 0,
+          solvedQuestions: 50,
+          lastRevisionDaysAgo: 0,
+          lastRevisedAt: '2024-01-01T08:00:00.000Z',
+          nextRevisionDueAt: '2024-01-04T00:00:00.000Z'
+        } as any
+      ],
+      mistakes: [
+        {
+          id: 'mst-1',
+          chapter: 'Chapter 1',
+          chapterId: 'c1',
+          revisionStatus: 'Reviewed',
+          subject: 'physics'
+        } as any
+      ],
+      todayMissions: [
+        {
+          id: 'mistake-rev-c1-2024-01-01',
+          subject: 'physics',
+          chapter: 'Chapter 1',
+          chapterId: 'c1',
+          type: 'Review Mistakes',
+          taskName: 'Review Mistakes: Chapter 1',
+          duration: 45,
+          completed: true,
+          xp: 40,
+          unlocked: true
+        }
+      ],
+      revisionBacklog: [],
+      userPreferences: { targetYear: '2025' },
+      remainingDaysUntilJEE: 300,
+      currentDate: '2024-01-01T12:00:00.000Z'
+    };
+
+    const output = planner.generateDailyPlan(input);
+    const mistakeTask = output.todaysMission.find(t => t.chapterId === 'c1' && t.type === 'Review Mistakes');
+    expect(mistakeTask).toBeUndefined();
+  });
 });

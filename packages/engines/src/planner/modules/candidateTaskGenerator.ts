@@ -132,13 +132,37 @@ export function generateCandidateTasks(
     };
   };
 
+  const currentDateObj = input.currentDate ? new Date(input.currentDate) : new Date();
+  const todayStr = getLocalDateKey(currentDateObj);
+
   // Evaluate revision backlog
   for (const rev of input.revisionBacklog) {
     const node = knowledgeEngine.getNode(rev.chapterId);
     const chapterMeta = input.chapters?.find(c => c.id === rev.chapterId);
     if (node && !chapterMeta?.chapterOnHold && !chapterMeta?.revisionOnHold) {
+      // Safety 1: Skip if chapter was already revised today
+      const lastRev = chapterMeta.lastRevisedAt || chapterMeta.revisionProgress?.lastRevisedAt;
+      const isRevisedToday = Boolean(
+        (lastRev && new Date(lastRev).toDateString() === currentDateObj.toDateString()) ||
+        chapterMeta.lastRevisionDaysAgo === 0 ||
+        chapterMeta.revisionProgress?.lastRevisedDaysAgo === 0
+      );
+      if (isRevisedToday) continue;
+
+      // Safety 2: Skip if chapter nextRevisionDueAt is in the future
+      if (chapterMeta.nextRevisionDueAt && new Date(chapterMeta.nextRevisionDueAt).getTime() > currentDateObj.getTime()) {
+        continue;
+      }
+
+      // Safety 3: Skip if todayMissions already has a completed revision task for this chapter
+      const hasCompletedRevisionToday = input.todayMissions?.some(m =>
+        (m.chapterId === node.id || m.chapter?.toLowerCase() === node.name.toLowerCase()) &&
+        (m.type === 'Revise Formulas' || m.type === 'Review Mistakes' || m.taskName?.toLowerCase().includes('revise')) &&
+        m.completed
+      );
+      if (hasCompletedRevisionToday) continue;
+
       const prog = mergedStateMap[node.id] || { completion: 100, isMastered: true, chapterId: node.id };
-      const todayStr = getLocalDateKey(input.currentDate ? new Date(input.currentDate) : new Date());
       candidates.push(generateTask(
         'Revise Formulas',
         node,
@@ -155,10 +179,31 @@ export function generateCandidateTasks(
   if (input.chapters) {
     for (const chap of input.chapters) {
       if (chap.status === 'Revision Due' && !existingRevChapterIds.has(chap.id) && !chap.chapterOnHold && !chap.revisionOnHold) {
+        // Safety 1: Skip if chapter was already revised today
+        const lastRev = chap.lastRevisedAt || chap.revisionProgress?.lastRevisedAt;
+        const isRevisedToday = Boolean(
+          (lastRev && new Date(lastRev).toDateString() === currentDateObj.toDateString()) ||
+          chap.lastRevisionDaysAgo === 0 ||
+          chap.revisionProgress?.lastRevisedDaysAgo === 0
+        );
+        if (isRevisedToday) continue;
+
+        // Safety 2: Skip if chapter nextRevisionDueAt is in the future
+        if (chap.nextRevisionDueAt && new Date(chap.nextRevisionDueAt).getTime() > currentDateObj.getTime()) {
+          continue;
+        }
+
+        // Safety 3: Skip if todayMissions already has a completed revision task for this chapter
+        const hasCompletedRevisionToday = input.todayMissions?.some(m =>
+          (m.chapterId === chap.id || m.chapter?.toLowerCase() === chap.name.toLowerCase()) &&
+          (m.type === 'Revise Formulas' || m.type === 'Review Mistakes' || m.taskName?.toLowerCase().includes('revise')) &&
+          m.completed
+        );
+        if (hasCompletedRevisionToday) continue;
+
         const node = knowledgeEngine.getNode(chap.id);
         if (node) {
           const prog = mergedStateMap[node.id] || { completion: chap.completion || 0, isMastered: false, chapterId: node.id };
-          const todayStr = getLocalDateKey(input.currentDate ? new Date(input.currentDate) : new Date());
           candidates.push(generateTask(
             'Revise Formulas',
             node,
@@ -180,25 +225,39 @@ export function generateCandidateTasks(
     
     if (weakSubjectChapters.length > 0) {
       const weakestChap = weakSubjectChapters[0];
-      const node = knowledgeEngine.getNode(weakestChap.id);
-      if (node) {
-        const prog = mergedStateMap[node.id] || { completion: weakestChap.completion || 0, isMastered: false, chapterId: node.id };
-        const todayStr = getLocalDateKey(input.currentDate ? new Date(input.currentDate) : new Date());
-        candidates.push(generateTask(
-          'Review Mistakes',
-          node,
-          { chapterId: node.id, completion: prog.completion, isMastered: prog.isMastered },
-          45,
-          `remediation-${weakestChap.id}-${todayStr}`,
-          `Mock Remediation: ${weakestChap.name}`,
-          { daysOverdue: 0, retentionScore: 0 }
-        ));
-        const injectedTask = candidates[candidates.length - 1];
-        injectedTask.selectionReason = mockRemediationReason;
-        if (injectedTask.reasoning) {
-          injectedTask.reasoning.whySelected = mockRemediationReason;
-          injectedTask.reasoning.rankingRationale = "Ranked extremely high to immediately patch mock exam failure points.";
-          injectedTask.priorityScore = 100;
+      const hasCompletedRemediationToday = input.todayMissions?.some(m =>
+        (m.chapterId === weakestChap.id || m.chapter?.toLowerCase() === weakestChap.name.toLowerCase()) &&
+        (m.type === 'Review Mistakes' || m.type === 'Revise Formulas' || m.taskName?.toLowerCase().includes('remediation') || m.taskName?.toLowerCase().includes('revise')) &&
+        m.completed
+      );
+      const lastRev = weakestChap.lastRevisedAt || weakestChap.revisionProgress?.lastRevisedAt;
+      const isRevisedToday = Boolean(
+        (lastRev && new Date(lastRev).toDateString() === currentDateObj.toDateString()) ||
+        weakestChap.lastRevisionDaysAgo === 0 ||
+        weakestChap.revisionProgress?.lastRevisedDaysAgo === 0
+      );
+
+      if (!hasCompletedRemediationToday && !isRevisedToday) {
+        const node = knowledgeEngine.getNode(weakestChap.id);
+        if (node) {
+          const prog = mergedStateMap[node.id] || { completion: weakestChap.completion || 0, isMastered: false, chapterId: node.id };
+          const todayStr = getLocalDateKey(input.currentDate ? new Date(input.currentDate) : new Date());
+          candidates.push(generateTask(
+            'Review Mistakes',
+            node,
+            { chapterId: node.id, completion: prog.completion, isMastered: prog.isMastered },
+            45,
+            `remediation-${weakestChap.id}-${todayStr}`,
+            `Mock Remediation: ${weakestChap.name}`,
+            { daysOverdue: 0, retentionScore: 0 }
+          ));
+          const injectedTask = candidates[candidates.length - 1];
+          injectedTask.selectionReason = mockRemediationReason;
+          if (injectedTask.reasoning) {
+            injectedTask.reasoning.whySelected = mockRemediationReason;
+            injectedTask.reasoning.rankingRationale = "Ranked extremely high to immediately patch mock exam failure points.";
+            injectedTask.priorityScore = 100;
+          }
         }
       }
     }
@@ -314,16 +373,45 @@ export function generateCandidateTasks(
     }
 
     // Check for mistakes
-    const chapterMistakes = input.mistakes?.filter(m => m.chapter === node.name && m.revisionStatus !== 'Mastered') || [];
-    if (chapterMistakes.length > 0) {
-      candidates.push(generateTask(
-        'Review Mistakes',
-        node,
-        { chapterId: node.id, completion: prog.completion, isMastered: prog.isMastered },
-        45,
-        `mistake-rev-${node.id}`,
-        `Review Mistakes: ${node.name}`
-      ));
+    const chapterMistakes = input.mistakes?.filter(m =>
+      (m.chapterId === node.id || m.chapter?.toLowerCase() === node.name.toLowerCase()) &&
+      m.revisionStatus !== 'Mastered'
+    ) || [];
+
+    if (chapterMistakes.length > 0 && !chapterMeta?.revisionOnHold && !chapterMeta?.chapterOnHold) {
+      const lastRev = chapterMeta?.lastRevisedAt || chapterMeta?.revisionProgress?.lastRevisedAt;
+      const isRevisedToday = Boolean(
+        (lastRev && new Date(lastRev).toDateString() === currentDateObj.toDateString()) ||
+        chapterMeta?.lastRevisionDaysAgo === 0 ||
+        chapterMeta?.revisionProgress?.lastRevisedDaysAgo === 0
+      );
+      const hasCompletedMistakeReviewToday = input.todayMissions?.some(m =>
+        (m.chapterId === node.id || m.chapter?.toLowerCase() === node.name.toLowerCase()) &&
+        (m.type === 'Review Mistakes' || m.taskName?.toLowerCase().includes('mistake')) &&
+        m.completed
+      );
+
+      const hasDueOrNewMistakes = chapterMistakes.some(m => {
+        if (m.revisionStatus === 'New') return true;
+        const cardId = m.id.startsWith('m-') ? m.id : `m-${m.id}`;
+        const dbState = chapterMeta?.flashcardStates?.[cardId];
+        if (dbState?.nextReviewDate) {
+          const nextMs = new Date(dbState.nextReviewDate).getTime();
+          return !Number.isNaN(nextMs) && nextMs <= currentDateObj.getTime();
+        }
+        return false;
+      });
+
+      if (!isRevisedToday && !hasCompletedMistakeReviewToday && hasDueOrNewMistakes) {
+        candidates.push(generateTask(
+          'Review Mistakes',
+          node,
+          { chapterId: node.id, completion: prog.completion, isMastered: prog.isMastered },
+          45,
+          `mistake-rev-${node.id}-${todayStr}`,
+          `Review Mistakes: ${node.name}`
+        ));
+      }
     }
   }
 

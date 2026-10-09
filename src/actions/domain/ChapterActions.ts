@@ -1,8 +1,10 @@
 import { BaseActions } from './BaseActions';
-import { Chapter, SubjectId, Mistake } from '@/types/index';
+import { Chapter, SubjectId, Mistake, StudySession } from '@/types/index';
 import { ChapterRepository } from '@/repositories/chapterRepository';
 import { UserRepository } from '@/repositories/userRepository';
 import { MistakeRepository } from '@/repositories/mistakeRepository';
+import { CustomMissionRepository } from '@/repositories/customMissionRepository';
+import { StudySessionRepository } from '@/repositories/studySessionRepository';
 import { normalizeChapter } from '@jee-os/engines';
 import { calculateLevelFromXP } from '@/utils/levelingCalculations';
 import { SpacedRepetitionEngine } from '@jee-os/engines';
@@ -250,9 +252,62 @@ export class ChapterActions extends BaseActions {
         lastRevisedAt: new Date().toISOString()
       };
 
+      // Synchronize matching todayMissions: mark them completed
+      const chapterIdStr = chapter.id;
+      const chapterNameLower = chapter.name.toLowerCase();
+
+      let hasMissionChanges = false;
+      let updatedCompletedPlannerMissionIds = Array.from(new Set(this.state.completedPlannerMissionIds || []));
+      const updatedCustomMissions = [...this.state.customMissions];
+
+      const updatedTodayMissions = this.state.todayMissions.map(m => {
+        const matchesChapter = (m.chapterId && m.chapterId === chapterIdStr) ||
+          (m.chapter && m.chapter.toLowerCase() === chapterNameLower) ||
+          (m.chapterName && m.chapterName.toLowerCase() === chapterNameLower);
+        const isRevisionType = m.type === 'Revise Formulas' || m.type === 'Review Mistakes' ||
+          (m.taskName?.toLowerCase().includes('revise'));
+
+        if (matchesChapter && isRevisionType && !m.completed) {
+          hasMissionChanges = true;
+          const isCustom = updatedCustomMissions.some(cm => cm.id === m.id);
+          const updatedM = {
+            ...m,
+            completed: true,
+            unlocked: true
+          };
+          if (isCustom) {
+            const cIdx = updatedCustomMissions.findIndex(cm => cm.id === m.id);
+            if (cIdx !== -1) updatedCustomMissions[cIdx] = updatedM;
+          } else {
+            updatedCompletedPlannerMissionIds = Array.from(new Set([...updatedCompletedPlannerMissionIds, m.id])).slice(-1000);
+          }
+          return updatedM;
+        }
+        return m;
+      });
+
+      // Record a canonical StudySession for this revision
+      const now = new Date();
+      const sessionId = `session-${Date.now()}`;
+      const sessionPayload: StudySession = {
+        id: sessionId,
+        startTime: new Date(now.getTime() - 15 * 60000).toISOString(),
+        endTime: now.toISOString(),
+        duration: 15,
+        type: 'Revision',
+        subjectId: chapter.subject,
+        chapterId: chapter.id,
+        xpEarned: revisionXP
+      };
+      const updatedStudySessions = [sessionPayload, ...this.state.studySessions];
+
       const originalSnapshot = {
         chapters: this.state.chapters,
-        xp: this.state.xp
+        xp: this.state.xp,
+        todayMissions: this.state.todayMissions,
+        customMissions: this.state.customMissions,
+        completedPlannerMissionIds: this.state.completedPlannerMissionIds,
+        studySessions: this.state.studySessions
       };
 
       try {
@@ -261,20 +316,44 @@ export class ChapterActions extends BaseActions {
         this.runtime.updateStateOptimistic({
           chapters: updatedChapters,
           xp: newXp,
+          todayMissions: updatedTodayMissions,
+          customMissions: updatedCustomMissions,
+          completedPlannerMissionIds: updatedCompletedPlannerMissionIds,
+          studySessions: updatedStudySessions,
           ...(levelUpData ? { levelUpData } : {})
         });
 
-        await Promise.all([
-          UserRepository.updateUserProfile(this.userId, { xp: newXp }),
-          ChapterRepository.saveChapter(this.userId, updatedChapter)
-        ]);
+        if (!this.isGuestUser()) {
+          const promises: Promise<any>[] = [
+            UserRepository.updateUserProfile(this.userId, { 
+              xp: newXp,
+              completedPlannerMissionIds: updatedCompletedPlannerMissionIds 
+            }),
+            ChapterRepository.saveChapter(this.userId, updatedChapter),
+            StudySessionRepository.saveStudySession(this.userId, sessionPayload)
+          ];
+          if (hasMissionChanges) {
+            updatedCustomMissions.forEach(cm => {
+              if (this.state.todayMissions.some(m => m.id === cm.id && !m.completed && updatedTodayMissions.find(u => u.id === cm.id)?.completed)) {
+                promises.push(CustomMissionRepository.saveMission(this.userId, cm));
+              }
+            });
+          }
+          await Promise.all(promises);
+        }
 
-        await this.runtime.refresh('CHAPTER_UPDATE', { chapters: updatedChapters, xp: newXp, lastSyncError: null, levelUpData });
-      } catch (err) {
-        this.runtime.updateStateOptimistic({
-          chapters: originalSnapshot.chapters,
-          xp: originalSnapshot.xp
+        await this.runtime.refresh('CHAPTER_UPDATE', { 
+          chapters: updatedChapters, 
+          xp: newXp, 
+          todayMissions: updatedTodayMissions,
+          customMissions: updatedCustomMissions,
+          completedPlannerMissionIds: updatedCompletedPlannerMissionIds,
+          studySessions: updatedStudySessions,
+          lastSyncError: null, 
+          levelUpData 
         });
+      } catch (err) {
+        this.runtime.updateStateOptimistic(originalSnapshot);
         await this.handleWriteError(err, 'completeRevision');
       }
     }
@@ -350,15 +429,40 @@ export class ChapterActions extends BaseActions {
         }
       });
 
+      const avgQuality = Math.round(cardGrades.reduce((sum, g) => sum + g.quality, 0) / cardGrades.length);
+      const chapterSm2 = smEngine.calculateNextReview(avgQuality, {
+        repetitions: chapter.revisionCount || 0,
+        easeFactor: chapter.sm2EaseFactor ?? 2.5,
+        interval: chapter.sm2Interval ?? 0,
+      });
+
       const nextStatus = chapter.status === 'Revision Due'
         ? (chapter.theoryComplete ? 'Theory Complete' : 'Learning')
         : chapter.status;
 
+      const nowIso = new Date().toISOString();
+      const confLabel: 'High' | 'Medium' | 'Low' =
+        avgQuality >= 4 ? 'High' : avgQuality >= 3 ? 'Medium' : 'Low';
+
       modifiedChaptersMap.set(chapterId, {
         ...chapter,
         status: nextStatus,
-        lastRevisedAt: new Date().toISOString(),
+        revisionCount: chapterSm2.repetitions,
+        sm2EaseFactor: chapterSm2.easeFactor,
+        sm2Interval: chapterSm2.interval,
+        nextRevisionDueAt: chapterSm2.nextReviewDate,
+        lastRevisedAt: nowIso,
         lastRevisionDaysAgo: 0,
+        revisionProgress: {
+          formulaMemoryPercent: avgQuality >= 4 ? 95 : avgQuality >= 3 ? 70 : 40,
+          questionSolvingConfidencePercent: chapter.revisionProgress?.questionSolvingConfidencePercent || 80,
+          needRevision: avgQuality < 3,
+          retentionScore: avgQuality >= 4 ? 100 : avgQuality >= 3 ? 70 : 40,
+          ...(chapter.revisionProgress || {}),
+          lastRevisedDaysAgo: 0,
+          retentionConfidence: confLabel,
+          lastRevisedAt: nowIso
+        },
         flashcardStates: currentFlashcardStates
       });
     });
@@ -385,23 +489,85 @@ export class ChapterActions extends BaseActions {
       ? this.state.mistakes.map(m => modifiedMistakesMap.get(m.id) || m)
       : this.state.mistakes;
 
+    // Synchronize matching todayMissions for modified chapters
+    const modifiedChapterIds = new Set(modifiedChaptersMap.keys());
+    const modifiedChapterNames = new Set(Array.from(modifiedChaptersMap.values()).map(c => c.name.toLowerCase()));
+
+    let hasMissionChanges = false;
+    let updatedCompletedPlannerMissionIds = Array.from(new Set(this.state.completedPlannerMissionIds || []));
+    const updatedCustomMissions = [...this.state.customMissions];
+
+    const updatedTodayMissions = this.state.todayMissions.map(m => {
+      const matchesChapter = (m.chapterId && modifiedChapterIds.has(m.chapterId)) ||
+        (m.chapter && modifiedChapterNames.has(m.chapter.toLowerCase())) ||
+        (m.chapterName && modifiedChapterNames.has(m.chapterName.toLowerCase()));
+      const isRevisionType = m.type === 'Revise Formulas' || m.type === 'Review Mistakes' ||
+        (m.taskName?.toLowerCase().includes('revise'));
+
+      if (matchesChapter && isRevisionType && !m.completed) {
+        hasMissionChanges = true;
+        const isCustom = updatedCustomMissions.some(cm => cm.id === m.id);
+        const updatedM = {
+          ...m,
+          completed: true,
+          unlocked: true
+        };
+        if (isCustom) {
+          const cIdx = updatedCustomMissions.findIndex(cm => cm.id === m.id);
+          if (cIdx !== -1) updatedCustomMissions[cIdx] = updatedM;
+        } else {
+          updatedCompletedPlannerMissionIds = Array.from(new Set([...updatedCompletedPlannerMissionIds, m.id])).slice(-1000);
+        }
+        return updatedM;
+      }
+      return m;
+    });
+
+    // Record StudySession
+    const now = new Date();
+    const primaryChap = Array.from(modifiedChaptersMap.values())[0];
+    const sessionId = `session-${Date.now()}`;
+    const sessionPayload: StudySession = {
+      id: sessionId,
+      startTime: new Date(now.getTime() - 15 * 60000).toISOString(),
+      endTime: now.toISOString(),
+      duration: 15,
+      type: 'Revision',
+      subjectId: primaryChap?.subject || 'physics',
+      chapterId: primaryChap?.id,
+      xpEarned: totalFlashcardXP
+    };
+    const updatedStudySessions = [sessionPayload, ...this.state.studySessions];
+
     const originalSnapshot = {
       chapters: this.state.chapters,
       xp: this.state.xp,
-      mistakes: this.state.mistakes
+      mistakes: this.state.mistakes,
+      todayMissions: this.state.todayMissions,
+      customMissions: this.state.customMissions,
+      completedPlannerMissionIds: this.state.completedPlannerMissionIds,
+      studySessions: this.state.studySessions
     };
 
     this.runtime.updateStateOptimistic({
       chapters: updatedChapters,
       xp: newXp,
       mistakes: updatedMistakes,
+      todayMissions: updatedTodayMissions,
+      customMissions: updatedCustomMissions,
+      completedPlannerMissionIds: updatedCompletedPlannerMissionIds,
+      studySessions: updatedStudySessions,
       ...(levelUpData ? { levelUpData } : {})
     });
 
     try {
       if (!this.isGuestUser()) {
         const promises: Promise<any>[] = [
-          UserRepository.updateUserProfile(this.userId, { xp: newXp })
+          UserRepository.updateUserProfile(this.userId, { 
+            xp: newXp,
+            completedPlannerMissionIds: updatedCompletedPlannerMissionIds 
+          }),
+          StudySessionRepository.saveStudySession(this.userId, sessionPayload)
         ];
         modifiedChaptersMap.forEach(chap => {
           promises.push(ChapterRepository.saveChapter(this.userId, chap));
@@ -412,21 +578,28 @@ export class ChapterActions extends BaseActions {
             confidence: mst.confidence
           }));
         });
+        if (hasMissionChanges) {
+          updatedCustomMissions.forEach(cm => {
+            if (this.state.todayMissions.some(m => m.id === cm.id && !m.completed && updatedTodayMissions.find(u => u.id === cm.id)?.completed)) {
+              promises.push(CustomMissionRepository.saveMission(this.userId, cm));
+            }
+          });
+        }
         await Promise.all(promises);
       }
       await this.runtime.refresh('CHAPTER_UPDATE', { 
         chapters: updatedChapters, 
         xp: newXp, 
         mistakes: updatedMistakes,
+        todayMissions: updatedTodayMissions,
+        customMissions: updatedCustomMissions,
+        completedPlannerMissionIds: updatedCompletedPlannerMissionIds,
+        studySessions: updatedStudySessions,
         lastSyncError: null, 
         levelUpData 
       });
     } catch (err) {
-      this.runtime.updateStateOptimistic({
-        chapters: originalSnapshot.chapters,
-        xp: originalSnapshot.xp,
-        mistakes: originalSnapshot.mistakes
-      });
+      this.runtime.updateStateOptimistic(originalSnapshot);
       await this.handleWriteError(err, 'gradeFlashcardsBatch');
     }
   }

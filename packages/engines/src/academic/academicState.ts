@@ -45,9 +45,9 @@ export function getAcademicState(chapter: Chapter): ChapterAcademicState {
       ? chapter.lectureProgress.totalLectures
       : 10);
   // BUG-14: Prioritize explicitly updated top-level currentLecture over potentially stale nested lectureProgress
-  const rawCompLects = typeof chapter.currentLecture === 'number' && !isNaN(chapter.currentLecture)
+  const rawCompLects = typeof chapter.currentLecture === 'number' && !Number.isNaN(chapter.currentLecture)
     ? chapter.currentLecture
-    : (typeof chapter.lectureProgress?.completedLectures === 'number' && !isNaN(chapter.lectureProgress.completedLectures)
+    : (typeof chapter.lectureProgress?.completedLectures === 'number' && !Number.isNaN(chapter.lectureProgress.completedLectures)
       ? chapter.lectureProgress.completedLectures
       : (stage === 'Mastered' ? totalLects : 0));
   const compLects = Math.min(totalLects, Math.max(0, rawCompLects));
@@ -67,8 +67,8 @@ export function getAcademicState(chapter: Chapter): ChapterAcademicState {
   };
 
   // 3. Practice Progress
-  const dppComp = chapter.practiceProgress?.dppCompleted ?? (chapter.dppComplete ? true : false);
-  const pyqComp = chapter.practiceProgress?.pyqsCompleted ?? (chapter.pyqsComplete ? true : false);
+  const dppComp = chapter.practiceProgress?.dppCompleted ?? (!!chapter.dppComplete);
+  const pyqComp = chapter.practiceProgress?.pyqsCompleted ?? (!!chapter.pyqsComplete);
   const modComp = chapter.practiceProgress?.moduleCompleted ?? false;
 
   const dppPct = chapter.practiceProgress?.dppPercent ?? (dppComp === true ? 100 : dppComp === 'Partial' ? 50 : 0);
@@ -90,12 +90,14 @@ export function getAcademicState(chapter: Chapter): ChapterAcademicState {
   };
 
   // 4. Revision State
-  const computedDaysAgoFromDate = chapter.lastRevisedAt 
-    ? Math.max(0, Math.floor((Date.now() - new Date(chapter.lastRevisedAt).getTime()) / (1000 * 60 * 60 * 24)))
+  const lastRevDate = chapter.lastRevisedAt || chapter.revisionProgress?.lastRevisedAt;
+  const computedDaysAgoFromDate = lastRevDate 
+    ? Math.max(0, Math.floor((Date.now() - new Date(lastRevDate).getTime()) / (1000 * 60 * 60 * 24)))
     : undefined;
-  const daysAgo = chapter.revisionProgress?.lastRevisedDaysAgo ?? chapter.lastRevisionDaysAgo ?? computedDaysAgoFromDate ?? 14;
+  const daysAgo = computedDaysAgoFromDate ?? chapter.revisionProgress?.lastRevisedDaysAgo ?? chapter.lastRevisionDaysAgo ?? 14;
   
   const retentionConfidence: 'High' | 'Medium' | 'Low' = 
+    (daysAgo <= 1) ? 'High' :
     chapter.revisionProgress?.retentionConfidence || 
     (stage === 'Not Started' ? 'High' : 
      chapter.confidence !== undefined && chapter.confidence > 0
@@ -117,17 +119,17 @@ export function getAcademicState(chapter: Chapter): ChapterAcademicState {
   // 5. Calculate Overall Completion %
   // Theory (35%) + DPP (20%) + Module (15%) + PYQs (20%) + Revision (10%)
   const theoryWeight = totalLects > 0 ? (compLects / totalLects) * 35 : (chapter.theoryComplete ? 35 : 0);
-  const safeDppPct = typeof dppPct === 'number' && !isNaN(dppPct) ? dppPct : 0;
-  const safeModPct = typeof modPct === 'number' && !isNaN(modPct) ? modPct : 0;
-  const safePyqPct = typeof pyqPct === 'number' && !isNaN(pyqPct) ? pyqPct : 0;
-  const safeRetentionScore = typeof retentionScore === 'number' && !isNaN(retentionScore) ? retentionScore : 0;
+  const safeDppPct = typeof dppPct === 'number' && !Number.isNaN(dppPct) ? dppPct : 0;
+  const safeModPct = typeof modPct === 'number' && !Number.isNaN(modPct) ? modPct : 0;
+  const safePyqPct = typeof pyqPct === 'number' && !Number.isNaN(pyqPct) ? pyqPct : 0;
+  const safeRetentionScore = typeof retentionScore === 'number' && !Number.isNaN(retentionScore) ? retentionScore : 0;
 
   const dppWeight = (safeDppPct / 100) * 20;
   const modWeight = (safeModPct / 100) * 15;
   const pyqWeight = (safePyqPct / 100) * 20;
   const revWeight = (stage === 'Not Started') ? 0 : (safeRetentionScore / 100) * 10;
   const rawCompletion = theoryWeight + dppWeight + modWeight + pyqWeight + revWeight;
-  const calculatedCompletion = isNaN(rawCompletion) ? 0 : Math.min(100, Math.max(0, Math.round(rawCompletion)));
+  const calculatedCompletion = Number.isNaN(rawCompletion) ? 0 : Math.min(100, Math.max(0, Math.round(rawCompletion)));
 
   // Remaining Practice Hours estimate (approx 0.1 hour per remaining question / module)
   const remainingPracticeHours = Math.round(((100 - pyqPct) * 0.05 + (100 - dppPct) * 0.03) * 10) / 10;
@@ -203,10 +205,10 @@ export function normalizeChapter(chapter: Chapter): Chapter {
     (syllabusStage === 'Not Started' && chapter.status !== 'Learning') ? 'Not Started' : 'Learning';
 
   const acad = getAcademicState({ ...chapter, syllabusStage, status: mappedStatus });
-  const safeOverallCompletion = typeof acad.overallCompletion === 'number' && !isNaN(acad.overallCompletion)
+  const safeOverallCompletion = typeof acad.overallCompletion === 'number' && !Number.isNaN(acad.overallCompletion)
     ? acad.overallCompletion
     : 0;
-  const safeCompLects = typeof acad.lectureProgress.completedLectures === 'number' && !isNaN(acad.lectureProgress.completedLectures)
+  const safeCompLects = typeof acad.lectureProgress.completedLectures === 'number' && !Number.isNaN(acad.lectureProgress.completedLectures)
     ? acad.lectureProgress.completedLectures
     : 0;
 
@@ -220,9 +222,9 @@ export function normalizeChapter(chapter: Chapter): Chapter {
     theoryComplete: mappedStatus === 'Not Started' ? false : (syllabusStage === 'Mastered' || chapter.theoryComplete === true || (safeCompLects > 0 && safeCompLects >= acad.lectureProgress.totalLectures)),
     dppComplete: mappedStatus === 'Not Started' ? false : (chapter.dppComplete === true || acad.practiceProgress.dppCompleted === true || acad.practiceProgress.dppPercent === 100),
     pyqsComplete: mappedStatus === 'Not Started' ? false : (chapter.pyqsComplete === true || acad.practiceProgress.pyqsCompleted === true || acad.practiceProgress.pyqPercent === 100),
-    confidence: typeof acad.practiceProgress.confidencePercent === 'number' && !isNaN(acad.practiceProgress.confidencePercent) ? acad.practiceProgress.confidencePercent : 0,
-    lastRevisionDaysAgo: mappedStatus === 'Not Started' ? 0 : (typeof acad.revisionState.lastRevisedDaysAgo === 'number' && !isNaN(acad.revisionState.lastRevisedDaysAgo) ? acad.revisionState.lastRevisedDaysAgo : 0),
-    estimatedRemainingTime: mappedStatus === 'Not Started' ? 0 : (typeof acad.estimatedRemainingTimeHours === 'number' && !isNaN(acad.estimatedRemainingTimeHours) ? acad.estimatedRemainingTimeHours : 0),
+    confidence: typeof acad.practiceProgress.confidencePercent === 'number' && !Number.isNaN(acad.practiceProgress.confidencePercent) ? acad.practiceProgress.confidencePercent : 0,
+    lastRevisionDaysAgo: mappedStatus === 'Not Started' ? 0 : (typeof acad.revisionState.lastRevisedDaysAgo === 'number' && !Number.isNaN(acad.revisionState.lastRevisedDaysAgo) ? acad.revisionState.lastRevisedDaysAgo : 0),
+    estimatedRemainingTime: mappedStatus === 'Not Started' ? 0 : (typeof acad.estimatedRemainingTimeHours === 'number' && !Number.isNaN(acad.estimatedRemainingTimeHours) ? acad.estimatedRemainingTimeHours : 0),
     retentionScore: mappedStatus === 'Not Started' ? 90 : (acad.revisionState.retentionScore ?? 60),
     healthScore: mappedStatus === 'Not Started' ? 100 : Math.round((acad.practiceProgress.accuracyPercent * 0.6) + ((acad.revisionState.retentionScore ?? 60) * 0.4)),
     lectureProgress: acad.lectureProgress,

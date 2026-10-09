@@ -1,10 +1,11 @@
 import { BaseActions } from '../BaseActions';
-import { TodayMission, SubjectId, StudySession, Chapter } from '@/types/index';
+import { TodayMission, SubjectId, StudySession, Chapter, Mistake } from '@/types/index';
 import { CustomMissionRepository } from '@/repositories/customMissionRepository';
 import { ChapterRepository } from '@/repositories/chapterRepository';
 import { UserRepository } from '@/repositories/userRepository';
 import { StudySessionRepository } from '@/repositories/studySessionRepository';
-import { normalizeChapter } from '@jee-os/engines';
+import { MistakeRepository } from '@/repositories/mistakeRepository';
+import { normalizeChapter, SpacedRepetitionEngine } from '@jee-os/engines';
 import { calculateLevelFromXP } from '@/utils/levelingCalculations';
 import { getCurrentSessionTimeSlot, formatTimeSlotDisplay } from '@/utils/timeSlotUtils';
 
@@ -28,6 +29,8 @@ export interface TaskCompletionMetrics {
  * - Full transactional snapshot and rollback protection
  */
 export class TaskCompletionHandler extends BaseActions {
+  private sm2Engine = new SpacedRepetitionEngine();
+
   async completeTask(
     taskId: string,
     durationSecs?: number,
@@ -43,7 +46,8 @@ export class TaskCompletionHandler extends BaseActions {
       xp: this.state.xp,
       chapters: this.state.chapters,
       studySessions: this.state.studySessions,
-      analytics: this.state.analytics
+      analytics: this.state.analytics,
+      mistakes: this.state.mistakes
     };
 
     const missionIndex = this.state.todayMissions.findIndex(m => m.id === taskId);
@@ -197,6 +201,12 @@ export class TaskCompletionHandler extends BaseActions {
           let lastRevisionDaysAgo = c.lastRevisionDaysAgo;
           let currentLecture = c.currentLecture || 0;
           const totalLectures = c.totalLectures || 12;
+          let sm2EaseFactor = c.sm2EaseFactor ?? 2.5;
+          let sm2Interval = c.sm2Interval ?? 0;
+          let nextRevisionDueAt = c.nextRevisionDueAt;
+          let lastRevisedAt = c.lastRevisedAt;
+          let revisionProgress = c.revisionProgress;
+          let flashcardStates = c.flashcardStates;
 
           let statusUpdate: Chapter['status'] | undefined ;
 
@@ -208,9 +218,65 @@ export class TaskCompletionHandler extends BaseActions {
             if (mission.type === 'Solve DPP') dppComplete = true;
             if (mission.type === 'Solve PYQs') pyqsComplete = true;
             if (mission.type === 'Revise Formulas' || mission.type === 'Review Mistakes') {
-              revisionCount += 1;
+              let quality = 4;
+              if (metrics?.confidence !== undefined) {
+                if (metrics.confidence >= 80) quality = 5;
+                else if (metrics.confidence >= 50) quality = 3;
+                else quality = 2;
+              }
+              const sm2Result = this.sm2Engine.calculateNextReview(quality, {
+                repetitions: c.revisionCount || 0,
+                easeFactor: c.sm2EaseFactor ?? 2.5,
+                interval: c.sm2Interval ?? 0,
+              });
+
+              revisionCount = sm2Result.repetitions;
               lastRevisionDaysAgo = 0;
-              statusUpdate = 'Learning';
+              sm2EaseFactor = sm2Result.easeFactor;
+              sm2Interval = sm2Result.interval;
+              nextRevisionDueAt = sm2Result.nextReviewDate;
+              const nowIso = new Date().toISOString();
+              lastRevisedAt = nowIso;
+
+              const confLabel: 'High' | 'Medium' | 'Low' =
+                quality >= 4 ? 'High' : quality >= 3 ? 'Medium' : 'Low';
+
+              revisionProgress = {
+                formulaMemoryPercent: quality >= 4 ? 95 : quality >= 3 ? 70 : 40,
+                questionSolvingConfidencePercent: c.revisionProgress?.questionSolvingConfidencePercent || 80,
+                needRevision: quality < 3,
+                retentionScore: quality >= 4 ? 100 : quality >= 3 ? 70 : 40,
+                ...(c.revisionProgress || {}),
+                lastRevisedDaysAgo: 0,
+                retentionConfidence: confLabel,
+                lastRevisedAt: nowIso
+              };
+
+              if (c.flashcardStates) {
+                const updatedCards = { ...c.flashcardStates };
+                for (const cardId of Object.keys(updatedCards)) {
+                  const card = updatedCards[cardId];
+                  const cardSm2 = this.sm2Engine.calculateNextReview(quality, {
+                    repetitions: card.repetitions || 0,
+                    easeFactor: card.easeFactor || 2.5,
+                    interval: card.interval || 0
+                  });
+                  updatedCards[cardId] = {
+                    repetitions: cardSm2.repetitions,
+                    easeFactor: cardSm2.easeFactor,
+                    interval: cardSm2.interval,
+                    nextReviewDate: cardSm2.nextReviewDate,
+                    lastReviewDate: nowIso
+                  };
+                }
+                flashcardStates = updatedCards;
+              }
+
+              if (c.status === 'Revision Due') {
+                statusUpdate = c.theoryComplete ? 'Theory Complete' : 'Learning';
+              } else {
+                statusUpdate = c.status;
+              }
             }
           } else {
             if (mission.type === 'Watch Lecture') {
@@ -258,6 +324,12 @@ export class TaskCompletionHandler extends BaseActions {
             pyqsComplete,
             revisionCount,
             lastRevisionDaysAgo,
+            sm2EaseFactor,
+            sm2Interval,
+            nextRevisionDueAt,
+            lastRevisedAt,
+            revisionProgress,
+            flashcardStates,
             solvedQuestions: Math.max(0, (c.solvedQuestions || 0) + addedQs),
             confidence: Math.min(100, Math.max(0, (c.confidence || 0) + deltaConf))
           };
@@ -300,18 +372,45 @@ export class TaskCompletionHandler extends BaseActions {
       let updatedStudySessions = this.state.studySessions;
       let finalAnalytics = this.state.analytics;
 
+      let updatedMistakes = this.state.mistakes;
+      if (isCompleting && mission.type === 'Review Mistakes' && chapter) {
+        const chapterNameLower = chapter.name.toLowerCase();
+        const mistakesToUpdate: Mistake[] = [];
+        updatedMistakes = this.state.mistakes.map(m => {
+          const isChap = (m.chapterId && m.chapterId === chapter.id) ||
+                         (m.chapter && m.chapter.toLowerCase() === chapterNameLower);
+          if (isChap && m.revisionStatus !== 'Mastered') {
+            const updatedM: Mistake = {
+              ...m,
+              revisionStatus: 'Reviewed',
+              confidence: Math.min(100, (m.confidence || 50) + 15)
+            };
+            mistakesToUpdate.push(updatedM);
+            return updatedM;
+          }
+          return m;
+        });
+
+        if (mistakesToUpdate.length > 0) {
+          savePromises.push(this.safeDbCall(() => MistakeRepository.saveMistakesBatch(this.userId, mistakesToUpdate), 'saveMistakesBatch'));
+        }
+      }
+
       if (isCompleting && mission.type !== 'Break') {
-        if (studySessionDuration > 0) {
+        const isRevisionMission = mission.type === 'Revise Formulas' || mission.type === 'Review Mistakes';
+        const effectiveStudyDuration = studySessionDuration > 0 ? studySessionDuration : (isRevisionMission ? (mission.duration || 15) : 0);
+
+        if (effectiveStudyDuration > 0) {
           const sessionId = `session-${Date.now()}`;
           updatedMission.linkedSessionId = sessionId;
           const endTime = new Date();
-          const startTime = new Date(endTime.getTime() - studySessionDuration * 60000);
+          const startTime = new Date(endTime.getTime() - effectiveStudyDuration * 60000);
           const sessionPayload: StudySession = {
             id: sessionId,
             startTime: startTime.toISOString(),
             endTime: endTime.toISOString(),
-            duration: studySessionDuration,
-            type: mission.type === 'Solve Mock' ? 'Mock' : (mission.type === 'Solve DPP' || mission.type === 'Solve PYQs' ? 'Practice' : (mission.type === 'Revise Formulas' || mission.type === 'Review Mistakes' ? 'Revision' : 'Lecture')),
+            duration: effectiveStudyDuration,
+            type: mission.type === 'Solve Mock' ? 'Mock' : (mission.type === 'Solve DPP' || mission.type === 'Solve PYQs' ? 'Practice' : (isRevisionMission ? 'Revision' : 'Lecture')),
             subjectId: mission.subject as SubjectId,
             chapterId: chapter?.id,
             xpEarned: deltaXp,
@@ -359,7 +458,8 @@ export class TaskCompletionHandler extends BaseActions {
         xp: newXp,
         chapters: updatedChapters,
         studySessions: updatedStudySessions,
-        analytics: finalAnalytics
+        analytics: finalAnalytics,
+        mistakes: updatedMistakes
       });
 
       try {
@@ -372,7 +472,8 @@ export class TaskCompletionHandler extends BaseActions {
           xp: originalStateSnapshot.xp,
           chapters: originalStateSnapshot.chapters,
           studySessions: originalStateSnapshot.studySessions,
-          analytics: originalStateSnapshot.analytics
+          analytics: originalStateSnapshot.analytics,
+          mistakes: originalStateSnapshot.mistakes
         });
         throw err;
       }

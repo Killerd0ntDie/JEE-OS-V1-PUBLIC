@@ -79,22 +79,27 @@ export function buildRevisionPlan(input: BuildRevisionPlanInput): RevisionPlanOu
 
     // Wall-clock elapsed days calculation
     let elapsedDays = 0;
-    if (chap.lastRevisedAt) {
-      const parsedTime = new Date(chap.lastRevisedAt).getTime();
+    const lastRevStr = chap.lastRevisedAt || chap.revisionProgress?.lastRevisedAt;
+    if (lastRevStr) {
+      const parsedTime = new Date(lastRevStr).getTime();
       if (!Number.isNaN(parsedTime)) {
         elapsedDays = Math.max(0, Math.floor((nowMs - parsedTime) / 86400000));
       }
     } else if (typeof chap.lastRevisionDaysAgo === 'number') {
       elapsedDays = chap.lastRevisionDaysAgo;
+    } else if (typeof chap.revisionProgress?.lastRevisedDaysAgo === 'number') {
+      elapsedDays = chap.revisionProgress.lastRevisedDaysAgo;
     }
 
     // Check if chapter was already revised today
     let isRevisedToday = false;
-    if (chap.lastRevisedAt) {
-      const parsedTime = new Date(chap.lastRevisedAt).getTime();
+    if (lastRevStr) {
+      const parsedTime = new Date(lastRevStr).getTime();
       if (!Number.isNaN(parsedTime)) {
         isRevisedToday = new Date(parsedTime).toDateString() === new Date(nowMs).toDateString();
       }
+    } else if (chap.lastRevisionDaysAgo === 0 || chap.revisionProgress?.lastRevisedDaysAgo === 0) {
+      isRevisedToday = true;
     }
 
     // Determine which mistakes are actually due for review today
@@ -135,7 +140,7 @@ export function buildRevisionPlan(input: BuildRevisionPlanInput): RevisionPlanOu
       }
     } else if (chap.revisionCount && chap.revisionCount > 0) {
       // Previously revised chapter without explicit nextRevisionDueAt
-      const interval = chap.sm2Interval || (chap.revisionCount === 1 ? 1 : chap.revisionCount === 2 ? 3 : 7);
+      const interval = chap.sm2Interval || (chap.revisionCount === 1 ? 3 : chap.revisionCount === 2 ? 7 : 14);
       if (elapsedDays >= interval) {
         isDue = true;
         daysOverdue = Math.max(0, elapsedDays - interval);
@@ -177,7 +182,9 @@ export function buildRevisionPlan(input: BuildRevisionPlanInput): RevisionPlanOu
       const sm2State = dbState || smEngine.legacyConfidenceToState('Medium');
 
       let cardIsDue = isDue;
-      if (dbState?.nextReviewDate) {
+      if (isRevisedToday) {
+        cardIsDue = false;
+      } else if (dbState?.nextReviewDate) {
         const nextMs = new Date(dbState.nextReviewDate).getTime();
         if (!Number.isNaN(nextMs)) {
           cardIsDue = nextMs <= nowMs;
@@ -220,7 +227,9 @@ export function buildRevisionPlan(input: BuildRevisionPlanInput): RevisionPlanOu
       const sm2State = dbState || smEngine.legacyConfidenceToState('Low');
 
       let cardIsDue = m.revisionStatus !== 'Mastered';
-      if (dbState?.nextReviewDate) {
+      if (isRevisedToday) {
+        cardIsDue = false;
+      } else if (dbState?.nextReviewDate) {
         const nextMs = new Date(dbState.nextReviewDate).getTime();
         if (!Number.isNaN(nextMs)) {
           cardIsDue = nextMs <= nowMs;

@@ -481,5 +481,51 @@ describe('RevisionEngine (BUG-10: Subject-Level Bleed Resolution)', () => {
       expect(result.urgentCards).toHaveLength(0);
       expect(result.notStartedChapters).toHaveLength(1);
     });
+
+    it('ensures chapters revised today are categorized with High retention and not overdue', () => {
+      const nowIso = new Date().toISOString();
+      const revisedTodayChapter: Chapter = {
+        id: 'p-kinematics',
+        name: 'Kinematics',
+        subject: 'physics',
+        status: 'Learning',
+        completion: 70,
+        totalLectures: 10,
+        currentLecture: 7,
+        theoryComplete: true,
+        dppComplete: true,
+        pyqsComplete: false,
+        revisionCount: 2,
+        lastRevisionDaysAgo: 0,
+        lastRevisedAt: nowIso,
+        nextRevisionDueAt: new Date(Date.now() + 3 * 86400000).toISOString(),
+        sm2Interval: 3,
+        sm2EaseFactor: 2.5
+      } as any;
+
+      const result = engine.generateRevisionTelemetry({
+        chapters: [revisedTodayChapter],
+        chapterTelemetryMap: {},
+        sessions: [
+          {
+            id: 's-rev-today',
+            startTime: nowIso,
+            endTime: nowIso,
+            duration: 30,
+            type: 'Revision',
+            subjectId: 'physics',
+            chapterId: 'p-kinematics',
+            xpEarned: 50
+          }
+        ],
+        mistakes: []
+      });
+
+      expect(result.overdueChapters).toHaveLength(0);
+      const summary = [...result.masteredChapters, ...result.upcomingChapters].find(c => c.chapterId === 'p-kinematics');
+      expect(summary).toBeDefined();
+      expect(summary?.retentionConfidence).toBe('High');
+      expect(result.urgentCards.filter(c => c.chapterId === 'p-kinematics')).toHaveLength(0);
+    });
   });
 });

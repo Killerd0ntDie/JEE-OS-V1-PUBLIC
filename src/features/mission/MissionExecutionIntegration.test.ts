@@ -187,6 +187,46 @@ describe('Mission Execution & Chapter State Flow Integration Audit', () => {
     chapSaveSpy.mockRestore();
   });
 
+  it('completes Revise Formulas mission, calculates SM-2, records revision StudySession, and updates nextRevisionDueAt', async () => {
+    const userSaveSpy = vi.spyOn(UserRepository, 'updateUserProfile').mockResolvedValueOnce();
+    const chapSaveSpy = vi.spyOn(ChapterRepository, 'saveChapter').mockResolvedValueOnce();
+
+    const revMission: TodayMission = {
+      id: 'custom-m-rev',
+      subject: 'physics',
+      chapter: 'Kinematics',
+      chapterId: 'p-kinematics',
+      type: 'Revise Formulas',
+      taskName: 'Revise Kinematics Formulas',
+      duration: 30,
+      completed: false,
+      xp: 50,
+      unlocked: true
+    };
+
+    runtime.updateStateOptimistic({
+      todayMissions: [...runtime.getState().todayMissions, revMission],
+      customMissions: [...runtime.getState().customMissions, revMission]
+    });
+
+    await actions.completeTask('custom-m-rev');
+
+    const state = runtime.getState();
+    const chap = state.chapters.find(c => c.id === 'p-kinematics');
+    expect(chap?.revisionCount).toBe(1);
+    expect(chap?.sm2Interval).toBe(1);
+    expect(chap?.lastRevisedAt).toBeDefined();
+    expect(chap?.nextRevisionDueAt).toBeDefined();
+    expect(chap?.revisionProgress?.retentionConfidence).toBe('High');
+
+    // StudySession recorded with type Revision
+    const session = state.studySessions.find(s => s.chapterId === 'p-kinematics' && s.type === 'Revision');
+    expect(session).toBeDefined();
+
+    userSaveSpy.mockRestore();
+    chapSaveSpy.mockRestore();
+  });
+
   it('reverts local state change and surfaces sync error if repository write fails', async () => {
     const userSaveSpy = vi.spyOn(UserRepository, 'updateUserProfile').mockRejectedValueOnce(new Error('Network error'));
 
