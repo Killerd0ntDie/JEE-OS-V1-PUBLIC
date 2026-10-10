@@ -141,16 +141,16 @@ export function generateCandidateTasks(
     const chapterMeta = input.chapters?.find(c => c.id === rev.chapterId);
     if (node && !chapterMeta?.chapterOnHold && !chapterMeta?.revisionOnHold) {
       // Safety 1: Skip if chapter was already revised today
-      const lastRev = chapterMeta.lastRevisedAt || chapterMeta.revisionProgress?.lastRevisedAt;
+      const lastRev = chapterMeta?.lastRevisedAt || chapterMeta?.revisionProgress?.lastRevisedAt;
       const isRevisedToday = Boolean(
         (lastRev && new Date(lastRev).toDateString() === currentDateObj.toDateString()) ||
-        chapterMeta.lastRevisionDaysAgo === 0 ||
-        chapterMeta.revisionProgress?.lastRevisedDaysAgo === 0
+        chapterMeta?.lastRevisionDaysAgo === 0 ||
+        chapterMeta?.revisionProgress?.lastRevisedDaysAgo === 0
       );
       if (isRevisedToday) continue;
 
       // Safety 2: Skip if chapter nextRevisionDueAt is in the future
-      if (chapterMeta.nextRevisionDueAt && new Date(chapterMeta.nextRevisionDueAt).getTime() > currentDateObj.getTime()) {
+      if (chapterMeta?.nextRevisionDueAt && new Date(chapterMeta.nextRevisionDueAt).getTime() > currentDateObj.getTime()) {
         continue;
       }
 

@@ -50,6 +50,8 @@ describe('MockTestActions Bidirectional Timeline Sync', () => {
       analytics: {
         studyTime: 0,
         focusTime: 0,
+        idleTime: 0,
+        breakTime: 0,
         questionsSolved: 0,
         accuracy: 0,
         tasksCompleted: 0,
@@ -67,7 +69,8 @@ describe('MockTestActions Bidirectional Timeline Sync', () => {
       todayMissions: [
         {
           id: 'mission-mock-1',
-          subject: 'all',
+          chapter: 'Full Mock',
+          subject: 'physics',
           type: 'Solve Mock',
           taskName: 'Complete Full Mock Test 1',
           duration: 180,

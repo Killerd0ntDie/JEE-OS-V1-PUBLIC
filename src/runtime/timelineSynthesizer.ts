@@ -95,7 +95,7 @@ export function synthesizeDailyMissionsAndTimeline(input: TimelineSynthesisInput
   });
 
   // During overnight hours (before dayStartTime), the student is still on the previous day's schedule
-  const dayStartHour = parseInt((settings?.dayStartTime || '07:00').split(':')[0]) || 7;
+  const dayStartHour = parseInt((settings?.dayStartTime || '07:00').split(':')[0], 10) || 7;
   const nowForDay = new Date();
   if (nowForDay.getHours() < dayStartHour) {
     nowForDay.setDate(nowForDay.getDate() - 1);
@@ -124,7 +124,7 @@ export function synthesizeDailyMissionsAndTimeline(input: TimelineSynthesisInput
 
   // Map generated matrix blocks back to todayMissions to synchronize Dashboard and Planner
   const currentDayBlocks = weeklySchedule.filter(b => b.dayIndex === currentDayIndex);
-  let todayMissions: TodayMission[] = currentDayBlocks.map(b => {
+  const todayMissions: TodayMission[] = currentDayBlocks.map(b => {
     const originalId = b.id.startsWith('today-') ? b.id.slice(6) : b.id;
     const original = uniqueMissions.get(originalId);
     const parentId = (b as any).parentTaskId || originalId.replace(/^break-/, '').replace(/^break-after-/, '');
@@ -151,7 +151,7 @@ export function synthesizeDailyMissionsAndTimeline(input: TimelineSynthesisInput
       priorityScore: b.priorityScore,
       reasoning: b.reasoning,
       dismissed: original?.dismissed ?? false,
-      isManualOverride: (b as typeof b & { isManualOverride?: boolean }).isManualOverride ?? false,
+      isManualOverride: (b as typeof b & { isManualOverride?: boolean }).isManualOverride ?? original?.isManualOverride ?? false,
       scheduledDate: (b as typeof b & { scheduledDate?: string }).scheduledDate,
       scheduledTime: (b as typeof b & { scheduledTime?: string }).scheduledTime
     };

@@ -133,7 +133,7 @@ export class MistakeActions extends BaseActions {
 
     // Check if other pending mistakes exist for this chapter
     const otherPending = this.state.mistakes.some(
-      m => m.id !== resolvedMistakeId && m.chapterId === chapterId && (m.revisionStatus === 'Pending' || !m.revisionStatus)
+      m => m.id !== resolvedMistakeId && m.chapterId === chapterId && (m.revisionStatus === 'New' || (m.revisionStatus as string) === 'Pending' || !m.revisionStatus)
     );
 
     // If other pending mistakes still exist for this chapter, do not auto-complete the mission yet

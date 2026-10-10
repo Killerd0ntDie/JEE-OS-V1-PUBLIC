@@ -21,6 +21,12 @@
       ],
       "@/engines/*": [
         "./packages/engines/src/*"
+      ],
+      "@jee-os/engines": [
+        "./packages/engines/src/index.ts"
+      ],
+      "@jee-os/engines/*": [
+        "./packages/engines/src/*"
       ]
     },
     "allowImportingTsExtensions": true,

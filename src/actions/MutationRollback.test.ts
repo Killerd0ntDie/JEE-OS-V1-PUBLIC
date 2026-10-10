@@ -13,6 +13,14 @@ vi.mock('../firebase', () => ({
   db: {}
 }));
 
+vi.mock('@/repositories/studySessionRepository', () => ({
+  StudySessionRepository: {
+    saveStudySession: vi.fn().mockResolvedValue(undefined),
+    deleteStudySession: vi.fn().mockResolvedValue(undefined),
+    getStudySessions: vi.fn().mockResolvedValue([])
+  }
+}));
+
 describe('StudyBrainActions - Optimistic Mutation Rollbacks', () => {
   let runtime: StudyBrainRuntime;
   let actions: StudyBrainActions;

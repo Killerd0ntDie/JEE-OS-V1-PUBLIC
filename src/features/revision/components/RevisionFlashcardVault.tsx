@@ -50,6 +50,20 @@ function getConfidenceBadge(confidence: 'High' | 'Medium' | 'Low' | 'Not Started
   }
 }
 
+function formatRevisionDate(dateStr?: string): string {
+  if (!dateStr) return 'Never revised';
+  try {
+    const timestamp = new Date(dateStr).getTime();
+    if (Number.isNaN(timestamp)) return 'Never revised';
+    const diffDays = Math.floor((Date.now() - timestamp) / 86400000);
+    if (diffDays <= 0) return 'Revised today';
+    if (diffDays === 1) return 'Revised yesterday';
+    return `Revised ${diffDays}d ago`;
+  } catch {
+    return 'Never revised';
+  }
+}
+
 interface RevisionFlashcardItemProps {
   card: RevisionCardItem;
   isAnimating: boolean;
@@ -680,7 +694,7 @@ export const RevisionFlashcardVault: React.FC<RevisionFlashcardVaultProps> = ({
                     </div>
 
                     <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[10px] font-mono text-zinc-400">
-                      <span>{chap.lastRevisionDate ? `Revised ${chap.lastRevisionDate}` : 'Never revised'}</span>
+                      <span>{formatRevisionDate(chap.lastRevisionDate)}</span>
                       <span className="text-indigo-400 group-hover:text-indigo-300 font-bold flex items-center gap-1">
                         <span>Inspect</span>
                         <ChevronRight className="w-3 h-3" />

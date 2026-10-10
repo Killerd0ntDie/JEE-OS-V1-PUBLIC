@@ -127,17 +127,20 @@ export function buildRevisionPlan(input: BuildRevisionPlanInput): RevisionPlanOu
       // If chapter was already revised today, it is not due today
       isDue = false;
       daysOverdue = 0;
-    } else if (chap.status === 'Revision Due') {
-      isDue = true;
-      daysOverdue = Math.max(1, elapsedDays);
     } else if (chap.nextRevisionDueAt) {
       const dueMs = new Date(chap.nextRevisionDueAt).getTime();
       if (!Number.isNaN(dueMs)) {
         if (dueMs <= nowMs) {
           isDue = true;
           daysOverdue = Math.max(0, Math.floor((nowMs - dueMs) / 86400000));
+        } else {
+          isDue = false;
+          daysOverdue = 0;
         }
       }
+    } else if (chap.status === 'Revision Due') {
+      isDue = true;
+      daysOverdue = Math.max(1, elapsedDays);
     } else if (chap.revisionCount && chap.revisionCount > 0) {
       // Previously revised chapter without explicit nextRevisionDueAt
       const interval = chap.sm2Interval || (chap.revisionCount === 1 ? 3 : chap.revisionCount === 2 ? 7 : 14);

@@ -5,6 +5,10 @@ export interface SM2State {
   nextReviewDate?: string; // ISO string
 }
 
+export interface SM2Options {
+  isChapterLevel?: boolean;
+}
+
 export class SpacedRepetitionEngine {
   /**
    * SuperMemo-2 Algorithm Implementation
@@ -15,36 +19,60 @@ export class SpacedRepetitionEngine {
    * 3: Correct response recalled with serious difficulty
    * 4: Correct response after a hesitation
    * 5: Perfect response
-   * @param previousState The previous SM2 state of the flashcard
+   * @param previousState The previous SM2 state of the flashcard or chapter
+   * @param options Additional calculation options (e.g. isChapterLevel)
    * @returns The updated SM2 state
    */
-  public calculateNextReview(quality: number, previousState?: SM2State): SM2State {
-    // If quality is invalid, constrain it to 0-5
-    quality = Math.max(0, Math.min(5, Math.round(quality)));
+  public calculateNextReview(quality: number, previousState?: SM2State, options?: SM2Options): SM2State {
+    // If quality is invalid, constrain it to 0-5 (defaulting to 3 if missing or NaN)
+    const rawQuality = typeof quality === 'number' && !Number.isNaN(quality) ? quality : 3;
+    const safeQuality = Math.max(0, Math.min(5, Math.round(rawQuality)));
 
-    let { repetitions, easeFactor, interval } = previousState || {
-      repetitions: 0,
-      easeFactor: 2.5,
-      interval: 0,
-    };
+    let repetitions = typeof previousState?.repetitions === 'number' && !Number.isNaN(previousState.repetitions)
+      ? previousState.repetitions
+      : 0;
+    let easeFactor = typeof previousState?.easeFactor === 'number' && !Number.isNaN(previousState.easeFactor)
+      ? previousState.easeFactor
+      : 2.5;
+    let interval = typeof previousState?.interval === 'number' && !Number.isNaN(previousState.interval)
+      ? previousState.interval
+      : 0;
 
-    // If the response was incorrect (0-2), reset repetitions but keep the modified ease factor
-    if (quality < 3) {
-      repetitions = 0;
-      interval = 1;
-    } else {
-      if (repetitions === 0) {
+    if (options?.isChapterLevel) {
+      if (safeQuality < 3) {
+        repetitions = 0;
         interval = 1;
-      } else if (repetitions === 1) {
-        interval = 6;
       } else {
-        interval = Math.round(interval * easeFactor);
+        if (repetitions === 0) {
+          interval = quality >= 4 ? 3 : 2;
+        } else if (repetitions === 1) {
+          interval = quality >= 4 ? 7 : 4;
+        } else if (repetitions === 2) {
+          interval = quality >= 4 ? 14 : 7;
+        } else {
+          interval = Math.round(interval * easeFactor);
+        }
+        repetitions += 1;
       }
-      repetitions += 1;
+    } else {
+      // Default card-level SM-2 algorithm
+      if (safeQuality < 3) {
+        repetitions = 0;
+        interval = 1;
+      } else {
+        if (repetitions === 0) {
+          interval = 1;
+        } else if (repetitions === 1) {
+          interval = 6;
+        } else {
+          interval = Math.round(interval * easeFactor);
+        }
+        repetitions += 1;
+      }
     }
 
     // Update ease factor: EF':=EF+(0.1-(5-q)*(0.08+(5-q)*0.02))
-    easeFactor = easeFactor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02));
+    easeFactor = easeFactor + (0.1 - (5 - safeQuality) * (0.08 + (5 - safeQuality) * 0.02));
     
     // Ease factor lower bound (1.3), uncapped upper bound per SM-2
     easeFactor = Math.max(1.3, easeFactor);

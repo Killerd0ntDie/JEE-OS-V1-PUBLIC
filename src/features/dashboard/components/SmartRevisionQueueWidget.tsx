@@ -309,7 +309,9 @@ export function DailyChapterReviewWidget({
                         <div className="flex items-center gap-3 text-[11px] text-zinc-300 font-mono flex-wrap">
                           <span className="flex items-center gap-1">
                             <Clock className="w-3 h-3 text-zinc-400" />
-                            {daysAgo !== undefined && daysAgo > 0 ? `Revised ${daysAgo}d ago` : 'Never reviewed'}
+                            {chap.lastRevisedAt || (chap.revisionCount && chap.revisionCount > 0)
+                              ? (daysAgo === 0 ? 'Revised today' : daysAgo === 1 ? 'Revised yesterday' : `Revised ${daysAgo}d ago`)
+                              : (daysAgo !== undefined && daysAgo > 0 ? `Revised ${daysAgo}d ago` : 'Never reviewed')}
                           </span>
                           <span>•</span>
                           <span>{chap.revisionCount || 0} reviews</span>

@@ -463,14 +463,27 @@ export class RevisionEngine {
     allCards.sort((a, b) => b.urgencyRank - a.urgencyRank);
 
     // Urgent cards: ONLY include genuine formulas and mistakes (strictly NO proof-of-work notes)
-    // from running and completed chapters
+    // from running and completed chapters (excluding chapters already revised today)
+    const revisedTodayChapterIds = new Set(
+      chapters
+        .filter(c => {
+          const lastRev = c.lastRevisedAt || c.revisionProgress?.lastRevisedAt;
+          return Boolean(
+            (lastRev && new Date(lastRev).toDateString() === new Date().toDateString()) ||
+            c.lastRevisionDaysAgo === 0 ||
+            c.revisionProgress?.lastRevisedDaysAgo === 0
+          );
+        })
+        .map(c => c.id)
+    );
+
     const urgentCards = allCards
-      .filter(c => c.cardType !== 'note' && (c.retentionConfidence === 'Low' || c.retentionConfidence === 'Medium'))
+      .filter(c => c.cardType !== 'note' && (c.retentionConfidence === 'Low' || c.retentionConfidence === 'Medium') && !revisedTodayChapterIds.has(c.chapterId))
       .slice(0, 10);
 
-    // If urgentCards has fewer than 5 items, backfill with high-yield formula cards from allCards (strictly running/completed)
+    // If urgentCards has fewer than 5 items, backfill with high-yield formula cards from allCards (strictly running/completed and not revised today)
     if (urgentCards.length < 5) {
-      const formulaCards = allCards.filter(c => c.cardType === 'formula' && !urgentCards.some(u => u.id === c.id));
+      const formulaCards = allCards.filter(c => c.cardType === 'formula' && !urgentCards.some(u => u.id === c.id) && !revisedTodayChapterIds.has(c.chapterId));
       urgentCards.push(...formulaCards.slice(0, 10 - urgentCards.length));
     }
 

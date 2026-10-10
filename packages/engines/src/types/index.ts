@@ -152,7 +152,9 @@ export interface TodayMission {
   scheduledTime?: string;   // HH:MM e.g. '07:00'
   timeSlot?: string;
   isManualOverride?: boolean;
+  isCustom?: boolean;
   completed: boolean;
+  completedAt?: string;
   xp: number;
   partialXpAwarded?: number;
   unlocked: boolean;

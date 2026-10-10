@@ -177,11 +177,12 @@ describe('MistakeActions Domain Logic', () => {
             dateLogged: '2026-09-01T00:00:00Z',
             timeTaken: 3,
             recoveryScore: 10
-          } as Mistake
+          } as unknown as Mistake
         ],
         todayMissions: [
           {
             id: 'mission-mistake-kin',
+            chapter: 'Kinematics',
             chapterId: 'chap-kinematics',
             subject: 'physics',
             type: 'Review Mistakes',
@@ -223,11 +224,12 @@ describe('MistakeActions Domain Logic', () => {
             dateLogged: '2026-09-01T00:00:00Z',
             timeTaken: 5,
             recoveryScore: 20
-          } as Mistake
+          } as unknown as Mistake
         ],
         todayMissions: [
           {
             id: 'mission-mistake-chem',
+            chapter: 'Atomic Structure',
             chapterId: 'chap-atomic',
             subject: 'chemistry',
             type: 'Review Mistakes',

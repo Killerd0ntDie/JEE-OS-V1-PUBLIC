@@ -231,7 +231,8 @@ describe('ChapterActions SM-2 Integration', () => {
           duration: 60,
           completed: false,
           xp: 60,
-          unlocked: true
+          unlocked: true,
+          isManualOverride: true
         },
         {
           id: 'mission-dpp-kinematics',
@@ -243,7 +244,8 @@ describe('ChapterActions SM-2 Integration', () => {
           duration: 45,
           completed: false,
           xp: 50,
-          unlocked: false
+          unlocked: false,
+          isManualOverride: true
         },
         {
           id: 'mission-pyq-kinematics',
@@ -255,7 +257,8 @@ describe('ChapterActions SM-2 Integration', () => {
           duration: 60,
           completed: false,
           xp: 75,
-          unlocked: false
+          unlocked: false,
+          isManualOverride: true
         }
       ],
       completedPlannerMissionIds: []

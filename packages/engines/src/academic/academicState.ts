@@ -184,10 +184,10 @@ export function normalizeChapter(chapter: Chapter): Chapter {
 
   let syllabusStage: SyllabusDiagnosisStage = chapter.syllabusStage || 'Not Started';
   
-  if (isMastered) {
-    syllabusStage = 'Mastered';
-  } else if (chapter.status === 'Revision Due' || chapter.syllabusStage === 'Revision') {
+  if (chapter.status === 'Revision Due') {
     syllabusStage = 'Revision';
+  } else if (isMastered) {
+    syllabusStage = 'Mastered';
   } else if (isUnstarted) {
     syllabusStage = 'Not Started';
   } else if (chapter.pyqsComplete) {
@@ -196,14 +196,14 @@ export function normalizeChapter(chapter: Chapter): Chapter {
     syllabusStage = 'Solving DPPs';
   } else if (chapter.theoryComplete || (chapter.currentLecture && chapter.currentLecture > 0)) {
     syllabusStage = 'Watching Lectures';
-  } else if (chapter.status === 'Learning' && syllabusStage === 'Not Started') {
-    // If it was manually set to Learning but has no stage yet, default to early learning stage
+  } else if (chapter.status === 'Learning' && (syllabusStage === 'Not Started' || syllabusStage === 'Revision')) {
     syllabusStage = 'Watching Lectures'; 
   }
 
   const mappedStatus: Chapter['status'] = 
+    chapter.status === 'Revision Due' ? 'Revision Due' :
     syllabusStage === 'Mastered' ? 'Mastered' :
-    syllabusStage === 'Revision' || chapter.status === 'Revision Due' ? 'Revision Due' :
+    syllabusStage === 'Revision' ? 'Revision Due' :
     (syllabusStage === 'Not Started' && chapter.status !== 'Learning') ? 'Not Started' :
     chapter.status === 'Theory Complete' ? 'Theory Complete' :
     chapter.status === 'DPP Pending' ? 'DPP Pending' :
@@ -232,6 +232,12 @@ export function normalizeChapter(chapter: Chapter): Chapter {
     pyqsComplete: mappedStatus === 'Not Started' ? false : (chapter.pyqsComplete === true || acad.practiceProgress.pyqsCompleted === true || acad.practiceProgress.pyqPercent === 100),
     confidence: typeof acad.practiceProgress.confidencePercent === 'number' && !Number.isNaN(acad.practiceProgress.confidencePercent) ? acad.practiceProgress.confidencePercent : 0,
     lastRevisionDaysAgo: mappedStatus === 'Not Started' ? 0 : (typeof acad.revisionState.lastRevisedDaysAgo === 'number' && !Number.isNaN(acad.revisionState.lastRevisedDaysAgo) ? acad.revisionState.lastRevisedDaysAgo : 0),
+    lastRevisedAt: chapter.lastRevisedAt || acad.revisionState.lastRevisedAt || chapter.revisionProgress?.lastRevisedAt,
+    nextRevisionDueAt: chapter.nextRevisionDueAt,
+    revisionCount: typeof chapter.revisionCount === 'number' ? chapter.revisionCount : 0,
+    sm2Interval: chapter.sm2Interval,
+    sm2EaseFactor: chapter.sm2EaseFactor,
+    flashcardStates: chapter.flashcardStates,
     estimatedRemainingTime: mappedStatus === 'Not Started' ? 0 : (typeof acad.estimatedRemainingTimeHours === 'number' && !Number.isNaN(acad.estimatedRemainingTimeHours) ? acad.estimatedRemainingTimeHours : 0),
     retentionScore: mappedStatus === 'Not Started' ? 90 : (acad.revisionState.retentionScore ?? 60),
     healthScore: mappedStatus === 'Not Started' ? 100 : Math.round((acad.practiceProgress.accuracyPercent * 0.6) + ((acad.revisionState.retentionScore ?? 60) * 0.4)),

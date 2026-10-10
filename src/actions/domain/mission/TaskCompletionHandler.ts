@@ -208,7 +208,8 @@ export class TaskCompletionHandler extends BaseActions {
           let revisionProgress = c.revisionProgress;
           let flashcardStates = c.flashcardStates;
 
-          let statusUpdate: Chapter['status'] | undefined ;
+          let statusUpdate: Chapter['status'] | undefined;
+          let syllabusStageUpdate: Chapter['syllabusStage'] | undefined;
 
           if (isCompleting) {
             if (mission.type === 'Watch Lecture') {
@@ -242,11 +243,11 @@ export class TaskCompletionHandler extends BaseActions {
                 quality >= 4 ? 'High' : quality >= 3 ? 'Medium' : 'Low';
 
               revisionProgress = {
+                ...(c.revisionProgress || {}),
                 formulaMemoryPercent: quality >= 4 ? 95 : quality >= 3 ? 70 : 40,
                 questionSolvingConfidencePercent: c.revisionProgress?.questionSolvingConfidencePercent || 80,
                 needRevision: quality < 3,
                 retentionScore: quality >= 4 ? 100 : quality >= 3 ? 70 : 40,
-                ...(c.revisionProgress || {}),
                 lastRevisedDaysAgo: 0,
                 retentionConfidence: confLabel,
                 lastRevisedAt: nowIso
@@ -272,8 +273,24 @@ export class TaskCompletionHandler extends BaseActions {
                 flashcardStates = updatedCards;
               }
 
-              if (c.status === 'Revision Due') {
-                statusUpdate = c.theoryComplete ? 'Theory Complete' : 'Learning';
+              syllabusStageUpdate = c.syllabusStage;
+              if (c.status === 'Revision Due' || c.syllabusStage === 'Revision') {
+                if (c.theoryComplete && dppComplete && pyqsComplete) {
+                  statusUpdate = 'Mastered';
+                  syllabusStageUpdate = 'Mastered';
+                } else if (pyqsComplete) {
+                  statusUpdate = 'Mastered';
+                  syllabusStageUpdate = 'Solving PYQs';
+                } else if (dppComplete) {
+                  statusUpdate = 'PYQ Pending';
+                  syllabusStageUpdate = 'Solving DPPs';
+                } else if (c.theoryComplete) {
+                  statusUpdate = 'Theory Complete';
+                  syllabusStageUpdate = 'Watching Lectures';
+                } else {
+                  statusUpdate = 'Learning';
+                  syllabusStageUpdate = 'Watching Lectures';
+                }
               } else {
                 statusUpdate = c.status;
               }
@@ -316,6 +333,7 @@ export class TaskCompletionHandler extends BaseActions {
           const updatedChap: Chapter = {
             ...c,
             ...(statusUpdate ? { status: statusUpdate } : {}),
+            ...(syllabusStageUpdate ? { syllabusStage: syllabusStageUpdate } : {}),
             currentLecture,
             lectureProgress: updatedLectureProgress,
             practiceProgress: updatedPracticeProgress,

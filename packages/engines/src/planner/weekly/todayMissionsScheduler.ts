@@ -276,6 +276,7 @@ export function scheduleTodayMissions(
       durationMinutes: duration,
       completed: m.completed,
       priorityScore: m.priorityScore || 94,
+      isManualOverride: isManualOverride,
       reasoning: {
         whySelected: m.reasoning?.whySelected || m.whyThisTaskExists || `High leverage task prioritized by PlannerEngine.`,
         dependentChapters: m.futureDependencies || [],

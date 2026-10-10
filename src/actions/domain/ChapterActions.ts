@@ -238,7 +238,13 @@ export class ChapterActions extends BaseActions {
 
     let updatedChapter: Chapter;
     if (typeof updates === 'object' && updates !== null) {
-      updatedChapter = normalizeChapter({ ...chapter, ...updates });
+      updatedChapter = normalizeChapter({
+        ...chapter,
+        ...updates,
+        ...(theoryComplete !== undefined ? { theoryComplete } : {}),
+        ...(dppComplete !== undefined ? { dppComplete } : {}),
+        ...(pyqsComplete !== undefined ? { pyqsComplete } : {})
+      });
     } else {
       const newLec = typeof updates === 'number' ? updates : chapter.currentLecture;
       updatedChapter = normalizeChapter({
@@ -348,30 +354,49 @@ export class ChapterActions extends BaseActions {
         interval: chapter.sm2Interval ?? 0,
       });
 
-      const nextStatus = chapter.status === 'Revision Due'
-        ? (chapter.theoryComplete ? 'Theory Complete' : 'Learning')
-        : chapter.status;
+      let nextStatus = chapter.status;
+      let nextSyllabusStage = chapter.syllabusStage;
+      if (chapter.status === 'Revision Due' || chapter.syllabusStage === 'Revision') {
+        if (chapter.theoryComplete && chapter.dppComplete && chapter.pyqsComplete) {
+          nextStatus = 'Mastered';
+          nextSyllabusStage = 'Mastered';
+        } else if (chapter.pyqsComplete) {
+          nextStatus = 'Mastered';
+          nextSyllabusStage = 'Solving PYQs';
+        } else if (chapter.dppComplete) {
+          nextStatus = 'PYQ Pending';
+          nextSyllabusStage = 'Solving DPPs';
+        } else if (chapter.theoryComplete) {
+          nextStatus = 'Theory Complete';
+          nextSyllabusStage = 'Watching Lectures';
+        } else {
+          nextStatus = 'Learning';
+          nextSyllabusStage = 'Watching Lectures';
+        }
+      }
 
+      const nowIso = new Date().toISOString();
       const updatedChapter: Chapter = { 
         ...chapter, 
         status: nextStatus,
+        syllabusStage: nextSyllabusStage,
         revisionCount: sm2Result.repetitions,
         confidence: confScore,
         lastRevisionDaysAgo: 0,
         revisionProgress: {
+          ...(chapter.revisionProgress || {}),
           formulaMemoryPercent: confidence === 'High' ? 95 : confidence === 'Medium' ? 70 : 40,
           questionSolvingConfidencePercent: chapter.revisionProgress?.questionSolvingConfidencePercent || 80,
           needRevision: confidence === 'Low',
           retentionScore: confScore,
-          ...(chapter.revisionProgress || {}),
           lastRevisedDaysAgo: 0,
           retentionConfidence: confidence,
-          lastRevisedAt: new Date().toISOString()
+          lastRevisedAt: nowIso
         },
         sm2EaseFactor: sm2Result.easeFactor,
         sm2Interval: sm2Result.interval,
         nextRevisionDueAt: sm2Result.nextReviewDate,
-        lastRevisedAt: new Date().toISOString()
+        lastRevisedAt: nowIso
       };
 
       // Synchronize matching todayMissions: mark them completed
@@ -386,8 +411,9 @@ export class ChapterActions extends BaseActions {
         const matchesChapter = (m.chapterId && m.chapterId === chapterIdStr) ||
           (m.chapter && m.chapter.toLowerCase() === chapterNameLower) ||
           (m.chapterName && m.chapterName.toLowerCase() === chapterNameLower);
-        const isRevisionType = m.type === 'Revise Formulas' || m.type === 'Review Mistakes' ||
-          (m.taskName?.toLowerCase().includes('revise'));
+        const isRevisionType = m.type === 'Revise Formulas' || m.type === 'Review Mistakes' || (m.type as string) === 'Revision' ||
+          (m.taskName?.toLowerCase().includes('revise')) ||
+          (m.taskName?.toLowerCase().includes('repetition'));
 
         if (matchesChapter && isRevisionType && !m.completed) {
           hasMissionChanges = true;
@@ -481,11 +507,20 @@ export class ChapterActions extends BaseActions {
     }
   }
 
-  async gradeFlashcardsBatch(grades: Array<{ cardId: string; chapterId: string; quality: number }>) {
+  async gradeFlashcardsBatch(grades: Array<{ cardId: string; chapterId: string; quality?: number; rating?: string }>) {
     this.checkWriteBlock();
     if (!grades || grades.length === 0) return;
 
     const smEngine = new SpacedRepetitionEngine();
+
+    const resolveQuality = (g: { quality?: number; rating?: string }): number => {
+      if (typeof g.quality === 'number' && !Number.isNaN(g.quality)) return g.quality;
+      if (g.rating === 'Easy') return 5;
+      if (g.rating === 'Good') return 4;
+      if (g.rating === 'Hard') return 3;
+      if (g.rating === 'Again') return 1;
+      return 4;
+    };
 
     // Group grades by chapterId
     const gradesByChapter = new Map<string, Array<{ cardId: string; quality: number }>>();
@@ -493,7 +528,7 @@ export class ChapterActions extends BaseActions {
       if (!gradesByChapter.has(g.chapterId)) {
         gradesByChapter.set(g.chapterId, []);
       }
-      gradesByChapter.get(g.chapterId)!.push({ cardId: g.cardId, quality: g.quality });
+      gradesByChapter.get(g.chapterId)!.push({ cardId: g.cardId, quality: resolveQuality(g) });
     });
 
     let totalFlashcardXP = 0;
@@ -558,9 +593,26 @@ export class ChapterActions extends BaseActions {
         interval: chapter.sm2Interval ?? 0,
       });
 
-      const nextStatus = chapter.status === 'Revision Due'
-        ? (chapter.theoryComplete ? 'Theory Complete' : 'Learning')
-        : chapter.status;
+      let nextStatus = chapter.status;
+      let nextSyllabusStage = chapter.syllabusStage;
+      if (chapter.status === 'Revision Due' || chapter.syllabusStage === 'Revision') {
+        if (chapter.theoryComplete && chapter.dppComplete && chapter.pyqsComplete) {
+          nextStatus = 'Mastered';
+          nextSyllabusStage = 'Mastered';
+        } else if (chapter.pyqsComplete) {
+          nextStatus = 'Mastered';
+          nextSyllabusStage = 'Solving PYQs';
+        } else if (chapter.dppComplete) {
+          nextStatus = 'PYQ Pending';
+          nextSyllabusStage = 'Solving DPPs';
+        } else if (chapter.theoryComplete) {
+          nextStatus = 'Theory Complete';
+          nextSyllabusStage = 'Watching Lectures';
+        } else {
+          nextStatus = 'Learning';
+          nextSyllabusStage = 'Watching Lectures';
+        }
+      }
 
       const nowIso = new Date().toISOString();
       const confLabel: 'High' | 'Medium' | 'Low' =
@@ -569,6 +621,7 @@ export class ChapterActions extends BaseActions {
       modifiedChaptersMap.set(chapterId, {
         ...chapter,
         status: nextStatus,
+        syllabusStage: nextSyllabusStage,
         revisionCount: chapterSm2.repetitions,
         sm2EaseFactor: chapterSm2.easeFactor,
         sm2Interval: chapterSm2.interval,
@@ -576,11 +629,11 @@ export class ChapterActions extends BaseActions {
         lastRevisedAt: nowIso,
         lastRevisionDaysAgo: 0,
         revisionProgress: {
+          ...(chapter.revisionProgress || {}),
           formulaMemoryPercent: avgQuality >= 4 ? 95 : avgQuality >= 3 ? 70 : 40,
           questionSolvingConfidencePercent: chapter.revisionProgress?.questionSolvingConfidencePercent || 80,
           needRevision: avgQuality < 3,
           retentionScore: avgQuality >= 4 ? 100 : avgQuality >= 3 ? 70 : 40,
-          ...(chapter.revisionProgress || {}),
           lastRevisedDaysAgo: 0,
           retentionConfidence: confLabel,
           lastRevisedAt: nowIso
@@ -623,8 +676,9 @@ export class ChapterActions extends BaseActions {
       const matchesChapter = (m.chapterId && modifiedChapterIds.has(m.chapterId)) ||
         (m.chapter && modifiedChapterNames.has(m.chapter.toLowerCase())) ||
         (m.chapterName && modifiedChapterNames.has(m.chapterName.toLowerCase()));
-      const isRevisionType = m.type === 'Revise Formulas' || m.type === 'Review Mistakes' ||
-        (m.taskName?.toLowerCase().includes('revise'));
+      const isRevisionType = m.type === 'Revise Formulas' || m.type === 'Review Mistakes' || (m.type as string) === 'Revision' ||
+        (m.taskName?.toLowerCase().includes('revise')) ||
+        (m.taskName?.toLowerCase().includes('repetition'));
 
       if (matchesChapter && isRevisionType && !m.completed) {
         hasMissionChanges = true;
